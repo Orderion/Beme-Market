@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./Home.css";
 import Navbar from "../components/Navbar";
-import Categories from "../components/Categories";
+import PopularCategories from "../components/PopularCategories";
 import Sidebar from "../components/Sidebar";
 
 export default function Home() {
@@ -48,7 +48,7 @@ export default function Home() {
       </section>
 
       {/* CATEGORIES */}
-      <Categories />
+      <PopularCategories />
 
       {/* CONTINUE SHOPPING */}
       <section className="section">
