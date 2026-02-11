@@ -1,7 +1,6 @@
 import { useState } from "react";
 import "./Home.css";
 import Navbar from "../components/Navbar";
-import PopularCategories from "../components/PopularCategories";
 import Sidebar from "../components/Sidebar";
 
 export default function Home() {
@@ -46,9 +45,6 @@ export default function Home() {
           <button className="primary-btn">View collection</button>
         </div>
       </section>
-
-      {/* CATEGORIES */}
-      <PopularCategories />
 
       {/* CONTINUE SHOPPING */}
       <section className="section">
