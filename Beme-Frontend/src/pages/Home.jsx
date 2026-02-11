@@ -17,7 +17,7 @@ export default function Home() {
           <Menu size={22} />
         </button>
 
-        <h1 className="logo">juventus</h1>
+        <h1 className="logo">Beme Market</h1>
 
         <button className="icon-btn">
           <Search size={20} />
