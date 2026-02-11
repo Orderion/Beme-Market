@@ -45,7 +45,7 @@ export default function Home() {
       <section className="hero">
         <div className="hero-overlay">
           <span className="badge">Lowest price</span>
-          <h2>Juventus Home Jersey 2025/26</h2>
+          <h2>New Arriaval 2026</h2>
           <button className="primary-btn">View product</button>
         </div>
       </section>
@@ -54,7 +54,7 @@ export default function Home() {
       <section className="section">
         <div className="xmas-card">
           <div className="xmas-overlay">
-            <h2>XMAS Collections</h2>
+            <h2>Mintah's Kente</h2>
             <button className="primary-btn">View collection</button>
           </div>
         </div>
@@ -70,12 +70,12 @@ export default function Home() {
         <div className="product-scroll">
           <div className="product-card">
             <img src="https://via.placeholder.com/300x350" alt="" />
-            <p className="product-name">Home Jersey 2025/26</p>
+            <p className="product-name">Electronics</p>
           </div>
 
           <div className="product-card">
             <img src="https://via.placeholder.com/300x350" alt="" />
-            <p className="product-name">Away Jersey</p>
+            <p className="product-name">Ghana Made</p>
           </div>
         </div>
       </section>
