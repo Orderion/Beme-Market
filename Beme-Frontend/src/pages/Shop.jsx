@@ -1,5 +1,6 @@
 import React from "react";
 import ProductGrid from "../components/ProductGrid";
+import "./Shop.css";
 
 const Shop = () => {
   return (
