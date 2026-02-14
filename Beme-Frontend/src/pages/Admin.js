@@ -37,5 +37,7 @@ const Admin = () => {
     </div>
   );
 };
-
+if (prompt("Enter admin password") !== "beme2026") {
+  return <h2>Access Denied</h2>;
+}
 export default Admin;
