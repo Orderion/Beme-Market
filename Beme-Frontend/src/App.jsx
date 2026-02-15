@@ -1,18 +1,13 @@
-import { useState } from "react";
-import Home from "./pages/Home";
-import CartDrawer from "./components/CartDrawer";
+import { Routes, Route } from "react-router-dom";
+import Shop from "./pages/Shop";
 
-export default function App() {
-  const [cartOpen, setCartOpen] = useState(false);
-
+function App() {
   return (
-    <>
-      <Home />
-
-      <CartDrawer
-        isOpen={cartOpen}
-        onClose={() => setCartOpen(false)}
-      />
-    </>
+    <Routes>
+      <Route path="/" element={<div>Home</div>} />
+      <Route path="/shop" element={<Shop />} />
+    </Routes>
   );
 }
+
+export default App;
