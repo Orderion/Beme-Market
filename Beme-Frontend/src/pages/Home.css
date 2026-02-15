@@ -29,7 +29,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  transition: background 0.3s ease, color 0.3s ease;
+  transition: background 0.4s ease, color 0.4s ease;
 }
 
 .home {
@@ -259,3 +259,19 @@ body.dark .xmas-card {
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
 }
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 16px;
+
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+}
+
+body.dark .header {
+  background: rgba(20, 20, 20, 0.6);
+}
+
