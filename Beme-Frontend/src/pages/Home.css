@@ -1,22 +1,27 @@
-body {
-  margin: 0;
-  background: #0b0d10;
-  color: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
 .home {
   padding: 16px;
   max-width: 1200px;
   margin: auto;
 }
 
-/* HEADER */
+/* =========================
+   HEADER
+========================= */
+
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 16px;
+
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+}
+
+body.dark .header {
+  background: rgba(20, 20, 20, 0.6);
 }
 
 .logo {
@@ -29,14 +34,17 @@ body {
 .icon-btn {
   background: none;
   border: none;
-  color: white;
+  color: var(--text);
 }
 
-/* SEARCH */
+/* =========================
+   SEARCH
+========================= */
+
 .search-container {
   display: flex;
   align-items: center;
-  background: #1c1f26;
+  background: var(--soft);
   padding: 10px 14px;
   border-radius: 18px;
   margin-bottom: 16px;
@@ -51,11 +59,14 @@ body {
   background: none;
   border: none;
   outline: none;
-  color: white;
+  color: var(--text);
   width: 100%;
 }
 
-/* FILTER */
+/* =========================
+   FILTER
+========================= */
+
 .filter-bar {
   display: flex;
   gap: 10px;
@@ -64,15 +75,18 @@ body {
 }
 
 .filter-btn {
-  background: #1c1f26;
+  background: var(--soft);
   border: none;
   padding: 10px 16px;
   border-radius: 18px;
-  color: white;
+  color: var(--text);
   font-size: 14px;
 }
 
-/* HERO */
+/* =========================
+   HERO
+========================= */
+
 .hero {
   height: 320px;
   border-radius: 26px;
@@ -95,21 +109,29 @@ body {
 }
 
 .primary-btn {
-  background: white;
-  color: black;
+  background: var(--accent);
+  color: var(--button-text);
   padding: 10px 18px;
   border-radius: 999px;
   border: none;
   font-weight: 600;
+  cursor: pointer;
 }
 
-/* XMAS */
+/* =========================
+   XMAS
+========================= */
+
 .xmas-card {
   height: 240px;
   border-radius: 26px;
-  background: linear-gradient(135deg, #0f5132, #0b3d2e);
+  background: linear-gradient(135deg, #eaeaea, #dcdcdc);
   position: relative;
   overflow: hidden;
+}
+
+body.dark .xmas-card {
+  background: linear-gradient(135deg, #0f5132, #0b3d2e);
 }
 
 .xmas-overlay {
@@ -118,7 +140,10 @@ body {
   left: 20px;
 }
 
-/* PRODUCTS */
+/* =========================
+   PRODUCTS
+========================= */
+
 .product-scroll {
   display: flex;
   gap: 16px;
@@ -127,8 +152,8 @@ body {
 
 .product-card {
   min-width: 170px;
-  background: white;
-  color: black;
+  background: var(--card);
+  color: var(--text);
   border-radius: 22px;
   padding: 12px;
 }
@@ -143,21 +168,29 @@ body {
   font-size: 14px;
 }
 
-/* BADGE */
+/* =========================
+   BADGE
+========================= */
+
 .badge {
-  background: black;
+  background: var(--accent);
+  color: var(--button-text);
   padding: 6px 12px;
   border-radius: 999px;
   font-size: 12px;
 }
-/* SIDEBAR */
+
+/* =========================
+   SIDEBAR
+========================= */
+
 .side-panel {
   position: fixed;
   top: 0;
   left: 0;
   height: 100vh;
   width: 260px;
-  background: #0f1117;
+  background: var(--card);
   padding: 16px;
   transform: translateX(-100%);
   transition: transform 0.3s ease;
@@ -175,14 +208,6 @@ body {
   margin-bottom: 20px;
 }
 
-.close-btn {
-  background: rgba(0, 0, 0, 0);
-  border: none;
-  color: #ffffff;
-  font-size: 18px;
-  cursor: pointer;
-}
-
 .side-links {
   display: flex;
   flex-direction: column;
@@ -190,9 +215,9 @@ body {
 }
 
 .sidebar-link {
-  background: #1c1f26;
+  background: var(--soft);
   border: none;
-  color: #ffffff;
+  color: var(--text);
   padding: 12px;
   border-radius: 14px;
   text-align: left;
@@ -201,6 +226,11 @@ body {
 }
 
 .sidebar-link:hover {
-  background: #2a2f3a;
+  opacity: 0.8;
 }
 
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+}
