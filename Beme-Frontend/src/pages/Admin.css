@@ -1,0 +1,28 @@
+.admin {
+  padding: 40px;
+  max-width: 600px;
+  margin: auto;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.admin form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin input {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+}
+
+.admin button {
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: var(--button-text);
+  cursor: pointer;
+}

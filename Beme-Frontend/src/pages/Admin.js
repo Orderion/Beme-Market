@@ -1,43 +1,48 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { db, storage } from "../firebase";
 import { collection, addDoc } from "firebase/firestore";
-import { db } from "../firebase/config";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import "./Admin.css";
 
-const Admin = () => {
-  const [form, setForm] = useState({
-    name: "",
-    price: "",
-    image: "",
-  });
+export default function Admin() {
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [oldPrice, setOldPrice] = useState("");
+  const [image, setImage] = useState(null);
 
-  const handleChange = e => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async e => {
+  const handleUpload = async (e) => {
     e.preventDefault();
 
+    if (!image) return;
+
+    const imageRef = ref(storage, `products/${image.name}`);
+    await uploadBytes(imageRef, image);
+    const imageUrl = await getDownloadURL(imageRef);
+
     await addDoc(collection(db, "products"), {
-      ...form,
-      price: Number(form.price),
-      createdAt: new Date(),
+      name,
+      price,
+      oldPrice,
+      image: imageUrl,
+      createdAt: new Date()
     });
 
-    alert("Product Added");
+    alert("Product uploaded!");
+    setName("");
+    setPrice("");
+    setOldPrice("");
   };
 
   return (
-    <div>
-      <h2>Add Product</h2>
-      <form onSubmit={handleSubmit}>
-        <input name="name" placeholder="Product Name" onChange={handleChange} />
-        <input name="price" placeholder="Price" onChange={handleChange} />
-        <input name="image" placeholder="Image URL" onChange={handleChange} />
-        <button type="submit">Add Product</button>
+    <div className="admin">
+      <h2>Upload Product</h2>
+      <form onSubmit={handleUpload}>
+        <input placeholder="Product Name" onChange={(e) => setName(e.target.value)} required />
+        <input placeholder="Price" onChange={(e) => setPrice(e.target.value)} required />
+        <input placeholder="Old Price (optional)" onChange={(e) => setOldPrice(e.target.value)} />
+        <input type="file" onChange={(e) => setImage(e.target.files[0])} required />
+        <button type="submit">Upload</button>
       </form>
     </div>
   );
-};
-if (prompt("Enter admin password") !== "beme2026") {
-  return <h2>Access Denied</h2>;
 }
-export default Admin;
