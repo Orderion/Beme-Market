@@ -1,25 +1,28 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Home.css";
 import { Menu, Search, X } from "lucide-react";
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate(); // ✅ React Router navigation
+
+  const goToShop = () => {
+    navigate("/shop");
+  };
 
   return (
     <div className="home">
 
       {/* HEADER */}
       <header className="header">
-        <button
-          className="menu-btn"
-          onClick={() => setMenuOpen(true)}
-        >
+        <button className="menu-btn" onClick={() => setMenuOpen(true)}>
           <Menu size={22} />
         </button>
 
         <h1 className="logo">Beme Market</h1>
 
-        <button className="icon-btn">
+        <button className="icon-btn" onClick={goToShop}>
           <Search size={20} />
         </button>
       </header>
@@ -36,9 +39,9 @@ export default function Home() {
 
       {/* FILTER BAR */}
       <div className="filter-bar">
-        <button className="filter-btn">Categories ▾</button>
-        <button className="filter-btn">More ▾</button>
-        <button className="filter-btn">Offers</button>
+        <button className="filter-btn" onClick={goToShop}>Categories ▾</button>
+        <button className="filter-btn" onClick={goToShop}>More ▾</button>
+        <button className="filter-btn" onClick={goToShop}>Offers</button>
       </div>
 
       {/* HERO CARD */}
@@ -46,7 +49,9 @@ export default function Home() {
         <div className="hero-overlay">
           <span className="badge">Lowest price</span>
           <h2>New Arriaval 2026</h2>
-          <button className="primary-btn">View product</button>
+          <button className="primary-btn" onClick={goToShop}>
+            View product
+          </button>
         </div>
       </section>
 
@@ -55,7 +60,9 @@ export default function Home() {
         <div className="xmas-card">
           <div className="xmas-overlay">
             <h2>Mintah's Kente</h2>
-            <button className="primary-btn">View collection</button>
+            <button className="primary-btn" onClick={goToShop}>
+              View collection
+            </button>
           </div>
         </div>
       </section>
@@ -64,16 +71,16 @@ export default function Home() {
       <section className="section">
         <div className="section-header">
           <h3>Continue shopping</h3>
-          <span className="see-all">See all</span>
+          <span className="see-all" onClick={goToShop}>See all</span>
         </div>
 
         <div className="product-scroll">
-          <div className="product-card">
+          <div className="product-card" onClick={goToShop}>
             <img src="https://via.placeholder.com/300x350" alt="" />
             <p className="product-name">Electronics</p>
           </div>
 
-          <div className="product-card">
+          <div className="product-card" onClick={goToShop}>
             <img src="https://via.placeholder.com/300x350" alt="" />
             <p className="product-name">Ghana Made</p>
           </div>
@@ -90,18 +97,15 @@ export default function Home() {
         </div>
 
         <div className="side-links">
-          <button className="sidebar-link">Men</button>
-          <button className="sidebar-link">Women</button>
-          <button className="sidebar-link">Kids</button>
-          <button className="sidebar-link">Accessories</button>
+          <button className="sidebar-link" onClick={goToShop}>Men</button>
+          <button className="sidebar-link" onClick={goToShop}>Women</button>
+          <button className="sidebar-link" onClick={goToShop}>Kids</button>
+          <button className="sidebar-link" onClick={goToShop}>Accessories</button>
         </div>
       </div>
 
       {menuOpen && (
-        <div
-          className="overlay"
-          onClick={() => setMenuOpen(false)}
-        />
+        <div className="overlay" onClick={() => setMenuOpen(false)} />
       )}
     </div>
   );
