@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import { Sun, Moon } from "lucide-react";
 
 import { AuthProvider } from "./context/AuthContext";
+import { CartProvider } from "./context/CartContext"; // ✅ make sure this path matches
 import AdminRoute from "./components/AdminRoute";
 
 import Home from "./pages/Home";
@@ -35,7 +36,7 @@ export default function App() {
 
   return (
     <AuthProvider>
-      <>
+      <CartProvider>
         {/* 🌙 PREMIUM THEME TOGGLE */}
         <div
           onClick={() => setDarkMode(!darkMode)}
@@ -53,7 +54,7 @@ export default function App() {
             padding: "4px",
             cursor: "pointer",
             transition: "all 0.3s ease",
-            zIndex: 1000
+            zIndex: 1000,
           }}
         >
           <div
@@ -65,14 +66,10 @@ export default function App() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              transition: "all 0.3s ease"
+              transition: "all 0.3s ease",
             }}
           >
-            {darkMode ? (
-              <Moon size={14} color="#000" />
-            ) : (
-              <Sun size={14} color="#fff" />
-            )}
+            {darkMode ? <Moon size={14} color="#000" /> : <Sun size={14} color="#fff" />}
           </div>
         </div>
 
@@ -93,11 +90,8 @@ export default function App() {
         </Routes>
 
         {/* 🛒 CART DRAWER */}
-        <CartDrawer
-          isOpen={cartOpen}
-          onClose={() => setCartOpen(false)}
-        />
-      </>
+        <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+      </CartProvider>
     </AuthProvider>
   );
 }
