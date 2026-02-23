@@ -234,3 +234,7 @@ body.dark .xmas-card {
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
 }
+.theme-toggle {
+  justify-content: flex-start;
+  font-weight: 600;
+}

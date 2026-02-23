@@ -1,19 +1,22 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Home.css";
-import { Menu, Search, X } from "lucide-react";
+import { Menu, Search, X, Sun, Moon } from "lucide-react";
+import { useTheme } from "../context/ThemeContext";
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const navigate = useNavigate(); // ✅ React Router navigation
+  const navigate = useNavigate();
+
+  const { darkMode, toggleTheme } = useTheme();
 
   const goToShop = () => {
     navigate("/shop");
+    setMenuOpen(false);
   };
 
   return (
     <div className="home">
-
       {/* HEADER */}
       <header className="header">
         <button className="menu-btn" onClick={() => setMenuOpen(true)}>
@@ -30,18 +33,20 @@ export default function Home() {
       {/* SEARCH BAR */}
       <div className="search-container">
         <Search size={16} className="search-icon" />
-        <input
-          type="text"
-          placeholder="Search products"
-          className="search-input"
-        />
+        <input type="text" placeholder="Search products" className="search-input" />
       </div>
 
       {/* FILTER BAR */}
       <div className="filter-bar">
-        <button className="filter-btn" onClick={goToShop}>Categories ▾</button>
-        <button className="filter-btn" onClick={goToShop}>More ▾</button>
-        <button className="filter-btn" onClick={goToShop}>Offers</button>
+        <button className="filter-btn" onClick={goToShop}>
+          Categories ▾
+        </button>
+        <button className="filter-btn" onClick={goToShop}>
+          More ▾
+        </button>
+        <button className="filter-btn" onClick={goToShop}>
+          Offers
+        </button>
       </div>
 
       {/* HERO CARD */}
@@ -59,7 +64,7 @@ export default function Home() {
       <section className="section">
         <div className="xmas-card">
           <div className="xmas-overlay">
-            <h2>Mintah's Kente</h2>
+            <h2>Mintah&apos;s Kente</h2>
             <button className="primary-btn" onClick={goToShop}>
               View collection
             </button>
@@ -71,7 +76,9 @@ export default function Home() {
       <section className="section">
         <div className="section-header">
           <h3>Continue shopping</h3>
-          <span className="see-all" onClick={goToShop}>See all</span>
+          <span className="see-all" onClick={goToShop}>
+            See all
+          </span>
         </div>
 
         <div className="product-scroll">
@@ -96,17 +103,31 @@ export default function Home() {
           </button>
         </div>
 
+        {/* ✅ THEME TOGGLE IN MENU */}
+        <button className="sidebar-link theme-toggle" onClick={toggleTheme}>
+          <span style={{ display: "inline-flex", gap: 10, alignItems: "center" }}>
+            {darkMode ? <Moon size={18} /> : <Sun size={18} />}
+            <span>{darkMode ? "Dark mode" : "Light mode"}</span>
+          </span>
+        </button>
+
         <div className="side-links">
-          <button className="sidebar-link" onClick={goToShop}>Men</button>
-          <button className="sidebar-link" onClick={goToShop}>Women</button>
-          <button className="sidebar-link" onClick={goToShop}>Kids</button>
-          <button className="sidebar-link" onClick={goToShop}>Accessories</button>
+          <button className="sidebar-link" onClick={goToShop}>
+            Men
+          </button>
+          <button className="sidebar-link" onClick={goToShop}>
+            Women
+          </button>
+          <button className="sidebar-link" onClick={goToShop}>
+            Kids
+          </button>
+          <button className="sidebar-link" onClick={goToShop}>
+            Accessories
+          </button>
         </div>
       </div>
 
-      {menuOpen && (
-        <div className="overlay" onClick={() => setMenuOpen(false)} />
-      )}
+      {menuOpen && <div className="overlay" onClick={() => setMenuOpen(false)} />}
     </div>
   );
 }
