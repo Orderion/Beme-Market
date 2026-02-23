@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Home.css";
-import { Menu, Search, X, Sun, Moon } from "lucide-react";
+import { Menu, X, Sun, Moon } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
+import { useCart } from "../context/CartContext";
 
-export default function Home() {
+export default function Home({ setCartOpen }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   const { darkMode, toggleTheme } = useTheme();
+  const { cartItems } = useCart(); // ✅ assumes CartContext exposes cartItems
 
   const goToShop = () => {
     navigate("/shop");
@@ -25,15 +27,61 @@ export default function Home() {
 
         <h1 className="logo">Beme Market</h1>
 
-        <button className="icon-btn" onClick={goToShop}>
-          <Search size={20} />
+        {/* ✅ CART BUTTON (replaces search icon) */}
+        <button
+          className="icon-btn cart-header-btn"
+          onClick={() => setCartOpen?.(true)}
+          aria-label="Open cart"
+          title="Cart"
+        >
+          {/* Cart SVG */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="9" cy="21" r="1" />
+            <circle cx="20" cy="21" r="1" />
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+          </svg>
+
+          {/* Badge */}
+          {cartItems?.length > 0 && (
+            <span className="cart-badge">{cartItems.length}</span>
+          )}
         </button>
       </header>
 
-      {/* SEARCH BAR */}
+      {/* SEARCH BAR (keep it) */}
       <div className="search-container">
-        <Search size={16} className="search-icon" />
-        <input type="text" placeholder="Search products" className="search-input" />
+        {/* simple inline search icon svg so you don’t need lucide Search import */}
+        <svg
+          className="search-icon"
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <path d="M21 21l-4.3-4.3" />
+        </svg>
+
+        <input
+          type="text"
+          placeholder="Search products"
+          className="search-input"
+        />
       </div>
 
       {/* FILTER BAR */}

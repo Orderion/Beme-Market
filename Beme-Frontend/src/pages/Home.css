@@ -35,6 +35,31 @@ body.dark .header {
   background: none;
   border: none;
   color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ✅ CART ICON + BADGE */
+.cart-header-btn {
+  position: relative;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+
+  background: #ff2e63;
+  color: #fff;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  padding: 3px 7px;
+  border-radius: 999px;
+  line-height: 1;
+  border: 2px solid var(--bg);
 }
 
 /* =========================
@@ -53,6 +78,7 @@ body.dark .header {
 .search-icon {
   margin-right: 8px;
   opacity: 0.6;
+  color: var(--text);
 }
 
 .search-input {
@@ -234,6 +260,7 @@ body.dark .xmas-card {
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
 }
+
 .theme-toggle {
   justify-content: flex-start;
   font-weight: 600;
