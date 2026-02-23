@@ -42,8 +42,8 @@ export default function App() {
           onClick={() => setDarkMode(!darkMode)}
           style={{
             position: "fixed",
-            top: "70px",
-            right: "55px",
+            top: "350px",
+            right: "10px",
             width: "60px",
             height: "30px",
             background: darkMode ? "#222" : "#e5e5e5",
