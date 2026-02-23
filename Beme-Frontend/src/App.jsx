@@ -43,7 +43,7 @@ export default function App() {
           style={{
             position: "fixed",
             top: "35px",
-            right: "55px",
+            right: "75px",
             width: "60px",
             height: "30px",
             background: darkMode ? "#222" : "#e5e5e5",
