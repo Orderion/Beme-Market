@@ -13,8 +13,18 @@ const firebaseConfig = {
   measurementId: "G-0YMHB6KK0L"
 };
 
+// ✅ Prevent silent “blank page” by failing loudly in console
+const missing = Object.entries(firebaseConfig).filter(([, v]) => !v);
+if (missing.length) {
+  console.error(
+    "❌ Missing Firebase env vars:",
+    missing.map(([k]) => k)
+  );
+}
+
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+export default app;
