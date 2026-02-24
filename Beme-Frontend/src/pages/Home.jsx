@@ -131,12 +131,12 @@ export default function Home({ setCartOpen }) {
 
         <div className="product-scroll">
           <div className="product-card" onClick={goToShop}>
-            <img src="https://via.placeholder.com/300x350" alt="" />
+            <img src="https://placehold.co/300x350" alt="" />
             <p className="product-name">Electronics</p>
           </div>
 
           <div className="product-card" onClick={goToShop}>
-            <img src="https://via.placeholder.com/300x350" alt="" />
+            <img src="https://placehold.co/300x350" alt="" />
             <p className="product-name">Ghana Made</p>
           </div>
         </div>

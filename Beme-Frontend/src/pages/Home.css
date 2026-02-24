@@ -116,7 +116,7 @@ body.dark .header {
 .hero {
   height: 320px;
   border-radius: 26px;
-  background-image: url("https://via.placeholder.com/800x600");
+  background-image: url("https://placehold.co/800x600");
   background-size: cover;
   background-position: center;
   margin-bottom: 24px;
