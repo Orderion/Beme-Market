@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import ProductCard from "./ProductCard";
@@ -13,7 +13,9 @@ const ProductGrid = ({ filter = null, sortBy = "new", withCount = false }) => {
 
     const fetchProducts = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "products"));
+        // 🔥 Must match Firestore exactly: "Products"
+        const querySnapshot = await getDocs(collection(db, "Products"));
+
         const items = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
@@ -39,7 +41,7 @@ const ProductGrid = ({ filter = null, sortBy = "new", withCount = false }) => {
   const filtered = useMemo(() => {
     let list = [...products];
 
-    // FILTER (optional) — expects product.category to exist if you use it
+    // Optional filter
     if (filter) {
       const f = String(filter).toLowerCase();
       list = list.filter((p) =>
@@ -47,15 +49,11 @@ const ProductGrid = ({ filter = null, sortBy = "new", withCount = false }) => {
       );
     }
 
-    // SORT (optional)
+    // Optional sorting
     if (sortBy === "price") {
-      list.sort((a, b) => {
-        const ap = Number(a.price) || 0;
-        const bp = Number(b.price) || 0;
-        return ap - bp;
-      });
+      list.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
     } else {
-      // "new" – prefer createdAt if you store it (Firestore timestamp/date)
+      // Sort by newest
       list.sort((a, b) => {
         const ad = a.createdAt?.seconds
           ? a.createdAt.seconds
@@ -70,12 +68,13 @@ const ProductGrid = ({ filter = null, sortBy = "new", withCount = false }) => {
     return list;
   }, [products, filter, sortBy]);
 
-  // Count-only mode (for header)
   if (withCount) {
     return <>{filtered.length} items</>;
   }
 
-  if (loading) return <div className="product-grid">Loading...</div>;
+  if (loading) {
+    return <div className="product-grid">Loading...</div>;
+  }
 
   return (
     <div className="product-grid">
