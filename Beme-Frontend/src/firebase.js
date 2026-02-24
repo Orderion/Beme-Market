@@ -10,21 +10,17 @@ const firebaseConfig = {
   storageBucket: "beme-market.firebasestorage.app",
   messagingSenderId: "1032518392050",
   appId: "1:1032518392050:web:1e142a128f27e67e36986b",
-  measurementId: "G-0YMHB6KK0L"
+  measurementId: "G-0YMHB6KK0L",
 };
-
-// ✅ Prevent silent “blank page” by failing loudly in console
-const missing = Object.entries(firebaseConfig).filter(([, v]) => !v);
-if (missing.length) {
-  console.error(
-    "❌ Missing Firebase env vars:",
-    missing.map(([k]) => k)
-  );
-}
 
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// ✅ IMPORTANT: use your real Firestore databaseId here.
+// If your console shows "(default)" then use "(default)".
+// If it shows "default" then use "default".
+export const db = getFirestore(app, "default");
+
 export const storage = getStorage(app);
 export default app;
