@@ -1,48 +1,53 @@
-const categories = [
-  "New Arrivals",
-  "Men",
-  "Women",
-  "Kids",
-  "Jerseys",
-  "Training",
-  "Accessories",
-];
+// src/components/Sidebar.jsx
+import { useNavigate } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext";
+import "./Sidebar.css";
 
-export default function Sidebar({ isOpen, onClose, type = "sidebar" }) {
-  /* DROPDOWN MODE */
-  if (type === "dropdown") {
-    return (
-      <div className="category-dropdown">
-        {categories.map((cat) => (
-          <button key={cat} className="dropdown-item">
-            {cat}
-          </button>
-        ))}
-      </div>
-    );
-  }
+export default function Sidebar({ isOpen, onClose }) {
+  const navigate = useNavigate();
+  const { darkMode, toggleTheme } = useTheme();
 
-  /* SIDEBAR MODE */
+  const go = (path) => {
+    navigate(path);
+    onClose?.();
+  };
+
   return (
     <>
-      {isOpen && <div className="overlay" onClick={onClose} />}
-
-      <aside className={`side-panel ${isOpen ? "open" : ""}`}>
+      <div className={`side-panel ${isOpen ? "open" : ""}`}>
         <div className="side-header">
           <h3>Menu</h3>
-          <button className="close-btn" onClick={onClose}>
-            ✕
+          <button onClick={onClose} aria-label="Close menu" className="side-close">
+            ×
           </button>
         </div>
 
-        <nav className="side-links">
-          {categories.map((cat) => (
-            <button key={cat} className="sidebar-link">
-              {cat}
-            </button>
-          ))}
-        </nav>
-      </aside>
+        <div className="side-links">
+          <button className="sidebar-link" onClick={() => go("/shop?cat=men")}>
+            Men
+          </button>
+          <button className="sidebar-link" onClick={() => go("/shop?cat=women")}>
+            Women
+          </button>
+          <button className="sidebar-link" onClick={() => go("/shop?cat=kids")}>
+            Kids
+          </button>
+          <button className="sidebar-link" onClick={() => go("/shop?cat=accessories")}>
+            Accessories
+          </button>
+
+          <div className="side-divider" />
+
+          <button className="sidebar-link" onClick={() => go("/shop")}>
+            Shop
+          </button>
+          <button className="sidebar-link" onClick={() => go("/login")}>
+            Login
+          </button>
+        </div>
+      </div>
+
+      {isOpen && <div className="overlay" onClick={onClose} />}
     </>
   );
 }
