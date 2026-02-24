@@ -20,7 +20,7 @@ export const auth = getAuth(app);
 // ✅ IMPORTANT: use your real Firestore databaseId here.
 // If your console shows "(default)" then use "(default)".
 // If it shows "default" then use "default".
-export const db = getFirestore(app, "(default)");
+export const db = getFirestore(app, "default");
 
 export const storage = getStorage(app);
 export default app;

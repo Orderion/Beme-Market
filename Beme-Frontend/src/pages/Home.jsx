@@ -86,13 +86,13 @@ export default function Home({ setCartOpen }) {
 
       {/* FILTER BAR */}
       <div className="filter-bar">
-        <button className="filter-btn" onClick={goToShop}>
+        <button className="filter-btn">
           Categories ▾
         </button>
-        <button className="filter-btn" onClick={goToShop}>
+        <button className="filter-btn">
           More ▾
         </button>
-        <button className="filter-btn" onClick={goToShop}>
+        <button className="filter-btn">
           Offers
         </button>
       </div>
