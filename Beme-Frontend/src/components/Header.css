@@ -1,0 +1,40 @@
+/* src/components/Header.css */
+
+.hdr {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: 64px;
+  padding: 0 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.hdr-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.hdr-brand {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.hdr-right {
+  display: flex;
+  gap: 10px;
+}

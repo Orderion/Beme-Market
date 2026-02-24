@@ -6,6 +6,7 @@ import { CartProvider } from "./context/CartContext";
 import { ThemeProvider } from "./context/ThemeContext";
 
 import AdminRoute from "./components/AdminRoute";
+import Header from "./components/Header";
 
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
@@ -18,13 +19,19 @@ import OrderSuccess from "./pages/OrderSuccess";
 
 import CartDrawer from "./components/CartDrawer";
 
+// NOTE: If you already have a Sidebar/Menu component, import it here and uncomment below.
+// import Sidebar from "./components/Sidebar";
+
 export default function App() {
   const [cartOpen, setCartOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <ThemeProvider>
       <AuthProvider>
         <CartProvider>
+          <Header onMenu={() => setMenuOpen(true)} onCart={() => setCartOpen(true)} />
+
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/shop" element={<Shop />} />
@@ -42,6 +49,9 @@ export default function App() {
               }
             />
           </Routes>
+
+          {/* If you have a sidebar menu component, connect it here */}
+          {/* <Sidebar isOpen={menuOpen} onClose={() => setMenuOpen(false)} /> */}
 
           <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
         </CartProvider>

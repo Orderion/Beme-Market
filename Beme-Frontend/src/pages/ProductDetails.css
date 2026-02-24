@@ -1,0 +1,226 @@
+.pd-page {
+  background: var(--bg);
+  min-height: 100vh;
+  padding: 28px 16px 60px;
+  color: var(--text);
+}
+
+.pd-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 36px;
+  align-items: start;
+}
+
+.pd-media {
+  border-radius: 18px;
+  background: var(--soft);
+  overflow: hidden;
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+}
+
+.pd-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: var(--soft);
+}
+
+.pd-img--empty {
+  width: 100%;
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.pd-info {
+  padding-top: 6px;
+}
+
+.pd-title {
+  font-size: 40px;
+  line-height: 1.05;
+  margin: 0 0 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pd-meta {
+  margin-bottom: 10px;
+}
+
+.pd-badge {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  background: var(--soft);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  border: 1px solid var(--border);
+}
+
+.pd-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 14px 0 18px;
+}
+
+.pd-price {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pd-old {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.pd-old-strike {
+  text-decoration: line-through;
+  opacity: 0.85;
+}
+
+.pd-save {
+  color: #c14a00;
+  font-weight: 600;
+}
+
+.pd-section {
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+  margin-top: 18px;
+}
+
+.pd-section-title {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pd-desc {
+  margin: 0;
+  color: var(--text);
+  opacity: 0.9;
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+.pd-qty-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 22px 0 18px;
+}
+
+.pd-qty-label {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.pd-qty {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  height: 44px;
+  background: var(--card);
+}
+
+.pd-qty-btn {
+  width: 52px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.pd-qty-num {
+  width: 46px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.pd-actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.pd-btn {
+  width: 100%;
+  height: 54px;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.pd-btn-outline {
+  background: transparent;
+  border: 2px solid var(--text);
+  color: var(--text);
+}
+
+.pd-btn-black {
+  background: var(--btn);
+  border: 2px solid var(--btn);
+  color: var(--btnText);
+}
+
+.pd-btn:hover {
+  opacity: 0.88;
+}
+
+.pd-note {
+  margin-top: 14px;
+  background: var(--soft);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+@media (max-width: 900px) {
+  .pd-container {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-title {
+    font-size: 32px;
+  }
+
+  .pd-media {
+    min-height: 320px;
+  }
+
+  .pd-img--empty {
+    min-height: 320px;
+  }
+}

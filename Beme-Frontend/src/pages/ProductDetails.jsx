@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { db } from "../firebase";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
 import { useCart } from "../context/CartContext";
+import "./ProductDetails.css";
 
 export default function ProductDetails() {
   const { id } = useParams();
@@ -25,63 +26,121 @@ export default function ProductDetails() {
       setProduct({ id: snap.id, ...snap.data() });
       setLoading(false);
     };
+
     run();
   }, [id]);
 
-  if (loading) return <div style={{ padding: 24 }}>Loading…</div>;
-  if (!product) return <div style={{ padding: 24 }}>Product not found.</div>;
+  const price = useMemo(() => Number(product?.price || 0), [product]);
+  const oldPrice = useMemo(() => Number(product?.oldPrice || 0), [product]);
 
-  const price = Number(product.price || 0);
+  const formatMoney = (n) => `GHS ${Number(n || 0).toFixed(2)}`;
 
   const handleAdd = () => {
+    if (!product) return;
     addToCart({
       id: product.id,
       name: product.name,
-      price,
+      price: Number(product.price || 0),
       image: product.image || "",
       qty,
     });
   };
 
+  const handleBuyNow = () => {
+    handleAdd();
+    navigate("/checkout");
+  };
+
+  if (loading) return <div className="pd-wrap">Loading...</div>;
+  if (!product) return <div className="pd-wrap">Product not found.</div>;
+
+  const name = product?.name ?? "Untitled";
+  const image = product?.image ?? "";
+  const desc =
+    product?.description ??
+    "This is a premium product from Beme Market. Add a description in Firestore to show details here.";
+
   return (
-    <div className="pd">
-      <div className="pdGrid">
-        <div className="pdMedia">
-          {product.image ? (
-            <img className="pdImage" src={product.image} alt={product.name} />
+    <div className="pd-page">
+      <div className="pd-container">
+        {/* MEDIA */}
+        <div className="pd-media">
+          {image ? (
+            <img className="pd-img" src={image} alt={name} />
           ) : (
-            <div className="pdPlaceholder">No image</div>
+            <div className="pd-img pd-img--empty">No image</div>
           )}
         </div>
 
-        <div className="pdInfo">
-          <h1 className="pdTitle">{product.name}</h1>
+        {/* INFO */}
+        <div className="pd-info">
+          <h1 className="pd-title">{name}</h1>
 
-          <div className="pdPriceRow">
-            <div className="pdPrice">GHS {price.toFixed(2)}</div>
-            {product.oldPrice ? (
-              <div className="pdOld">GHS {Number(product.oldPrice).toFixed(2)}</div>
-            ) : null}
-          </div>
-
-          {product.description ? (
-            <p className="pdDesc">{product.description}</p>
-          ) : null}
-
-          <div className="pdQty">
-            <span>Quantity</span>
-            <div className="pdQtyControl">
-              <button onClick={() => setQty((q) => Math.max(1, q - 1))}>−</button>
-              <div>{qty}</div>
-              <button onClick={() => setQty((q) => q + 1)}>+</button>
+          <div className="pd-meta">
+            <div className="pd-badge">
+              <span className="pd-badge-icon">👜</span>
+              <span>In stock</span>
             </div>
           </div>
 
-          <div className="pdActions">
-            <button className="btnPrimary" onClick={handleAdd}>Add to cart</button>
-            <button className="btnGhost" onClick={() => { handleAdd(); navigate("/checkout"); }}>
-              Checkout
+          <div className="pd-price-row">
+            <div className="pd-price">{formatMoney(price)}</div>
+
+            {oldPrice > price && (
+              <div className="pd-old">
+                <span className="pd-old-strike">{formatMoney(oldPrice)}</span>
+                <span className="pd-save">
+                  Save {formatMoney(oldPrice - price)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* DESCRIPTION */}
+          <div className="pd-section">
+            <h3 className="pd-section-title">Description</h3>
+            <p className="pd-desc">{desc}</p>
+          </div>
+
+          {/* QUANTITY */}
+          <div className="pd-qty-row">
+            <div className="pd-qty-label">Quantity</div>
+
+            <div className="pd-qty">
+              <button
+                className="pd-qty-btn"
+                onClick={() => setQty((q) => Math.max(1, q - 1))}
+                type="button"
+                aria-label="Decrease"
+              >
+                −
+              </button>
+              <div className="pd-qty-num">{qty}</div>
+              <button
+                className="pd-qty-btn"
+                onClick={() => setQty((q) => q + 1)}
+                type="button"
+                aria-label="Increase"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* ACTIONS */}
+          <div className="pd-actions">
+            <button className="pd-btn pd-btn-outline" onClick={handleAdd}>
+              Add to cart
             </button>
+
+            <button className="pd-btn pd-btn-black" onClick={handleBuyNow}>
+              Buy now
+            </button>
+          </div>
+
+          <div className="pd-note">
+            <span className="pd-note-icon">⏱</span>
+            Buy it now, get it in 1–3 days (Ghana).
           </div>
         </div>
       </div>
