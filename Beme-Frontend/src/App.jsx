@@ -1,3 +1,4 @@
+// src/App.jsx
 import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 
@@ -7,6 +8,8 @@ import { ThemeProvider } from "./context/ThemeContext";
 
 import AdminRoute from "./components/AdminRoute";
 import Header from "./components/Header";
+import Sidebar from "./components/Sidebar";
+import CartDrawer from "./components/CartDrawer";
 
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
@@ -17,11 +20,6 @@ import ProductDetails from "./pages/ProductDetails";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
 
-import CartDrawer from "./components/CartDrawer";
-
-// NOTE: If you already have a Sidebar/Menu component, import it here and uncomment below.
-// import Sidebar from "./components/Sidebar";
-
 export default function App() {
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -30,8 +28,13 @@ export default function App() {
     <ThemeProvider>
       <AuthProvider>
         <CartProvider>
-          <Header onMenu={() => setMenuOpen(true)} onCart={() => setCartOpen(true)} />
+          {/* ✅ Global Header */}
+          <Header
+            onMenu={() => setMenuOpen(true)}
+            onCart={() => setCartOpen(true)}
+          />
 
+          {/* ✅ Pages */}
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/shop" element={<Shop />} />
@@ -50,9 +53,10 @@ export default function App() {
             />
           </Routes>
 
-          {/* If you have a sidebar menu component, connect it here */}
-          {/* <Sidebar isOpen={menuOpen} onClose={() => setMenuOpen(false)} /> */}
+          {/* ✅ Global Sidebar (THIS is what menu opens) */}
+          <Sidebar isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
 
+          {/* ✅ Global Cart Drawer */}
           <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
         </CartProvider>
       </AuthProvider>
