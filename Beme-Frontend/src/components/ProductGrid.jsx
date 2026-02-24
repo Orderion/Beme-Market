@@ -4,19 +4,25 @@ import { db } from "../firebase";
 import ProductCard from "./ProductCard";
 import "./ProductGrid.css";
 
+const COLLECTION_NAME = "Products"; // ✅ must match Firestore exactly
+
 const ProductGrid = ({ filter = null, sortBy = "new", withCount = false }) => {
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(!withCount);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
 
     const fetchProducts = async () => {
       try {
-        // 🔥 Must match Firestore exactly: "Products"
-        const querySnapshot = await getDocs(collection(db, "Products"));
+        const colRef = collection(db, COLLECTION_NAME);
+        const snap = await getDocs(colRef);
 
-        const items = querySnapshot.docs.map((doc) => ({
+        // ✅ Debug logs (very important right now)
+        console.log("✅ Firestore project:", db.app.options.projectId);
+        console.log(`✅ Collection "${COLLECTION_NAME}" docs:`, snap.size);
+
+        const items = snap.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
@@ -24,7 +30,7 @@ const ProductGrid = ({ filter = null, sortBy = "new", withCount = false }) => {
         if (!alive) return;
         setProducts(items);
       } catch (err) {
-        console.error("Failed to fetch products:", err);
+        console.error("❌ Failed to fetch products:", err);
       } finally {
         if (!alive) return;
         setLoading(false);
@@ -36,12 +42,12 @@ const ProductGrid = ({ filter = null, sortBy = "new", withCount = false }) => {
     return () => {
       alive = false;
     };
-  }, [withCount]);
+  }, []); // ✅ fetch once
 
   const filtered = useMemo(() => {
     let list = [...products];
 
-    // Optional filter
+    // FILTER
     if (filter) {
       const f = String(filter).toLowerCase();
       list = list.filter((p) =>
@@ -49,18 +55,22 @@ const ProductGrid = ({ filter = null, sortBy = "new", withCount = false }) => {
       );
     }
 
-    // Optional sorting
+    // SORT
     if (sortBy === "price") {
       list.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
     } else {
-      // Sort by newest
+      // newest first
       list.sort((a, b) => {
-        const ad = a.createdAt?.seconds
-          ? a.createdAt.seconds
-          : new Date(a.createdAt || 0).getTime();
-        const bd = b.createdAt?.seconds
-          ? b.createdAt.seconds
-          : new Date(b.createdAt || 0).getTime();
+        const ad =
+          a.createdAt?.seconds != null
+            ? a.createdAt.seconds * 1000
+            : new Date(a.createdAt || 0).getTime();
+
+        const bd =
+          b.createdAt?.seconds != null
+            ? b.createdAt.seconds * 1000
+            : new Date(b.createdAt || 0).getTime();
+
         return bd - ad;
       });
     }
@@ -68,12 +78,16 @@ const ProductGrid = ({ filter = null, sortBy = "new", withCount = false }) => {
     return list;
   }, [products, filter, sortBy]);
 
+  // Count-only mode (header)
   if (withCount) {
+    if (loading) return <>...</>;
     return <>{filtered.length} items</>;
   }
 
-  if (loading) {
-    return <div className="product-grid">Loading...</div>;
+  if (loading) return <div className="product-grid">Loading...</div>;
+
+  if (!filtered.length) {
+    return <div className="product-grid">No products found.</div>;
   }
 
   return (
