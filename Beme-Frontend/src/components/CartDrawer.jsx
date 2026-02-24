@@ -1,68 +1,115 @@
-import { useCart } from "../context/CartContext"
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { useCart } from "../context/CartContext";
+import "./CartDrawer.css";
 
-const CartDrawer = ({ isOpen, onClose }) => {
-  const { cart = [], removeFromCart } = useCart()
+export default function CartDrawer({ isOpen, onClose }) {
+  const navigate = useNavigate();
+  const { cartItems, removeFromCart, updateQty } = useCart();
 
-  if (!isOpen) return null
+  const total = cartItems.reduce(
+    (sum, item) => sum + Number(item.price) * Number(item.qty),
+    0
+  );
+
+  const goCheckout = () => {
+    onClose?.();
+    navigate("/checkout");
+  };
 
   return (
-    <div className="fixed inset-0 z-50">
-      {/* Overlay */}
-      <div
-        className="absolute inset-0 bg-black/40"
-        onClick={onClose}
-      />
+    <div className={`cd ${isOpen ? "cd--open" : ""}`} aria-hidden={!isOpen}>
+      <div className="cd-overlay" onClick={onClose} />
 
-      {/* Drawer */}
-      <div className="absolute right-0 top-0 h-full w-80 bg-white p-6 shadow-xl flex flex-col">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-semibold">
-            Your Cart ({cart.length})
-          </h2>
-          <button onClick={onClose} className="text-xl">
-            ✕
+      <aside className="cd-panel" role="dialog" aria-modal="true">
+        <div className="cd-header">
+          <h3 className="cd-title">CART</h3>
+          <button className="cd-close" onClick={onClose} aria-label="Close cart">
+            ×
           </button>
         </div>
 
-        {/* Cart Items */}
-        {cart.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-gray-400">
-            Your cart is empty
-          </div>
-        ) : (
-          <ul className="flex-1 space-y-4 overflow-y-auto">
-            {cart.map((item, index) => (
-              <li
-                key={index}
-                className="flex justify-between items-center border-b pb-3"
-              >
-                <div>
-                  <p className="font-medium">{item.name}</p>
-                  <p className="text-sm text-gray-400">
-                    ${item.price}
-                  </p>
-                </div>
+        {/* Body */}
+        <div className="cd-body">
+          {cartItems.length === 0 ? (
+            <div className="cd-empty">
+              <p>Your cart is empty.</p>
+              <button className="cd-ghost" onClick={onClose}>
+                Continue shopping
+              </button>
+            </div>
+          ) : (
+            cartItems.map((item) => {
+              const img = item.image || "";
+              const name = item.name || "Untitled";
+              const price = Number(item.price || 0);
+              const qty = Number(item.qty || 1);
 
-                {/* ✅ Remove button */}
-                <button
-                  onClick={() => removeFromCart(index)}
-                  className="text-sm text-red-500 hover:underline"
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+              return (
+                <div key={item.id} className="cd-item">
+                  <div className="cd-item-img">
+                    {img ? (
+                      <img src={img} alt={name} />
+                    ) : (
+                      <div className="cd-img-placeholder">No image</div>
+                    )}
+                  </div>
+
+                  <div className="cd-item-info">
+                    <p className="cd-item-name">{name}</p>
+                    <p className="cd-item-price">GHS {price.toFixed(2)}</p>
+
+                    <div className="cd-item-actions">
+                      <div className="cd-qty">
+                        <button
+                          type="button"
+                          onClick={() => updateQty(item.id, Math.max(1, qty - 1))}
+                          aria-label="Decrease quantity"
+                        >
+                          −
+                        </button>
+                        <span>{qty}</span>
+                        <button
+                          type="button"
+                          onClick={() => updateQty(item.id, qty + 1)}
+                          aria-label="Increase quantity"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="cd-remove"
+                        onClick={() => removeFromCart(item.id)}
+                        aria-label="Remove item"
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
 
         {/* Footer */}
-        <button className="mt-6 w-full bg-black text-white py-3 rounded-full">
-          Checkout
-        </button>
-      </div>
-    </div>
-  )
-}
+        <div className="cd-footer">
+          <div className="cd-total">
+            <span>Total</span>
+            <strong>GHS {total.toFixed(2)}</strong>
+          </div>
 
-export default CartDrawer
+          <button
+            className="cd-checkout"
+            onClick={goCheckout}
+            disabled={cartItems.length === 0}
+          >
+            Checkout
+          </button>
+        </div>
+      </aside>
+    </div>
+  );
+}
