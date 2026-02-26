@@ -69,7 +69,9 @@ body.dark .order-success-btn {
 .order-success-btn:active {
   transform: scale(0.97);
 }
-
+.p123{
+  height: none;
+}
 .order-success-link {
   margin-top: 14px;
   display: inline-block;
