@@ -12,25 +12,45 @@ import { db } from "../firebase";
 import ProductCard from "./ProductCard";
 import "./ProductGrid.css";
 
-// ✅ Must match your Firestore structure: products / orders / users
 const COLLECTION_NAME = "products";
 
 function normalizeFilter(filter) {
-  // Accepts:
-  // - null
-  // - string (legacy)
-  // - { dept, kind } (new)
-  if (!filter) return { dept: null, kind: null };
-
-  if (typeof filter === "string") {
-    // Legacy support: treat string as dept (best-effort)
-    return { dept: filter.toLowerCase(), kind: null };
+  if (!filter) {
+    return {
+      dept: null,
+      kind: null,
+      priceMin: null,
+      priceMax: null,
+      inStockOnly: false,
+      sort: "new",
+    };
   }
 
-  const dept = filter?.dept ? String(filter.dept).toLowerCase() : null;
-  const kind = filter?.kind ? String(filter.kind).toLowerCase() : null;
+  if (typeof filter === "string") {
+    return {
+      dept: filter.toLowerCase(),
+      kind: null,
+      priceMin: null,
+      priceMax: null,
+      inStockOnly: false,
+      sort: "new",
+    };
+  }
 
-  return { dept, kind };
+  return {
+    dept: filter.dept ? String(filter.dept).toLowerCase() : null,
+    kind: filter.kind ? String(filter.kind).toLowerCase() : null,
+    priceMin:
+      filter.priceMin != null && !Number.isNaN(Number(filter.priceMin))
+        ? Number(filter.priceMin)
+        : null,
+    priceMax:
+      filter.priceMax != null && !Number.isNaN(Number(filter.priceMax))
+        ? Number(filter.priceMax)
+        : null,
+    inStockOnly: !!filter.inStockOnly,
+    sort: (filter.sort || "new").toLowerCase(),
+  };
 }
 
 export default function ProductGrid({ filter = null, sortBy = "new", withCount = false }) {
@@ -38,7 +58,7 @@ export default function ProductGrid({ filter = null, sortBy = "new", withCount =
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  const { dept, kind } = useMemo(() => normalizeFilter(filter), [filter]);
+  const f = useMemo(() => normalizeFilter(filter), [filter]);
 
   useEffect(() => {
     let alive = true;
@@ -52,17 +72,18 @@ export default function ProductGrid({ filter = null, sortBy = "new", withCount =
 
         const clauses = [];
 
-        // ✅ Filters (server-side)
-        if (dept) clauses.push(where("dept", "==", dept));
-        if (kind) clauses.push(where("kind", "==", kind));
+        if (f.dept) clauses.push(where("dept", "==", f.dept));
+        if (f.kind) clauses.push(where("kind", "==", f.kind));
 
-        // ✅ Sort (server-side)
-        // Note: Firestore may require composite indexes when mixing where+orderBy.
-        if (sortBy === "price") {
-          clauses.push(orderBy("price", "asc"));
-        } else {
-          clauses.push(orderBy("createdAt", "desc"));
-        }
+        // Stock filter
+        if (f.inStockOnly) clauses.push(where("inStock", "==", true));
+
+        // Server-side sort if possible
+        // Firestore does NOT support "between" on two fields easily, so we do price range client-side.
+        const s = (sortBy || f.sort || "new").toLowerCase();
+        if (s === "price-asc") clauses.push(orderBy("price", "asc"));
+        else if (s === "price-desc") clauses.push(orderBy("price", "desc"));
+        else clauses.push(orderBy("createdAt", "desc"));
 
         clauses.push(limit(80));
 
@@ -79,12 +100,11 @@ export default function ProductGrid({ filter = null, sortBy = "new", withCount =
       } catch (e) {
         console.error("❌ Failed to fetch products:", e);
 
-        // Firestore index errors are common once you add where+orderBy:
-        // "FAILED_PRECONDITION: The query requires an index..."
         const msg =
           typeof e?.message === "string" && e.message.includes("requires an index")
-            ? "This filter needs a Firestore index. Open the console link in the error log to create it."
+            ? "This filter needs a Firestore index. Open the link in the console error to create it."
             : "Failed to load products.";
+
         if (!alive) return;
         setErr(msg);
       } finally {
@@ -98,28 +118,35 @@ export default function ProductGrid({ filter = null, sortBy = "new", withCount =
     return () => {
       alive = false;
     };
-  }, [dept, kind, sortBy]);
+  }, [f.dept, f.kind, f.inStockOnly, f.sort, sortBy]);
 
-  // Count-only mode (header)
+  // Price range filter (client-side, after fetch)
+  const finalList = useMemo(() => {
+    let list = [...products];
+
+    if (f.priceMin != null) {
+      list = list.filter((p) => (Number(p.price) || 0) >= f.priceMin);
+    }
+    if (f.priceMax != null) {
+      list = list.filter((p) => (Number(p.price) || 0) <= f.priceMax);
+    }
+
+    return list;
+  }, [products, f.priceMin, f.priceMax]);
+
   if (withCount) {
     if (loading) return <>...</>;
     if (err) return <>0 items</>;
-    return <>{products.length} items</>;
+    return <>{finalList.length} items</>;
   }
 
   if (loading) return <div className="product-grid">Loading...</div>;
-
-  if (err) {
-    return <div className="product-grid">{err}</div>;
-  }
-
-  if (!products.length) {
-    return <div className="product-grid">No products found.</div>;
-  }
+  if (err) return <div className="product-grid">{err}</div>;
+  if (!finalList.length) return <div className="product-grid">No products found.</div>;
 
   return (
     <div className="product-grid">
-      {products.map((product) => (
+      {finalList.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}
     </div>

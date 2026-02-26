@@ -183,3 +183,211 @@ body.dark .shop-topbar {
   background: rgba(0, 0, 0, 0.35);
   z-index: 55;
 }
+/* Collapsible filter panel */
+.shop-filter-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.22s ease;
+}
+
+.shop-filter-panel.open {
+  max-height: 520px; /* enough to show both chip rows */
+}
+
+.shop-filter-inner {
+  padding: 12px 0 8px;
+}
+
+.shop-filter-section {
+  margin-bottom: 10px;
+}
+
+.shop-filter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 0 10px;
+}
+
+.shop-filter-label {
+  font-size: 12px;
+  color: var(--soft);
+  letter-spacing: 0.02em;
+}
+
+.shop-filter-clear {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.shop-filter-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  margin-left: 8px;
+  background: var(--text);
+}
+
+body.dark .shop-filter-dot {
+  background: var(--text);
+}
+
+/* Chips container (if you don't already have it) */
+.shop-chips {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 6px;
+}
+
+.shop-chips-secondary {
+  padding-top: 2px;
+}
+/* Panels (Filter + Sort) */
+.shop-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.22s ease;
+}
+
+.shop-panel.open {
+  max-height: 640px;
+}
+
+.shop-panel-inner {
+  padding: 12px 0 8px;
+}
+
+.shop-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 0 12px;
+}
+
+.shop-panel-title {
+  font-size: 12px;
+  color: var(--soft);
+  letter-spacing: 0.02em;
+}
+
+.shop-panel-action {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.shop-panel-section {
+  margin-bottom: 12px;
+}
+
+.shop-panel-label {
+  font-size: 12px;
+  color: var(--soft);
+  margin: 0 0 10px;
+}
+
+/* Chips (if you don't have already) */
+.shop-chips {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 6px;
+}
+
+.shop-chips-secondary {
+  padding-top: 2px;
+}
+
+/* Active dot on buttons */
+.shop-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  margin-left: 8px;
+  background: var(--text);
+}
+
+/* Sort panel controls */
+.shop-radio {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shop-radio-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.shop-range {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.shop-range input {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 12px;
+  outline: none;
+}
+
+.shop-range-dash {
+  color: var(--soft);
+}
+
+.shop-toggle {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.shop-panel-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding-top: 6px;
+}
+
+.shop-btn {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.shop-btn.solid {
+  background: var(--text);
+  color: var(--bg);
+}
+
+body.dark .shop-btn.solid {
+  background: transparent;
+  color: var(--text);
+}
+
+.shop-btn.ghost {
+  background: transparent;
+  color: var(--text);
+}
