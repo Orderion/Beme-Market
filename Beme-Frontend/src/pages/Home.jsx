@@ -1,21 +1,15 @@
-// src/pages/Home.jsx  (FRONTEND)
-
-import { useState } from "react";
+// src/pages/Home.jsx
 import { useNavigate } from "react-router-dom";
 import "./Home.css";
 
 export default function Home() {
-  const [menuOpen, setMenuOpen] = useState(false); // keep for your existing sidebar logic
   const navigate = useNavigate();
 
-  const goToShop = () => {
-    navigate("/shop");
-    setMenuOpen(false);
-  };
+  const goToShop = () => navigate("/shop");
 
   return (
     <div className="home">
-      {/* ✅ SEARCH BAR (keep it) */}
+      {/* ✅ SEARCH BAR */}
       <div className="search-container">
         <svg
           className="search-icon"
@@ -47,7 +41,7 @@ export default function Home() {
         <button className="filter-btn">Offers</button>
       </div>
 
-      {/* ✅ HERO CARD (button visible again because header is now global) */}
+      {/* ✅ HERO CARD */}
       <section className="hero">
         <div className="hero-overlay">
           <span className="badge">Lowest price</span>
@@ -91,37 +85,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* ✅ SIDEBAR (kept, but it can only open if header triggers it via global state)
-          We'll connect it properly by lifting menuOpen state to App later.
-          For now, keeping it here won't break anything. */}
-      <div className={`side-panel ${menuOpen ? "open" : ""}`}>
-        <div className="side-header">
-          <h3>Menu</h3>
-          <button onClick={() => setMenuOpen(false)} aria-label="Close menu">
-            ×
-          </button>
-        </div>
-
-        <div className="side-links">
-          <button className="sidebar-link" onClick={goToShop}>
-            Men
-          </button>
-          <button className="sidebar-link" onClick={goToShop}>
-            Women
-          </button>
-          <button className="sidebar-link" onClick={goToShop}>
-            Kids
-          </button>
-          <button className="sidebar-link" onClick={goToShop}>
-            Accessories
-          </button>
-        </div>
-      </div>
-
-      {menuOpen && (
-        <div className="overlay" onClick={() => setMenuOpen(false)} />
-      )}
     </div>
   );
 }
