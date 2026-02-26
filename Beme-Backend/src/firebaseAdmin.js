@@ -1,11 +1,23 @@
+// src/firebaseAdmin.js
 import admin from "firebase-admin";
 
 if (!admin.apps.length) {
   const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  if (!json) throw new Error("Missing FIREBASE_SERVICE_ACCOUNT_JSON env var");
+
+  if (!json) {
+    throw new Error("Missing FIREBASE_SERVICE_ACCOUNT_JSON env var");
+  }
+
+  const serviceAccount = JSON.parse(json);
+
+  // Fix escaped newlines in private key (Render safe)
+  if (serviceAccount.private_key) {
+    serviceAccount.private_key =
+      serviceAccount.private_key.replace(/\\n/g, "\n");
+  }
 
   admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(json)),
+    credential: admin.credential.cert(serviceAccount),
   });
 }
 
