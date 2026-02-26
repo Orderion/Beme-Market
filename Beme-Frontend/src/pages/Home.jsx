@@ -5,6 +5,19 @@ import "./Home.css";
 
 function Dropdown({ label, open, onToggle, onClose, children }) {
   const ref = useRef(null);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 220 });
+
+  useEffect(() => {
+    if (!open) return;
+    if (!ref.current) return;
+
+    const r = ref.current.getBoundingClientRect();
+    setPos({
+      top: r.bottom + 10,
+      left: r.left,
+      width: Math.max(200, r.width),
+    });
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -20,9 +33,11 @@ function Dropdown({ label, open, onToggle, onClose, children }) {
 
     window.addEventListener("mousedown", onClickOutside);
     window.addEventListener("keydown", onEsc);
+    window.addEventListener("scroll", onClose, true); // close on scroll
     return () => {
       window.removeEventListener("mousedown", onClickOutside);
       window.removeEventListener("keydown", onEsc);
+      window.removeEventListener("scroll", onClose, true);
     };
   }, [open, onClose]);
 
@@ -32,42 +47,16 @@ function Dropdown({ label, open, onToggle, onClose, children }) {
         {label} <span className="dd-caret">▾</span>
       </button>
 
-      {open && <div className="dd-menu">{children}</div>}
+      {open && (
+        <div
+          className="dd-menu dd-menu--fixed"
+          style={{ top: pos.top, left: pos.left, width: pos.width }}
+        >
+          {children}
+        </div>
+      )}
     </div>
   );
-}
-
-export default function Home() {
-  const navigate = useNavigate();
-
-  const [openMenu, setOpenMenu] = useState(null); // "cat" | "more" | null
-
-  const goToShop = () => navigate("/shop");
-
-  const goCategory = (cat) => {
-    setOpenMenu(null);
-    navigate(`/shop?cat=${encodeURIComponent(cat)}`);
-  };
-
-  const goPage = (path) => {
-    setOpenMenu(null);
-    navigate(path);
-  };
-
-  // ✅ Offers: for now empty (later you can fetch from Firestore/user profile)
-  const offers = useMemo(() => {
-    return []; // e.g. [{ id: 1, title: "10% off", code: "BEME10" }]
-  }, []);
-
-  const onOffersClick = () => {
-    setOpenMenu(null);
-    if (!offers.length) {
-      alert("You have no offers yet.");
-      return;
-    }
-    // If you later add offers page:
-    // navigate("/offers");
-  };
 
   return (
     <div className="home">

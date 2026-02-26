@@ -88,7 +88,6 @@
 .dd {
   position: relative;
   display: inline-block;
-  z-index: 60;
 }
 
 .dd-btn {
@@ -101,32 +100,26 @@
   opacity: 0.7;
 }
 
-.dd-menu {
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 0;
+/* ✅ Fixed menu: bypass stacking context issues */
+.dd-menu--fixed {
+  position: fixed;
+  z-index: 2147483647; /* max safe z-index */
   min-width: 200px;
 
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-
   padding: 8px;
-  z-index: 9999; /* ✅ above hero */
 }
-
 .dd-item {
   width: 100%;
   text-align: left;
-
   padding: 10px 10px;
   border-radius: calc(var(--radius) - 6px);
-
   border: 0;
   background: transparent;
   color: var(--text);
-
   cursor: pointer;
   opacity: 0.9;
 }
@@ -135,7 +128,6 @@
   background: var(--soft);
   opacity: 1;
 }
-
 /* =========================
    HERO
 ========================= */
@@ -328,4 +320,19 @@
   margin-top: 10px;
   font-size: 14px;
   opacity: 0.9;
+}
+/* Default button: solid black */
+.primary-btn,
+.sidebar-link {
+  background: var(--text);
+  color: var(--button-text);
+  border: 1px solid var(--border);
+}
+
+/* Dark mode: transparent (luxury) */
+body.dark .primary-btn,
+body.dark .sidebar-link {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
 }
