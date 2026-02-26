@@ -1,188 +1,209 @@
 // src/pages/Admin.jsx
 import { useMemo, useState } from "react";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { DEPARTMENTS, KINDS } from "../constants/catalog";
 import "./Admin.css";
 
+const COLLECTION_NAME = "Products"; // ✅ must match your Firestore collection
+
+const initial = {
+  name: "",
+  price: "",
+  oldPrice: "",
+  image: "",
+  dept: "men",
+  kind: "fashion",
+  inStock: true,
+  featured: false,
+};
+
+function isValidHttpUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export default function Admin() {
-  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState(initial);
+  const [submitting, setSubmitting] = useState(false);
+  const [msg, setMsg] = useState("");
 
-  const [form, setForm] = useState({
-    name: "",
-    price: "",
-    oldPrice: "",
-    image: "", // URL
-    dept: "men",
-    kind: "fashion",
-    description: "",
-    inStock: true,
-  });
+  const deptOptions = useMemo(() => DEPARTMENTS.map((d) => d.key), []);
+  const kindOptions = useMemo(() => KINDS.map((k) => k.key), []);
 
-  const priceNum = useMemo(() => Number(form.price || 0), [form.price]);
-  const oldPriceNum = useMemo(() => Number(form.oldPrice || 0), [form.oldPrice]);
-
-  const set = (key) => (e) => {
-    const val = e?.target?.type === "checkbox" ? e.target.checked : e.target.value;
-    setForm((p) => ({ ...p, [key]: val }));
+  const setField = (key) => (e) => {
+    const value =
+      e?.target?.type === "checkbox" ? e.target.checked : e.target.value;
+    setForm((p) => ({ ...p, [key]: value }));
   };
 
   const validate = () => {
-    if (!form.name.trim()) return "Product name is required";
-    if (!form.image.trim()) return "Image URL is required (for now)";
-    if (!(priceNum > 0)) return "Price must be a valid number";
-    if (form.oldPrice && !(oldPriceNum > 0)) return "Old price must be a valid number";
-    if (form.oldPrice && oldPriceNum <= priceNum) return "Old price should be greater than price";
-    return null;
+    const name = form.name.trim();
+    if (!name) return "Name is required.";
+
+    const price = Number(form.price);
+    if (!Number.isFinite(price) || price < 0) return "Price must be a valid number ≥ 0.";
+
+    if (form.oldPrice !== "") {
+      const old = Number(form.oldPrice);
+      if (!Number.isFinite(old) || old < 0) return "Old price must be a valid number ≥ 0.";
+      if (old < price) return "Old price should be higher than current price.";
+    }
+
+    const image = form.image.trim();
+    if (!image) return "Image URL is required.";
+    if (!isValidHttpUrl(image)) return "Image must be a valid http/https URL.";
+
+    if (!deptOptions.includes(form.dept)) return "Invalid department selected.";
+    if (!kindOptions.includes(form.kind)) return "Invalid type selected.";
+
+    return "";
   };
 
-  const handleSubmit = async (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
+    setMsg("");
 
-    const err = validate();
-    if (err) return alert(err);
+    const error = validate();
+    if (error) {
+      setMsg(error);
+      return;
+    }
 
-    setLoading(true);
+    setSubmitting(true);
     try {
-      await addDoc(collection(db, "products"), {
+      const payload = {
         name: form.name.trim(),
-        price: priceNum,
-        oldPrice: form.oldPrice ? oldPriceNum : null,
+        price: Number(form.price),
         image: form.image.trim(),
-        dept: form.dept, // men|women|kids|accessories
-        kind: form.kind, // fashion|tech|extras
-        description: form.description.trim() || "",
+        dept: form.dept,
+        kind: form.kind,
         inStock: !!form.inStock,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+        featured: !!form.featured,
+        createdAt: serverTimestamp(), // ✅ best practice
+      };
 
-      alert("✅ Product uploaded");
+      // only write oldPrice if provided
+      if (form.oldPrice !== "") payload.oldPrice = Number(form.oldPrice);
 
-      setForm({
-        name: "",
-        price: "",
-        oldPrice: "",
-        image: "",
-        dept: "men",
-        kind: "fashion",
-        description: "",
-        inStock: true,
-      });
-    } catch (error) {
-      console.error("Upload failed:", error);
-      alert("❌ Failed to upload product. Check console.");
+      await addDoc(collection(db, COLLECTION_NAME), payload);
+
+      setMsg("✅ Product added successfully.");
+      setForm(initial);
+    } catch (err) {
+      console.error("Add product error:", err);
+      setMsg("❌ Failed to add product. Check Firestore rules or console logs.");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="admin">
-      <div className="admin-head">
-        <h2 className="admin-title">Upload Product</h2>
-        <p className="admin-sub">Products require dept + kind for filtering.</p>
+    <div className="admin-page">
+      <div className="admin-card">
+        <div className="admin-head">
+          <h2 className="admin-title">Add Product</h2>
+          <p className="admin-sub">Uploads to Firestore collection: <b>{COLLECTION_NAME}</b></p>
+        </div>
+
+        <form className="admin-form" onSubmit={onSubmit}>
+          <label className="admin-field">
+            <span>Name</span>
+            <input
+              value={form.name}
+              onChange={setField("name")}
+              placeholder="e.g. Classic Hoodie"
+              autoComplete="off"
+            />
+          </label>
+
+          <div className="admin-row">
+            <label className="admin-field">
+              <span>Price (GHS)</span>
+              <input
+                inputMode="numeric"
+                value={form.price}
+                onChange={setField("price")}
+                placeholder="e.g. 180"
+              />
+            </label>
+
+            <label className="admin-field">
+              <span>Old price (optional)</span>
+              <input
+                inputMode="numeric"
+                value={form.oldPrice}
+                onChange={setField("oldPrice")}
+                placeholder="e.g. 220"
+              />
+            </label>
+          </div>
+
+          <label className="admin-field">
+            <span>Image URL</span>
+            <input
+              value={form.image}
+              onChange={setField("image")}
+              placeholder="https://..."
+              autoComplete="off"
+            />
+          </label>
+
+          <div className="admin-row">
+            <label className="admin-field">
+              <span>Department</span>
+              <select value={form.dept} onChange={setField("dept")}>
+                {DEPARTMENTS.map((d) => (
+                  <option key={d.key} value={d.key}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="admin-field">
+              <span>Type</span>
+              <select value={form.kind} onChange={setField("kind")}>
+                {KINDS.map((k) => (
+                  <option key={k.key} value={k.key}>
+                    {k.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="admin-toggles">
+            <label className="admin-toggle">
+              <input
+                type="checkbox"
+                checked={form.inStock}
+                onChange={setField("inStock")}
+              />
+              <span>In stock</span>
+            </label>
+
+            <label className="admin-toggle">
+              <input
+                type="checkbox"
+                checked={form.featured}
+                onChange={setField("featured")}
+              />
+              <span>Featured</span>
+            </label>
+          </div>
+
+          {msg ? <div className="admin-msg">{msg}</div> : null}
+
+          <button className="admin-btn" type="submit" disabled={submitting}>
+            {submitting ? "Adding…" : "Add product"}
+          </button>
+        </form>
       </div>
-
-      <form onSubmit={handleSubmit} className="admin-form">
-        <label className="admin-label">
-          Product name
-          <input
-            type="text"
-            placeholder="e.g. Minimal Hoodie"
-            value={form.name}
-            onChange={set("name")}
-            required
-            disabled={loading}
-          />
-        </label>
-
-        <div className="admin-row2">
-          <label className="admin-label">
-            Price (GHS)
-            <input
-              type="number"
-              placeholder="e.g. 199"
-              value={form.price}
-              onChange={set("price")}
-              required
-              disabled={loading}
-            />
-          </label>
-
-          <label className="admin-label">
-            Old price (optional)
-            <input
-              type="number"
-              placeholder="e.g. 249"
-              value={form.oldPrice}
-              onChange={set("oldPrice")}
-              disabled={loading}
-            />
-          </label>
-        </div>
-
-        <label className="admin-label">
-          Image URL (for now)
-          <input
-            type="url"
-            placeholder="https://..."
-            value={form.image}
-            onChange={set("image")}
-            required
-            disabled={loading}
-          />
-        </label>
-
-        <div className="admin-row2">
-          <label className="admin-label">
-            Department
-            <select value={form.dept} onChange={set("dept")} disabled={loading}>
-              {DEPARTMENTS.map((d) => (
-                <option key={d.key} value={d.key}>
-                  {d.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="admin-label">
-            Type
-            <select value={form.kind} onChange={set("kind")} disabled={loading}>
-              {KINDS.map((k) => (
-                <option key={k.key} value={k.key}>
-                  {k.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <label className="admin-label">
-          Description (optional)
-          <textarea
-            placeholder="Short clean description…"
-            value={form.description}
-            onChange={set("description")}
-            disabled={loading}
-            rows={4}
-          />
-        </label>
-
-        <label className="admin-check">
-          <input
-            type="checkbox"
-            checked={form.inStock}
-            onChange={set("inStock")}
-            disabled={loading}
-          />
-          In stock
-        </label>
-
-        <button type="submit" disabled={loading} className="admin-btn">
-          {loading ? "Uploading…" : "Upload"}
-        </button>
-      </form>
     </div>
   );
 }
