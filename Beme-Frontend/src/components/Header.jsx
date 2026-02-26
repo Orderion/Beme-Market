@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext"; // ✅ NEW (optional: shows logout)
+import logo from "../assets/logo.png";
 import "./Header.css";
 
 function IconMenu() {
