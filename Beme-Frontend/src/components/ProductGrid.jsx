@@ -12,7 +12,8 @@ import { db } from "../firebase";
 import ProductCard from "./ProductCard";
 import "./ProductGrid.css";
 
-const COLLECTION_NAME = "products";
+// ✅ IMPORTANT: Your Firestore screenshot shows collection name "Products" (capital P)
+const COLLECTION_NAME = "Products";
 
 function normalizeFilter(filter) {
   if (!filter) {
@@ -53,12 +54,61 @@ function normalizeFilter(filter) {
   };
 }
 
+function normalizeDoc(doc) {
+  const d = doc.data() || {};
+
+  // tolerate minor schema drift until you standardize your DB
+  const price = Number(d.price ?? d.Price ?? 0) || 0;
+  const oldPrice =
+    d.oldPrice ?? d.oldprice ?? d.OldPrice ?? d.Oldprice ?? null;
+
+  const dept = (d.dept ?? d.Dept ?? null);
+  const kind = (d.kind ?? d.Kind ?? null);
+
+  const inStock = Boolean(d.inStock ?? d.stock ?? d.in_stock ?? false);
+
+  return {
+    id: doc.id,
+    ...d,
+    price,
+    oldPrice: oldPrice != null ? Number(oldPrice) || oldPrice : null,
+    dept: typeof dept === "string" ? dept.toLowerCase() : dept,
+    kind: typeof kind === "string" ? kind.toLowerCase() : kind,
+    inStock,
+  };
+}
+
+function clientSort(list, sortKey) {
+  const arr = [...list];
+
+  if (sortKey === "price-asc") return arr.sort((a, b) => (a.price || 0) - (b.price || 0));
+  if (sortKey === "price-desc") return arr.sort((a, b) => (b.price || 0) - (a.price || 0));
+
+  // default newest
+  return arr.sort((a, b) => {
+    const at = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+    const bt = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+    return bt - at;
+  });
+}
+
 export default function ProductGrid({ filter = null, sortBy = "new", withCount = false }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
   const f = useMemo(() => normalizeFilter(filter), [filter]);
+
+  // stable fetch signature: refetch only when server-relevant filters change
+  const signature = useMemo(() => {
+    const s = (sortBy || f.sort || "new").toLowerCase();
+    return JSON.stringify({
+      dept: f.dept,
+      kind: f.kind,
+      inStockOnly: f.inStockOnly,
+      sort: s,
+    });
+  }, [f.dept, f.kind, f.inStockOnly, f.sort, sortBy]);
 
   useEffect(() => {
     let alive = true;
@@ -67,49 +117,59 @@ export default function ProductGrid({ filter = null, sortBy = "new", withCount =
       setLoading(true);
       setErr("");
 
+      const colRef = collection(db, COLLECTION_NAME);
+
+      // server filters (safe)
+      const wheres = [];
+      if (f.dept) wheres.push(where("dept", "==", f.dept));
+      if (f.kind) wheres.push(where("kind", "==", f.kind));
+      if (f.inStockOnly) wheres.push(where("inStock", "==", true));
+
+      const s = (sortBy || f.sort || "new").toLowerCase();
+      const wantsOrder =
+        s === "price-asc"
+          ? orderBy("price", "asc")
+          : s === "price-desc"
+          ? orderBy("price", "desc")
+          : orderBy("createdAt", "desc");
+
+      // Try ideal query (may need index)
       try {
-        const colRef = collection(db, COLLECTION_NAME);
-
-        const clauses = [];
-
-        if (f.dept) clauses.push(where("dept", "==", f.dept));
-        if (f.kind) clauses.push(where("kind", "==", f.kind));
-
-        // Stock filter
-        if (f.inStockOnly) clauses.push(where("inStock", "==", true));
-
-        // Server-side sort if possible
-        // Firestore does NOT support "between" on two fields easily, so we do price range client-side.
-        const s = (sortBy || f.sort || "new").toLowerCase();
-        if (s === "price-asc") clauses.push(orderBy("price", "asc"));
-        else if (s === "price-desc") clauses.push(orderBy("price", "desc"));
-        else clauses.push(orderBy("createdAt", "desc"));
-
-        clauses.push(limit(80));
-
-        const q = query(colRef, ...clauses);
-        const snap = await getDocs(q);
-
-        const items = snap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const qIdeal = query(colRef, ...wheres, wantsOrder, limit(200));
+        const snap = await getDocs(qIdeal);
 
         if (!alive) return;
-        setProducts(items);
-      } catch (e) {
-        console.error("❌ Failed to fetch products:", e);
-
-        const msg =
-          typeof e?.message === "string" && e.message.includes("requires an index")
-            ? "This filter needs a Firestore index. Open the link in the console error to create it."
-            : "Failed to load products.";
-
-        if (!alive) return;
-        setErr(msg);
-      } finally {
-        if (!alive) return;
+        setProducts(snap.docs.map(normalizeDoc));
         setLoading(false);
+        return;
+      } catch (e) {
+        // Missing index or precondition => fallback query without orderBy
+        const msg = String(e?.message || e);
+        const isIndex =
+          msg.toLowerCase().includes("requires an index") ||
+          msg.toLowerCase().includes("failed-precondition") ||
+          msg.toLowerCase().includes("index");
+
+        try {
+          const qFallback = query(colRef, ...wheres, limit(200));
+          const snap2 = await getDocs(qFallback);
+
+          if (!alive) return;
+
+          const normalized = snap2.docs.map(normalizeDoc);
+          const sorted = clientSort(normalized, s);
+
+          setProducts(sorted);
+
+          // only show error if it's not a common index case
+          if (!isIndex) setErr("Failed to load products.");
+          setLoading(false);
+        } catch (e2) {
+          if (!alive) return;
+          console.error("❌ Failed to fetch products (fallback):", e2);
+          setErr("Failed to load products.");
+          setLoading(false);
+        }
       }
     }
 
@@ -118,7 +178,7 @@ export default function ProductGrid({ filter = null, sortBy = "new", withCount =
     return () => {
       alive = false;
     };
-  }, [f.dept, f.kind, f.inStockOnly, f.sort, sortBy]);
+  }, [signature]);
 
   // Price range filter (client-side, after fetch)
   const finalList = useMemo(() => {
