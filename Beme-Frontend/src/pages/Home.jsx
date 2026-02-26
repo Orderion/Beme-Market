@@ -1,11 +1,73 @@
 // src/pages/Home.jsx
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Home.css";
+
+function Dropdown({ label, open, onToggle, onClose, children }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onClickOutside = (e) => {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target)) onClose();
+    };
+
+    const onEsc = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    window.addEventListener("mousedown", onClickOutside);
+    window.addEventListener("keydown", onEsc);
+    return () => {
+      window.removeEventListener("mousedown", onClickOutside);
+      window.removeEventListener("keydown", onEsc);
+    };
+  }, [open, onClose]);
+
+  return (
+    <div className="dd" ref={ref}>
+      <button type="button" className="filter-btn dd-btn" onClick={onToggle}>
+        {label} <span className="dd-caret">▾</span>
+      </button>
+
+      {open && <div className="dd-menu">{children}</div>}
+    </div>
+  );
+}
 
 export default function Home() {
   const navigate = useNavigate();
 
+  const [openMenu, setOpenMenu] = useState(null); // "cat" | "more" | null
+
   const goToShop = () => navigate("/shop");
+
+  const goCategory = (cat) => {
+    setOpenMenu(null);
+    navigate(`/shop?cat=${encodeURIComponent(cat)}`);
+  };
+
+  const goPage = (path) => {
+    setOpenMenu(null);
+    navigate(path);
+  };
+
+  // ✅ Offers: for now empty (later you can fetch from Firestore/user profile)
+  const offers = useMemo(() => {
+    return []; // e.g. [{ id: 1, title: "10% off", code: "BEME10" }]
+  }, []);
+
+  const onOffersClick = () => {
+    setOpenMenu(null);
+    if (!offers.length) {
+      alert("You have no offers yet.");
+      return;
+    }
+    // If you later add offers page:
+    // navigate("/offers");
+  };
 
   return (
     <div className="home">
@@ -22,6 +84,7 @@ export default function Home() {
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
+          aria-hidden="true"
         >
           <circle cx="11" cy="11" r="8" />
           <path d="M21 21l-4.3-4.3" />
@@ -31,14 +94,55 @@ export default function Home() {
           type="text"
           placeholder="Search products"
           className="search-input"
+          onFocus={() => setOpenMenu(null)}
         />
       </div>
 
-      {/* ✅ FILTER BAR */}
+      {/* ✅ FILTER BAR (Working dropdowns) */}
       <div className="filter-bar">
-        <button className="filter-btn">Categories ▾</button>
-        <button className="filter-btn">More ▾</button>
-        <button className="filter-btn">Offers</button>
+        <Dropdown
+          label="Categories"
+          open={openMenu === "cat"}
+          onToggle={() => setOpenMenu((v) => (v === "cat" ? null : "cat"))}
+          onClose={() => setOpenMenu(null)}
+        >
+          <button className="dd-item" type="button" onClick={() => goCategory("tech")}>
+            Tech
+          </button>
+          <button className="dd-item" type="button" onClick={() => goCategory("fashion")}>
+            Fashion
+          </button>
+          <button className="dd-item" type="button" onClick={() => goCategory("accessories")}>
+            Accessories
+          </button>
+        </Dropdown>
+
+        <Dropdown
+          label="More"
+          open={openMenu === "more"}
+          onToggle={() => setOpenMenu((v) => (v === "more" ? null : "more"))}
+          onClose={() => setOpenMenu(null)}
+        >
+          <button className="dd-item" type="button" onClick={() => goPage("/about")}>
+            About us
+          </button>
+          <button className="dd-item" type="button" onClick={() => goPage("/support")}>
+            Support us
+          </button>
+          <button className="dd-item" type="button" onClick={() => goPage("/contact")}>
+            Contact
+          </button>
+          <button className="dd-item" type="button" onClick={() => goPage("/faq")}>
+            FAQ
+          </button>
+          <button className="dd-item" type="button" onClick={() => goPage("/shipping-returns")}>
+            Shipping & Returns
+          </button>
+        </Dropdown>
+
+        <button className="filter-btn" type="button" onClick={onOffersClick}>
+          Offers
+        </button>
       </div>
 
       {/* ✅ HERO CARD */}

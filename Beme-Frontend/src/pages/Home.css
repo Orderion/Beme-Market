@@ -274,3 +274,48 @@ body.dark .xmas-card {
   justify-content: flex-start;
   font-weight: 600;
 }
+/* Dropdown */
+.dd {
+  position: relative;
+  display: inline-block;
+}
+
+.dd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dd-caret {
+  opacity: 0.7;
+}
+
+.dd-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  min-width: 180px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 8px;
+  z-index: 30;
+}
+
+.dd-item {
+  width: 100%;
+  text-align: left;
+  padding: 10px 10px;
+  border-radius: calc(var(--radius) - 6px);
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  opacity: 0.9;
+}
+
+.dd-item:hover {
+  background: var(--soft);
+  opacity: 1;
+}
