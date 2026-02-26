@@ -33,7 +33,7 @@ function Dropdown({ label, open, onToggle, onClose, children }) {
 
     window.addEventListener("mousedown", onClickOutside);
     window.addEventListener("keydown", onEsc);
-    window.addEventListener("scroll", onClose, true); // close on scroll
+    window.addEventListener("scroll", onClose, true);
     return () => {
       window.removeEventListener("mousedown", onClickOutside);
       window.removeEventListener("keydown", onEsc);
@@ -57,10 +57,38 @@ function Dropdown({ label, open, onToggle, onClose, children }) {
       )}
     </div>
   );
+}
+
+export default function Home() {
+  const navigate = useNavigate();
+  const [openMenu, setOpenMenu] = useState(null); // "cat" | "more" | null
+
+  const goToShop = () => navigate("/shop");
+
+  const goCategory = (cat) => {
+    setOpenMenu(null);
+    navigate(`/shop?cat=${encodeURIComponent(cat)}`);
+  };
+
+  const goPage = (path) => {
+    setOpenMenu(null);
+    navigate(path);
+  };
+
+  // Offers placeholder (empty for now)
+  const offers = useMemo(() => [], []);
+
+  const onOffersClick = () => {
+    setOpenMenu(null);
+    if (!offers.length) {
+      alert("You have no offers yet.");
+      return;
+    }
+  };
 
   return (
     <div className="home">
-      {/* ✅ SEARCH BAR */}
+      {/* SEARCH */}
       <div className="search-container">
         <svg
           className="search-icon"
@@ -87,7 +115,7 @@ function Dropdown({ label, open, onToggle, onClose, children }) {
         />
       </div>
 
-      {/* ✅ FILTER BAR (Working dropdowns) */}
+      {/* FILTER BAR */}
       <div className="filter-bar">
         <Dropdown
           label="Categories"
@@ -134,7 +162,7 @@ function Dropdown({ label, open, onToggle, onClose, children }) {
         </button>
       </div>
 
-      {/* ✅ HERO CARD */}
+      {/* HERO */}
       <section className="hero">
         <div className="hero-overlay">
           <span className="badge">Lowest price</span>
@@ -145,7 +173,7 @@ function Dropdown({ label, open, onToggle, onClose, children }) {
         </div>
       </section>
 
-      {/* XMAS COLLECTION */}
+      {/* FEATURE */}
       <section className="section">
         <div className="xmas-card">
           <div className="xmas-overlay">
