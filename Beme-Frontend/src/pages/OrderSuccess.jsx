@@ -2,68 +2,115 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { paystackVerify } from "../services/api";
-import "./OrderSuccess.css"; // optional if you have it
+import { useCart } from "../context/CartContext";
+import "./OrderSuccess.css";
 
 export default function OrderSuccess() {
   const [params] = useSearchParams();
   const reference = params.get("reference");
 
-  const [status, setStatus] = useState("verifying"); // verifying | paid | failed | cod
+  const { clearCart } = useCart();
+
+  const [status, setStatus] = useState("verifying"); 
+  // verifying | paid | failed | cod
 
   useEffect(() => {
-    if (!reference) {
-      setStatus("cod"); // COD flow lands here without reference
-      return;
-    }
-
     let cancelled = false;
 
-    (async () => {
+    async function verify() {
+      // COD flow (no Paystack reference)
+      if (!reference) {
+        if (!cancelled) {
+          clearCart();
+          setStatus("cod");
+        }
+        return;
+      }
+
       try {
         const res = await paystackVerify(reference);
         const ok = !!res?.data?.isSuccess;
 
         if (cancelled) return;
-        setStatus(ok ? "paid" : "failed");
+
+        if (ok) {
+          clearCart();
+          setStatus("paid");
+        } else {
+          setStatus("failed");
+        }
       } catch (e) {
-        console.error(e);
-        if (cancelled) return;
-        setStatus("failed");
+        console.error("Verification error:", e);
+        if (!cancelled) setStatus("failed");
       }
-    })();
+    }
+
+    verify();
 
     return () => {
       cancelled = true;
     };
-  }, [reference]);
+  }, [reference, clearCart]);
 
   return (
-    <div className="page" style={{ padding: 24 }}>
-      {status === "verifying" && <p>Verifying payment…</p>}
+    <div className="page">
+      <div className="order-success-card">
+        {status === "verifying" && (
+          <>
+            <div className="order-success-icon">…</div>
+            <h2 className="order-success-title">Verifying payment</h2>
+            <p className="order-success-sub">
+              Please wait while we confirm your transaction.
+            </p>
+          </>
+        )}
 
-      {status === "paid" && (
-        <>
-          <h2>Payment successful ✅</h2>
-          <p>Your order has been confirmed.</p>
-          <Link to="/shop">Continue shopping</Link>
-        </>
-      )}
+        {status === "paid" && (
+          <>
+            <div className="order-success-icon">✓</div>
+            <h2 className="order-success-title">Payment successful</h2>
+            <p className="order-success-sub">
+              Your order has been confirmed. Thank you for shopping with us.
+            </p>
 
-      {status === "cod" && (
-        <>
-          <h2>Order placed ✅</h2>
-          <p>Pay on delivery selected. We’ll contact you soon.</p>
-          <Link to="/shop">Continue shopping</Link>
-        </>
-      )}
+            <div className="order-success-actions">
+              <Link to="/shop" className="order-success-btn">
+                Continue shopping
+              </Link>
+            </div>
+          </>
+        )}
 
-      {status === "failed" && (
-        <>
-          <h2>Payment not confirmed ❌</h2>
-          <p>If you were charged, contact support with your reference.</p>
-          <Link to="/checkout">Back to checkout</Link>
-        </>
-      )}
+        {status === "cod" && (
+          <>
+            <div className="order-success-icon">✓</div>
+            <h2 className="order-success-title">Order placed</h2>
+            <p className="order-success-sub">
+              Pay on delivery selected. Our team will contact you shortly.
+            </p>
+
+            <div className="order-success-actions">
+              <Link to="/shop" className="order-success-btn">
+                Continue shopping
+              </Link>
+            </div>
+          </>
+        )}
+
+        {status === "failed" && (
+          <>
+            <div className="order-success-icon">!</div>
+            <h2 className="order-success-title">Payment not confirmed</h2>
+            <p className="order-success-sub">
+              If you were charged, contact support with your reference.
+            </p>
+
+            <Link to="/checkout" className="order-success-link">
+              Back to checkout
+            </Link>
+          </>
+        )}
+      </div>
     </div>
   );
 }

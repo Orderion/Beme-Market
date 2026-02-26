@@ -1,0 +1,90 @@
+/* src/pages/OrderSuccess.css */
+
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 60px 20px 80px;
+  color: var(--text);
+  display: flex;
+  justify-content: center;
+}
+
+.order-success-card {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 40px 28px;
+  text-align: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.order-success-title {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+}
+
+.order-success-sub {
+  font-size: 14px;
+  color: var(--soft);
+  margin: 0 0 24px;
+}
+
+.order-success-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  font-size: 22px;
+}
+
+.order-success-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.order-success-btn {
+  padding: 12px 22px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--text);
+  color: var(--bg);
+  text-decoration: none;
+  font-size: 14px;
+  transition: transform 0.08s ease;
+}
+
+body.dark .order-success-btn {
+  background: transparent;
+  color: var(--text);
+}
+
+.order-success-btn:active {
+  transform: scale(0.97);
+}
+
+.order-success-link {
+  margin-top: 14px;
+  display: inline-block;
+  font-size: 13px;
+  color: var(--soft);
+  text-decoration: underline;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
