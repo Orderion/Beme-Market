@@ -319,3 +319,29 @@ body.dark .xmas-card {
   background: var(--soft);
   opacity: 1;
 }
+/* ✅ Ensure dropdown sits above hero/banner */
+.filter-bar {
+  position: relative;
+  z-index: 50;
+}
+
+/* Dropdown wrapper */
+.dd {
+  position: relative;
+  z-index: 60;
+}
+
+/* Dropdown menu should float above everything */
+.dd-menu {
+  position: absolute;
+  z-index: 9999;
+}
+
+/* If your hero overlay has a z-index, keep it lower than dropdown */
+.hero,
+.hero-overlay,
+.xmas-card,
+.xmas-overlay {
+  position: relative;
+  z-index: 1;
+}
