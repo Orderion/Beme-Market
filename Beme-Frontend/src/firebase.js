@@ -1,26 +1,19 @@
+// src/firebase.js
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBLvKbmD3N3nhpdl3g1rRLt0zuZa4Z6sBs",
-  authDomain: "beme-market.firebaseapp.com",
-  projectId: "beme-market",
-  storageBucket: "beme-market.firebasestorage.app",
-  messagingSenderId: "1032518392050",
-  appId: "1:1032518392050:web:1e142a128f27e67e36986b",
-  measurementId: "G-0YMHB6KK0L",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
 };
 
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
+export const db = getFirestore(app);
 
-// ✅ IMPORTANT: use your real Firestore databaseId here.
-// If your console shows "(default)" then use "(default)".
-// If it shows "default" then use "default".
-export const db = getFirestore(app, "(default)");
-
-export const storage = getStorage(app);
 export default app;

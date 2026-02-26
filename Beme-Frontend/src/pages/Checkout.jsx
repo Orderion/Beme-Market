@@ -1,9 +1,10 @@
+// src/pages/Checkout.jsx
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { db } from "../firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { paystackInit } from "../services/api"; // ✅ NEW
+import { paystackInit } from "../services/api";
 import "./Checkout.css";
 
 export default function Checkout() {
@@ -11,7 +12,7 @@ export default function Checkout() {
   const { cartItems, clearCart } = useCart();
 
   const [method, setMethod] = useState("paystack");
-  const [loading, setLoading] = useState(false); // ✅ NEW
+  const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
     email: "",
@@ -26,10 +27,11 @@ export default function Checkout() {
   });
 
   const subtotal = useMemo(() => {
-    return cartItems.reduce(
-      (sum, item) => sum + Number(item.price) * Number(item.qty),
-      0
-    );
+    return cartItems.reduce((sum, item) => {
+      const price = Number(item.price) || 0;
+      const qty = Number(item.qty) || 0;
+      return sum + price * qty;
+    }, 0);
   }, [cartItems]);
 
   const total = subtotal;
@@ -40,23 +42,24 @@ export default function Checkout() {
     if (!form.phone) return "Phone is required";
     if (!form.address) return "Address is required";
     if (!cartItems.length) return "Your cart is empty";
+    if (!(Number(total) > 0)) return "Invalid order total";
     return null;
   };
 
-  // ✅ COD stays the same (but includes basic validation)
   const placeCOD = async () => {
     const err = validateRequired();
     if (err) return alert(err);
 
     setLoading(true);
     try {
-      await addDoc(collection(db, "Orders"), {
+      await addDoc(collection(db, "orders"), {
         customer: form,
         items: cartItems,
-        total,
+        total: Number(total),
         paymentMethod: "cod",
-        status: "cod_pending",
+        status: "pending",
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       });
 
       clearCart();
@@ -69,43 +72,43 @@ export default function Checkout() {
     }
   };
 
-  // ✅ NEW: Paystack flow (create order doc -> init -> redirect)
   const payWithPaystack = async () => {
     const err = validateRequired();
     if (err) return alert(err);
 
     setLoading(true);
     try {
-      // 1) Create order first so we have orderId
-      const docRef = await addDoc(collection(db, "Orders"), {
+      // 1) Create order (pending) in Firestore (lowercase "orders")
+      const docRef = await addDoc(collection(db, "orders"), {
         customer: form,
         items: cartItems,
-        total,
+        total: Number(total),
         paymentMethod: "paystack",
-        status: "paystack_pending",
+        status: "pending",
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       });
 
       const orderId = docRef.id;
 
-      // 2) Initialize Paystack on backend (Render)
-      const { data } = await paystackInit({
+      // 2) Initialize on backend
+      const res = await paystackInit({
         email: form.email,
-        amountGHS: total,
+        amountGHS: Number(total),
         orderId,
       });
 
-      if (!data?.authorizationUrl) {
+      const authorizationUrl = res?.data?.authorizationUrl;
+
+      if (!authorizationUrl) {
         throw new Error("Missing Paystack authorization URL");
       }
 
-      // 3) Redirect to Paystack hosted checkout
-      window.location.href = data.authorizationUrl;
+      // 3) Redirect to Paystack
+      window.location.href = authorizationUrl;
     } catch (e) {
       console.error(e);
-      alert("Paystack init failed. Please try again.");
-
-      // Optional: you can update order to failed here if you want
+      alert(e?.message || "Paystack init failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -117,13 +120,13 @@ export default function Checkout() {
         <h1 className="checkout-title">Checkout</h1>
 
         <div className="checkout-grid">
-          {/* LEFT SIDE FORM */}
           <div className="checkout-form">
             <h3>Contact</h3>
             <input
               placeholder="Email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
+              disabled={loading}
             />
 
             <h3>Shipping address</h3>
@@ -137,11 +140,13 @@ export default function Checkout() {
                 placeholder="First name"
                 value={form.firstName}
                 onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                disabled={loading}
               />
               <input
                 placeholder="Last name"
                 value={form.lastName}
                 onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                disabled={loading}
               />
             </div>
 
@@ -149,6 +154,7 @@ export default function Checkout() {
               placeholder="Address"
               value={form.address}
               onChange={(e) => setForm({ ...form, address: e.target.value })}
+              disabled={loading}
             />
 
             <div className="row-2">
@@ -156,11 +162,13 @@ export default function Checkout() {
                 placeholder="Region"
                 value={form.region}
                 onChange={(e) => setForm({ ...form, region: e.target.value })}
+                disabled={loading}
               />
               <input
                 placeholder="City"
                 value={form.city}
                 onChange={(e) => setForm({ ...form, city: e.target.value })}
+                disabled={loading}
               />
             </div>
 
@@ -168,12 +176,14 @@ export default function Checkout() {
               placeholder="Area"
               value={form.area}
               onChange={(e) => setForm({ ...form, area: e.target.value })}
+              disabled={loading}
             />
 
             <input
               placeholder="Phone"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              disabled={loading}
             />
 
             <h3>Payment method</h3>
@@ -209,7 +219,6 @@ export default function Checkout() {
             )}
           </div>
 
-          {/* RIGHT SIDE SUMMARY */}
           <div className="checkout-summary">
             <h3>Order Summary</h3>
 
@@ -219,7 +228,7 @@ export default function Checkout() {
                   <p>{item.name}</p>
                   <small>x{item.qty}</small>
                 </div>
-                <p>GHS {(item.price * item.qty).toFixed(2)}</p>
+                <p>GHS {(Number(item.price) * Number(item.qty)).toFixed(2)}</p>
               </div>
             ))}
 

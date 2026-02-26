@@ -1,26 +1,73 @@
+// src/components/ProductGrid.jsx
 import { useEffect, useMemo, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "../firebase";
 import ProductCard from "./ProductCard";
 import "./ProductGrid.css";
 
-const COLLECTION_NAME = "Products"; // ✅ must match Firestore exactly
+// ✅ Must match your Firestore structure: products / orders / users
+const COLLECTION_NAME = "products";
 
-const ProductGrid = ({ filter = null, sortBy = "new", withCount = false }) => {
+function normalizeFilter(filter) {
+  // Accepts:
+  // - null
+  // - string (legacy)
+  // - { dept, kind } (new)
+  if (!filter) return { dept: null, kind: null };
+
+  if (typeof filter === "string") {
+    // Legacy support: treat string as dept (best-effort)
+    return { dept: filter.toLowerCase(), kind: null };
+  }
+
+  const dept = filter?.dept ? String(filter.dept).toLowerCase() : null;
+  const kind = filter?.kind ? String(filter.kind).toLowerCase() : null;
+
+  return { dept, kind };
+}
+
+export default function ProductGrid({ filter = null, sortBy = "new", withCount = false }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+
+  const { dept, kind } = useMemo(() => normalizeFilter(filter), [filter]);
 
   useEffect(() => {
     let alive = true;
 
-    const fetchProducts = async () => {
+    async function fetchProducts() {
+      setLoading(true);
+      setErr("");
+
       try {
         const colRef = collection(db, COLLECTION_NAME);
-        const snap = await getDocs(colRef);
 
-        // ✅ Debug logs (very important right now)
-        console.log("✅ Firestore project:", db.app.options.projectId);
-        console.log(`✅ Collection "${COLLECTION_NAME}" docs:`, snap.size);
+        const clauses = [];
+
+        // ✅ Filters (server-side)
+        if (dept) clauses.push(where("dept", "==", dept));
+        if (kind) clauses.push(where("kind", "==", kind));
+
+        // ✅ Sort (server-side)
+        // Note: Firestore may require composite indexes when mixing where+orderBy.
+        if (sortBy === "price") {
+          clauses.push(orderBy("price", "asc"));
+        } else {
+          clauses.push(orderBy("createdAt", "desc"));
+        }
+
+        clauses.push(limit(80));
+
+        const q = query(colRef, ...clauses);
+        const snap = await getDocs(q);
 
         const items = snap.docs.map((doc) => ({
           id: doc.id,
@@ -29,74 +76,52 @@ const ProductGrid = ({ filter = null, sortBy = "new", withCount = false }) => {
 
         if (!alive) return;
         setProducts(items);
-      } catch (err) {
-        console.error("❌ Failed to fetch products:", err);
+      } catch (e) {
+        console.error("❌ Failed to fetch products:", e);
+
+        // Firestore index errors are common once you add where+orderBy:
+        // "FAILED_PRECONDITION: The query requires an index..."
+        const msg =
+          typeof e?.message === "string" && e.message.includes("requires an index")
+            ? "This filter needs a Firestore index. Open the console link in the error log to create it."
+            : "Failed to load products.";
+        if (!alive) return;
+        setErr(msg);
       } finally {
         if (!alive) return;
         setLoading(false);
       }
-    };
+    }
 
     fetchProducts();
 
     return () => {
       alive = false;
     };
-  }, []); // ✅ fetch once
-
-  const filtered = useMemo(() => {
-    let list = [...products];
-
-    // FILTER
-    if (filter) {
-      const f = String(filter).toLowerCase();
-      list = list.filter((p) =>
-        String(p.category || "").toLowerCase().includes(f)
-      );
-    }
-
-    // SORT
-    if (sortBy === "price") {
-      list.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
-    } else {
-      // newest first
-      list.sort((a, b) => {
-        const ad =
-          a.createdAt?.seconds != null
-            ? a.createdAt.seconds * 1000
-            : new Date(a.createdAt || 0).getTime();
-
-        const bd =
-          b.createdAt?.seconds != null
-            ? b.createdAt.seconds * 1000
-            : new Date(b.createdAt || 0).getTime();
-
-        return bd - ad;
-      });
-    }
-
-    return list;
-  }, [products, filter, sortBy]);
+  }, [dept, kind, sortBy]);
 
   // Count-only mode (header)
   if (withCount) {
     if (loading) return <>...</>;
-    return <>{filtered.length} items</>;
+    if (err) return <>0 items</>;
+    return <>{products.length} items</>;
   }
 
   if (loading) return <div className="product-grid">Loading...</div>;
 
-  if (!filtered.length) {
+  if (err) {
+    return <div className="product-grid">{err}</div>;
+  }
+
+  if (!products.length) {
     return <div className="product-grid">No products found.</div>;
   }
 
   return (
     <div className="product-grid">
-      {filtered.map((product) => (
+      {products.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}
     </div>
   );
-};
-
-export default ProductGrid;
+}

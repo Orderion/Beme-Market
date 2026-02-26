@@ -1,28 +1,103 @@
+/* src/pages/Admin.css */
+
 .admin {
-  padding: 40px;
-  max-width: 600px;
-  margin: auto;
-  background: var(--bg);
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 18px 60px;
   color: var(--text);
 }
 
-.admin form {
+.admin-head {
+  margin-bottom: 18px;
+}
+
+.admin-title {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+}
+
+.admin-sub {
+  margin: 0;
+  color: var(--soft);
+  font-size: 13px;
+}
+
+.admin-form {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
-.admin input {
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
+.admin-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--soft);
 }
 
-.admin button {
-  padding: 12px;
-  border-radius: 10px;
-  border: none;
-  background: var(--accent);
-  color: var(--button-text);
+.admin input,
+.admin select,
+.admin textarea {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 12px 12px;
+  outline: none;
+}
+
+.admin textarea {
+  resize: vertical;
+}
+
+.admin-row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.admin-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.admin-btn {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--text);
+  color: var(--bg);
   cursor: pointer;
+  transition: transform 0.08s ease;
+}
+
+body.dark .admin-btn {
+  background: transparent;
+  color: var(--text);
+}
+
+.admin-btn:active {
+  transform: scale(0.98);
+}
+
+.admin-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .admin-row2 {
+    grid-template-columns: 1fr;
+  }
 }

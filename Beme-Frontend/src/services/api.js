@@ -1,44 +1,34 @@
 // src/services/api.js
-import axios from "axios";
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE?.replace(/\/$/, "") || "http://localhost:5000";
+const BASE = import.meta.env.VITE_BACKEND_URL;
 
-const API = axios.create({
-  baseURL: `${API_BASE}/api`,
-  withCredentials: false, // set true ONLY if you use cookies/sessions
-  timeout: 20000,
-});
+if (!BASE) {
+  // Don’t throw at import time in production; fail when used
+  console.warn("Missing VITE_BACKEND_URL. Set it in Vercel/your .env");
+}
 
-// Optional: attach auth token if you use Firebase Auth (ID token)
-API.interceptors.request.use(async (config) => {
-  try {
-    // If you don’t use firebase in the frontend, delete this whole interceptor.
-    const { getAuth } = await import("firebase/auth");
-    const auth = getAuth();
-    const user = auth.currentUser;
-
-    if (user) {
-      const token = await user.getIdToken();
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  } catch {
-    // ignore
+async function toJson(res) {
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error || data?.message || "Request failed");
   }
-  return config;
-});
+  return data;
+}
 
-export default API;
+export async function paystackInit({ email, amountGHS, orderId }) {
+  const res = await fetch(`${BASE}/api/paystack/initialize`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, amountGHS, orderId }),
+  });
 
-/* =========================
-   Convenience helpers
-   ========================= */
+  // backend returns: { authorizationUrl, reference }
+  const data = await toJson(res);
+  return { data };
+}
 
-// Paystack
-export const paystackInit = (payload) => API.post("/paystack/initialize", payload);
-export const paystackVerify = (reference) => API.get(`/paystack/verify/${reference}`);
-
-// Auth (example)
-export const login = (payload) => API.post("/auth/login", payload);
-export const register = (payload) => API.post("/auth/register", payload);
-export const verifyPaystack = paystackVerify;
+export async function paystackVerify(reference) {
+  const res = await fetch(`${BASE}/api/paystack/verify/${reference}`);
+  const data = await toJson(res);
+  return { data };
+}

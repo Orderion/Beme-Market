@@ -1,10 +1,8 @@
-// File: src/context/CartContext.jsx
-import React, { createContext, useContext, useState } from "react";
+// src/context/CartContext.jsx
+import React, { createContext, useContext, useMemo, useState } from "react";
 
-// Create context
-const CartContext = createContext();
+const CartContext = createContext(null);
 
-// Provide context
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
 
@@ -13,11 +11,10 @@ export const CartProvider = ({ children }) => {
       const existing = prev.find((item) => item.id === product.id);
       if (existing) {
         return prev.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          item.id === product.id ? { ...item, qty: (item.qty || 1) + 1 } : item
         );
-      } else {
-        return [...prev, { ...product, quantity: 1 }];
       }
+      return [...prev, { ...product, qty: 1 }];
     });
   };
 
@@ -25,30 +22,37 @@ export const CartProvider = ({ children }) => {
     setCartItems((prev) => prev.filter((item) => item.id !== productId));
   };
 
-  const updateQuantity = (productId, quantity) => {
+  const updateQty = (productId, qty) => {
+    const safeQty = Math.max(1, Number(qty) || 1);
     setCartItems((prev) =>
-      prev.map((item) =>
-        item.id === productId ? { ...item, quantity } : item
-      )
+      prev.map((item) => (item.id === productId ? { ...item, qty: safeQty } : item))
     );
   };
 
   const clearCart = () => setCartItems([]);
 
-  return (
-    <CartContext.Provider
-      value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart }}
-    >
-      {children}
-    </CartContext.Provider>
-  );
+  const subtotal = useMemo(() => {
+    return cartItems.reduce((sum, item) => {
+      const price = Number(item.price) || 0;
+      const qty = Number(item.qty) || 0;
+      return sum + price * qty;
+    }, 0);
+  }, [cartItems]);
+
+  const value = {
+    cartItems,
+    addToCart,
+    removeFromCart,
+    updateQty,
+    clearCart,
+    subtotal,
+  };
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };
 
-// Custom hook for easy usage
 export const useCart = () => {
-  const context = useContext(CartContext);
-  if (!context) {
-    throw new Error("useCart must be used within a CartProvider");
-  }
-  return context;
+  const ctx = useContext(CartContext);
+  if (!ctx) throw new Error("useCart must be used within a CartProvider");
+  return ctx;
 };

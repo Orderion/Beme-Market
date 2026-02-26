@@ -1,6 +1,7 @@
 // src/components/Sidebar.jsx
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
+import { DEFAULT_KIND_BY_DEPT } from "../constants/catalog";
 import "./Sidebar.css";
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -12,55 +13,45 @@ export default function Sidebar({ isOpen, onClose }) {
     onClose?.();
   };
 
+  const goDept = (dept) => {
+    // Accessories should default to tech, others to fashion
+    const kind = DEFAULT_KIND_BY_DEPT[dept];
+    go(`/shop?dept=${dept}${kind ? `&kind=${kind}` : ""}`);
+  };
+
   return (
     <>
       <div className={`side-panel ${isOpen ? "open" : ""}`}>
         <div className="side-header">
           <h3>Menu</h3>
-          <button
-            onClick={onClose}
-            aria-label="Close menu"
-            className="side-close"
-          >
+          <button onClick={onClose} aria-label="Close menu" className="side-close">
             ×
           </button>
         </div>
 
         <div className="side-links">
-          {/* ✅ NEW: Home at top */}
           <button className="sidebar-link" onClick={() => go("/")}>
             Home
           </button>
 
           <div className="side-divider" />
 
-          <button
-            className="sidebar-link"
-            onClick={() => go("/shop?cat=men")}
-          >
+          <button className="sidebar-link" onClick={() => goDept("men")}>
             Men
           </button>
-          <button
-            className="sidebar-link"
-            onClick={() => go("/shop?cat=women")}
-          >
+          <button className="sidebar-link" onClick={() => goDept("women")}>
             Women
           </button>
-          <button
-            className="sidebar-link"
-            onClick={() => go("/shop?cat=kids")}
-          >
+          <button className="sidebar-link" onClick={() => goDept("kids")}>
             Kids
           </button>
-          <button
-            className="sidebar-link"
-            onClick={() => go("/shop?cat=accessories")}
-          >
+          <button className="sidebar-link" onClick={() => goDept("accessories")}>
             Accessories
           </button>
 
           <div className="side-divider" />
 
+          {/* Shop (no filters) */}
           <button className="sidebar-link" onClick={() => go("/shop")}>
             Shop
           </button>
@@ -69,7 +60,6 @@ export default function Sidebar({ isOpen, onClose }) {
             Login
           </button>
 
-          {/* Optional theme toggle inside menu (luxury feel) */}
           <div className="side-divider" />
 
           <button className="sidebar-link" onClick={toggleTheme}>
