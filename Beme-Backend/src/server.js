@@ -2,32 +2,60 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 
-import connectDB from "./config/db.js";
 import authRoutes from "./routes/auth.js";
+import paystackRoutes from "./routes/paystack.js"; // ✅ add this (create file)
+import connectDB from "./config/db.js"; // ✅ keep if you STILL use DB in this backend
 
 const app = express();
 
-// ✅ Middleware
-app.use(cors());
-app.use(express.json());
+// ✅ Trust proxy (Render sits behind a proxy)
+app.set("trust proxy", 1);
 
-// ✅ Connect DB (don’t crash silently)
+// ✅ Middleware
+app.use(
+  cors({
+    origin: [
+      process.env.FRONTEND_URL, // e.g. https://bememarket.vercel.app
+      "http://localhost:5173",
+    ].filter(Boolean),
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    credentials: true,
+  })
+);
+app.use(express.json({ limit: "1mb" }));
+
+// ✅ Health checks
+app.get("/", (req, res) => res.send("Beme Market API Running"));
+app.get("/health", (req, res) => res.json({ ok: true }));
+
+// ✅ Connect DB (ONLY if your API still uses it)
+// If you are fully on Firebase/Firestore and no MongoDB, remove connectDB entirely.
 (async () => {
   try {
     await connectDB();
+    console.log("✅ Database connected");
   } catch (err) {
     console.error("❌ Failed to connect to database:", err?.message || err);
-    // Optional: exit if DB is required to run the API
-    process.exit(1);
+    // If DB is not required for Paystack/Auth endpoints, DO NOT crash:
+    // process.exit(1);
   }
 })();
 
 // ✅ Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/paystack", paystackRoutes); // ✅ Paystack endpoints
 
-// ✅ Health check
-app.get("/", (req, res) => {
-  res.send("Beme Market API Running");
+// ✅ 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: "Route not found" });
+});
+
+// ✅ Error handler (prevents crashing without response)
+app.use((err, req, res, next) => {
+  console.error("❌ API Error:", err);
+  res.status(err.status || 500).json({
+    error: err.message || "Internal Server Error",
+  });
 });
 
 // ✅ Start server
