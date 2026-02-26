@@ -5,3 +5,85 @@
   padding: 18px;
   background: var(--bg);
 }
+
+/* ✅ Skeleton cards */
+.product-skeleton {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  padding: 12px;
+}
+
+.product-skeleton-media {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: var(--soft);
+  border-radius: calc(var(--radius) - 6px);
+}
+
+.product-skeleton-line {
+  margin-top: 10px;
+  height: 12px;
+  background: var(--soft);
+  border-radius: 999px;
+}
+
+.product-skeleton-line.short {
+  width: 60%;
+}
+
+/* ✅ Empty / Error state */
+.product-grid-empty {
+  padding: 34px 18px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+}
+
+.product-grid-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.product-grid-empty-sub {
+  margin-top: 8px;
+  opacity: 0.75;
+  font-size: 13px;
+}
+
+.product-grid-empty-btn {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+/* ✅ Footer controls */
+.product-grid-footer {
+  padding: 10px 18px 20px;
+  background: var(--bg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.product-grid-loadmore {
+  padding: 12px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+.product-grid-footer-muted {
+  opacity: 0.7;
+  font-size: 13px;
+}
