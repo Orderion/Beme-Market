@@ -1,24 +1,27 @@
 // src/firebaseAdmin.js
 import admin from "firebase-admin";
 
-if (!admin.apps.length) {
-  const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+function initFirebaseAdmin() {
+  if (admin.apps.length) return admin;
 
-  if (!json) {
-    throw new Error("Missing FIREBASE_SERVICE_ACCOUNT_JSON env var");
+  const svcJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+
+  if (svcJson) {
+    const serviceAccount = JSON.parse(svcJson);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    return admin;
   }
 
-  const serviceAccount = JSON.parse(json);
-
-  // Fix escaped newlines in private key (Render safe)
-  if (serviceAccount.private_key) {
-    serviceAccount.private_key =
-      serviceAccount.private_key.replace(/\\n/g, "\n");
-  }
-
+  // Fallback: if running in an environment with GOOGLE_APPLICATION_CREDENTIALS
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
+    credential: admin.credential.applicationDefault(),
   });
+
+  return admin;
 }
 
-export const db = admin.firestore();
+const firebaseAdmin = initFirebaseAdmin();
+export const dbAdmin = firebaseAdmin.firestore();
+export default firebaseAdmin;

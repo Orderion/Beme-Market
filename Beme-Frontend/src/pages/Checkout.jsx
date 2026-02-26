@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { db } from "../firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { paystackInit } from "../services/api";
+import { startPaystackCheckout } from "../lib/checkout";
 import "./Checkout.css";
 
 export default function Checkout() {
@@ -26,7 +26,8 @@ export default function Checkout() {
     notes: "",
   });
 
-  const subtotal = useMemo(() => {
+  // UI-only subtotal (display). NOT trusted for Paystack.
+  const subtotalUI = useMemo(() => {
     return cartItems.reduce((sum, item) => {
       const price = Number(item.price) || 0;
       const qty = Number(item.qty) || 0;
@@ -34,15 +35,12 @@ export default function Checkout() {
     }, 0);
   }, [cartItems]);
 
-  const total = subtotal;
-
   const validateRequired = () => {
     if (!form.email) return "Email is required";
     if (!form.firstName) return "First name is required";
     if (!form.phone) return "Phone is required";
     if (!form.address) return "Address is required";
     if (!cartItems.length) return "Your cart is empty";
-    if (!(Number(total) > 0)) return "Invalid order total";
     return null;
   };
 
@@ -52,10 +50,11 @@ export default function Checkout() {
 
     setLoading(true);
     try {
+      // NOTE: COD can stay client-created for now.
+      // For maximum security, you can also move COD order creation to backend later.
       await addDoc(collection(db, "orders"), {
         customer: form,
-        items: cartItems,
-        total: Number(total),
+        items: cartItems.map((i) => ({ id: i.id, qty: i.qty || 1 })), // store minimal
         paymentMethod: "cod",
         status: "pending",
         createdAt: serverTimestamp(),
@@ -78,38 +77,17 @@ export default function Checkout() {
 
     setLoading(true);
     try {
-      // 1) Create order (pending) in Firestore (lowercase "orders")
-      const docRef = await addDoc(collection(db, "orders"), {
-        customer: form,
-        items: cartItems,
-        total: Number(total),
-        paymentMethod: "paystack",
-        status: "pending",
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      const orderId = docRef.id;
-
-      // 2) Initialize on backend
-      const res = await paystackInit({
+      // ✅ Secure: backend computes amount using Firestore Admin prices
+      await startPaystackCheckout({
         email: form.email,
-        amountGHS: Number(total),
-        orderId,
+        cartItems,
+        customer: form, // shipping/contact info stored server-side in order
       });
 
-      const authorizationUrl = res?.data?.authorizationUrl;
-
-      if (!authorizationUrl) {
-        throw new Error("Missing Paystack authorization URL");
-      }
-
-      // 3) Redirect to Paystack
-      window.location.href = authorizationUrl;
+      // no further code; browser redirects to Paystack
     } catch (e) {
       console.error(e);
       alert(e?.message || "Paystack init failed. Please try again.");
-    } finally {
       setLoading(false);
     }
   };
@@ -214,7 +192,7 @@ export default function Checkout() {
               </button>
             ) : (
               <button className="primary-btn" onClick={payWithPaystack} disabled={loading}>
-                {loading ? "Redirecting..." : `Pay GHS ${total.toFixed(2)}`}
+                {loading ? "Redirecting..." : "Pay with Paystack"}
               </button>
             )}
           </div>
@@ -234,7 +212,8 @@ export default function Checkout() {
 
             <div className="summary-total">
               <span>Total</span>
-              <strong>GHS {total.toFixed(2)}</strong>
+              {/* UI display only — backend is authoritative */}
+              <strong>GHS {subtotalUI.toFixed(2)}</strong>
             </div>
           </div>
         </div>
