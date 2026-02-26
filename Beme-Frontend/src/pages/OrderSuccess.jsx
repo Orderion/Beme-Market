@@ -1,20 +1,27 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { verifyPaystack } from "../services/api";
+import { paystackVerify } from "../services/api";
 
 export default function OrderSuccess() {
   const [params] = useSearchParams();
   const reference = params.get("reference");
+
   const [status, setStatus] = useState("verifying");
 
   useEffect(() => {
-    if (!reference) return;
+    if (!reference) {
+      setStatus("paid"); // COD flow might land here without reference
+      return;
+    }
 
     (async () => {
       try {
-        const res = await verifyPaystack(reference);
-        setStatus(res.isSuccess ? "paid" : "failed");
-      } catch {
+        const res = await paystackVerify(reference);
+        // axios response -> res.data
+        const ok = !!res?.data?.isSuccess;
+        setStatus(ok ? "paid" : "failed");
+      } catch (e) {
+        console.error(e);
         setStatus("failed");
       }
     })();

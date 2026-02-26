@@ -41,3 +41,4 @@ export const paystackVerify = (reference) => API.get(`/paystack/verify/${referen
 // Auth (example)
 export const login = (payload) => API.post("/auth/login", payload);
 export const register = (payload) => API.post("/auth/register", payload);
+export const verifyPaystack = paystackVerify;
