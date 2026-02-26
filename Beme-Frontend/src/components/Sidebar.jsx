@@ -17,22 +17,45 @@ export default function Sidebar({ isOpen, onClose }) {
       <div className={`side-panel ${isOpen ? "open" : ""}`}>
         <div className="side-header">
           <h3>Menu</h3>
-          <button onClick={onClose} aria-label="Close menu" className="side-close">
+          <button
+            onClick={onClose}
+            aria-label="Close menu"
+            className="side-close"
+          >
             ×
           </button>
         </div>
 
         <div className="side-links">
-          <button className="sidebar-link" onClick={() => go("/shop?cat=men")}>
+          {/* ✅ NEW: Home at top */}
+          <button className="sidebar-link" onClick={() => go("/")}>
+            Home
+          </button>
+
+          <div className="side-divider" />
+
+          <button
+            className="sidebar-link"
+            onClick={() => go("/shop?cat=men")}
+          >
             Men
           </button>
-          <button className="sidebar-link" onClick={() => go("/shop?cat=women")}>
+          <button
+            className="sidebar-link"
+            onClick={() => go("/shop?cat=women")}
+          >
             Women
           </button>
-          <button className="sidebar-link" onClick={() => go("/shop?cat=kids")}>
+          <button
+            className="sidebar-link"
+            onClick={() => go("/shop?cat=kids")}
+          >
             Kids
           </button>
-          <button className="sidebar-link" onClick={() => go("/shop?cat=accessories")}>
+          <button
+            className="sidebar-link"
+            onClick={() => go("/shop?cat=accessories")}
+          >
             Accessories
           </button>
 
@@ -41,8 +64,16 @@ export default function Sidebar({ isOpen, onClose }) {
           <button className="sidebar-link" onClick={() => go("/shop")}>
             Shop
           </button>
+
           <button className="sidebar-link" onClick={() => go("/login")}>
             Login
+          </button>
+
+          {/* Optional theme toggle inside menu (luxury feel) */}
+          <div className="side-divider" />
+
+          <button className="sidebar-link" onClick={toggleTheme}>
+            {darkMode ? "Light Mode" : "Dark Mode"}
           </button>
         </div>
       </div>
