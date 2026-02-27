@@ -12,6 +12,7 @@ const initial = {
   price: "",
   oldPrice: "",
   image: "",
+  description: "", // ✅ NEW FIELD
   dept: "men",
   kind: "fashion",
   inStock: true,
@@ -46,11 +47,15 @@ export default function Admin() {
     if (!name) return "Name is required.";
 
     const price = Number(form.price);
-    if (!Number.isFinite(price) || price < 0) return "Price must be a valid number ≥ 0.";
+    if (!Number.isFinite(price) || price < 0) {
+      return "Price must be a valid number ≥ 0.";
+    }
 
     if (form.oldPrice !== "") {
       const old = Number(form.oldPrice);
-      if (!Number.isFinite(old) || old < 0) return "Old price must be a valid number ≥ 0.";
+      if (!Number.isFinite(old) || old < 0) {
+        return "Old price must be a valid number ≥ 0.";
+      }
       if (old < price) return "Old price should be higher than current price.";
     }
 
@@ -60,6 +65,10 @@ export default function Admin() {
 
     if (!deptOptions.includes(form.dept)) return "Invalid department selected.";
     if (!kindOptions.includes(form.kind)) return "Invalid type selected.";
+
+    // Description is optional.
+    // If you want it required, uncomment:
+    // if (!form.description.trim()) return "Description is required.";
 
     return "";
   };
@@ -80,6 +89,10 @@ export default function Admin() {
         name: form.name.trim(),
         price: Number(form.price),
         image: form.image.trim(),
+
+        // ✅ NEW: save description
+        description: form.description.trim(),
+
         dept: form.dept,
         kind: form.kind,
         inStock: !!form.inStock,
@@ -89,6 +102,9 @@ export default function Admin() {
 
       // only write oldPrice if provided
       if (form.oldPrice !== "") payload.oldPrice = Number(form.oldPrice);
+
+      // optional: keep Firestore clean (don’t store empty strings)
+      if (!payload.description) delete payload.description;
 
       await addDoc(collection(db, COLLECTION_NAME), payload);
 
@@ -107,7 +123,9 @@ export default function Admin() {
       <div className="admin-card">
         <div className="admin-head">
           <h2 className="admin-title">Add Product</h2>
-          <p className="admin-sub">Uploads to Firestore collection: <b>{COLLECTION_NAME}</b></p>
+          <p className="admin-sub">
+            Uploads to Firestore collection: <b>{COLLECTION_NAME}</b>
+          </p>
         </div>
 
         <form className="admin-form" onSubmit={onSubmit}>
@@ -150,6 +168,17 @@ export default function Admin() {
               onChange={setField("image")}
               placeholder="https://..."
               autoComplete="off"
+            />
+          </label>
+
+          {/* ✅ NEW FIELD */}
+          <label className="admin-field">
+            <span>Description (optional)</span>
+            <textarea
+              value={form.description}
+              onChange={setField("description")}
+              placeholder="Write a short product description..."
+              rows={5}
             />
           </label>
 
