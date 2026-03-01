@@ -54,6 +54,25 @@
   gap: 16px;
 }
 
+/* ✅ NEW: error + hints */
+.field-error {
+  margin-top: -10px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  font-size: 13px;
+  opacity: 0.95;
+}
+
+.field-hint {
+  margin-top: -6px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  opacity: 0.75;
+}
+
 .payment-options {
   display: flex;
   gap: 10px;
@@ -110,6 +129,16 @@
   color: var(--muted);
 }
 
+/* ✅ NEW: subtotal/delivery lines */
+.summary-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 14px;
+  opacity: 0.95;
+}
+
 .summary-total {
   display: flex;
   justify-content: space-between;
@@ -121,6 +150,9 @@
 
 @media (max-width: 900px) {
   .checkout-grid {
+    grid-template-columns: 1fr;
+  }
+  .row-2 {
     grid-template-columns: 1fr;
   }
 }
