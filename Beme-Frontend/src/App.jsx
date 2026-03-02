@@ -20,6 +20,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import AdminLogin from "./pages/AdminLogin";
 import AdminOrders from "./pages/AdminOrders";
+import AdminAnalytics from "./pages/AdminAnalytics"; // ✅ NEW
 
 import ProductDetails from "./pages/ProductDetails";
 import Checkout from "./pages/Checkout";
@@ -40,7 +41,10 @@ export default function App() {
       <AuthProvider>
         <CartProvider>
           {/* ✅ Global Header */}
-          <Header onMenu={() => setMenuOpen(true)} onCart={() => setCartOpen(true)} />
+          <Header
+            onMenu={() => setMenuOpen(true)}
+            onCart={() => setCartOpen(true)}
+          />
 
           {/* ✅ Pages */}
           <Routes>
@@ -56,11 +60,22 @@ export default function App() {
 
             {/* ✅ Admin auth */}
             <Route path="/admin-login" element={<AdminLogin />} />
+
             <Route
               path="/admin/orders"
               element={
                 <RequireAdmin>
                   <AdminOrders />
+                </RequireAdmin>
+              }
+            />
+
+            {/* ✅ NEW: Revenue Analytics */}
+            <Route
+              path="/admin/analytics"
+              element={
+                <RequireAdmin>
+                  <AdminAnalytics />
                 </RequireAdmin>
               }
             />
@@ -80,14 +95,23 @@ export default function App() {
             <Route path="/support" element={<Support />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/faq" element={<FAQ />} />
-            <Route path="/shipping-returns" element={<ShippingReturns />} />
+            <Route
+              path="/shipping-returns"
+              element={<ShippingReturns />}
+            />
           </Routes>
 
           {/* ✅ Global Sidebar */}
-          <Sidebar isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
+          <Sidebar
+            isOpen={menuOpen}
+            onClose={() => setMenuOpen(false)}
+          />
 
           {/* ✅ Global Cart Drawer */}
-          <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+          <CartDrawer
+            isOpen={cartOpen}
+            onClose={() => setCartOpen(false)}
+          />
         </CartProvider>
       </AuthProvider>
     </ThemeProvider>
