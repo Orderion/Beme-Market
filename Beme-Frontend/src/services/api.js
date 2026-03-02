@@ -3,8 +3,7 @@
 const BASE = import.meta.env.VITE_BACKEND_URL;
 
 if (!BASE) {
-  // Don’t throw at import time in production; fail when used
-  console.warn("Missing VITE_BACKEND_URL. Set it in Vercel/your .env");
+  console.warn("Missing VITE_BACKEND_URL. Set it in Vercel/.env");
 }
 
 async function toJson(res) {
@@ -15,20 +14,28 @@ async function toJson(res) {
   return data;
 }
 
-export async function paystackInit({ email, amountGHS, orderId }) {
-  const res = await fetch(`${BASE}/api/paystack/initialize`, {
+/**
+ * Initialize Paystack checkout
+ * body: { email, items:[{id,qty}], customer }
+ */
+export async function paystackInit(payload) {
+  const res = await fetch(`${BASE}/api/paystack/checkout/init`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, amountGHS, orderId }),
+    body: JSON.stringify(payload),
   });
 
-  // backend returns: { authorizationUrl, reference }
-  const data = await toJson(res);
-  return { data };
+  return toJson(res);
 }
 
+/**
+ * Verify payment
+ * returns: { ok, status, orderId, reference }
+ */
 export async function paystackVerify(reference) {
-  const res = await fetch(`${BASE}/api/paystack/verify/${reference}`);
-  const data = await toJson(res);
-  return { data };
+  const res = await fetch(
+    `${BASE}/api/paystack/checkout/verify?reference=${encodeURIComponent(reference)}`
+  );
+
+  return toJson(res);
 }

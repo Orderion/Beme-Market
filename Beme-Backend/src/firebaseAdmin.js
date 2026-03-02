@@ -1,27 +1,20 @@
 // src/firebaseAdmin.js
 import admin from "firebase-admin";
 
-function initFirebaseAdmin() {
+function initAdmin() {
   if (admin.apps.length) return admin;
 
-  const svcJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (!raw) throw new Error("Missing FIREBASE_SERVICE_ACCOUNT_JSON in backend env");
 
-  if (svcJson) {
-    const serviceAccount = JSON.parse(svcJson);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    return admin;
-  }
+  const serviceAccount = JSON.parse(raw);
 
-  // Fallback: if running in an environment with GOOGLE_APPLICATION_CREDENTIALS
   admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
+    credential: admin.credential.cert(serviceAccount),
   });
 
   return admin;
 }
 
-const firebaseAdmin = initFirebaseAdmin();
-export const dbAdmin = firebaseAdmin.firestore();
-export default firebaseAdmin;
+export const firebaseAdmin = initAdmin();
+export const adminDb = firebaseAdmin.firestore();

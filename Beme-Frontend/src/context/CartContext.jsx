@@ -9,23 +9,40 @@ export const CartProvider = ({ children }) => {
   const addToCart = (product) => {
     setCartItems((prev) => {
       const existing = prev.find((item) => item.id === product.id);
+
       if (existing) {
         return prev.map((item) =>
-          item.id === product.id ? { ...item, qty: (item.qty || 1) + 1 } : item
+          item.id === product.id
+            ? { ...item, qty: Number(item.qty || 1) + 1 }
+            : item
         );
       }
-      return [...prev, { ...product, qty: 1 }];
+
+      return [
+        ...prev,
+        {
+          ...product,
+          qty: Number(product.qty || 1),
+        },
+      ];
     });
   };
 
   const removeFromCart = (productId) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== productId));
+    setCartItems((prev) =>
+      prev.filter((item) => item.id !== productId)
+    );
   };
 
   const updateQty = (productId, qty) => {
     const safeQty = Math.max(1, Number(qty) || 1);
+
     setCartItems((prev) =>
-      prev.map((item) => (item.id === productId ? { ...item, qty: safeQty } : item))
+      prev.map((item) =>
+        item.id === productId
+          ? { ...item, qty: safeQty }
+          : item
+      )
     );
   };
 
@@ -48,7 +65,11 @@ export const CartProvider = ({ children }) => {
     subtotal,
   };
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+    </CartContext.Provider>
+  );
 };
 
 export const useCart = () => {

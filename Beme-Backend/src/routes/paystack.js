@@ -1,131 +1,139 @@
 // src/routes/paystack.js
 import express from "express";
-import crypto from "crypto";
-import { dbAdmin } from "../firebaseAdmin.js";
+import { adminDb, firebaseAdmin } from "../firebaseAdmin.js";
+import { sendOrderPaidEmails } from "../services/email.js";
 
 const router = express.Router();
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
-const CURRENCY = process.env.CURRENCY || "GHS";
+const FRONTEND_URL = process.env.FRONTEND_URL;
+const BACKEND_URL = process.env.BACKEND_URL;
 
-// Helpers
-const isInt = (n) => Number.isInteger(n) && n > 0;
+if (!PAYSTACK_SECRET_KEY) throw new Error("Missing PAYSTACK_SECRET_KEY in backend env");
+if (!FRONTEND_URL) throw new Error("Missing FRONTEND_URL in backend env");
+if (!BACKEND_URL) throw new Error("Missing BACKEND_URL in backend env");
 
-function toMinorUnit(amountMajor) {
-  // Paystack expects minor units (GHS -> pesewas)
-  return Math.round(Number(amountMajor) * 100);
+async function safeFetch(...args) {
+  if (typeof fetch !== "undefined") return fetch(...args);
+  const mod = await import("node-fetch");
+  return mod.default(...args);
 }
 
-function assertEnv() {
-  if (!PAYSTACK_SECRET_KEY) {
-    const err = new Error("PAYSTACK_SECRET_KEY is missing in environment variables");
-    err.statusCode = 500;
-    throw err;
+const SPECIAL_REGIONS = new Set(["Ashanti", "Greater Accra", "Eastern", "Western"]);
+
+function safeTrim(v) {
+  return String(v ?? "").trim();
+}
+
+function computeDeliveryFee(region) {
+  if (!region) return 0;
+  return SPECIAL_REGIONS.has(region) ? 0 : 50;
+}
+
+async function computeAmountFromItems(items) {
+  const clean = Array.isArray(items) ? items : [];
+  const ids = clean.map((x) => safeTrim(x?.id)).filter(Boolean);
+  if (!ids.length) return { subtotal: 0, lineItems: [] };
+
+  const chunks = [];
+  for (let i = 0; i < ids.length; i += 10) chunks.push(ids.slice(i, i + 10));
+
+  const productMap = new Map();
+
+  for (const chunk of chunks) {
+    const snap = await adminDb
+      .collection("Products")
+      .where(firebaseAdmin.firestore.FieldPath.documentId(), "in", chunk)
+      .get();
+
+    snap.forEach((doc) => productMap.set(doc.id, doc.data()));
   }
+
+  let subtotal = 0;
+  const lineItems = [];
+
+  for (const it of clean) {
+    const id = safeTrim(it?.id);
+    const qty = Number(it?.qty ?? 1);
+    if (!id) continue;
+    if (!Number.isFinite(qty) || qty <= 0) continue;
+
+    const p = productMap.get(id);
+    if (!p) throw new Error(`Product not found: ${id}`);
+
+    const price = Number(p.price ?? 0);
+    if (!Number.isFinite(price) || price < 0) throw new Error(`Invalid price for product: ${id}`);
+
+    subtotal += price * qty;
+
+    lineItems.push({
+      id,
+      name: p.name || "",
+      price,
+      qty,
+      image: p.image || "",
+    });
+  }
+
+  return { subtotal, lineItems };
 }
 
-// ---- 1) INIT CHECKOUT (authoritative pricing)
-// POST /api/paystack/checkout/init
-// body: { email: string, items: [{ id: string, qty: number }] }
-router.post("/checkout/init", async (req, res, next) => {
+router.post("/checkout/init", async (req, res) => {
   try {
-    assertEnv();
+    const email = safeTrim(req.body?.email);
+    const items = req.body?.items || [];
+    const customer = req.body?.customer || {};
 
-    const { email, items } = req.body || {};
+    if (!email) return res.status(400).json({ error: "Email is required" });
+    if (!Array.isArray(items) || !items.length) return res.status(400).json({ error: "Cart is empty" });
 
-    if (!email || typeof email !== "string") {
-      return res.status(400).json({ error: "email is required" });
-    }
+    const region = safeTrim(customer.region);
+    const deliveryFee = computeDeliveryFee(region);
 
-    if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: "items[] is required" });
-    }
+    const { subtotal, lineItems } = await computeAmountFromItems(items);
+    if (!lineItems.length) return res.status(400).json({ error: "Cart items invalid" });
 
-    // Normalize items: {id, qty}
-    const normalized = items
-      .map((x) => ({
-        id: String(x?.id || "").trim(),
-        qty: Number(x?.qty || 0),
-      }))
-      .filter((x) => x.id && isInt(x.qty));
+    const total = subtotal + deliveryFee;
+    const amountPesewas = Math.round(total * 100);
 
-    if (normalized.length === 0) {
-      return res.status(400).json({ error: "items must contain valid {id, qty}" });
-    }
-
-    // De-dupe by id (sum quantities)
-    const byId = new Map();
-    for (const it of normalized) {
-      byId.set(it.id, (byId.get(it.id) || 0) + it.qty);
-    }
-    const deduped = Array.from(byId.entries()).map(([id, qty]) => ({ id, qty }));
-
-    // Fetch products from Firestore (Admin SDK)
-    const productRefs = deduped.map(({ id }) => dbAdmin.collection("products").doc(id));
-    const productSnaps = await dbAdmin.getAll(...productRefs);
-
-    // Build order items from DB prices (authoritative)
-    let subtotal = 0;
-    const orderItems = [];
-
-    for (let idx = 0; idx < productSnaps.length; idx++) {
-      const snap = productSnaps[idx];
-      const { id, qty } = deduped[idx];
-
-      if (!snap.exists) {
-        return res.status(400).json({ error: `Product not found: ${id}` });
-      }
-
-      const p = snap.data();
-      const unitPrice = Number(p.price || 0);
-      const inStock = Boolean(p.inStock);
-
-      if (!inStock) {
-        return res.status(400).json({ error: `Out of stock: ${p.name || id}` });
-      }
-
-      if (!(unitPrice >= 0)) {
-        return res.status(400).json({ error: `Invalid price for: ${p.name || id}` });
-      }
-
-      subtotal += unitPrice * qty;
-
-      orderItems.push({
-        productId: id,
-        name: p.name || "",
-        image: p.image || "",
-        qty,
-        unitPrice,
-        lineTotal: unitPrice * qty,
-      });
-    }
-
-    if (!(subtotal > 0)) {
-      return res.status(400).json({ error: "Subtotal must be greater than 0" });
-    }
-
-    const amountMinor = toMinorUnit(subtotal);
-
-    // Create an order first (pending)
-    const orderRef = dbAdmin.collection("orders").doc();
-    const orderId = orderRef.id;
+    const orderRef = adminDb.collection("Orders").doc();
+    const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
 
     await orderRef.set({
-      status: "pending",
-      currency: CURRENCY,
-      subtotal,
-      amountMinor,
-      email,
-      items: orderItems,
-      createdAt: new Date(),
-      paystack: {
-        reference: orderId, // we use orderId as Paystack reference
-        status: "init_pending",
+      status: "pending_payment",
+      paymentMethod: "paystack",
+      paid: false,
+      emailSent: false,
+
+      amounts: {
+        currency: "GHS",
+        subtotal,
+        deliveryFee,
+        total,
       },
+
+      customer: {
+        email,
+        firstName: safeTrim(customer.firstName),
+        lastName: safeTrim(customer.lastName),
+        phone: safeTrim(customer.phone),
+        network: safeTrim(customer.network),
+        country: "Ghana",
+        address: safeTrim(customer.address),
+        region,
+        city: safeTrim(customer.city),
+        area: safeTrim(customer.area),
+        notes: safeTrim(customer.notes),
+      },
+
+      items: lineItems,
+      createdAt: now,
+      updatedAt: now,
     });
 
-    // Initialize Paystack transaction using backend-calculated amount
-    const initRes = await fetch("https://api.paystack.co/transaction/initialize", {
+    const reference = `BM_${orderRef.id}`;
+
+    const initRes = await safeFetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
@@ -133,191 +141,167 @@ router.post("/checkout/init", async (req, res, next) => {
       },
       body: JSON.stringify({
         email,
-        amount: amountMinor,
-        currency: CURRENCY,
-        reference: orderId,
+        amount: amountPesewas,
+        currency: "GHS",
+        reference,
+        callback_url: `${BACKEND_URL}/api/paystack/checkout/callback`,
         metadata: {
-          orderId,
+          orderId: orderRef.id,
+          deliveryFee,
         },
       }),
     });
 
-    const initJson = await initRes.json();
+    const initData = await initRes.json();
 
-    if (!initRes.ok || !initJson?.status) {
+    if (!initRes.ok || !initData?.status || !initData?.data?.authorization_url) {
       await orderRef.update({
-        status: "init_failed",
-        paystack: {
-          reference: orderId,
-          status: "init_failed",
-          error: initJson,
-        },
-        updatedAt: new Date(),
+        status: "paystack_init_failed",
+        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        paystack: { initError: initData },
       });
-
-      return res.status(502).json({
-        error: "Paystack initialize failed",
-        details: initJson,
-      });
+      return res.status(400).json({ error: initData?.message || "Paystack init failed" });
     }
 
-    const authUrl = initJson?.data?.authorization_url;
-    const accessCode = initJson?.data?.access_code;
-
     await orderRef.update({
+      reference,
+      updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
       paystack: {
-        reference: orderId,
-        status: "initialized",
-        accessCode,
+        reference,
+        access_code: initData?.data?.access_code || null,
       },
-      updatedAt: new Date(),
     });
 
     return res.json({
-      reference: orderId,
-      authorization_url: authUrl,
+      authorization_url: initData.data.authorization_url,
+      reference,
+      orderId: orderRef.id,
     });
   } catch (err) {
-    next(err);
+    console.error("Paystack init error:", err);
+    return res.status(500).json({ error: err?.message || "Server error" });
   }
 });
 
-// ---- 2) VERIFY (fallback, optional)
-// GET /api/paystack/checkout/verify/:reference
-router.get("/checkout/verify/:reference", async (req, res, next) => {
-  try {
-    assertEnv();
+async function verifyAndUpdate(reference) {
+  const vr = await safeFetch(
+    `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+    { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } }
+  );
 
-    const reference = String(req.params.reference || "").trim();
-    if (!reference) return res.status(400).json({ error: "reference is required" });
+  const data = await vr.json();
+  if (!vr.ok || !data?.status) throw new Error(data?.message || "Verify failed");
 
-    const verifyRes = await fetch(
-      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-      {
-        headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
-      }
-    );
+  const status = data?.data?.status; // success | failed
+  const amountPesewas = Number(data?.data?.amount || 0);
+  const paidAt = data?.data?.paid_at || null;
 
-    const verifyJson = await verifyRes.json();
+  const q = await adminDb.collection("Orders").where("reference", "==", reference).limit(1).get();
+  if (q.empty) return { status, orderId: null, orderDoc: null, amountPesewas, paidAt };
 
-    if (!verifyRes.ok || !verifyJson?.status) {
-      return res.status(502).json({ error: "Paystack verify failed", details: verifyJson });
+  const orderDoc = q.docs[0];
+  const orderRef = orderDoc.ref;
+  const existing = orderDoc.data();
+
+  if (status === "success") {
+    // idempotent: don’t resubmit updates if already paid
+    if (!existing?.paid) {
+      await orderRef.update({
+        paid: true,
+        status: "paid",
+        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        paystack: {
+          ...(existing?.paystack || {}),
+          verified: true,
+          status,
+          amountPesewas,
+          paidAt,
+        },
+      });
     }
 
-    const data = verifyJson.data;
-    const paid = data?.status === "success";
+    // ✅ Email trigger once
+    if (!existing?.emailSent) {
+      try {
+        await sendOrderPaidEmails({
+          orderId: orderDoc.id,
+          reference,
+          customer: existing?.customer,
+          amounts: existing?.amounts,
+        });
 
-    // Update order if exists
-    const orderRef = dbAdmin.collection("orders").doc(reference);
-    const orderSnap = await orderRef.get();
-    if (orderSnap.exists) {
-      const order = orderSnap.data();
-      const expectedAmount = Number(order.amountMinor || 0);
-
-      // Protect: amount must match what we initialized
-      if (paid && Number(data.amount) === expectedAmount) {
         await orderRef.update({
-          status: "paid",
-          paystack: {
-            ...(order.paystack || {}),
-            status: "success",
-            gatewayResponse: data.gateway_response || "",
-            paidAt: data.paid_at || null,
-            channel: data.channel || "",
-            authorization: data.authorization || null,
-          },
-          updatedAt: new Date(),
+          emailSent: true,
+          updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        // Don’t fail the payment just because email failed
+        await orderRef.update({
+          emailSent: false,
+          emailError: String(e?.message || e),
+          updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
         });
       }
     }
 
-    return res.json({
-      ok: true,
-      paid,
-      reference,
-      paystackStatus: data?.status,
-    });
+    return { status, orderId: orderDoc.id };
+  }
+
+  // failed / abandoned
+  await orderRef.update({
+    paid: false,
+    status: "payment_failed",
+    updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+    paystack: {
+      ...(existing?.paystack || {}),
+      verified: true,
+      status: status || "failed",
+    },
+  });
+
+  return { status: status || "failed", orderId: orderDoc.id };
+}
+
+router.get("/checkout/callback", async (req, res) => {
+  const reference = safeTrim(req.query?.reference);
+
+  if (!reference) {
+    return res.redirect(`${FRONTEND_URL}/order-success?status=missing_reference`);
+  }
+
+  try {
+    const out = await verifyAndUpdate(reference);
+
+    if (out?.status === "success") {
+      return res.redirect(`${FRONTEND_URL}/order-success?reference=${reference}&status=success`);
+    }
+
+    return res.redirect(
+      `${FRONTEND_URL}/order-success?reference=${reference}&status=${encodeURIComponent(out?.status || "failed")}`
+    );
   } catch (err) {
-    next(err);
+    console.error("Paystack callback verify error:", err);
+    return res.redirect(`${FRONTEND_URL}/order-success?reference=${reference}&status=verify_error`);
   }
 });
 
-// ---- 3) WEBHOOK (source of truth)
-// IMPORTANT: this route must use RAW body to validate signature correctly.
-router.post(
-  "/webhook",
-  express.raw({ type: "application/json" }),
-  async (req, res, next) => {
-    try {
-      assertEnv();
+router.get("/checkout/verify", async (req, res) => {
+  try {
+    const reference = safeTrim(req.query?.reference);
+    if (!reference) return res.status(400).json({ error: "Missing reference" });
 
-      const signature = req.headers["x-paystack-signature"];
-      const rawBody = req.body; // Buffer (because express.raw)
+    const out = await verifyAndUpdate(reference);
 
-      // Validate signature
-      const hash = crypto
-        .createHmac("sha512", PAYSTACK_SECRET_KEY)
-        .update(rawBody)
-        .digest("hex");
-
-      if (hash !== signature) {
-        return res.status(401).send("Invalid signature");
-      }
-
-      const event = JSON.parse(rawBody.toString("utf8"));
-
-      // Only handle successful charge
-      if (event?.event === "charge.success") {
-        const data = event.data;
-        const reference = String(data?.reference || "").trim();
-
-        if (reference) {
-          const orderRef = dbAdmin.collection("orders").doc(reference);
-          const snap = await orderRef.get();
-
-          if (snap.exists) {
-            const order = snap.data();
-            const expectedAmount = Number(order.amountMinor || 0);
-            const paidAmount = Number(data.amount || 0);
-
-            // Protect: ensure amount matches our expected backend amount
-            if (paidAmount === expectedAmount) {
-              await orderRef.update({
-                status: "paid",
-                paystack: {
-                  ...(order.paystack || {}),
-                  status: "success",
-                  gatewayResponse: data.gateway_response || "",
-                  paidAt: data.paid_at || null,
-                  channel: data.channel || "",
-                  authorization: data.authorization || null,
-                  customer: data.customer || null,
-                },
-                updatedAt: new Date(),
-              });
-
-              // Optional: stock decrement could happen here (if you add stock fields later)
-            } else {
-              await orderRef.update({
-                status: "amount_mismatch",
-                paystack: {
-                  ...(order.paystack || {}),
-                  status: "amount_mismatch",
-                  receivedAmount: paidAmount,
-                },
-                updatedAt: new Date(),
-              });
-            }
-          }
-        }
-      }
-
-      // Always respond 200 quickly
-      return res.sendStatus(200);
-    } catch (err) {
-      next(err);
-    }
+    return res.json({
+      ok: true,
+      status: out.status,
+      reference,
+      orderId: out.orderId,
+    });
+  } catch (err) {
+    console.error("Paystack verify error:", err);
+    return res.status(500).json({ error: err?.message || "Server error" });
   }
-);
+});
 
 export default router;
