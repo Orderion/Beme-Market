@@ -2,8 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { useCart } from "../context/CartContext";
-import { useAuth } from "../context/AuthContext"; // ✅ NEW (optional: shows logout)
-import logo from "../assets/logo.png";
+import { useAuth } from "../context/AuthContext";
 import "./Header.css";
 
 function IconMenu() {
@@ -75,7 +74,6 @@ function IconMoon() {
   );
 }
 
-// ✅ NEW: simple user icon (monochrome)
 function IconUser() {
   return (
     <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true">
@@ -96,27 +94,52 @@ function IconUser() {
   );
 }
 
+function IconLogout() {
+  return (
+    <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true">
+      <path
+        d="M10 7V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-1"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4 12h9"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="M7 9l-3 3 3 3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function Header({ onMenu, onCart }) {
   const navigate = useNavigate();
   const { darkMode, toggleTheme } = useTheme();
   const { cartItems } = useCart();
-
-  // optional: if you want logout icon later
-  const authCtx = (() => {
-    try {
-      return useAuth();
-    } catch {
-      return null;
-    }
-  })();
+  const { user, logout } = useAuth();
 
   const count =
     cartItems?.reduce((sum, i) => sum + Number(i.qty || 1), 0) || 0;
 
-  const goAuth = () => {
-    // If logged in, you may route to account page later.
-    // For now: go to /login always.
-    navigate("/login");
+  const goAuth = () => navigate("/login");
+
+  const onLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      navigate("/", { replace: true });
+    }
   };
 
   return (
@@ -134,10 +157,16 @@ export default function Header({ onMenu, onCart }) {
       </button>
 
       <div className="hdr-right">
-        {/* ✅ NEW: Login / User button */}
-        <button className="hdr-icon" onClick={goAuth} aria-label="Login">
-          <IconUser />
-        </button>
+        {/* ✅ Auth button: Login when guest, Logout when signed in */}
+        {!user ? (
+          <button className="hdr-icon" onClick={goAuth} aria-label="Login">
+            <IconUser />
+          </button>
+        ) : (
+          <button className="hdr-icon" onClick={onLogout} aria-label="Logout">
+            <IconLogout />
+          </button>
+        )}
 
         <button
           className="hdr-icon"

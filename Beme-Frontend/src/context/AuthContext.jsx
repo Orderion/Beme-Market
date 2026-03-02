@@ -1,5 +1,11 @@
+// src/context/AuthContext.jsx
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth";
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 
@@ -46,7 +52,6 @@ export function AuthProvider({ children }) {
   const signup = async (email, password) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
 
-    // create profile doc as customer by default
     await setDoc(
       doc(db, "users", cred.user.uid),
       { role: "customer", email, createdAt: serverTimestamp() },
