@@ -1,0 +1,64 @@
+/* src/components/LoaderOverlay.css */
+
+.loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+}
+
+/* Blur background */
+.loader-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Center card (luxury minimal) */
+.loader-card {
+  position: relative;
+  z-index: 1;
+  padding: 18px 18px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(20, 20, 20, 0.55);
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  min-width: 220px;
+}
+
+/* Zoom in/out animation */
+.loader-logo {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  transform-origin: center;
+  animation: loaderPulse 1.25s ease-in-out infinite;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.35));
+}
+
+@keyframes loaderPulse {
+  0% {
+    transform: scale(0.94);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.94);
+    opacity: 0.85;
+  }
+}
+
+.loader-text {
+  font-size: 13px;
+  opacity: 0.85;
+  letter-spacing: 0.2px;
+}
