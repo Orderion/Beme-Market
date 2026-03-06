@@ -1,33 +1,255 @@
 // src/components/Sidebar.jsx
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 import { DEFAULT_KIND_BY_DEPT } from "../constants/catalog";
 import "./Sidebar.css";
 
+function IconHome() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <path
+        d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconShop() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <path
+        d="M5 8h14l-1 11H6L5 8z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 8V6a3 3 0 0 1 6 0v2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconGrid() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <rect x="4" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <rect x="13" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <rect x="4" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <rect x="13" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  );
+}
+
+function IconLayers() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <path
+        d="m12 4 8 4-8 4-8-4 8-4Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m4 12 8 4 8-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m4 16 8 4 8-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconMore() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <circle cx="6" cy="12" r="1.6" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+      <circle cx="18" cy="12" r="1.6" fill="currentColor" />
+    </svg>
+  );
+}
+
+function IconTag() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <path
+        d="M20 13 11 22l-9-9V4h9l9 9Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <circle cx="7" cy="7" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function IconLogin() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <path
+        d="M10 17v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v1"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4 12h10"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="m11 9 3 3-3 3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconUserPlus() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <path
+        d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M5 20a7 7 0 0 1 14 0"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="M19 8V4M17 6h4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconLogout() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <path
+        d="M10 7V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-1"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4 12h10"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="m7 9-3 3 3 3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconSun() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path
+        d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
   const { darkMode, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
 
+  const [openSection, setOpenSection] = useState(null);
+  const [confirmLogout, setConfirmLogout] = useState(false);
+
+  const offers = useMemo(() => [], []);
+
   const go = (path) => {
+    setConfirmLogout(false);
     navigate(path);
     onClose?.();
   };
 
   const goDept = (dept) => {
-    // Accessories should default to tech, others to fashion
     const kind = DEFAULT_KIND_BY_DEPT[dept];
     go(`/shop?dept=${dept}${kind ? `&kind=${kind}` : ""}`);
+  };
+
+  const goCategory = (cat) => {
+    go(`/shop?cat=${encodeURIComponent(cat)}`);
+  };
+
+  const onOffersClick = () => {
+    if (!offers.length) {
+      alert("You have no offers yet.");
+      return;
+    }
+    onClose?.();
   };
 
   const onLogout = async () => {
     try {
       await logout();
     } finally {
+      setConfirmLogout(false);
       onClose?.();
       navigate("/", { replace: true });
     }
+  };
+
+  const toggleSection = (name) => {
+    setOpenSection((prev) => (prev === name ? null : name));
   };
 
   return (
@@ -42,51 +264,189 @@ export default function Sidebar({ isOpen, onClose }) {
 
         <div className="side-links">
           <button className="sidebar-link" onClick={() => go("/")}>
-            Home
+            <span className="side-link-content">
+              <IconHome />
+              <span>Home</span>
+            </span>
           </button>
-
-          <div className="side-divider" />
-
-          <button className="sidebar-link" onClick={() => goDept("men")}>
-            Men
-          </button>
-          <button className="sidebar-link" onClick={() => goDept("women")}>
-            Women
-          </button>
-          <button className="sidebar-link" onClick={() => goDept("kids")}>
-            Kids
-          </button>
-          <button className="sidebar-link" onClick={() => goDept("accessories")}>
-            Accessories
-          </button>
-
-          <div className="side-divider" />
 
           <button className="sidebar-link" onClick={() => go("/shop")}>
-            Shop
+            <span className="side-link-content">
+              <IconShop />
+              <span>Shop</span>
+            </span>
           </button>
 
-          {/* ✅ Auth section */}
+          <div className="side-divider" />
+
+          <button
+            className="sidebar-link sidebar-link--expand"
+            onClick={() => toggleSection("categories")}
+            aria-expanded={openSection === "categories"}
+          >
+            <span className="side-link-content">
+              <IconGrid />
+              <span>Categories</span>
+            </span>
+            <span className={`side-chevron ${openSection === "categories" ? "open" : ""}`}>
+              ▾
+            </span>
+          </button>
+
+          {openSection === "categories" && (
+            <div className="side-submenu">
+              <button className="side-subitem" onClick={() => goCategory("tech")}>
+                Tech
+              </button>
+              <button className="side-subitem" onClick={() => goCategory("fashion")}>
+                Fashion
+              </button>
+              <button className="side-subitem" onClick={() => goCategory("accessories")}>
+                Accessories
+              </button>
+            </div>
+          )}
+
+          <button
+            className="sidebar-link sidebar-link--expand"
+            onClick={() => toggleSection("departments")}
+            aria-expanded={openSection === "departments"}
+          >
+            <span className="side-link-content">
+              <IconLayers />
+              <span>Departments</span>
+            </span>
+            <span className={`side-chevron ${openSection === "departments" ? "open" : ""}`}>
+              ▾
+            </span>
+          </button>
+
+          {openSection === "departments" && (
+            <div className="side-submenu">
+              <button className="side-subitem" onClick={() => goDept("men")}>
+                Men
+              </button>
+              <button className="side-subitem" onClick={() => goDept("women")}>
+                Women
+              </button>
+              <button className="side-subitem" onClick={() => goDept("kids")}>
+                Kids
+              </button>
+              <button className="side-subitem" onClick={() => goDept("accessories")}>
+                Accessories
+              </button>
+            </div>
+          )}
+
+          <button
+            className="sidebar-link sidebar-link--expand"
+            onClick={() => toggleSection("more")}
+            aria-expanded={openSection === "more"}
+          >
+            <span className="side-link-content">
+              <IconMore />
+              <span>More</span>
+            </span>
+            <span className={`side-chevron ${openSection === "more" ? "open" : ""}`}>
+              ▾
+            </span>
+          </button>
+
+          {openSection === "more" && (
+            <div className="side-submenu">
+              <button className="side-subitem" onClick={() => go("/about")}>
+                About us
+              </button>
+              <button className="side-subitem" onClick={() => go("/support")}>
+                Support us
+              </button>
+              <button className="side-subitem" onClick={() => go("/contact")}>
+                Contact
+              </button>
+              <button className="side-subitem" onClick={() => go("/faq")}>
+                FAQ
+              </button>
+              <button className="side-subitem" onClick={() => go("/shipping-returns")}>
+                Shipping & Returns
+              </button>
+            </div>
+          )}
+
+          <button className="sidebar-link" onClick={onOffersClick}>
+            <span className="side-link-content">
+              <IconTag />
+              <span>Offers</span>
+            </span>
+          </button>
+
+          <div className="side-divider" />
+
           {!user ? (
             <>
               <button className="sidebar-link" onClick={() => go("/login")}>
-                Login
+                <span className="side-link-content">
+                  <IconLogin />
+                  <span>Login</span>
+                </span>
               </button>
+
               <button className="sidebar-link" onClick={() => go("/signup")}>
-                Sign up
+                <span className="side-link-content">
+                  <IconUserPlus />
+                  <span>Sign up</span>
+                </span>
               </button>
             </>
-          ) : (
-            <button className="sidebar-link" onClick={onLogout}>
-              Logout
+          ) : !confirmLogout ? (
+            <button
+              className="sidebar-link sidebar-link--danger"
+              onClick={() => setConfirmLogout(true)}
+            >
+              <span className="side-link-content">
+                <IconLogout />
+                <span>Logout</span>
+              </span>
             </button>
+          ) : (
+            <div className="side-confirm">
+              <p className="side-confirm-text">Are you sure you want to log out?</p>
+              <div className="side-confirm-actions">
+                <button
+                  className="side-confirm-btn"
+                  onClick={() => setConfirmLogout(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="side-confirm-btn side-confirm-btn--danger"
+                  onClick={onLogout}
+                >
+                  Log out
+                </button>
+              </div>
+            </div>
           )}
 
           <div className="side-divider" />
 
-          <button className="sidebar-link" onClick={toggleTheme}>
-            {darkMode ? "Light Mode" : "Dark Mode"}
-          </button>
+          <div className="sidebar-toggle-row">
+            <div className="side-link-content">
+              <IconSun />
+              <span>{darkMode ? "Light mode" : "Dark mode"}</span>
+            </div>
+
+            <button
+              type="button"
+              className={`theme-toggle ${darkMode ? "active" : ""}`}
+              onClick={toggleTheme}
+              aria-label="Toggle theme"
+              aria-pressed={darkMode}
+            >
+              <span className="theme-toggle-track">
+                <span className="theme-toggle-thumb" />
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 

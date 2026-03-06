@@ -1,4 +1,5 @@
 // src/components/Header.jsx
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { useCart } from "../context/CartContext";
@@ -129,18 +130,47 @@ export default function Header({ onMenu, onCart }) {
   const { cartItems } = useCart();
   const { user, logout } = useAuth();
 
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const logoutWrapRef = useRef(null);
+
   const count =
     cartItems?.reduce((sum, i) => sum + Number(i.qty || 1), 0) || 0;
 
   const goAuth = () => navigate("/login");
 
-  const onLogout = async () => {
+  const onConfirmLogout = async () => {
     try {
       await logout();
     } finally {
+      setShowLogoutConfirm(false);
       navigate("/", { replace: true });
     }
   };
+
+  useEffect(() => {
+    if (!showLogoutConfirm) return;
+
+    const handleClickOutside = (event) => {
+      if (!logoutWrapRef.current) return;
+      if (!logoutWrapRef.current.contains(event.target)) {
+        setShowLogoutConfirm(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") {
+        setShowLogoutConfirm(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [showLogoutConfirm]);
 
   return (
     <header className="hdr">
@@ -157,15 +187,40 @@ export default function Header({ onMenu, onCart }) {
       </button>
 
       <div className="hdr-right">
-        {/* ✅ Auth button: Login when guest, Logout when signed in */}
         {!user ? (
           <button className="hdr-icon" onClick={goAuth} aria-label="Login">
             <IconUser />
           </button>
         ) : (
-          <button className="hdr-icon" onClick={onLogout} aria-label="Logout">
-            <IconLogout />
-          </button>
+          <div className="hdr-auth-wrap" ref={logoutWrapRef}>
+            <button
+              className="hdr-icon"
+              onClick={() => setShowLogoutConfirm((prev) => !prev)}
+              aria-label="Open logout confirmation"
+            >
+              <IconLogout />
+            </button>
+
+            {showLogoutConfirm && (
+              <div className="hdr-confirm">
+                <p className="hdr-confirm-text">Log out of your account?</p>
+                <div className="hdr-confirm-actions">
+                  <button
+                    className="hdr-confirm-btn"
+                    onClick={() => setShowLogoutConfirm(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="hdr-confirm-btn hdr-confirm-btn--danger"
+                    onClick={onConfirmLogout}
+                  >
+                    Log out
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         <button

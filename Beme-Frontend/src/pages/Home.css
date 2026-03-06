@@ -16,14 +16,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
-
   background: var(--soft);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
-
   padding: 12px 14px;
   border-radius: 18px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .search-icon {
@@ -46,88 +44,20 @@
 }
 
 /* =========================
-   FILTER BAR + DROPDOWNS
+   HOME NOTE
 ========================= */
 
-.filter-bar {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-
-  overflow-x: auto;
-  padding-bottom: 2px;
+.home-note {
   margin-bottom: 18px;
-
-  position: relative;
-  z-index: 50; /* ✅ sits above hero */
-}
-
-.filter-bar::-webkit-scrollbar {
-  height: 0;
-}
-
-.filter-btn {
-  background: var(--soft);
-  color: var(--text);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-
-  padding: 10px 14px;
-  border-radius: 18px;
-
-  font-size: 14px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.filter-btn:active {
-  transform: translateY(1px);
-}
-
-/* Dropdown */
-.dd {
-  position: relative;
-  display: inline-block;
-}
-
-.dd-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.dd-caret {
-  opacity: 0.7;
-}
-
-/* ✅ Fixed menu: bypass stacking context issues */
-.dd-menu--fixed {
-  position: fixed;
-  z-index: 2147483647; /* max safe z-index */
-  min-width: 200px;
-
+  padding: 12px 14px;
+  border-radius: 16px;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 8px;
-}
-.dd-item {
-  width: 100%;
-  text-align: left;
-  padding: 10px 10px;
-  border-radius: calc(var(--radius) - 6px);
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-  opacity: 0.9;
+  font-size: 13px;
+  opacity: 0.78;
 }
 
-.dd-item:hover {
-  background: var(--soft);
-  opacity: 1;
-}
 /* =========================
    HERO
 ========================= */
@@ -136,23 +66,16 @@
   height: 320px;
   border-radius: 26px;
   margin-bottom: 22px;
-
   position: relative;
   overflow: hidden;
-
   background: var(--card);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
-}
-
-/* Keep your placeholder image if you want */
-.hero {
   background-image: url("https://placehold.co/800x600");
   background-size: cover;
   background-position: center;
 }
 
-/* subtle overlay so text reads on images */
 .hero::after {
   content: "";
   position: absolute;
@@ -170,19 +93,16 @@
   left: 20px;
   bottom: 18px;
   z-index: 2;
-  max-width: 70%;
+  max-width: 72%;
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
-
   padding: 6px 12px;
   border-radius: 999px;
-
   background: var(--text);
   color: var(--button-text);
-
   font-size: 12px;
   letter-spacing: 0.2px;
   opacity: 0.95;
@@ -192,21 +112,18 @@
   margin: 10px 0 12px;
   font-size: 28px;
   letter-spacing: 0.4px;
-  color: #fff; /* ✅ allowed for readability on image */
+  color: #fff;
 }
 
 .primary-btn {
   padding: 14px 18px;
   border-radius: 16px;
-
   background: var(--text);
   color: var(--button-text);
   border: 1px solid var(--border);
-
   box-shadow: var(--shadow);
   font-weight: 600;
   letter-spacing: 0.4px;
-
   cursor: pointer;
 }
 
@@ -226,6 +143,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
@@ -234,23 +152,25 @@
   letter-spacing: 0.2px;
 }
 
-.see-all {
-  opacity: 0.7;
+.see-all-btn {
+  border: 1px solid var(--border);
+  background: var(--soft);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 10px 14px;
   cursor: pointer;
-  text-decoration: underline;
+  box-shadow: var(--shadow);
 }
 
 /* =========================
-   XMAS / FEATURE CARD
+   FEATURE CARD
 ========================= */
 
 .xmas-card {
   height: 240px;
   border-radius: 26px;
-
   position: relative;
   overflow: hidden;
-
   background: var(--card);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
@@ -273,7 +193,7 @@
   left: 20px;
   bottom: 18px;
   z-index: 2;
-  color: #fff; /* ✅ readability on dark overlay */
+  color: #fff;
 }
 
 .xmas-overlay h2 {
@@ -298,16 +218,14 @@
 
 .product-card {
   min-width: 170px;
-
   background: var(--card);
   color: var(--text);
-
   border: 1px solid var(--border);
   border-radius: 22px;
   box-shadow: var(--shadow);
-
   padding: 12px;
   cursor: pointer;
+  text-align: left;
 }
 
 .product-card img {
@@ -321,7 +239,8 @@
   font-size: 14px;
   opacity: 0.9;
 }
-/* Default button: solid black */
+
+/* Default button: solid */
 .primary-btn,
 .sidebar-link {
   background: var(--text);
@@ -329,10 +248,41 @@
   border: 1px solid var(--border);
 }
 
-/* Dark mode: transparent (luxury) */
+/* Dark mode: transparent luxury */
 body.dark .primary-btn,
 body.dark .sidebar-link {
   background: transparent;
   color: var(--text);
   border: 1px solid var(--border);
+}
+
+@media (max-width: 640px) {
+  .home {
+    padding: 14px;
+  }
+
+  .hero {
+    height: 270px;
+    border-radius: 22px;
+  }
+
+  .hero-overlay {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    max-width: none;
+  }
+
+  .hero-overlay h2 {
+    font-size: 22px;
+  }
+
+  .xmas-card {
+    height: 220px;
+    border-radius: 22px;
+  }
+
+  .section-header {
+    align-items: center;
+  }
 }
