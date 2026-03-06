@@ -6,7 +6,7 @@ import "./AdminLogin.css";
 export default function AdminLogin() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
 
   const from = useMemo(() => {
     return location.state?.from || "/admin";
@@ -45,11 +45,13 @@ export default function AdminLogin() {
       const result = await login(email, password);
 
       if (result?.role !== "admin") {
+        await logout();
         setError("This account is not authorized for admin access.");
         setLoading(false);
         return;
       }
 
+      await result.user.getIdToken(true);
       navigate(from, { replace: true });
     } catch (err) {
       console.error("Admin login failed:", err);

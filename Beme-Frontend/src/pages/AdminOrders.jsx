@@ -37,7 +37,6 @@ function getSortableTime(value) {
 
 export default function AdminOrders() {
   const { user, role, loading } = useAuth();
-
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState("");
@@ -102,12 +101,6 @@ export default function AdminOrders() {
     return (
       <div className="admin-orders">
         <div className="muted">Signed in, but this account is not an admin.</div>
-        <div className="muted" style={{ marginTop: 8 }}>
-          UID: {user.uid}
-        </div>
-        <div className="muted" style={{ marginTop: 4 }}>
-          Role: {role}
-        </div>
       </div>
     );
   }
@@ -137,15 +130,11 @@ export default function AdminOrders() {
         </div>
       </div>
 
-      <div className="muted" style={{ marginBottom: 14 }}>
-        Admin session: {user.email} • UID: {user.uid} • Role: {role}
-      </div>
-
       {!!error && <div className="muted">{error}</div>}
 
       <div className="orders-list">
         {filtered.map((o) => {
-          const total = o.pricing?.total ?? o.amounts?.total ?? 0;
+          const total = o.pricing?.total ?? 0;
           const name = `${o.customer?.firstName || ""} ${o.customer?.lastName || ""}`.trim();
           const phone = o.customer?.phone || "";
           const email = o.customer?.email || "";

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
@@ -116,6 +116,7 @@ function formatTime(seconds) {
 
 export default function Checkout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { cartItems, clearCart } = useCart();
   const { user } = useAuth();
 
@@ -126,6 +127,24 @@ export default function Checkout() {
   const [errors, setErrors] = useState({});
   const [timeLeft, setTimeLeft] = useState(CHECKOUT_DURATION_SECONDS);
   const [sessionExpired, setSessionExpired] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      navigate("/login", {
+        replace: true,
+        state: { from: location.pathname },
+      });
+    }
+  }, [user, navigate, location.pathname]);
+
+  useEffect(() => {
+    if (user?.email) {
+      setForm((prev) => ({
+        ...prev,
+        email: prev.email || user.email || "",
+      }));
+    }
+  }, [user]);
 
   const subtotalUI = useMemo(() => {
     return cartItems.reduce((sum, item) => {
@@ -189,6 +208,8 @@ export default function Checkout() {
   const validate = (v) => {
     const next = {};
 
+    if (!user) next.auth = "Please login before checkout.";
+
     if (!v.email.trim()) next.email = "Email is required.";
     else if (!isValidEmail(v.email)) next.email = "Enter a valid email (e.g., name@gmail.com).";
 
@@ -222,6 +243,7 @@ export default function Checkout() {
     setErrors(validate(form));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    user,
     form.email,
     form.firstName,
     form.lastName,
@@ -255,12 +277,14 @@ export default function Checkout() {
       area: true,
     });
 
-    const msg = Object.values(next)[0] || null;
-    return msg;
+    return Object.values(next)[0] || null;
   };
 
   const restartCheckout = () => {
-    setForm(INITIAL_FORM);
+    setForm((prev) => ({
+      ...INITIAL_FORM,
+      email: user?.email || "",
+    }));
     setTouched({});
     setErrors({});
     setMethod("paystack");
@@ -272,7 +296,7 @@ export default function Checkout() {
 
   const buildOrderPayload = () => {
     return {
-      userId: user?.uid || null,
+      userId: user.uid,
       customer: {
         email: form.email.trim(),
         firstName: form.firstName.trim(),
@@ -300,7 +324,7 @@ export default function Checkout() {
         currency: "GHS",
       },
       paymentMethod: method === "cod" ? "cod" : "paystack",
-      paymentStatus: method === "cod" ? "pending" : "pending",
+      paymentStatus: "pending",
       status: method === "cod" ? "pending" : "pending_payment",
       source: "web",
       createdAt: serverTimestamp(),
@@ -335,6 +359,7 @@ export default function Checkout() {
     if (err) return;
 
     setLoading(true);
+
     try {
       await startPaystackCheckout({
         email: form.email.trim(),
@@ -345,7 +370,7 @@ export default function Checkout() {
           phone: normalizedPhone,
           network,
           deliveryFee: deliveryFeeUI,
-          userId: user?.uid || null,
+          userId: user.uid,
         },
       });
     } catch (e) {
@@ -400,6 +425,12 @@ export default function Checkout() {
 
         <div className="checkout-grid">
           <div className="checkout-form">
+            {!!errors.auth && (
+              <div className="field-error" style={{ marginBottom: 14 }}>
+                {errors.auth}
+              </div>
+            )}
+
             {!!errors.cart && (
               <div className="field-error" style={{ marginBottom: 14 }}>
                 {errors.cart}
@@ -545,7 +576,7 @@ export default function Checkout() {
               <button
                 className="primary-btn"
                 onClick={placeCOD}
-                disabled={inputsDisabled || !!errors.cart}
+                disabled={inputsDisabled || !!errors.cart || !user}
               >
                 {loading ? "Placing order..." : "Place Order"}
               </button>
@@ -553,7 +584,7 @@ export default function Checkout() {
               <button
                 className="primary-btn"
                 onClick={payWithPaystack}
-                disabled={inputsDisabled || !!errors.cart}
+                disabled={inputsDisabled || !!errors.cart || !user}
               >
                 {loading ? "Redirecting..." : "Pay with Paystack"}
               </button>
