@@ -1,4 +1,3 @@
-// src/App.jsx
 import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 
@@ -26,6 +25,7 @@ import AdminAnalytics from "./pages/AdminAnalytics";
 import ProductDetails from "./pages/ProductDetails";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
+import Orders from "./pages/Orders";
 
 import About from "./pages/About";
 import Support from "./pages/Support";
@@ -40,25 +40,21 @@ function AppShell() {
 
   return (
     <>
-      {/* ✅ Global Header */}
       <Header onMenu={() => setMenuOpen(true)} onCart={() => setCartOpen(true)} />
 
-      {/* ✅ Global loader during auth boot */}
       <LoaderOverlay show={loading} label="Preparing your experience..." />
 
-      {/* ✅ Pages */}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/order-success" element={<OrderSuccess />} />
+        <Route path="/orders" element={<Orders />} />
 
-        {/* ✅ Customer auth */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* ✅ Admin auth */}
         <Route path="/admin-login" element={<AdminLogin />} />
 
         <Route
@@ -88,7 +84,6 @@ function AppShell() {
           }
         />
 
-        {/* ✅ Info pages */}
         <Route path="/about" element={<About />} />
         <Route path="/support" element={<Support />} />
         <Route path="/contact" element={<Contact />} />
@@ -96,10 +91,7 @@ function AppShell() {
         <Route path="/shipping-returns" element={<ShippingReturns />} />
       </Routes>
 
-      {/* ✅ Global Sidebar */}
       <Sidebar isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
-
-      {/* ✅ Global Cart Drawer */}
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
     </>
   );

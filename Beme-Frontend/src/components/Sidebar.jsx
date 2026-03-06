@@ -1,4 +1,3 @@
-// src/components/Sidebar.jsx
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
@@ -101,6 +100,27 @@ function IconTag() {
         strokeLinejoin="round"
       />
       <circle cx="7" cy="7" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function IconOrders() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <path
+        d="M7 4.5h10a2 2 0 0 1 2 2V19a1 1 0 0 1-1.6.8L12 16l-5.4 3.8A1 1 0 0 1 5 19V6.5a2 2 0 0 1 2-2Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 8.5h6M9 11.5h6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -276,6 +296,15 @@ export default function Sidebar({ isOpen, onClose }) {
               <span>Shop</span>
             </span>
           </button>
+
+          {user && (
+            <button className="sidebar-link" onClick={() => go("/orders")}>
+              <span className="side-link-content">
+                <IconOrders />
+                <span>Orders</span>
+              </span>
+            </button>
+          )}
 
           <div className="side-divider" />
 

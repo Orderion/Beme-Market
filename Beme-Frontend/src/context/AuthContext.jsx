@@ -1,4 +1,3 @@
-// src/context/AuthContext.jsx
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   onAuthStateChanged,
@@ -13,7 +12,7 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [role, setRole] = useState("guest"); // guest | customer | admin
+  const [role, setRole] = useState("guest");
   const [loading, setLoading] = useState(true);
 
   const resolveRole = async (uid) => {
@@ -31,6 +30,7 @@ export function AuthProvider({ children }) {
           setRole("guest");
           return;
         }
+
         setUser(u);
         const r = await resolveRole(u.uid);
         setRole(r);
@@ -45,6 +45,7 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     const cred = await signInWithEmailAndPassword(auth, email, password);
     const r = await resolveRole(cred.user.uid);
+    setUser(cred.user);
     setRole(r);
     return { user: cred.user, role: r };
   };
@@ -54,10 +55,15 @@ export function AuthProvider({ children }) {
 
     await setDoc(
       doc(db, "users", cred.user.uid),
-      { role: "customer", email, createdAt: serverTimestamp() },
+      {
+        role: "customer",
+        email,
+        createdAt: serverTimestamp(),
+      },
       { merge: true }
     );
 
+    setUser(cred.user);
     setRole("customer");
     return { user: cred.user, role: "customer" };
   };
