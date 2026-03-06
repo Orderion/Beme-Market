@@ -3,7 +3,7 @@ import "./LoaderOverlay.css";
 export default function LoaderOverlay({
   show = false,
   label = "Loading",
-  subtext = "Preparing your experience",
+  subtext = "Beme Market",
 }) {
   if (!show) return null;
 
