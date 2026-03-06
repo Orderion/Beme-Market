@@ -1,183 +1,112 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  collection,
-  doc,
-  onSnapshot,
-  query,
-  updateDoc,
-  serverTimestamp,
-} from "firebase/firestore";
-import { db } from "../firebase";
-import "./AdminOrders.css";
+import { useMemo, useState } from "react";
+import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import "./AdminLogin.css";
 
-const STATUSES = [
-  "pending",
-  "pending_payment",
-  "paid",
-  "processing",
-  "shipped",
-  "delivered",
-  "cancelled",
-  "payment_failed",
-];
+export default function AdminLogin() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
 
-function getSortableTime(value) {
-  if (!value) return 0;
+  const from = useMemo(() => {
+    return location.state?.from || "/admin";
+  }, [location.state]);
 
-  try {
-    if (typeof value?.toMillis === "function") return value.toMillis();
-    if (typeof value?.seconds === "number") return value.seconds * 1000;
-    return new Date(value).getTime() || 0;
-  } catch {
-    return 0;
-  }
-}
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+  });
 
-export default function AdminOrders() {
-  const [orders, setOrders] = useState([]);
-  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const q = query(collection(db, "orders"));
+  const setField = (key) => (e) => {
+    setForm((prev) => ({
+      ...prev,
+      [key]: e.target.value,
+    }));
+  };
 
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const rows = snap.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }));
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
 
-        rows.sort((a, b) => getSortableTime(b.createdAt) - getSortableTime(a.createdAt));
+    const email = form.email.trim();
+    const password = form.password;
 
-        setError("");
-        setOrders(rows);
-      },
-      (err) => {
-        console.error("Admin orders snapshot error:", err);
-        setError(err?.message || "Failed to load orders.");
-      }
-    );
+    if (!email || !password) {
+      setError("Enter your admin email and password.");
+      return;
+    }
 
-    return () => unsub();
-  }, []);
+    setLoading(true);
 
-  const filtered = useMemo(() => {
-    if (filter === "all") return orders;
-    return orders.filter((o) => o.status === filter);
-  }, [orders, filter]);
-
-  const setStatus = async (id, status) => {
     try {
-      await updateDoc(doc(db, "orders", id), {
-        status,
-        updatedAt: serverTimestamp(),
-      });
+      const result = await login(email, password);
+
+      if (result?.role !== "admin") {
+        setError("This account is not authorized for admin access.");
+        setLoading(false);
+        return;
+      }
+
+      navigate(from, { replace: true });
     } catch (err) {
-      console.error("Failed to update order status:", err);
-      alert(err?.message || "Failed to update order status.");
+      console.error("Admin login failed:", err);
+      setError(err?.message || "Admin login failed. Please try again.");
+      setLoading(false);
     }
   };
 
   return (
-    <div className="admin-orders">
-      <div className="admin-orders-head">
-        <h1>Orders</h1>
+    <div className="admin-login-page">
+      <div className="admin-login-card">
+        <p className="admin-login-eyebrow">Beme Market</p>
+        <h1 className="admin-login-title">Admin Login</h1>
+        <p className="admin-login-subtitle">
+          Sign in with your authorized admin account to manage orders and analytics.
+        </p>
 
-        <div className="admin-filters">
-          <button
-            className={filter === "all" ? "chip active" : "chip"}
-            onClick={() => setFilter("all")}
-          >
-            All
+        <form className="admin-login-form" onSubmit={handleSubmit}>
+          <label className="admin-login-label">
+            <span>Email</span>
+            <input
+              type="email"
+              value={form.email}
+              onChange={setField("email")}
+              placeholder="admin@email.com"
+              autoComplete="email"
+              disabled={loading}
+            />
+          </label>
+
+          <label className="admin-login-label">
+            <span>Password</span>
+            <input
+              type="password"
+              value={form.password}
+              onChange={setField("password")}
+              placeholder="Enter password"
+              autoComplete="current-password"
+              disabled={loading}
+            />
+          </label>
+
+          {error ? <div className="admin-login-error">{error}</div> : null}
+
+          <button type="submit" className="admin-login-btn" disabled={loading}>
+            {loading ? "Signing in..." : "Login as Admin"}
           </button>
+        </form>
 
-          {STATUSES.map((s) => (
-            <button
-              key={s}
-              className={filter === s ? "chip active" : "chip"}
-              onClick={() => setFilter(s)}
-            >
-              {s}
-            </button>
-          ))}
+        <div className="admin-login-footer">
+          <Link to="/login" className="admin-login-link">
+            Customer login
+          </Link>
+          <Link to="/" className="admin-login-link">
+            Back to home
+          </Link>
         </div>
-      </div>
-
-      {!!error && <div className="muted">{error}</div>}
-
-      <div className="orders-list">
-        {filtered.map((o) => {
-          const total = o.pricing?.total ?? o.amounts?.total ?? 0;
-          const name = `${o.customer?.firstName || ""} ${o.customer?.lastName || ""}`.trim();
-          const phone = o.customer?.phone || "";
-          const email = o.customer?.email || "";
-          const emailSent = o.emailSent === true;
-          const paid =
-            o.paid === true ||
-            o.paymentStatus === "paid" ||
-            o.status === "paid";
-
-          return (
-            <div className="order-card" key={o.id}>
-              <div className="order-top">
-                <div>
-                  <div className="order-id">#{o.id.slice(0, 8)}</div>
-
-                  <div className="order-meta">
-                    <span>{name || "Customer"}</span>
-                    {phone ? <span className="muted">{phone}</span> : null}
-                    {email ? <span className="muted">{email}</span> : null}
-                  </div>
-                </div>
-
-                <div className="order-total">
-                  GHS {Number(total).toFixed(2)}
-                </div>
-              </div>
-
-              <div className="order-items">
-                {(o.items || []).slice(0, 3).map((it, index) => (
-                  <div key={it.id || `${o.id}-${index}`} className="order-item">
-                    <span>{it.name || "Item"}</span>
-                    <span className="muted">x{it.qty || 1}</span>
-                  </div>
-                ))}
-
-                {(o.items || []).length > 3 && (
-                  <div className="muted">
-                    +{(o.items || []).length - 3} more
-                  </div>
-                )}
-              </div>
-
-              <div className="order-bottom">
-                <div className="pill">
-                  {o.status || "pending"}
-                  {paid && " • Paid"}
-                  {emailSent && " • Email sent"}
-                </div>
-
-                <select
-                  value={o.status || "pending"}
-                  onChange={(e) => setStatus(o.id, e.target.value)}
-                  className="status-select"
-                >
-                  {STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          );
-        })}
-
-        {!error && filtered.length === 0 && (
-          <div className="muted">No orders found.</div>
-        )}
       </div>
     </div>
   );
