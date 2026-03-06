@@ -1,19 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { startPaystackCheckout } from "../lib/checkout";
 import "./Checkout.css";
-
-/**
- * Ghana-only checkout hardening.
- * - Region dropdown (all regions)
- * - City dropdown based on region (popular cities for your 4 special regions)
- * - Delivery fee: +GHS 50 for regions outside special list
- * - Email/phone/name/address validation
- * - 10-minute checkout session timer
- */
 
 const SPECIAL_REGIONS = new Set([
   "Ashanti",
@@ -125,15 +117,13 @@ function formatTime(seconds) {
 export default function Checkout() {
   const navigate = useNavigate();
   const { cartItems, clearCart } = useCart();
+  const { user } = useAuth();
 
   const [method, setMethod] = useState("paystack");
   const [loading, setLoading] = useState(false);
-
   const [form, setForm] = useState(INITIAL_FORM);
-
   const [touched, setTouched] = useState({});
   const [errors, setErrors] = useState({});
-
   const [timeLeft, setTimeLeft] = useState(CHECKOUT_DURATION_SECONDS);
   const [sessionExpired, setSessionExpired] = useState(false);
 
@@ -150,24 +140,15 @@ export default function Checkout() {
     return SPECIAL_REGIONS.has(form.region) ? 0 : 50;
   }, [form.region]);
 
-  const totalUI = useMemo(
-    () => subtotalUI + deliveryFeeUI,
-    [subtotalUI, deliveryFeeUI]
-  );
+  const totalUI = useMemo(() => subtotalUI + deliveryFeeUI, [subtotalUI, deliveryFeeUI]);
 
   const citiesForRegion = useMemo(() => {
     if (!form.region) return [];
     return CITY_MAP[form.region] || DEFAULT_OTHER_CITIES;
   }, [form.region]);
 
-  const normalizedPhone = useMemo(
-    () => normalizeGhanaPhone(form.phone),
-    [form.phone]
-  );
-  const network = useMemo(
-    () => detectNetwork(normalizedPhone),
-    [normalizedPhone]
-  );
+  const normalizedPhone = useMemo(() => normalizeGhanaPhone(form.phone), [form.phone]);
+  const network = useMemo(() => detectNetwork(normalizedPhone), [normalizedPhone]);
 
   const isFinalMinute = timeLeft <= 60 && !sessionExpired;
   const inputsDisabled = loading || sessionExpired;
@@ -203,42 +184,34 @@ export default function Checkout() {
     setForm((p) => ({ ...p, [key]: value }));
   };
 
-  const markTouched = (key) => () =>
-    setTouched((p) => ({ ...p, [key]: true }));
+  const markTouched = (key) => () => setTouched((p) => ({ ...p, [key]: true }));
 
   const validate = (v) => {
     const next = {};
 
     if (!v.email.trim()) next.email = "Email is required.";
-    else if (!isValidEmail(v.email))
-      next.email = "Enter a valid email (e.g., name@gmail.com).";
+    else if (!isValidEmail(v.email)) next.email = "Enter a valid email (e.g., name@gmail.com).";
 
     if (!v.firstName.trim()) next.firstName = "First name is required.";
-    else if (!isValidName(v.firstName))
-      next.firstName = "Use letters only (spaces/hyphen allowed).";
+    else if (!isValidName(v.firstName)) next.firstName = "Use letters only (spaces/hyphen allowed).";
 
     if (!v.lastName.trim()) next.lastName = "Last name is required.";
-    else if (!isValidName(v.lastName))
-      next.lastName = "Use letters only (spaces/hyphen allowed).";
+    else if (!isValidName(v.lastName)) next.lastName = "Use letters only (spaces/hyphen allowed).";
 
-    if (!v.address.trim())
-      next.address = "Address is required (House No., Street, Landmark).";
-    else if (!isValidGhanaAddress(v.address))
-      next.address =
-        "Use a valid address (e.g., Hse 12, Ring Rd, near ...).";
+    if (!v.address.trim()) next.address = "Address is required (House No., Street, Landmark).";
+    else if (!isValidGhanaAddress(v.address)) {
+      next.address = "Use a valid address (e.g., Hse 12, Ring Rd, near ...).";
+    }
 
     if (!v.region) next.region = "Select a region.";
     if (!v.city) next.city = "Select a city.";
 
-    if (!v.area.trim())
-      next.area = "Area/Locality is required (e.g., East Legon, Adum).";
+    if (!v.area.trim()) next.area = "Area/Locality is required (e.g., East Legon, Adum).";
     else if (v.area.trim().length < 2) next.area = "Area is too short.";
 
     if (!v.phone.trim()) next.phone = "Phone is required.";
-    else if (!normalizedPhone)
-      next.phone = "Use 0XXXXXXXXX or +233XXXXXXXXX.";
-    else if (!network)
-      next.phone = "Phone must be MTN, Telecel, or AirtelTigo.";
+    else if (!normalizedPhone) next.phone = "Use 0XXXXXXXXX or +233XXXXXXXXX.";
+    else if (!network) next.phone = "Phone must be MTN, Telecel, or AirtelTigo.";
 
     if (!cartItems.length) next.cart = "Your cart is empty.";
 
@@ -299,6 +272,7 @@ export default function Checkout() {
 
   const buildOrderPayload = () => {
     return {
+      userId: user?.uid || null,
       customer: {
         email: form.email.trim(),
         firstName: form.firstName.trim(),
@@ -325,9 +299,9 @@ export default function Checkout() {
         total: totalUI,
         currency: "GHS",
       },
-      paymentMethod: "cod",
-      paymentStatus: "pending",
-      status: "pending",
+      paymentMethod: method === "cod" ? "cod" : "paystack",
+      paymentStatus: method === "cod" ? "pending" : "pending",
+      status: method === "cod" ? "pending" : "pending_payment",
       source: "web",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -349,9 +323,7 @@ export default function Checkout() {
     } catch (e) {
       console.error("COD order failed:", e);
       alert(
-        e?.message
-          ? `Failed to place order: ${e.message}`
-          : "Failed to place order. Try again."
+        e?.message ? `Failed to place order: ${e.message}` : "Failed to place order. Try again."
       );
     } finally {
       setLoading(false);
@@ -373,6 +345,7 @@ export default function Checkout() {
           phone: normalizedPhone,
           network,
           deliveryFee: deliveryFeeUI,
+          userId: user?.uid || null,
         },
       });
     } catch (e) {
@@ -403,8 +376,7 @@ export default function Checkout() {
             {sessionExpired ? (
               <>
                 <p className="checkout-timer__message">
-                  Your checkout session has expired. Please restart checkout to
-                  continue.
+                  Your checkout session has expired. Please restart checkout to continue.
                 </p>
                 <button
                   type="button"
@@ -442,9 +414,7 @@ export default function Checkout() {
               onChange={setField("email")}
               disabled={inputsDisabled}
             />
-            {showError("email") ? (
-              <div className="field-error">{errors.email}</div>
-            ) : null}
+            {showError("email") ? <div className="field-error">{errors.email}</div> : null}
 
             <h3>Shipping address</h3>
 
@@ -487,9 +457,7 @@ export default function Checkout() {
               onChange={setField("address")}
               disabled={inputsDisabled}
             />
-            {showError("address") ? (
-              <div className="field-error">{errors.address}</div>
-            ) : null}
+            {showError("address") ? <div className="field-error">{errors.address}</div> : null}
 
             <div className="row-2">
               <div>
@@ -506,9 +474,7 @@ export default function Checkout() {
                     </option>
                   ))}
                 </select>
-                {showError("region") ? (
-                  <div className="field-error">{errors.region}</div>
-                ) : null}
+                {showError("region") ? <div className="field-error">{errors.region}</div> : null}
               </div>
 
               <div>
@@ -518,18 +484,14 @@ export default function Checkout() {
                   onChange={setField("city")}
                   disabled={inputsDisabled || !form.region}
                 >
-                  <option value="">
-                    {form.region ? "Select city" : "Select region first"}
-                  </option>
+                  <option value="">{form.region ? "Select city" : "Select region first"}</option>
                   {citiesForRegion.map((c) => (
                     <option key={c} value={c}>
                       {c}
                     </option>
                   ))}
                 </select>
-                {showError("city") ? (
-                  <div className="field-error">{errors.city}</div>
-                ) : null}
+                {showError("city") ? <div className="field-error">{errors.city}</div> : null}
               </div>
             </div>
 
@@ -540,9 +502,7 @@ export default function Checkout() {
               onChange={setField("area")}
               disabled={inputsDisabled}
             />
-            {showError("area") ? (
-              <div className="field-error">{errors.area}</div>
-            ) : null}
+            {showError("area") ? <div className="field-error">{errors.area}</div> : null}
 
             <input
               placeholder="Phone (0XXXXXXXXX or +233XXXXXXXXX)"
@@ -551,9 +511,7 @@ export default function Checkout() {
               onChange={setField("phone")}
               disabled={inputsDisabled}
             />
-            {showError("phone") ? (
-              <div className="field-error">{errors.phone}</div>
-            ) : null}
+            {showError("phone") ? <div className="field-error">{errors.phone}</div> : null}
 
             {normalizedPhone && network ? (
               <div className="field-hint">
@@ -625,14 +583,10 @@ export default function Checkout() {
                 Delivery
                 {form.region ? (
                   <small style={{ display: "block", opacity: 0.7 }}>
-                    {SPECIAL_REGIONS.has(form.region)
-                      ? "Special region"
-                      : "Outside special regions (+50)"}
+                    {SPECIAL_REGIONS.has(form.region) ? "Special region" : "Outside special regions (+50)"}
                   </small>
                 ) : (
-                  <small style={{ display: "block", opacity: 0.7 }}>
-                    Select region to calculate
-                  </small>
+                  <small style={{ display: "block", opacity: 0.7 }}>Select region to calculate</small>
                 )}
               </span>
               <span>GHS {deliveryFeeUI.toFixed(2)}</span>
