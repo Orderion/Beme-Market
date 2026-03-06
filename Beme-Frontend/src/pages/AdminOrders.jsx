@@ -3,7 +3,6 @@ import {
   collection,
   doc,
   onSnapshot,
-  orderBy,
   query,
   updateDoc,
   serverTimestamp,
@@ -22,24 +21,38 @@ const STATUSES = [
   "payment_failed",
 ];
 
+function getSortableTime(value) {
+  if (!value) return 0;
+
+  try {
+    if (typeof value?.toMillis === "function") return value.toMillis();
+    if (typeof value?.seconds === "number") return value.seconds * 1000;
+    return new Date(value).getTime() || 0;
+  } catch {
+    return 0;
+  }
+}
+
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "orders"));
 
     const unsub = onSnapshot(
       q,
       (snap) => {
+        const rows = snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        }));
+
+        rows.sort((a, b) => getSortableTime(b.createdAt) - getSortableTime(a.createdAt));
+
         setError("");
-        setOrders(
-          snap.docs.map((d) => ({
-            id: d.id,
-            ...d.data(),
-          }))
-        );
+        setOrders(rows);
       },
       (err) => {
         console.error("Admin orders snapshot error:", err);
@@ -52,7 +65,7 @@ export default function AdminOrders() {
 
   const filtered = useMemo(() => {
     if (filter === "all") return orders;
-    return orders.filter((o) => o.status === filter);
+    return orders.filter((o) => (o.status || "pending") === filter);
   }, [orders, filter]);
 
   const setStatus = async (id, status) => {
@@ -119,7 +132,9 @@ export default function AdminOrders() {
                   </div>
                 </div>
 
-                <div className="order-total">GHS {Number(total).toFixed(2)}</div>
+                <div className="order-total">
+                  GHS {Number(total).toFixed(2)}
+                </div>
               </div>
 
               <div className="order-items">
@@ -131,7 +146,9 @@ export default function AdminOrders() {
                 ))}
 
                 {(o.items || []).length > 3 && (
-                  <div className="muted">+{(o.items || []).length - 3} more</div>
+                  <div className="muted">
+                    +{(o.items || []).length - 3} more
+                  </div>
                 )}
               </div>
 
