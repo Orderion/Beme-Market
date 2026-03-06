@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { collection, onSnapshot, orderBy, query, where } from "firebase/firestore";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
@@ -30,6 +30,17 @@ function formatDate(value) {
   }
 }
 
+function getSortableTime(value) {
+  if (!value) return 0;
+  try {
+    if (typeof value?.toMillis === "function") return value.toMillis();
+    if (typeof value?.seconds === "number") return value.seconds * 1000;
+    return new Date(value).getTime() || 0;
+  } catch {
+    return 0;
+  }
+}
+
 export default function Orders() {
   const { user, loading } = useAuth();
   const [orders, setOrders] = useState([]);
@@ -45,21 +56,19 @@ export default function Orders() {
       return;
     }
 
-    const q = query(
-      collection(db, "orders"),
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc")
-    );
+    const q = query(collection(db, "orders"), where("userId", "==", user.uid));
 
     const unsub = onSnapshot(
       q,
       (snap) => {
-        setOrders(
-          snap.docs.map((docSnap) => ({
-            id: docSnap.id,
-            ...docSnap.data(),
-          }))
-        );
+        const rows = snap.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        }));
+
+        rows.sort((a, b) => getSortableTime(b.createdAt) - getSortableTime(a.createdAt));
+
+        setOrders(rows);
         setPageError("");
         setLoadingOrders(false);
       },
