@@ -7,7 +7,9 @@ import {
   updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
+import { Navigate } from "react-router-dom";
 import { db } from "../firebase";
+import { useAuth } from "../context/AuthContext";
 import "./AdminOrders.css";
 
 const STATUSES = [
@@ -34,11 +36,15 @@ function getSortableTime(value) {
 }
 
 export default function AdminOrders() {
+  const { user, role, loading } = useAuth();
+
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (loading || !user || role !== "admin") return;
+
     const q = query(collection(db, "orders"));
 
     const unsub = onSnapshot(
@@ -61,7 +67,7 @@ export default function AdminOrders() {
     );
 
     return () => unsub();
-  }, []);
+  }, [loading, user, role]);
 
   const filtered = useMemo(() => {
     if (filter === "all") return orders;
@@ -79,6 +85,32 @@ export default function AdminOrders() {
       alert(err?.message || "Failed to update order status.");
     }
   };
+
+  if (loading) {
+    return (
+      <div className="admin-orders">
+        <div className="muted">Checking admin session...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/admin-login" replace />;
+  }
+
+  if (role !== "admin") {
+    return (
+      <div className="admin-orders">
+        <div className="muted">Signed in, but this account is not an admin.</div>
+        <div className="muted" style={{ marginTop: 8 }}>
+          UID: {user.uid}
+        </div>
+        <div className="muted" style={{ marginTop: 4 }}>
+          Role: {role}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-orders">
@@ -103,6 +135,10 @@ export default function AdminOrders() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="muted" style={{ marginBottom: 14 }}>
+        Admin session: {user.email} • UID: {user.uid} • Role: {role}
       </div>
 
       {!!error && <div className="muted">{error}</div>}
