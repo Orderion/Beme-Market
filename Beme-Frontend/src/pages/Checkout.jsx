@@ -1,4 +1,3 @@
-// src/pages/Checkout.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
@@ -13,6 +12,7 @@ import "./Checkout.css";
  * - City dropdown based on region (popular cities for your 4 special regions)
  * - Delivery fee: +GHS 50 for regions outside special list
  * - Email/phone/name/address validation
+ * - 10-minute checkout session timer
  */
 
 const SPECIAL_REGIONS = new Set([
@@ -41,7 +41,6 @@ const GH_REGIONS = [
   "Western North",
 ];
 
-// You said you'll select cities — here are popular defaults for the 4 regions
 const CITY_MAP = {
   "Greater Accra": ["Accra", "Tema", "Madina", "Adenta", "Kasoa"],
   Ashanti: ["Kumasi", "Obuasi", "Ejisu", "Mampong", "Konongo"],
@@ -49,8 +48,20 @@ const CITY_MAP = {
   Western: ["Sekondi-Takoradi", "Tarkwa", "Axim", "Prestea", "Elubo"],
 };
 
-// fallback cities if region not in CITY_MAP
 const DEFAULT_OTHER_CITIES = ["Other"];
+const CHECKOUT_DURATION_SECONDS = 10 * 60;
+
+const INITIAL_FORM = {
+  email: "",
+  firstName: "",
+  lastName: "",
+  phone: "",
+  address: "",
+  region: "",
+  city: "",
+  area: "",
+  notes: "",
+};
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(email || "").trim());
@@ -59,12 +70,9 @@ function isValidEmail(email) {
 function isValidName(value) {
   const s = String(value || "").trim();
   if (s.length < 2) return false;
-  // letters + space + hyphen + apostrophe
   return /^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$/.test(s);
 }
 
-// Ghana address line: require some letters, minimum length,
-// allow digits, letters, spaces, commas, slash, hyphen, #.
 function isValidGhanaAddress(value) {
   const s = String(value || "").trim();
   if (s.length < 6) return false;
@@ -72,7 +80,6 @@ function isValidGhanaAddress(value) {
   return /^[A-Za-z0-9\s,./#-]+$/.test(s);
 }
 
-// Normalize to local 0XXXXXXXXX
 function normalizeGhanaPhone(raw) {
   const s = String(raw || "").trim().replace(/\s+/g, "").replace(/-/g, "");
 
@@ -83,7 +90,6 @@ function normalizeGhanaPhone(raw) {
   return null;
 }
 
-// Ghana mobile prefixes -> network
 const PREFIX_TO_NETWORK = [
   { prefix: "024", network: "MTN" },
   { prefix: "025", network: "MTN" },
@@ -107,6 +113,12 @@ function detectNetwork(local10) {
   return PREFIX_TO_NETWORK.find((x) => x.prefix === p)?.network || null;
 }
 
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
 export default function Checkout() {
   const navigate = useNavigate();
   const { cartItems, clearCart } = useCart();
@@ -114,20 +126,13 @@ export default function Checkout() {
   const [method, setMethod] = useState("paystack");
   const [loading, setLoading] = useState(false);
 
-  const [form, setForm] = useState({
-    email: "",
-    firstName: "",
-    lastName: "",
-    phone: "",
-    address: "",
-    region: "",
-    city: "",
-    area: "",
-    notes: "",
-  });
+  const [form, setForm] = useState(INITIAL_FORM);
 
   const [touched, setTouched] = useState({});
   const [errors, setErrors] = useState({});
+
+  const [timeLeft, setTimeLeft] = useState(CHECKOUT_DURATION_SECONDS);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const subtotalUI = useMemo(() => {
     return cartItems.reduce((sum, item) => {
@@ -152,11 +157,33 @@ export default function Checkout() {
   const normalizedPhone = useMemo(() => normalizeGhanaPhone(form.phone), [form.phone]);
   const network = useMemo(() => detectNetwork(normalizedPhone), [normalizedPhone]);
 
+  const isFinalMinute = timeLeft <= 60 && !sessionExpired;
+  const inputsDisabled = loading || sessionExpired;
+  const formattedTimeLeft = formatTime(timeLeft);
+
+  useEffect(() => {
+    if (sessionExpired) return;
+
+    const timer = window.setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          window.clearInterval(timer);
+          setSessionExpired(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [sessionExpired]);
+
   const setField = (key) => (e) => {
+    if (sessionExpired) return;
+
     const value = e.target.value;
 
     if (key === "region") {
-      // reset city when region changes
       setForm((p) => ({ ...p, region: value, city: "" }));
       return;
     }
@@ -196,19 +223,32 @@ export default function Checkout() {
     return next;
   };
 
-  // live validation (show after touched)
   useEffect(() => {
     setErrors(validate(form));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.email, form.firstName, form.lastName, form.phone, form.address, form.region, form.city, form.area, cartItems.length]);
+  }, [
+    form.email,
+    form.firstName,
+    form.lastName,
+    form.phone,
+    form.address,
+    form.region,
+    form.city,
+    form.area,
+    cartItems.length,
+  ]);
 
   const showError = (key) => touched[key] && errors[key];
 
   const validateRequired = () => {
+    if (sessionExpired) {
+      alert("Checkout session expired. Please restart checkout.");
+      return "Checkout session expired.";
+    }
+
     const next = validate(form);
     setErrors(next);
 
-    // mark all as touched
     setTouched({
       email: true,
       firstName: true,
@@ -224,6 +264,17 @@ export default function Checkout() {
     return msg;
   };
 
+  const restartCheckout = () => {
+    setForm(INITIAL_FORM);
+    setTouched({});
+    setErrors({});
+    setMethod("paystack");
+    setLoading(false);
+    setSessionExpired(false);
+    setTimeLeft(CHECKOUT_DURATION_SECONDS);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const placeCOD = async () => {
     const err = validateRequired();
     if (err) return;
@@ -234,9 +285,9 @@ export default function Checkout() {
         customer: {
           ...form,
           country: "Ghana",
-          phone: normalizedPhone, // ✅ normalized
-          network, // ✅ detected
-          deliveryFee: deliveryFeeUI, // ✅ store delivery fee decision
+          phone: normalizedPhone,
+          network,
+          deliveryFee: deliveryFeeUI,
         },
         items: cartItems.map((i) => ({ id: i.id, qty: i.qty || 1 })),
         paymentMethod: "cod",
@@ -269,10 +320,9 @@ export default function Checkout() {
           country: "Ghana",
           phone: normalizedPhone,
           network,
-          deliveryFee: deliveryFeeUI, // ✅ send to backend so it includes fee
+          deliveryFee: deliveryFeeUI,
         },
       });
-      // redirect to Paystack happens inside startPaystackCheckout
     } catch (e) {
       console.error(e);
       alert(e?.message || "Paystack init failed. Please try again.");
@@ -283,6 +333,44 @@ export default function Checkout() {
   return (
     <div className="checkout">
       <div className="checkout-container">
+        <div
+          className={[
+            "checkout-timer",
+            isFinalMinute ? "is-warning" : "",
+            sessionExpired ? "is-expired" : "",
+          ]
+            .join(" ")
+            .trim()}
+        >
+          <div className="checkout-timer__left">
+            <span className="checkout-timer__eyebrow">Checkout timer</span>
+            <strong className="checkout-timer__time">{formattedTimeLeft}</strong>
+          </div>
+
+          <div className="checkout-timer__right">
+            {sessionExpired ? (
+              <>
+                <p className="checkout-timer__message">
+                  Your checkout session has expired. Please restart checkout to continue.
+                </p>
+                <button
+                  type="button"
+                  className="checkout-timer__action"
+                  onClick={restartCheckout}
+                >
+                  Restart Checkout
+                </button>
+              </>
+            ) : (
+              <p className="checkout-timer__message">
+                {isFinalMinute
+                  ? "Final minute — complete your order now before the session locks."
+                  : "Complete your order within 10 minutes to keep this checkout session active."}
+              </p>
+            )}
+          </div>
+        </div>
+
         <h1 className="checkout-title">Checkout</h1>
 
         <div className="checkout-grid">
@@ -299,13 +387,12 @@ export default function Checkout() {
               value={form.email}
               onBlur={markTouched("email")}
               onChange={setField("email")}
-              disabled={loading}
+              disabled={inputsDisabled}
             />
             {showError("email") ? <div className="field-error">{errors.email}</div> : null}
 
             <h3>Shipping address</h3>
 
-            {/* Ghana only */}
             <select value="Ghana" disabled>
               <option>Ghana</option>
             </select>
@@ -317,7 +404,7 @@ export default function Checkout() {
                   value={form.firstName}
                   onBlur={markTouched("firstName")}
                   onChange={setField("firstName")}
-                  disabled={loading}
+                  disabled={inputsDisabled}
                 />
                 {showError("firstName") ? (
                   <div className="field-error">{errors.firstName}</div>
@@ -330,7 +417,7 @@ export default function Checkout() {
                   value={form.lastName}
                   onBlur={markTouched("lastName")}
                   onChange={setField("lastName")}
-                  disabled={loading}
+                  disabled={inputsDisabled}
                 />
                 {showError("lastName") ? (
                   <div className="field-error">{errors.lastName}</div>
@@ -343,18 +430,17 @@ export default function Checkout() {
               value={form.address}
               onBlur={markTouched("address")}
               onChange={setField("address")}
-              disabled={loading}
+              disabled={inputsDisabled}
             />
             {showError("address") ? <div className="field-error">{errors.address}</div> : null}
 
-            {/* Region + City dropdowns */}
             <div className="row-2">
               <div>
                 <select
                   value={form.region}
                   onBlur={markTouched("region")}
                   onChange={setField("region")}
-                  disabled={loading}
+                  disabled={inputsDisabled}
                 >
                   <option value="">Select region</option>
                   {GH_REGIONS.map((r) => (
@@ -371,7 +457,7 @@ export default function Checkout() {
                   value={form.city}
                   onBlur={markTouched("city")}
                   onChange={setField("city")}
-                  disabled={loading || !form.region}
+                  disabled={inputsDisabled || !form.region}
                 >
                   <option value="">{form.region ? "Select city" : "Select region first"}</option>
                   {citiesForRegion.map((c) => (
@@ -389,7 +475,7 @@ export default function Checkout() {
               value={form.area}
               onBlur={markTouched("area")}
               onChange={setField("area")}
-              disabled={loading}
+              disabled={inputsDisabled}
             />
             {showError("area") ? <div className="field-error">{errors.area}</div> : null}
 
@@ -398,13 +484,14 @@ export default function Checkout() {
               value={form.phone}
               onBlur={markTouched("phone")}
               onChange={setField("phone")}
-              disabled={loading}
+              disabled={inputsDisabled}
             />
             {showError("phone") ? <div className="field-error">{errors.phone}</div> : null}
 
-            {/* Optional: show detected network */}
             {normalizedPhone && network ? (
-              <div className="field-hint">Network detected: <b>{network}</b> ({normalizedPhone})</div>
+              <div className="field-hint">
+                Network detected: <b>{network}</b> ({normalizedPhone})
+              </div>
             ) : null}
 
             <h3>Payment method</h3>
@@ -414,7 +501,7 @@ export default function Checkout() {
                 type="button"
                 className={method === "paystack" ? "chip active" : "chip"}
                 onClick={() => setMethod("paystack")}
-                disabled={loading}
+                disabled={inputsDisabled}
               >
                 Paystack
               </button>
@@ -423,18 +510,26 @@ export default function Checkout() {
                 type="button"
                 className={method === "cod" ? "chip active" : "chip"}
                 onClick={() => setMethod("cod")}
-                disabled={loading}
+                disabled={inputsDisabled}
               >
                 Pay on Delivery
               </button>
             </div>
 
             {method === "cod" ? (
-              <button className="primary-btn" onClick={placeCOD} disabled={loading || !!errors.cart}>
+              <button
+                className="primary-btn"
+                onClick={placeCOD}
+                disabled={inputsDisabled || !!errors.cart}
+              >
                 {loading ? "Placing order..." : "Place Order"}
               </button>
             ) : (
-              <button className="primary-btn" onClick={payWithPaystack} disabled={loading || !!errors.cart}>
+              <button
+                className="primary-btn"
+                onClick={payWithPaystack}
+                disabled={inputsDisabled || !!errors.cart}
+              >
                 {loading ? "Redirecting..." : "Pay with Paystack"}
               </button>
             )}
@@ -453,7 +548,6 @@ export default function Checkout() {
               </div>
             ))}
 
-            {/* Delivery fee */}
             <div className="summary-line">
               <span>Subtotal</span>
               <span>GHS {subtotalUI.toFixed(2)}</span>
@@ -475,7 +569,6 @@ export default function Checkout() {
 
             <div className="summary-total">
               <span>Total</span>
-              {/* UI display only — backend is authoritative */}
               <strong>GHS {totalUI.toFixed(2)}</strong>
             </div>
           </div>

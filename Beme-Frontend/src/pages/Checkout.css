@@ -10,6 +10,81 @@
   margin: auto;
 }
 
+.checkout-timer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  margin-bottom: 22px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.checkout-timer.is-warning {
+  border-color: var(--text);
+}
+
+.checkout-timer.is-expired {
+  border-color: var(--text);
+  background: var(--card);
+}
+
+.checkout-timer__left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 132px;
+}
+
+.checkout-timer__eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  opacity: 0.7;
+}
+
+.checkout-timer__time {
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.checkout-timer__right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.checkout-timer__message {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  opacity: 0.82;
+}
+
+.checkout-timer__action {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  background: var(--text);
+  color: var(--bg);
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.checkout-timer__action:hover {
+  opacity: 0.88;
+}
+
 .checkout-title {
   font-size: 32px;
   margin-bottom: 30px;
@@ -43,6 +118,15 @@
   outline: none;
 }
 
+.checkout-form input:disabled,
+.checkout-form select:disabled,
+.checkout-form textarea:disabled,
+.chip:disabled,
+.primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .checkout-form textarea {
   min-height: 90px;
   resize: vertical;
@@ -54,7 +138,6 @@
   gap: 16px;
 }
 
-/* ✅ NEW: error + hints */
 .field-error {
   margin-top: -10px;
   margin-bottom: 14px;
@@ -129,7 +212,6 @@
   color: var(--muted);
 }
 
-/* ✅ NEW: subtotal/delivery lines */
 .summary-line {
   display: flex;
   justify-content: space-between;
@@ -152,7 +234,23 @@
   .checkout-grid {
     grid-template-columns: 1fr;
   }
+
   .row-2 {
     grid-template-columns: 1fr;
+  }
+
+  .checkout-timer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .checkout-timer__right {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .checkout-timer__action {
+    width: 100%;
   }
 }
