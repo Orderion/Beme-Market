@@ -1,64 +1,79 @@
-/* src/components/LoaderOverlay.css */
-
 .loader-overlay {
   position: fixed;
   inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 9999;
-  display: grid;
-  place-items: center;
 }
 
-/* Blur background */
-.loader-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+.loader-overlay-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
 }
 
-/* Center card (luxury minimal) */
-.loader-card {
-  position: relative;
-  z-index: 1;
-  padding: 18px 18px 14px;
-  border-radius: 18px;
-  border: 1px solid var(--border);
-  background: rgba(20, 20, 20, 0.55);
-  box-shadow: var(--shadow);
-  display: grid;
-  gap: 10px;
-  justify-items: center;
-  min-width: 220px;
+/* animated bars */
+
+.loader-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 70px;
 }
 
-/* Zoom in/out animation */
-.loader-logo {
-  width: 120px;
-  height: 120px;
-  object-fit: contain;
-  transform-origin: center;
-  animation: loaderPulse 1.25s ease-in-out infinite;
-  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.35));
+.loader-bar {
+  width: 10px;
+  height: 28px;
+  background: var(--text);
+  border-radius: 100px;
+  opacity: 0.25;
+  transform-origin: bottom;
+  animation: loaderStretch 1.2s ease-in-out infinite;
 }
 
-@keyframes loaderPulse {
-  0% {
-    transform: scale(0.94);
-    opacity: 0.85;
+.bar1 { animation-delay: 0s; }
+.bar2 { animation-delay: 0.15s; }
+.bar3 { animation-delay: 0.3s; }
+.bar4 { animation-delay: 0.45s; }
+
+@keyframes loaderStretch {
+
+  0%,
+  100% {
+    height: 28px;
+    opacity: .2;
   }
-  50% {
-    transform: scale(1.03);
+
+  40% {
+    height: 70px;
     opacity: 1;
   }
-  100% {
-    transform: scale(0.94);
-    opacity: 0.85;
+
+  70% {
+    height: 45px;
+    opacity: .6;
   }
 }
 
+/* text */
+
 .loader-text {
-  font-size: 13px;
-  opacity: 0.85;
-  letter-spacing: 0.2px;
+  text-align: center;
+}
+
+.loader-label {
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.loader-sub {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--soft);
 }
