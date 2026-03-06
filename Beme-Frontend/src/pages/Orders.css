@@ -1,31 +1,243 @@
 .orders-page {
-  max-width: 900px;
-  margin: auto;
-  padding: 40px 20px;
+  min-height: 100vh;
+  background: var(--soft);
+  color: var(--text);
+  padding: 32px 18px 48px;
 }
 
-.orders-page h1 {
+.orders-wrap {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.orders-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.orders-eyebrow {
+  margin: 0 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.orders-title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.orders-link-btn,
+.orders-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.orders-action-btn {
+  background: var(--btn);
+  color: var(--btnText);
+  border: none;
+}
+
+.orders-empty-card,
+.orders-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.orders-empty-card {
+  padding: 32px 22px;
+  text-align: center;
+}
+
+.orders-empty-title {
+  margin: 0 0 10px;
+  font-size: 24px;
+}
+
+.orders-empty-text {
+  margin: 0 0 18px;
+  opacity: 0.75;
+  line-height: 1.7;
+}
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.orders-card {
+  padding: 22px;
+}
+
+.orders-card-top {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.orders-order-label,
+.orders-meta-label {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin-bottom: 6px;
+}
+
+.orders-order-id {
+  margin: 0;
+  font-size: 20px;
+}
+
+.orders-card-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(110px, auto));
+  gap: 16px;
+  text-align: right;
+}
+
+.orders-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.orders-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--soft);
+  text-transform: capitalize;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.orders-items-count {
+  font-size: 13px;
+  opacity: 0.72;
+}
+
+.orders-progress {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
   margin-bottom: 20px;
 }
 
-.orders-empty {
-  padding: 40px;
-  text-align: center;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--card);
-}
-
-.order-card {
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 16px;
-  background: var(--card);
-}
-
-.order-row {
+.orders-progress-step {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.orders-progress-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+}
+
+.orders-progress-dot.active {
+  background: var(--text);
+  border-color: var(--text);
+}
+
+.orders-progress-text {
+  font-size: 12px;
+  text-transform: capitalize;
+  opacity: 0.45;
+}
+
+.orders-progress-text.active {
+  opacity: 1;
+  font-weight: 600;
+}
+
+.orders-items-preview {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.orders-item-row {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.orders-item-name {
+  font-weight: 500;
+}
+
+.orders-item-qty,
+.orders-more-items {
+  opacity: 0.7;
+}
+
+.orders-more-items {
+  margin: 10px 0 0;
+  font-size: 13px;
+}
+
+@media (max-width: 760px) {
+  .orders-head,
+  .orders-card-top,
+  .orders-status-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .orders-card-meta {
+    width: 100%;
+    grid-template-columns: 1fr 1fr;
+    text-align: left;
+  }
+
+  .orders-progress {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .orders-progress-step {
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+
+  .orders-title {
+    font-size: 28px;
+  }
+
+  .orders-link-btn,
+  .orders-action-btn {
+    width: 100%;
+  }
 }
