@@ -1,11 +1,5 @@
-// src/pages/AdminAnalytics.jsx
 import { useEffect, useMemo, useState } from "react";
-import {
-  collection,
-  onSnapshot,
-  query,
-  where,
-} from "firebase/firestore";
+import { collection, onSnapshot, query } from "firebase/firestore";
 import { db } from "../firebase";
 import "./AdminAnalytics.css";
 
@@ -25,14 +19,23 @@ function monthLabel(date) {
   }).format(new Date(date));
 }
 
+function getOrderTotal(order) {
+  return Number(order?.pricing?.total ?? order?.amounts?.total ?? 0);
+}
+
+function isPaidOrder(order) {
+  return (
+    order?.paid === true ||
+    order?.paymentStatus === "paid" ||
+    order?.status === "paid"
+  );
+}
+
 export default function AdminAnalytics() {
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
-    const q = query(
-      collection(db, "Orders"),
-      where("paid", "==", true)
-    );
+    const q = query(collection(db, "orders"));
 
     const unsub = onSnapshot(q, (snap) => {
       setOrders(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -41,25 +44,20 @@ export default function AdminAnalytics() {
     return () => unsub();
   }, []);
 
-  // ------------------------------
-  // BASIC METRICS
-  // ------------------------------
+  const paidOrders = useMemo(() => orders.filter(isPaidOrder), [orders]);
 
   const totalRevenue = useMemo(() => {
-    return orders.reduce(
-      (sum, o) => sum + (o.amounts?.total || 0),
-      0
-    );
-  }, [orders]);
+    return paidOrders.reduce((sum, o) => sum + getOrderTotal(o), 0);
+  }, [paidOrders]);
 
   const totalOrders = orders.length;
 
   const averageOrderValue =
-    totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    paidOrders.length > 0 ? totalRevenue / paidOrders.length : 0;
 
   const thisMonthRevenue = useMemo(() => {
     const now = new Date();
-    return orders.reduce((sum, o) => {
+    return paidOrders.reduce((sum, o) => {
       const created = o.createdAt?.toDate?.();
       if (!created) return sum;
 
@@ -67,21 +65,17 @@ export default function AdminAnalytics() {
         created.getMonth() === now.getMonth() &&
         created.getFullYear() === now.getFullYear()
       ) {
-        return sum + (o.amounts?.total || 0);
+        return sum + getOrderTotal(o);
       }
 
       return sum;
     }, 0);
-  }, [orders]);
-
-  // ------------------------------
-  // MONTHLY AGGREGATION (LAST 6)
-  // ------------------------------
+  }, [paidOrders]);
 
   const monthlyData = useMemo(() => {
     const map = new Map();
 
-    orders.forEach((o) => {
+    paidOrders.forEach((o) => {
       const created = o.createdAt?.toDate?.();
       if (!created) return;
 
@@ -91,20 +85,14 @@ export default function AdminAnalytics() {
         label: monthLabel(created),
       };
 
-      prev.total += o.amounts?.total || 0;
+      prev.total += getOrderTotal(o);
       map.set(key, prev);
     });
 
-    return Array.from(map.values())
-      .sort((a, b) => new Date(a.label) - new Date(b.label))
-      .slice(-6);
-  }, [orders]);
+    return Array.from(map.values()).slice(-6);
+  }, [paidOrders]);
 
   const maxBar = Math.max(...monthlyData.map((m) => m.total), 1);
-
-  // ------------------------------
-  // STATUS COUNTS
-  // ------------------------------
 
   const statusCounts = useMemo(() => {
     const map = {};
@@ -119,13 +107,10 @@ export default function AdminAnalytics() {
     <div className="admin-analytics">
       <h1>Revenue Analytics</h1>
 
-      {/* KPI Cards */}
       <div className="analytics-grid">
         <div className="analytics-card">
           <div className="analytics-label">Total Revenue</div>
-          <div className="analytics-value">
-            {formatMoney(totalRevenue)}
-          </div>
+          <div className="analytics-value">{formatMoney(totalRevenue)}</div>
         </div>
 
         <div className="analytics-card">
@@ -134,25 +119,16 @@ export default function AdminAnalytics() {
         </div>
 
         <div className="analytics-card">
-          <div className="analytics-label">
-            Avg Order Value
-          </div>
-          <div className="analytics-value">
-            {formatMoney(averageOrderValue)}
-          </div>
+          <div className="analytics-label">Avg Paid Order Value</div>
+          <div className="analytics-value">{formatMoney(averageOrderValue)}</div>
         </div>
 
         <div className="analytics-card">
-          <div className="analytics-label">
-            This Month Revenue
-          </div>
-          <div className="analytics-value">
-            {formatMoney(thisMonthRevenue)}
-          </div>
+          <div className="analytics-label">This Month Revenue</div>
+          <div className="analytics-value">{formatMoney(thisMonthRevenue)}</div>
         </div>
       </div>
 
-      {/* Monthly Chart */}
       <div className="analytics-section">
         <h3>Revenue (Last 6 Months)</h3>
 
@@ -165,15 +141,12 @@ export default function AdminAnalytics() {
                   height: `${(m.total / maxBar) * 180}px`,
                 }}
               />
-              <div className="bar-label">
-                {m.label}
-              </div>
+              <div className="bar-label">{m.label}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Status Breakdown */}
       <div className="analytics-section">
         <h3>Order Status</h3>
 

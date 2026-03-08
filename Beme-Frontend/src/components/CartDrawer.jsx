@@ -29,7 +29,6 @@ export default function CartDrawer({ isOpen, onClose }) {
           </button>
         </div>
 
-        {/* Body */}
         <div className="cd-body">
           {cartItems.length === 0 ? (
             <div className="cd-empty">
@@ -46,7 +45,7 @@ export default function CartDrawer({ isOpen, onClose }) {
               const qty = Number(item.qty || 1);
 
               return (
-                <div key={item.id} className="cd-item">
+                <div key={item.lineId || item.id} className="cd-item">
                   <div className="cd-item-img">
                     {img ? (
                       <img src={img} alt={name} />
@@ -57,13 +56,25 @@ export default function CartDrawer({ isOpen, onClose }) {
 
                   <div className="cd-item-info">
                     <p className="cd-item-name">{name}</p>
+
+                    {item.selectedOptionsLabel ? (
+                      <p
+                        className="cd-item-price"
+                        style={{ opacity: 0.72, marginTop: 4, marginBottom: 6, fontSize: 12 }}
+                      >
+                        {item.selectedOptionsLabel}
+                      </p>
+                    ) : null}
+
                     <p className="cd-item-price">GHS {price.toFixed(2)}</p>
 
                     <div className="cd-item-actions">
                       <div className="cd-qty">
                         <button
                           type="button"
-                          onClick={() => updateQty(item.id, Math.max(1, qty - 1))}
+                          onClick={() =>
+                            updateQty(item.lineId || item.id, Math.max(1, qty - 1))
+                          }
                           aria-label="Decrease quantity"
                         >
                           −
@@ -71,7 +82,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                         <span>{qty}</span>
                         <button
                           type="button"
-                          onClick={() => updateQty(item.id, qty + 1)}
+                          onClick={() => updateQty(item.lineId || item.id, qty + 1)}
                           aria-label="Increase quantity"
                         >
                           +
@@ -81,7 +92,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                       <button
                         type="button"
                         className="cd-remove"
-                        onClick={() => removeFromCart(item.id)}
+                        onClick={() => removeFromCart(item.lineId || item.id)}
                         aria-label="Remove item"
                       >
                         🗑
@@ -94,7 +105,6 @@ export default function CartDrawer({ isOpen, onClose }) {
           )}
         </div>
 
-        {/* Footer */}
         <div className="cd-footer">
           <div className="cd-total">
             <span>Total</span>

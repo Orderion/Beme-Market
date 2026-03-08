@@ -128,11 +128,33 @@
   font-size: 14px;
 }
 
+/* price */
 .cd-item-price {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
 }
+
+/* ---------- NEW: OPTION STYLE ---------- */
+
+.cd-item-options {
+  margin-top: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cd-option-pill {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--soft);
+  border: 1px solid var(--border);
+  color: var(--text);
+  opacity: 0.85;
+}
+
+/* --------------------------------------- */
 
 .cd-item-actions {
   display: flex;

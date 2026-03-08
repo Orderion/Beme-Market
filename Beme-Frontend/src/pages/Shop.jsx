@@ -1,4 +1,3 @@
-// src/pages/Shop.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductGrid from "../components/ProductGrid";
@@ -14,23 +13,19 @@ import "./Shop.css";
 const Shop = () => {
   const [params, setParams] = useSearchParams();
 
-  // URL params
   const deptParam = normalizeDept(params.get("dept"));
   const kindParam = normalizeKind(params.get("kind"));
+  const qParam = (params.get("q") || "").trim();
 
-  const sortParam = (params.get("sort") || "new").toLowerCase(); // new | price-asc | price-desc
+  const sortParam = (params.get("sort") || "new").toLowerCase();
   const minParam = params.get("min") ? Number(params.get("min")) : null;
   const maxParam = params.get("max") ? Number(params.get("max")) : null;
   const stockParam = params.get("stock") === "1";
-
-  // ✅ NEW: featured flag
   const featuredParam = params.get("featured") === "1";
 
-  // UI state (panels)
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
 
-  // ✅ UX hardening: lock body scroll when a panel is open
   useEffect(() => {
     const anyOpen = filtersOpen || sortOpen;
     document.body.style.overflow = anyOpen ? "hidden" : "";
@@ -39,16 +34,17 @@ const Shop = () => {
     };
   }, [filtersOpen, sortOpen]);
 
-  // Draft state for sort panel (so Apply controls when it commits to URL)
   const [draft, setDraft] = useState(() => ({
     sort: sortParam,
     min: minParam ?? "",
     max: maxParam ?? "",
     stock: stockParam,
-    featured: featuredParam, // ✅ NEW
+    featured: featuredParam,
   }));
 
   const title = useMemo(() => {
+    if (qParam) return `Search: "${qParam}"`;
+
     if (!deptParam && !kindParam) return "Hot sale";
 
     const deptLabel = deptParam
@@ -61,11 +57,10 @@ const Shop = () => {
 
     if (deptLabel && kindLabel) return `${deptLabel} · ${kindLabel}`;
     return deptLabel || kindLabel || "Shop";
-  }, [deptParam, kindParam]);
+  }, [deptParam, kindParam, qParam]);
 
-  const hasActiveFilters = !!deptParam || !!kindParam;
+  const hasActiveFilters = !!deptParam || !!kindParam || !!qParam;
 
-  // ✅ include featured in active sort status
   const hasActiveSort =
     sortParam !== "new" ||
     stockParam ||
@@ -85,7 +80,6 @@ const Shop = () => {
 
     next.set("dept", dept);
 
-    // default kind only if missing/invalid
     const currentKind = normalizeKind(next.get("kind"));
     if (!currentKind) {
       const def = DEFAULT_KIND_BY_DEPT[dept];
@@ -112,13 +106,13 @@ const Shop = () => {
     const next = new URLSearchParams(params);
     next.delete("dept");
     next.delete("kind");
+    next.delete("q");
     setParams(next);
   };
 
-  // ✅ NEW: clear everything in one tap
   const clearAll = () => {
     const next = new URLSearchParams(params);
-    ["dept", "kind", "sort", "min", "max", "stock", "featured"].forEach((k) =>
+    ["dept", "kind", "sort", "min", "max", "stock", "featured", "q"].forEach((k) =>
       next.delete(k)
     );
     setParams(next);
@@ -127,13 +121,12 @@ const Shop = () => {
   };
 
   const openSort = () => {
-    // sync draft from current url every time you open
     setDraft({
       sort: sortParam,
       min: minParam ?? "",
       max: maxParam ?? "",
       stock: stockParam,
-      featured: featuredParam, // ✅ NEW
+      featured: featuredParam,
     });
     setSortOpen(true);
     setFiltersOpen(false);
@@ -142,27 +135,21 @@ const Shop = () => {
   const applySort = () => {
     const next = new URLSearchParams(params);
 
-    // sort
     if (!draft.sort || draft.sort === "new") next.delete("sort");
     else next.set("sort", draft.sort);
 
-    // min/max
     const min = draft.min === "" ? null : Number(draft.min);
     const max = draft.max === "" ? null : Number(draft.max);
 
-    if (min != null && !Number.isNaN(min) && min >= 0)
-      next.set("min", String(min));
+    if (min != null && !Number.isNaN(min) && min >= 0) next.set("min", String(min));
     else next.delete("min");
 
-    if (max != null && !Number.isNaN(max) && max >= 0)
-      next.set("max", String(max));
+    if (max != null && !Number.isNaN(max) && max >= 0) next.set("max", String(max));
     else next.delete("max");
 
-    // stock
     if (draft.stock) next.set("stock", "1");
     else next.delete("stock");
 
-    // ✅ NEW: featured
     if (draft.featured) next.set("featured", "1");
     else next.delete("featured");
 
@@ -178,7 +165,7 @@ const Shop = () => {
     next.delete("min");
     next.delete("max");
     next.delete("stock");
-    next.delete("featured"); // ✅ NEW
+    next.delete("featured");
 
     setParams(next);
     setSortOpen(false);
@@ -188,21 +175,14 @@ const Shop = () => {
     return {
       dept: deptParam || null,
       kind: kindParam || null,
+      q: qParam || "",
       priceMin: minParam != null && !Number.isNaN(minParam) ? minParam : null,
       priceMax: maxParam != null && !Number.isNaN(maxParam) ? maxParam : null,
       inStockOnly: stockParam,
-      featuredOnly: featuredParam, // ✅ NEW (ProductGrid uses this client-side)
+      featuredOnly: featuredParam,
       sort: sortParam,
     };
-  }, [
-    deptParam,
-    kindParam,
-    minParam,
-    maxParam,
-    stockParam,
-    featuredParam,
-    sortParam,
-  ]);
+  }, [deptParam, kindParam, qParam, minParam, maxParam, stockParam, featuredParam, sortParam]);
 
   return (
     <div className="shop-page">
@@ -214,7 +194,6 @@ const Shop = () => {
         <div className="shop-top-spacer" />
       </div>
 
-      {/* FILTER PANEL */}
       <div className={`shop-panel ${filtersOpen ? "open" : ""}`}>
         <div className="shop-panel-inner">
           <div className="shop-panel-head">
@@ -222,21 +201,13 @@ const Shop = () => {
 
             <div className="shop-panel-head-actions">
               {(hasActiveFilters || hasActiveSort) && (
-                <button
-                  type="button"
-                  className="shop-panel-action"
-                  onClick={clearAll}
-                >
+                <button type="button" className="shop-panel-action" onClick={clearAll}>
                   Clear all
                 </button>
               )}
 
               {hasActiveFilters && (
-                <button
-                  type="button"
-                  className="shop-panel-action"
-                  onClick={clearFilterPanel}
-                >
+                <button type="button" className="shop-panel-action" onClick={clearFilterPanel}>
                   Clear
                 </button>
               )}
@@ -291,17 +262,12 @@ const Shop = () => {
         </div>
       </div>
 
-      {/* SORT PANEL */}
       <div className={`shop-panel ${sortOpen ? "open" : ""}`}>
         <div className="shop-panel-inner">
           <div className="shop-panel-head">
             <span className="shop-panel-title">Sort & Price</span>
             {hasActiveSort && (
-              <button
-                type="button"
-                className="shop-panel-action"
-                onClick={clearSortPanel}
-              >
+              <button type="button" className="shop-panel-action" onClick={clearSortPanel}>
                 Reset
               </button>
             )}
@@ -325,9 +291,7 @@ const Shop = () => {
                   type="radio"
                   name="sort"
                   checked={draft.sort === "price-asc"}
-                  onChange={() =>
-                    setDraft((p) => ({ ...p, sort: "price-asc" }))
-                  }
+                  onChange={() => setDraft((p) => ({ ...p, sort: "price-asc" }))}
                 />
                 Price: Low to High
               </label>
@@ -337,9 +301,7 @@ const Shop = () => {
                   type="radio"
                   name="sort"
                   checked={draft.sort === "price-desc"}
-                  onChange={() =>
-                    setDraft((p) => ({ ...p, sort: "price-desc" }))
-                  }
+                  onChange={() => setDraft((p) => ({ ...p, sort: "price-desc" }))}
                 />
                 Price: High to Low
               </label>
@@ -353,18 +315,14 @@ const Shop = () => {
                 inputMode="numeric"
                 placeholder="Min"
                 value={draft.min}
-                onChange={(e) =>
-                  setDraft((p) => ({ ...p, min: e.target.value }))
-                }
+                onChange={(e) => setDraft((p) => ({ ...p, min: e.target.value }))}
               />
               <span className="shop-range-dash">—</span>
               <input
                 inputMode="numeric"
                 placeholder="Max"
                 value={draft.max}
-                onChange={(e) =>
-                  setDraft((p) => ({ ...p, max: e.target.value }))
-                }
+                onChange={(e) => setDraft((p) => ({ ...p, max: e.target.value }))}
               />
             </div>
 
@@ -372,46 +330,32 @@ const Shop = () => {
               <input
                 type="checkbox"
                 checked={draft.stock}
-                onChange={(e) =>
-                  setDraft((p) => ({ ...p, stock: e.target.checked }))
-                }
+                onChange={(e) => setDraft((p) => ({ ...p, stock: e.target.checked }))}
               />
               In stock only
             </label>
 
-            {/* ✅ NEW: Featured toggle */}
             <label className="shop-toggle">
               <input
                 type="checkbox"
                 checked={draft.featured}
-                onChange={(e) =>
-                  setDraft((p) => ({ ...p, featured: e.target.checked }))
-                }
+                onChange={(e) => setDraft((p) => ({ ...p, featured: e.target.checked }))}
               />
               Featured only
             </label>
           </div>
 
           <div className="shop-panel-actions">
-            <button
-              type="button"
-              className="shop-btn ghost"
-              onClick={() => setSortOpen(false)}
-            >
+            <button type="button" className="shop-btn ghost" onClick={() => setSortOpen(false)}>
               Cancel
             </button>
-            <button
-              type="button"
-              className="shop-btn solid"
-              onClick={applySort}
-            >
+            <button type="button" className="shop-btn solid" onClick={applySort}>
               Apply
             </button>
           </div>
         </div>
       </div>
 
-      {/* Controls row */}
       <div className="shop-controls">
         <button
           className="shop-control-btn"
@@ -423,11 +367,7 @@ const Shop = () => {
           aria-expanded={filtersOpen}
         >
           <span className="shop-control-icon" aria-hidden="true">
-            <svg
-              viewBox="0 0 24 24"
-              className="shop-svg"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg viewBox="0 0 24 24" className="shop-svg" xmlns="http://www.w3.org/2000/svg">
               <path
                 d="M4 7h10M18 7h2 M4 17h6M14 17h6"
                 fill="none"
@@ -458,11 +398,7 @@ const Shop = () => {
           aria-expanded={sortOpen}
         >
           <span className="shop-control-icon" aria-hidden="true">
-            <svg
-              viewBox="0 0 24 24"
-              className="shop-svg"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg viewBox="0 0 24 24" className="shop-svg" xmlns="http://www.w3.org/2000/svg">
               <path
                 d="M8 6v12M8 18l-3-3M8 18l3-3"
                 fill="none"
@@ -487,7 +423,6 @@ const Shop = () => {
         </button>
       </div>
 
-      {/* count + grid */}
       <div className="shop-meta">
         <span className="shop-count">
           <ProductGrid filter={filter} sortBy={filter.sort} withCount />

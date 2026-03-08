@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import LoaderOverlay from "../components/LoaderOverlay";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { startPaystackCheckout } from "../lib/checkout";
 import "./Checkout.css";
 
@@ -122,6 +123,7 @@ export default function Checkout() {
 
   const [method, setMethod] = useState("paystack");
   const [loading, setLoading] = useState(false);
+  const [loadingMode, setLoadingMode] = useState("");
   const [form, setForm] = useState(INITIAL_FORM);
   const [touched, setTouched] = useState({});
   const [errors, setErrors] = useState({});
@@ -141,7 +143,7 @@ export default function Checkout() {
     if (user?.email) {
       setForm((prev) => ({
         ...prev,
-        email: prev.email || user.email || "",
+        email: prev.email || user.email,
       }));
     }
   }, [user]);
@@ -196,14 +198,26 @@ export default function Checkout() {
     const value = e.target.value;
 
     if (key === "region") {
-      setForm((p) => ({ ...p, region: value, city: "" }));
+      setForm((prev) => ({
+        ...prev,
+        region: value,
+        city: "",
+      }));
       return;
     }
 
-    setForm((p) => ({ ...p, [key]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
   };
 
-  const markTouched = (key) => () => setTouched((p) => ({ ...p, [key]: true }));
+  const markTouched = (key) => () => {
+    setTouched((prev) => ({
+      ...prev,
+      [key]: true,
+    }));
+  };
 
   const validate = (v) => {
     const next = {};
@@ -281,14 +295,15 @@ export default function Checkout() {
   };
 
   const restartCheckout = () => {
-    setForm((prev) => ({
+    setForm({
       ...INITIAL_FORM,
       email: user?.email || "",
-    }));
+    });
     setTouched({});
     setErrors({});
     setMethod("paystack");
     setLoading(false);
+    setLoadingMode("");
     setSessionExpired(false);
     setTimeLeft(CHECKOUT_DURATION_SECONDS);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -316,6 +331,8 @@ export default function Checkout() {
         price: Number(item.price) || 0,
         qty: Number(item.qty) || 1,
         image: item.image || "",
+        selectedOptions: item.selectedOptions || {},
+        selectedOptionsLabel: item.selectedOptionsLabel || "",
       })),
       pricing: {
         subtotal: subtotalUI,
@@ -336,6 +353,7 @@ export default function Checkout() {
     const err = validateRequired();
     if (err) return;
 
+    setLoadingMode("cod");
     setLoading(true);
 
     try {
@@ -349,8 +367,8 @@ export default function Checkout() {
       alert(
         e?.message ? `Failed to place order: ${e.message}` : "Failed to place order. Try again."
       );
-    } finally {
       setLoading(false);
+      setLoadingMode("");
     }
   };
 
@@ -358,9 +376,12 @@ export default function Checkout() {
     const err = validateRequired();
     if (err) return;
 
+    setLoadingMode("paystack");
     setLoading(true);
 
     try {
+      await new Promise((resolve) => setTimeout(resolve, 650));
+
       await startPaystackCheckout({
         email: form.email.trim(),
         cartItems,
@@ -374,11 +395,27 @@ export default function Checkout() {
         },
       });
     } catch (e) {
-      console.error(e);
+      console.error("Paystack init failed:", e);
       alert(e?.message || "Paystack init failed. Please try again.");
       setLoading(false);
+      setLoadingMode("");
     }
   };
+
+  if (loading) {
+    const isPaystack = loadingMode === "paystack";
+
+    return (
+      <LoaderOverlay
+        label={isPaystack ? "Redirecting to Paystack" : "Placing your order"}
+        subtext={
+          isPaystack
+            ? "Please wait while we secure your payment..."
+            : "Please wait while we confirm your order..."
+        }
+      />
+    );
+  }
 
   return (
     <div className="checkout">
@@ -462,9 +499,7 @@ export default function Checkout() {
                   onChange={setField("firstName")}
                   disabled={inputsDisabled}
                 />
-                {showError("firstName") ? (
-                  <div className="field-error">{errors.firstName}</div>
-                ) : null}
+                {showError("firstName") ? <div className="field-error">{errors.firstName}</div> : null}
               </div>
 
               <div>
@@ -475,9 +510,7 @@ export default function Checkout() {
                   onChange={setField("lastName")}
                   disabled={inputsDisabled}
                 />
-                {showError("lastName") ? (
-                  <div className="field-error">{errors.lastName}</div>
-                ) : null}
+                {showError("lastName") ? <div className="field-error">{errors.lastName}</div> : null}
               </div>
             </div>
 
@@ -578,7 +611,7 @@ export default function Checkout() {
                 onClick={placeCOD}
                 disabled={inputsDisabled || !!errors.cart || !user}
               >
-                {loading ? "Placing order..." : "Place Order"}
+                Place Order
               </button>
             ) : (
               <button
@@ -586,7 +619,7 @@ export default function Checkout() {
                 onClick={payWithPaystack}
                 disabled={inputsDisabled || !!errors.cart || !user}
               >
-                {loading ? "Redirecting..." : "Pay with Paystack"}
+                Pay with Paystack
               </button>
             )}
           </div>
@@ -594,10 +627,15 @@ export default function Checkout() {
           <div className="checkout-summary">
             <h3>Order Summary</h3>
 
-            {cartItems.map((item) => (
-              <div key={item.id} className="summary-item">
+            {cartItems.map((item, index) => (
+              <div key={item.lineId || `${item.id}-${index}`} className="summary-item">
                 <div>
                   <p>{item.name}</p>
+                  {item.selectedOptionsLabel ? (
+                    <small style={{ display: "block", opacity: 0.7, marginTop: 4 }}>
+                      {item.selectedOptionsLabel}
+                    </small>
+                  ) : null}
                   <small>x{item.qty}</small>
                 </div>
                 <p>GHS {(Number(item.price) * Number(item.qty)).toFixed(2)}</p>

@@ -194,7 +194,14 @@ export default function Orders() {
                   <div className="orders-items-preview">
                     {(order.items || []).slice(0, 3).map((item, index) => (
                       <div className="orders-item-row" key={item.id || `${order.id}-${index}`}>
-                        <span className="orders-item-name">{item.name || "Product"}</span>
+                        <div>
+                          <span className="orders-item-name">{item.name || "Product"}</span>
+                          {item.selectedOptionsLabel ? (
+                            <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>
+                              {item.selectedOptionsLabel}
+                            </div>
+                          ) : null}
+                        </div>
                         <span className="orders-item-qty">x{item.qty || 1}</span>
                       </div>
                     ))}

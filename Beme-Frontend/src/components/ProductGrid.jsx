@@ -1,4 +1,3 @@
-// src/components/ProductGrid.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   collection,
@@ -14,22 +13,20 @@ import { db } from "../firebase";
 import ProductCard from "./ProductCard";
 import "./ProductGrid.css";
 
-// ✅ Must match your Firestore collection name (capital P)
 const COLLECTION_NAME = "Products";
-
-// Tune for your UI
 const PAGE_SIZE = 24;
-const MAX_PAGES = 8; // prevents runaway reads (24*8 = 192 items max session)
+const MAX_PAGES = 8;
 
 function normalizeFilter(filter) {
   if (!filter) {
     return {
       dept: null,
       kind: null,
+      q: "",
       priceMin: null,
       priceMax: null,
       inStockOnly: false,
-      featuredOnly: false, // ✅ new
+      featuredOnly: false,
       sort: "new",
     };
   }
@@ -38,6 +35,7 @@ function normalizeFilter(filter) {
     return {
       dept: filter.toLowerCase(),
       kind: null,
+      q: "",
       priceMin: null,
       priceMax: null,
       inStockOnly: false,
@@ -49,6 +47,7 @@ function normalizeFilter(filter) {
   return {
     dept: filter.dept ? String(filter.dept).toLowerCase() : null,
     kind: filter.kind ? String(filter.kind).toLowerCase() : null,
+    q: filter.q ? String(filter.q).toLowerCase().trim() : "",
     priceMin:
       filter.priceMin != null && !Number.isNaN(Number(filter.priceMin))
         ? Number(filter.priceMin)
@@ -58,15 +57,13 @@ function normalizeFilter(filter) {
         ? Number(filter.priceMax)
         : null,
     inStockOnly: !!filter.inStockOnly,
-    featuredOnly: !!filter.featuredOnly, // ✅ new
+    featuredOnly: !!filter.featuredOnly,
     sort: (filter.sort || "new").toLowerCase(),
   };
 }
 
 function normalizeDoc(doc) {
   const d = doc.data() || {};
-
-  // tolerate schema drift until you standardize DB
   const price = Number(d.price ?? d.Price ?? 0) || 0;
   const oldPrice = d.oldPrice ?? d.oldprice ?? null;
 
@@ -74,8 +71,6 @@ function normalizeDoc(doc) {
   const kind = d.kind ?? d.Kind ?? null;
 
   const inStock = Boolean(d.inStock ?? d.stock ?? d.in_stock ?? false);
-
-  // ✅ featured support (safe even if missing)
   const featured = Boolean(d.featured ?? d.Featured ?? false);
 
   return {
@@ -101,7 +96,6 @@ function clientSort(list, sortKey) {
     return arr.sort((a, b) => (b.price || 0) - (a.price || 0));
   }
 
-  // newest
   return arr.sort((a, b) => {
     const at = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
     const bt = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
@@ -119,13 +113,27 @@ function makeSkeleton(n = 8) {
   return Array.from({ length: n }).map((_, i) => ({ id: `sk_${i}` }));
 }
 
+function matchesSearch(product, term) {
+  if (!term) return true;
+
+  const haystack = [
+    product.name,
+    product.description,
+    product.dept,
+    product.kind,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return haystack.includes(term);
+}
+
 export default function ProductGrid({
   filter = null,
   sortBy = "new",
   withCount = false,
-
-  // ✅ pagination controls
-  infinite = true, // auto-load when reaching bottom
+  infinite = true,
 }) {
   const [products, setProducts] = useState([]);
   const [loadingFirst, setLoadingFirst] = useState(true);
@@ -140,51 +148,41 @@ export default function ProductGrid({
   const sentinelRef = useRef(null);
 
   const f = useMemo(() => normalizeFilter(filter), [filter]);
-
-  // IMPORTANT:
-  // We keep Firestore where() minimal to avoid index explosion.
-  // Price range + featured are client-side filters.
   const sortKey = useMemo(() => (sortBy || f.sort || "new").toLowerCase(), [sortBy, f.sort]);
 
   const signature = useMemo(() => {
     return JSON.stringify({
       dept: f.dept,
       kind: f.kind,
+      q: f.q,
       inStockOnly: f.inStockOnly,
       sortKey,
-      // client-side filters included so UI updates immediately
       priceMin: f.priceMin,
       priceMax: f.priceMax,
       featuredOnly: f.featuredOnly,
     });
-  }, [f.dept, f.kind, f.inStockOnly, f.priceMin, f.priceMax, f.featuredOnly, sortKey]);
+  }, [f.dept, f.kind, f.q, f.inStockOnly, f.priceMin, f.priceMax, f.featuredOnly, sortKey]);
 
   const baseQueryParts = useMemo(() => {
     const colRef = collection(db, COLLECTION_NAME);
-
     const wheres = [];
+
     if (f.dept) wheres.push(where("dept", "==", f.dept));
     if (f.kind) wheres.push(where("kind", "==", f.kind));
     if (f.inStockOnly) wheres.push(where("inStock", "==", true));
 
-    // server order preference (may require index)
     const ord = buildOrder(sortKey);
-
     return { colRef, wheres, ord };
   }, [f.dept, f.kind, f.inStockOnly, sortKey]);
 
-  // Firestore count aggregation (best effort)
   useEffect(() => {
     let alive = true;
 
     async function runCount() {
-      // only do count when caller wants it (Shop uses it)
       if (!withCount) return;
 
       try {
         const { colRef, wheres } = baseQueryParts;
-
-        // Count ignores orderBy; it’s fine, and reduces index friction
         const qCount = query(colRef, ...wheres);
         const snap = await getCountFromServer(qCount);
 
@@ -202,7 +200,6 @@ export default function ProductGrid({
     };
   }, [withCount, baseQueryParts, signature]);
 
-  // Initial fetch (and refetch on filters/sort change)
   useEffect(() => {
     let alive = true;
 
@@ -210,7 +207,6 @@ export default function ProductGrid({
       setErr("");
       setLoadingFirst(true);
       setLoadingMore(false);
-
       setProducts([]);
       setHasMore(true);
       setPagesLoaded(0);
@@ -218,7 +214,6 @@ export default function ProductGrid({
 
       const { colRef, wheres, ord } = baseQueryParts;
 
-      // ideal query (with orderBy)
       try {
         const qIdeal = query(colRef, ...wheres, ord, limit(PAGE_SIZE));
         const snap = await getDocs(qIdeal);
@@ -232,8 +227,7 @@ export default function ProductGrid({
         setPagesLoaded(1);
         setLoadingFirst(false);
         return;
-      } catch (e) {
-        // index/failed-precondition -> fallback query w/o orderBy
+      } catch {
         try {
           const qFallback = query(colRef, ...wheres, limit(PAGE_SIZE));
           const snap2 = await getDocs(qFallback);
@@ -265,7 +259,6 @@ export default function ProductGrid({
     };
   }, [baseQueryParts, sortKey, signature]);
 
-  // Load more
   const loadMore = async () => {
     if (loadingFirst || loadingMore || !hasMore) return;
     if (!lastDoc) return;
@@ -286,7 +279,6 @@ export default function ProductGrid({
       const normalized = snap.docs.map(normalizeDoc);
 
       setProducts((prev) => {
-        // de-dupe just in case
         const seen = new Set(prev.map((p) => p.id));
         const merged = [...prev];
         for (const p of normalized) if (!seen.has(p.id)) merged.push(p);
@@ -298,7 +290,6 @@ export default function ProductGrid({
       setPagesLoaded((p) => p + 1);
       setLoadingMore(false);
     } catch {
-      // fallback without orderBy (still paginates, then sort client-side)
       try {
         const qMore2 = query(colRef, ...wheres, startAfter(lastDoc), limit(PAGE_SIZE));
         const snap2 = await getDocs(qMore2);
@@ -318,7 +309,6 @@ export default function ProductGrid({
     }
   };
 
-  // Infinite scroll (IntersectionObserver)
   useEffect(() => {
     if (!infinite) return;
     if (!sentinelRef.current) return;
@@ -337,38 +327,29 @@ export default function ProductGrid({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [infinite, sentinelRef.current, hasMore, lastDoc, loadingFirst, loadingMore, pagesLoaded, signature]);
 
-  // Client-side filter (price range + featured)
   const finalList = useMemo(() => {
     let list = [...products];
 
     if (f.featuredOnly) list = list.filter((p) => !!p.featured);
-
     if (f.priceMin != null) list = list.filter((p) => (Number(p.price) || 0) >= f.priceMin);
     if (f.priceMax != null) list = list.filter((p) => (Number(p.price) || 0) <= f.priceMax);
+    if (f.q) list = list.filter((p) => matchesSearch(p, f.q));
 
-    // If we used fallback (no server orderBy), products might already be client-sorted.
-    // If we used server orderBy, it’s already sorted. Keep stable.
     return list;
-  }, [products, f.priceMin, f.priceMax, f.featuredOnly]);
+  }, [products, f.priceMin, f.priceMax, f.featuredOnly, f.q]);
 
-  // COUNT MODE (Shop.jsx uses this inside span)
   if (withCount) {
     if (loadingFirst) return <>…</>;
     if (err) return <>0 items</>;
 
-    // if server count exists, show it; else show loaded filtered count
-    // Note: server count ignores client-side price/featured filters (by design).
-    // For full accuracy with price/featured you’d need server-side range/flag queries.
     const base = serverCount != null ? serverCount : finalList.length;
+    const clientFilteredActive =
+      f.priceMin != null || f.priceMax != null || f.featuredOnly || !!f.q;
 
-    // If client-side filters are active, show refined count
-    const clientFilteredActive = f.priceMin != null || f.priceMax != null || f.featuredOnly;
     if (clientFilteredActive) return <>{finalList.length} items</>;
-
     return <>{base} items</>;
   }
 
-  // STATES
   if (loadingFirst) {
     return (
       <div className="product-grid">
@@ -400,7 +381,7 @@ export default function ProductGrid({
       <div className="product-grid-empty">
         <div className="product-grid-empty-title">No products found</div>
         <div className="product-grid-empty-sub">
-          Try clearing filters or adjusting price range.
+          Try another keyword or adjust your filters.
         </div>
         <button
           className="product-grid-empty-btn"
@@ -421,7 +402,6 @@ export default function ProductGrid({
         ))}
       </div>
 
-      {/* Pagination / Infinite */}
       <div className="product-grid-footer">
         {loadingMore ? (
           <div className="product-grid-footer-muted">Loading more…</div>
@@ -433,7 +413,6 @@ export default function ProductGrid({
           <div className="product-grid-footer-muted">End of results</div>
         )}
 
-        {/* sentinel for infinite mode */}
         <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
     </>

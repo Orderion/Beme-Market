@@ -1,16 +1,22 @@
-// src/pages/Home.jsx
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Home.css";
 
 export default function Home() {
   const navigate = useNavigate();
+  const [search, setSearch] = useState("");
 
   const goToShop = () => navigate("/shop");
 
+  const submitSearch = (e) => {
+    e.preventDefault();
+    const q = search.trim();
+    navigate(q ? `/shop?q=${encodeURIComponent(q)}` : "/shop");
+  };
+
   return (
     <div className="home">
-      {/* SEARCH */}
-      <div className="search-container">
+      <form className="search-container" onSubmit={submitSearch}>
         <svg
           className="search-icon"
           xmlns="http://www.w3.org/2000/svg"
@@ -32,15 +38,19 @@ export default function Home() {
           type="text"
           placeholder="Search products"
           className="search-input"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
-      </div>
 
-      {/* QUICK MOBILE NOTE */}
+        <button type="submit" className="search-submit">
+          Search
+        </button>
+      </form>
+
       <div className="home-note">
         Browse categories, offers, and more from the menu.
       </div>
 
-      {/* HERO */}
       <section className="hero">
         <div className="hero-overlay">
           <span className="badge">Lowest price</span>
@@ -51,7 +61,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURE */}
       <section className="section">
         <div className="xmas-card">
           <div className="xmas-overlay">
@@ -63,7 +72,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CONTINUE SHOPPING */}
       <section className="section">
         <div className="section-header">
           <h3>Continue shopping</h3>

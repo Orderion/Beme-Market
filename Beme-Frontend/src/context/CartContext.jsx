@@ -1,19 +1,36 @@
-// src/context/CartContext.jsx
 import React, { createContext, useContext, useMemo, useState } from "react";
 
 const CartContext = createContext(null);
+
+function normalizeSelectedOptions(selectedOptions) {
+  if (!selectedOptions || typeof selectedOptions !== "object") return {};
+  return Object.keys(selectedOptions)
+    .sort()
+    .reduce((acc, key) => {
+      acc[key] = selectedOptions[key];
+      return acc;
+    }, {});
+}
+
+function makeLineId(product) {
+  const baseId = product.id || "";
+  const selectedOptions = normalizeSelectedOptions(product.selectedOptions);
+  return `${baseId}__${JSON.stringify(selectedOptions)}`;
+}
 
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
 
   const addToCart = (product) => {
+    const lineId = makeLineId(product);
+
     setCartItems((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
+      const existing = prev.find((item) => item.lineId === lineId);
 
       if (existing) {
         return prev.map((item) =>
-          item.id === product.id
-            ? { ...item, qty: Number(item.qty || 1) + 1 }
+          item.lineId === lineId
+            ? { ...item, qty: Number(item.qty || 1) + Number(product.qty || 1) }
             : item
         );
       }
@@ -22,26 +39,25 @@ export const CartProvider = ({ children }) => {
         ...prev,
         {
           ...product,
+          lineId,
           qty: Number(product.qty || 1),
+          selectedOptions: normalizeSelectedOptions(product.selectedOptions),
+          selectedOptionsLabel: product.selectedOptionsLabel || "",
         },
       ];
     });
   };
 
-  const removeFromCart = (productId) => {
-    setCartItems((prev) =>
-      prev.filter((item) => item.id !== productId)
-    );
+  const removeFromCart = (lineId) => {
+    setCartItems((prev) => prev.filter((item) => item.lineId !== lineId));
   };
 
-  const updateQty = (productId, qty) => {
+  const updateQty = (lineId, qty) => {
     const safeQty = Math.max(1, Number(qty) || 1);
 
     setCartItems((prev) =>
       prev.map((item) =>
-        item.id === productId
-          ? { ...item, qty: safeQty }
-          : item
+        item.lineId === lineId ? { ...item, qty: safeQty } : item
       )
     );
   };
@@ -65,11 +81,7 @@ export const CartProvider = ({ children }) => {
     subtotal,
   };
 
-  return (
-    <CartContext.Provider value={value}>
-      {children}
-    </CartContext.Provider>
-  );
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };
 
 export const useCart = () => {
