@@ -5,7 +5,6 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
 import { DEPARTMENTS, KINDS } from "../constants/catalog";
 import { uploadImageToCloudinary, validateImageFile } from "../lib/cloudinary";
-import { uploadToCloudinary } from "../utils/uploadToCloudinary";
 import "./Admin.css";
 
 const COLLECTION_NAME = "Products";
