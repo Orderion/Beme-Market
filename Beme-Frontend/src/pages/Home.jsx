@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import banner from "../assets/banners/home-banner.png";
+import banner from "../assets/home-banner.png";
 import "./Home.css";
 
 export default function Home() {
