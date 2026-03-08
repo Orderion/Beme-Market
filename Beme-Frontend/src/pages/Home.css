@@ -67,16 +67,20 @@
   background: var(--card);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
-  background-image: url("https://placehold.co/800x600");
-  background-size: cover;
-  background-position: center;
+}
+
+.hero-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 .hero::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.05));
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.04));
   pointer-events: none;
 }
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import banner from "../assets/banners/home-banner.png";
 import "./Home.css";
 
 export default function Home() {
@@ -52,11 +53,17 @@ export default function Home() {
       </div>
 
       <section className="hero">
+        <img
+          src={banner}
+          alt="Beme Market new arrivals banner"
+          className="hero-image"
+        />
+
         <div className="hero-overlay">
           <span className="badge">Lowest price</span>
           <h2>New Arrival 2026</h2>
           <button className="primary-btn" onClick={goToShop}>
-            View product
+            View products
           </button>
         </div>
       </section>
