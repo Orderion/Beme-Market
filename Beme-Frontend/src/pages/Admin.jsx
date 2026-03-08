@@ -257,7 +257,7 @@ export default function Admin() {
     } catch (err) {
       console.error("Add product error:", err);
       setMsg(
-        `❌ ${err.message || "Failed to add product. Check Firestore rules or console logs."}`
+        `❌ ${err.message || "Failed to add products. Check Firestore rules or console logs."}`
       );
     } finally {
       setSubmitting(false);
