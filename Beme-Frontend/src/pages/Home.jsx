@@ -1,7 +1,10 @@
+// src/pages/Home.jsx
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, limit, query } from "firebase/firestore";
 import { db } from "../firebase";
+import ProductGrid from "../components/ProductGrid";
 import banner from "../assets/home-banner.png";
 import kenteBanner from "../assets/kente-banner.png";
 import "./Home.css";
@@ -40,6 +43,7 @@ function buildSuggestions(products, term) {
   const pushSuggestion = (label, type, value, score) => {
     const cleanLabel = String(label || "").trim();
     const cleanValue = String(value || "").trim().toLowerCase();
+
     if (!cleanLabel || !cleanValue) return;
 
     const key = `${type}:${cleanValue}`;
@@ -69,11 +73,17 @@ function buildSuggestions(products, term) {
     if (nameLc.startsWith(q)) pushSuggestion(name, "product", name, 100);
     else if (nameLc.includes(q)) pushSuggestion(name, "product", name, 90);
 
-    if (deptLc.startsWith(q)) pushSuggestion(titleize(dept), "department", titleize(dept), 70);
-    else if (deptLc.includes(q)) pushSuggestion(titleize(dept), "department", titleize(dept), 60);
+    if (deptLc.startsWith(q)) {
+      pushSuggestion(titleize(dept), "department", titleize(dept), 70);
+    } else if (deptLc.includes(q)) {
+      pushSuggestion(titleize(dept), "department", titleize(dept), 60);
+    }
 
-    if (kindLc.startsWith(q)) pushSuggestion(titleize(kind), "type", titleize(kind), 65);
-    else if (kindLc.includes(q)) pushSuggestion(titleize(kind), "type", titleize(kind), 55);
+    if (kindLc.startsWith(q)) {
+      pushSuggestion(titleize(kind), "type", titleize(kind), 65);
+    } else if (kindLc.includes(q)) {
+      pushSuggestion(titleize(kind), "type", titleize(kind), 55);
+    }
 
     if (descLc.includes(q)) {
       const words = description
@@ -323,17 +333,11 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="product-scroll">
-          <button className="product-card" onClick={goToShop}>
-            <img src="https://placehold.co/300x350" alt="Electronics" />
-            <p className="product-name">Electronics</p>
-          </button>
-
-          <button className="product-card" onClick={goToShop}>
-            <img src="https://placehold.co/300x350" alt="Ghana made" />
-            <p className="product-name">Ghana Made</p>
-          </button>
-        </div>
+        <ProductGrid
+          sortBy="new"
+          filter={{ featuredOnly: false }}
+          infinite={false}
+        />
       </section>
     </div>
   );
