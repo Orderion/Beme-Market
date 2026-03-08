@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import banner from "../assets/home-banner.png";
+import kenteBanner from "../assets/kente-banner.png";
 import "./Home.css";
 
 export default function Home() {
@@ -52,6 +53,7 @@ export default function Home() {
         Browse categories, offers, and more from the menu.
       </div>
 
+      {/* HERO BANNER */}
       <section className="hero">
         <img
           src={banner}
@@ -68,10 +70,17 @@ export default function Home() {
         </div>
       </section>
 
+      {/* MINTAH'S KENTE SECTION */}
       <section className="section">
-        <div className="xmas-card">
-          <div className="xmas-overlay">
-            <h2>Mintah&apos;s Kente</h2>
+        <div className="kente-card">
+          <img
+            src={kenteBanner}
+            alt="Mintah's Kente collection"
+            className="kente-image"
+          />
+
+          <div className="kente-overlay">
+            <h2>Mintah's Kente</h2>
             <button className="primary-btn" onClick={goToShop}>
               View collection
             </button>
@@ -79,6 +88,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* CONTINUE SHOPPING */}
       <section className="section">
         <div className="section-header">
           <h3>Continue shopping</h3>
