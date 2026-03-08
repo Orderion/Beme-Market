@@ -1,7 +1,11 @@
-import { useMemo, useState } from "react";
+// src/pages/Admin.jsx
+
+import { useEffect, useMemo, useState } from "react";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
 import { DEPARTMENTS, KINDS } from "../constants/catalog";
+import { uploadImageToCloudinary, validateImageFile } from "../lib/cloudinary";
+import { uploadToCloudinary } from "../utils/uploadToCloudinary";
 import "./Admin.css";
 
 const COLLECTION_NAME = "Products";
@@ -18,7 +22,6 @@ const initial = {
   name: "",
   price: "",
   oldPrice: "",
-  image: "",
   description: "",
   dept: "men",
   kind: "fashion",
@@ -26,15 +29,6 @@ const initial = {
   featured: false,
   customizations: [],
 };
-
-function isValidHttpUrl(value) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
 
 function normalizeCustomizationGroups(groups) {
   return groups
@@ -58,10 +52,23 @@ function normalizeCustomizationGroups(groups) {
 export default function Admin() {
   const [form, setForm] = useState(initial);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [msg, setMsg] = useState("");
+
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [uploadedImage, setUploadedImage] = useState(null);
 
   const deptOptions = useMemo(() => DEPARTMENTS.map((d) => d.key), []);
   const kindOptions = useMemo(() => KINDS.map((k) => k.key), []);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
 
   const setField = (key) => (e) => {
     const value =
@@ -93,6 +100,64 @@ export default function Admin() {
     }));
   };
 
+  const resetImageState = () => {
+    if (imagePreview?.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
+    setImageFile(null);
+    setImagePreview("");
+    setUploadedImage(null);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    setMsg("");
+
+    if (!file) return;
+
+    try {
+      validateImageFile(file);
+
+      if (imagePreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(imagePreview);
+      }
+
+      const localPreview = URL.createObjectURL(file);
+
+      setImageFile(file);
+      setImagePreview(localPreview);
+      setUploadedImage(null);
+    } catch (err) {
+      console.error("Image validation error:", err);
+      setMsg(`❌ ${err.message}`);
+      e.target.value = "";
+    }
+  };
+
+  const handleUploadImage = async () => {
+    if (!imageFile) {
+      setMsg("❌ Please choose an image first.");
+      return null;
+    }
+
+    setUploadingImage(true);
+    setMsg("");
+
+    try {
+      const result = await uploadImageToCloudinary(imageFile);
+      setUploadedImage(result);
+      setMsg("✅ Image uploaded successfully.");
+      return result;
+    } catch (err) {
+      console.error("Cloudinary upload error:", err);
+      setMsg(`❌ ${err.message || "Image upload failed."}`);
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const validate = () => {
     const name = form.name.trim();
     if (!name) return "Name is required.";
@@ -110,9 +175,9 @@ export default function Admin() {
       if (old < price) return "Old price should be higher than current price.";
     }
 
-    const image = form.image.trim();
-    if (!image) return "Image URL is required.";
-    if (!isValidHttpUrl(image)) return "Image must be a valid http/https URL.";
+    if (!imageFile && !uploadedImage?.url) {
+      return "Product image is required.";
+    }
 
     if (!deptOptions.includes(form.dept)) return "Invalid department selected.";
     if (!kindOptions.includes(form.kind)) return "Invalid type selected.";
@@ -141,19 +206,37 @@ export default function Admin() {
 
     const error = validate();
     if (error) {
-      setMsg(error);
+      setMsg(`❌ ${error}`);
       return;
     }
 
     setSubmitting(true);
 
     try {
+      let imagePayload = uploadedImage;
+
+      if (!imagePayload?.url && imageFile) {
+        imagePayload = await handleUploadImage();
+      }
+
+      if (!imagePayload?.url) {
+        throw new Error("Image upload did not complete successfully.");
+      }
+
       const customizations = normalizeCustomizationGroups(form.customizations);
 
       const payload = {
         name: form.name.trim(),
         price: Number(form.price),
-        image: form.image.trim(),
+        image: imagePayload.url,
+        imageMeta: {
+          publicId: imagePayload.publicId || "",
+          width: imagePayload.width || null,
+          height: imagePayload.height || null,
+          format: imagePayload.format || "",
+          bytes: imagePayload.bytes || 0,
+          originalFilename: imagePayload.originalFilename || "",
+        },
         description: form.description.trim(),
         dept: form.dept,
         kind: form.kind,
@@ -171,9 +254,12 @@ export default function Admin() {
 
       setMsg("✅ Product added successfully.");
       setForm(initial);
+      resetImageState();
     } catch (err) {
       console.error("Add product error:", err);
-      setMsg("❌ Failed to add product. Check Firestore rules or console logs.");
+      setMsg(
+        `❌ ${err.message || "Failed to add product. Check Firestore rules or console logs."}`
+      );
     } finally {
       setSubmitting(false);
     }
@@ -204,7 +290,7 @@ export default function Admin() {
             <label className="admin-field">
               <span>Price (GHS)</span>
               <input
-                inputMode="numeric"
+                inputMode="decimal"
                 value={form.price}
                 onChange={setField("price")}
                 placeholder="e.g. 180"
@@ -214,7 +300,7 @@ export default function Admin() {
             <label className="admin-field">
               <span>Old price (optional)</span>
               <input
-                inputMode="numeric"
+                inputMode="decimal"
                 value={form.oldPrice}
                 onChange={setField("oldPrice")}
                 placeholder="e.g. 220"
@@ -222,15 +308,71 @@ export default function Admin() {
             </label>
           </div>
 
-          <label className="admin-field">
-            <span>Image URL</span>
-            <input
-              value={form.image}
-              onChange={setField("image")}
-              placeholder="https://..."
-              autoComplete="off"
-            />
-          </label>
+          <div className="admin-upload-card">
+            <div className="admin-upload-head">
+              <div>
+                <h3 className="admin-upload-title">Product image</h3>
+                <p className="admin-upload-sub">
+                  Upload product image to Cloudinary, then store the secure URL in Firestore.
+                </p>
+              </div>
+            </div>
+
+            <label className="admin-field">
+              <span>Choose image</span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleImageChange}
+              />
+            </label>
+
+            {imagePreview ? (
+              <div className="admin-image-preview-wrap">
+                <img
+                  src={imagePreview}
+                  alt="Product preview"
+                  className="admin-image-preview"
+                />
+              </div>
+            ) : (
+              <div className="admin-image-empty">No image selected yet.</div>
+            )}
+
+            <div className="admin-upload-actions">
+              <button
+                type="button"
+                className="admin-secondary-btn"
+                onClick={handleUploadImage}
+                disabled={!imageFile || uploadingImage || submitting}
+              >
+                {uploadingImage ? "Uploading…" : "Upload image"}
+              </button>
+
+              <button
+                type="button"
+                className="admin-secondary-btn admin-secondary-btn--ghost"
+                onClick={resetImageState}
+                disabled={uploadingImage || submitting}
+              >
+                Remove image
+              </button>
+            </div>
+
+            {uploadedImage?.url ? (
+              <div className="admin-upload-success">
+                <span className="admin-upload-badge">Uploaded</span>
+                <a
+                  href={uploadedImage.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="admin-upload-link"
+                >
+                  View uploaded image
+                </a>
+              </div>
+            ) : null}
+          </div>
 
           <label className="admin-field">
             <span>Description (optional)</span>
@@ -380,7 +522,11 @@ export default function Admin() {
 
           {msg ? <div className="admin-msg">{msg}</div> : null}
 
-          <button className="admin-btn" type="submit" disabled={submitting}>
+          <button
+            className="admin-btn"
+            type="submit"
+            disabled={submitting || uploadingImage}
+          >
             {submitting ? "Adding…" : "Add product"}
           </button>
         </form>

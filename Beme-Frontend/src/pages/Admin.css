@@ -1,3 +1,5 @@
+/* src/pages/Admin.css */
+
 .admin-page {
   background: var(--bg);
   color: var(--text);
@@ -64,6 +66,11 @@
   outline: none;
 }
 
+.admin-field input[type="file"] {
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
 .admin-field textarea {
   width: 100%;
   min-height: 120px;
@@ -74,6 +81,110 @@
   color: var(--text);
   outline: none;
   resize: vertical;
+}
+
+.admin-upload-card {
+  margin-top: 2px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--soft);
+}
+
+.admin-upload-head {
+  margin-bottom: 12px;
+}
+
+.admin-upload-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.admin-upload-sub {
+  margin: 6px 0 0;
+  font-size: 12px;
+  opacity: 0.72;
+  line-height: 1.6;
+}
+
+.admin-image-preview-wrap {
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+.admin-image-preview {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.admin-image-empty {
+  padding: 18px 14px;
+  border-radius: 14px;
+  border: 1px dashed var(--border);
+  background: var(--card);
+  font-size: 13px;
+  opacity: 0.72;
+}
+
+.admin-upload-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-secondary-btn {
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.admin-secondary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-secondary-btn--ghost {
+  background: transparent;
+}
+
+.admin-upload-success {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+.admin-upload-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-upload-link {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-size: 13px;
 }
 
 .admin-toggles {
@@ -257,6 +368,14 @@
   }
 
   .admin-options-add {
+    width: 100%;
+  }
+
+  .admin-upload-actions {
+    flex-direction: column;
+  }
+
+  .admin-secondary-btn {
     width: 100%;
   }
 }
