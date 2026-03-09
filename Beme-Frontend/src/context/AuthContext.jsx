@@ -1,8 +1,11 @@
+// src/context/AuthContext.jsx
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
+  EmailAuthProvider,
   createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  reauthenticateWithCredential,
+  signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
@@ -68,6 +71,20 @@ export function AuthProvider({ children }) {
     return { user: cred.user, role: "customer" };
   };
 
+  const reauthenticate = async (password) => {
+    if (!auth.currentUser?.email) {
+      throw new Error("No signed-in admin found.");
+    }
+
+    const credential = EmailAuthProvider.credential(
+      auth.currentUser.email,
+      String(password || "")
+    );
+
+    await reauthenticateWithCredential(auth.currentUser, credential);
+    return true;
+  };
+
   const logout = async () => {
     await signOut(auth);
     setUser(null);
@@ -75,7 +92,15 @@ export function AuthProvider({ children }) {
   };
 
   const value = useMemo(
-    () => ({ user, role, loading, login, signup, logout }),
+    () => ({
+      user,
+      role,
+      loading,
+      login,
+      signup,
+      logout,
+      reauthenticate,
+    }),
     [user, role, loading]
   );
 

@@ -1,8 +1,18 @@
 // src/pages/Admin.jsx
 import { useEffect, useMemo, useState } from "react";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+} from "firebase/firestore";
 import { db } from "../firebase";
 import { DEPARTMENTS, KINDS, SHOPS } from "../constants/catalog";
+import { useAuth } from "../context/AuthContext";
 import {
   uploadImagesToCloudinary,
   validateImageFiles,
@@ -51,7 +61,43 @@ function normalizeCustomizationGroups(groups) {
     .filter((group) => group.name && group.values.length > 0);
 }
 
+function formatMoney(value) {
+  const amount = Number(value) || 0;
+  return `GHS ${amount.toFixed(2)}`;
+}
+
+function titleize(value) {
+  return String(value || "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function normalizeAdminProduct(snapshotDoc) {
+  const d = snapshotDoc.data() || {};
+
+  return {
+    id: snapshotDoc.id,
+    name: String(d.name || "").trim(),
+    price: Number(d.price || 0),
+    oldPrice:
+      d.oldPrice !== undefined && d.oldPrice !== null
+        ? Number(d.oldPrice || 0)
+        : null,
+    image: String(d.image || d.images?.[0] || "").trim(),
+    dept: String(d.dept || "").trim(),
+    kind: String(d.kind || "").trim(),
+    shop: String(d.shop || "main").trim(),
+    featured: !!d.featured,
+    inStock: !!d.inStock,
+    createdAt: d.createdAt || null,
+  };
+}
+
 export default function Admin() {
+  const { user, reauthenticate } = useAuth();
+
   const [form, setForm] = useState(initial);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -61,9 +107,58 @@ export default function Admin() {
   const [imagePreviews, setImagePreviews] = useState([]);
   const [uploadedImages, setUploadedImages] = useState([]);
 
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [productsError, setProductsError] = useState("");
+  const [deletingId, setDeletingId] = useState("");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+
   const deptOptions = useMemo(() => DEPARTMENTS.map((d) => d.key), []);
   const kindOptions = useMemo(() => KINDS.map((k) => k.key), []);
   const shopOptions = useMemo(() => SHOPS.map((s) => s.key), []);
+
+  const loadProducts = async () => {
+    setLoadingProducts(true);
+    setProductsError("");
+
+    try {
+      const qRef = query(
+        collection(db, COLLECTION_NAME),
+        orderBy("createdAt", "desc")
+      );
+      const snap = await getDocs(qRef);
+      setProducts(snap.docs.map(normalizeAdminProduct));
+    } catch (error) {
+      console.error("Admin products fetch error:", error);
+
+      try {
+        const fallbackRef = collection(db, COLLECTION_NAME);
+        const fallbackSnap = await getDocs(fallbackRef);
+        const normalized = fallbackSnap.docs.map(normalizeAdminProduct);
+
+        normalized.sort((a, b) => {
+          const at = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+          const bt = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          return bt - at;
+        });
+
+        setProducts(normalized);
+      } catch (fallbackError) {
+        console.error("Admin fallback fetch error:", fallbackError);
+        setProducts([]);
+        setProductsError("Failed to load products.");
+      }
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -270,6 +365,7 @@ export default function Admin() {
       setMsg("✅ Product added successfully.");
       setForm(initial);
       resetImageState();
+      await loadProducts();
     } catch (err) {
       console.error("Add product error:", err);
       setMsg(
@@ -280,6 +376,73 @@ export default function Admin() {
       );
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const openDeleteModal = (product) => {
+    setProductToDelete(product);
+    setDeletePassword("");
+    setDeleteError("");
+    setDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    if (deletingId) return;
+    setDeleteModalOpen(false);
+    setProductToDelete(null);
+    setDeletePassword("");
+    setDeleteError("");
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!productToDelete?.id) return;
+
+    if (!user?.email) {
+      setDeleteError("No authenticated admin session found.");
+      return;
+    }
+
+    if (!deletePassword.trim()) {
+      setDeleteError("Enter your admin password to continue.");
+      return;
+    }
+
+    setDeleteError("");
+    setDeletingId(productToDelete.id);
+
+    try {
+      await reauthenticate(deletePassword.trim());
+      await deleteDoc(doc(db, COLLECTION_NAME, productToDelete.id));
+
+      setProducts((prev) =>
+        prev.filter((product) => product.id !== productToDelete.id)
+      );
+
+      setMsg(`✅ "${productToDelete.name}" deleted successfully.`);
+      setDeleteModalOpen(false);
+      setProductToDelete(null);
+      setDeletePassword("");
+    } catch (error) {
+      console.error("Delete product error:", error);
+
+      let message = "Failed to delete product.";
+      const code = error?.code || "";
+
+      if (
+        code === "auth/wrong-password" ||
+        code === "auth/invalid-credential" ||
+        code === "auth/invalid-login-credentials"
+      ) {
+        message = "Incorrect password. Delete cancelled.";
+      } else if (code === "permission-denied" || code === "firestore/permission-denied") {
+        message = "You do not have permission to delete this product.";
+      } else if (error?.message) {
+        message = error.message;
+      }
+
+      setDeleteError(`❌ ${message}`);
+    } finally {
+      setDeletingId("");
     }
   };
 
@@ -602,6 +765,167 @@ export default function Admin() {
           </button>
         </form>
       </div>
+
+      <div className="admin-card admin-card--manager">
+        <div className="admin-head">
+          <h2 className="admin-title">Manage Products</h2>
+          <p className="admin-sub">
+            Delete products only after password verification.
+          </p>
+        </div>
+
+        {productsError ? <div className="admin-msg">{productsError}</div> : null}
+
+        {loadingProducts ? (
+          <div className="admin-products-empty">Loading products…</div>
+        ) : products.length ? (
+          <div className="admin-products-list">
+            {products.map((product) => {
+              const isDeleting = deletingId === product.id;
+
+              return (
+                <div className="admin-product-item" key={product.id}>
+                  <div className="admin-product-media">
+                    {product.image ? (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="admin-product-image"
+                      />
+                    ) : (
+                      <div className="admin-product-image admin-product-image--empty">
+                        No image
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="admin-product-content">
+                    <div className="admin-product-top">
+                      <div>
+                        <h3 className="admin-product-name">{product.name}</h3>
+                        <div className="admin-product-meta">
+                          <span>{titleize(product.shop)}</span>
+                          <span>{titleize(product.kind)}</span>
+                          <span>{titleize(product.dept)}</span>
+                        </div>
+                      </div>
+
+                      <div className="admin-product-price">
+                        {formatMoney(product.price)}
+                      </div>
+                    </div>
+
+                    <div className="admin-product-flags">
+                      <span
+                        className={
+                          product.inStock
+                            ? "admin-flag admin-flag--success"
+                            : "admin-flag"
+                        }
+                      >
+                        {product.inStock ? "In stock" : "Out of stock"}
+                      </span>
+
+                      {product.featured ? (
+                        <span className="admin-flag admin-flag--featured">
+                          Featured
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="admin-product-actions">
+                      <button
+                        type="button"
+                        className="admin-danger-btn"
+                        onClick={() => openDeleteModal(product)}
+                        disabled={!!deletingId}
+                      >
+                        {isDeleting ? "Deleting…" : "Delete product"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="admin-products-empty">No products found yet.</div>
+        )}
+      </div>
+
+      {deleteModalOpen && productToDelete ? (
+        <div
+          className="admin-modal-backdrop"
+          onClick={closeDeleteModal}
+          role="presentation"
+        >
+          <div
+            className="admin-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-delete-title"
+          >
+            <div className="admin-modal-head">
+              <h3 id="admin-delete-title" className="admin-modal-title">
+                Confirm product deletion
+              </h3>
+              <button
+                type="button"
+                className="admin-modal-close"
+                onClick={closeDeleteModal}
+                disabled={!!deletingId}
+                aria-label="Close delete modal"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="admin-modal-text">
+              You are about to permanently delete{" "}
+              <strong>{productToDelete.name}</strong>.
+            </p>
+
+            <p className="admin-modal-text admin-modal-text--danger">
+              Enter your admin password to authorize this action.
+            </p>
+
+            <label className="admin-field">
+              <span>Admin password</span>
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                placeholder="Enter your current password"
+                autoComplete="current-password"
+                disabled={!!deletingId}
+              />
+            </label>
+
+            {deleteError ? <div className="admin-msg">{deleteError}</div> : null}
+
+            <div className="admin-modal-actions">
+              <button
+                type="button"
+                className="admin-secondary-btn admin-secondary-btn--ghost"
+                onClick={closeDeleteModal}
+                disabled={!!deletingId}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="admin-danger-btn"
+                onClick={handleDeleteProduct}
+                disabled={!!deletingId}
+              >
+                {deletingId ? "Verifying & deleting…" : "Verify and delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
