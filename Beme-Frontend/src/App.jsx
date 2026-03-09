@@ -46,17 +46,17 @@ export default function App() {
       <AuthProvider>
         <CartProvider>
           <Header
-            onOpenSidebar={() => setSidebarOpen(true)}
-            onOpenCart={() => setCartOpen(true)}
+            onMenu={() => setSidebarOpen(true)}
+            onCart={() => setCartOpen(true)}
           />
 
           <Sidebar
-            open={sidebarOpen}
+            isOpen={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
           />
 
           <CartDrawer
-            open={cartOpen}
+            isOpen={cartOpen}
             onClose={() => setCartOpen(false)}
           />
 
