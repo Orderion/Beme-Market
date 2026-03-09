@@ -1,4 +1,3 @@
-// src/pages/Home.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, limit, query } from "firebase/firestore";
@@ -116,6 +115,56 @@ function buildSuggestions(products, term) {
     .slice(0, SUGGESTION_LIMIT);
 }
 
+function BannerLinkCard({
+  image,
+  chip,
+  title,
+  subtitle,
+  align = "left",
+  tone = "",
+  onClick,
+  ariaLabel,
+}) {
+  const className = [
+    "shop-banner",
+    align === "center" ? "shop-banner--center" : "shop-banner--left",
+    tone ? `shop-banner--${tone}` : "",
+  ]
+    .join(" ")
+    .trim();
+
+  const overlayClassName =
+    align === "center"
+      ? "shop-banner-overlay shop-banner-overlay--center"
+      : "shop-banner-overlay shop-banner-overlay--left";
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onClick?.();
+    }
+  };
+
+  return (
+    <div
+      className={className}
+      role="link"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+      aria-label={ariaLabel || title}
+    >
+      <img src={image} alt={title} className="shop-banner-image" />
+
+      <div className={overlayClassName}>
+        <span className="shop-banner-chip">{chip}</span>
+        <h2>{title}</h2>
+        {subtitle ? <p className="shop-banner-copy">{subtitle}</p> : null}
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const navigate = useNavigate();
 
@@ -135,32 +184,40 @@ export default function Home() {
         image: banner,
         badge: "New Season",
         title: "New Arrival 2026",
-        cta: "View products",
+        subtitle: "Fresh pieces, modern essentials, and standout finds.",
         action: () => navigate("/shop"),
+      },
+      {
+        id: "fashion",
+        image: banner,
+        badge: "Fashion Shop",
+        title: "Modern fashion for every day",
+        subtitle: "Elevated style, clean looks, easy shopping.",
+        action: () => navigate("/shop?shop=main"),
       },
       {
         id: "kente",
         image: kenteBanner,
         badge: "Ghana Made",
         title: "Mintah's Kente Collection",
-        cta: "View collection",
-        action: () => navigate("/shop?q=kente"),
+        subtitle: "Traditional beauty with premium presentation.",
+        action: () => navigate("/shop?shop=kente"),
       },
       {
         id: "perfume",
         image: perfumeBanner,
         badge: "Perfume Shop",
         title: "Luxury scents for every mood",
-        cta: "View perfumes",
-        action: () => navigate("/shop?q=perfume"),
+        subtitle: "Refined fragrances for daily wear and special moments.",
+        action: () => navigate("/shop?shop=perfume"),
       },
       {
         id: "tech",
         image: techBanner,
         badge: "Tech Shop",
         title: "Latest gadgets for modern living",
-        cta: "View tech",
-        action: () => navigate("/shop?q=tech"),
+        subtitle: "Smart devices, clean design, everyday performance.",
+        action: () => navigate("/shop?shop=tech"),
       },
     ],
     [navigate]
@@ -233,9 +290,10 @@ export default function Home() {
   const currentSlide = heroSlides[heroIndex];
 
   const goToShop = () => navigate("/shop");
-  const goToPerfumeShop = () => navigate("/shop?q=perfume");
-  const goToKenteCollection = () => navigate("/shop?q=kente");
-  const goToTechShop = () => navigate("/shop?q=tech");
+  const goToFashionShop = () => navigate("/shop?shop=main");
+  const goToPerfumeShop = () => navigate("/shop?shop=perfume");
+  const goToKenteCollection = () => navigate("/shop?shop=kente");
+  const goToTechShop = () => navigate("/shop?shop=tech");
 
   const goToSearch = (value) => {
     const q = String(value || "").trim();
@@ -287,6 +345,10 @@ export default function Home() {
 
   const goToSlide = (index) => {
     setHeroIndex(index);
+  };
+
+  const activateHeroSlide = () => {
+    currentSlide.action?.();
   };
 
   return (
@@ -359,10 +421,22 @@ export default function Home() {
       </div>
 
       <div className="home-note">
-        Browse categories, offers, and more from the menu.
+        Browse categories, featured shops, and trending products from one place.
       </div>
 
-      <section className="hero">
+      <section
+        className="hero hero--interactive"
+        role="link"
+        tabIndex={0}
+        onClick={activateHeroSlide}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            activateHeroSlide();
+          }
+        }}
+        aria-label={currentSlide.title}
+      >
         <img
           key={currentSlide.id}
           src={currentSlide.image}
@@ -373,9 +447,8 @@ export default function Home() {
         <div className="hero-overlay">
           <span className="badge">{currentSlide.badge}</span>
           <h2>{currentSlide.title}</h2>
-          <button className="primary-btn" onClick={currentSlide.action}>
-            {currentSlide.cta}
-          </button>
+          <p className="hero-copy">{currentSlide.subtitle}</p>
+          <span className="hero-link-pill">Explore now</span>
         </div>
 
         <div className="hero-dots" aria-label="Hero slides">
@@ -384,7 +457,10 @@ export default function Home() {
               key={slide.id}
               type="button"
               className={`hero-dot ${index === heroIndex ? "active" : ""}`}
-              onClick={() => goToSlide(index)}
+              onClick={(e) => {
+                e.stopPropagation();
+                goToSlide(index);
+              }}
               aria-label={`Go to slide ${index + 1}`}
             />
           ))}
@@ -392,56 +468,54 @@ export default function Home() {
       </section>
 
       <section className="section">
-        <div className="shop-banner shop-banner--center">
-          <img
-            src={kenteBanner}
-            alt="Mintah's Kente collection"
-            className="shop-banner-image"
-          />
-
-          <div className="shop-banner-overlay shop-banner-overlay--center">
-            <span className="shop-banner-chip">Ghana Made</span>
-            <h2>Mintah&apos;s Kente</h2>
-            <button className="primary-btn" onClick={goToKenteCollection}>
-              View collection
-            </button>
-          </div>
+        <div className="section-header">
+          <h3>Shop by store</h3>
         </div>
-      </section>
 
-      <section className="section">
-        <div className="shop-banner shop-banner--left">
-          <img
-            src={perfumeBanner}
-            alt="Perfume shop collection"
-            className="shop-banner-image"
+        <div className="shop-banner-grid">
+          <BannerLinkCard
+            image={banner}
+            chip="Fashion Shop"
+            title="Modern fashion essentials"
+            subtitle="Clean everyday style, curated for confident dressing."
+            align="left"
+            tone="fashion"
+            onClick={goToFashionShop}
+            ariaLabel="Open Fashion Shop"
           />
 
-          <div className="shop-banner-overlay shop-banner-overlay--left">
-            <span className="shop-banner-chip">Perfume Shop</span>
-            <h2>Luxury scents for every mood</h2>
-            <button className="primary-btn" onClick={goToPerfumeShop}>
-              View perfumes
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="shop-banner shop-banner--left shop-banner--tech">
-          <img
-            src={techBanner}
-            alt="Tech shop collection"
-            className="shop-banner-image"
+          <BannerLinkCard
+            image={kenteBanner}
+            chip="Ghana Made"
+            title="Mintah's Kente"
+            subtitle="Signature woven styles with premium presentation."
+            align="center"
+            tone="kente"
+            onClick={goToKenteCollection}
+            ariaLabel="Open Mintah's Kente collection"
           />
 
-          <div className="shop-banner-overlay shop-banner-overlay--left">
-            <span className="shop-banner-chip">Tech Shop</span>
-            <h2>Latest gadgets. Endless innovation.</h2>
-            <button className="primary-btn" onClick={goToTechShop}>
-              View tech
-            </button>
-          </div>
+          <BannerLinkCard
+            image={perfumeBanner}
+            chip="Perfume Shop"
+            title="Luxury scents for every mood"
+            subtitle="Discover refined fragrances for daily wear and gifting."
+            align="left"
+            tone="perfume"
+            onClick={goToPerfumeShop}
+            ariaLabel="Open Perfume Shop"
+          />
+
+          <BannerLinkCard
+            image={techBanner}
+            chip="Tech Shop"
+            title="Latest gadgets. Endless innovation."
+            subtitle="Smart devices and modern electronics for everyday life."
+            align="left"
+            tone="tech"
+            onClick={goToTechShop}
+            ariaLabel="Open Tech Shop"
+          />
         </div>
       </section>
 

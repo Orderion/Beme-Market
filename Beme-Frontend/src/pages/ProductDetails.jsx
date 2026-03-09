@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useCart } from "../context/CartContext";
@@ -37,6 +37,34 @@ function normalizeImages(product) {
   return product?.image ? [product.image] : [];
 }
 
+function ProductDetailsSkeleton() {
+  return (
+    <div className="pd-page">
+      <div className="pd-container">
+        <div className="pd-media-col">
+          <div className="pd-skeleton pd-skeleton-media" />
+          <div className="pd-skeleton-thumb-row">
+            <div className="pd-skeleton pd-skeleton-thumb" />
+            <div className="pd-skeleton pd-skeleton-thumb" />
+            <div className="pd-skeleton pd-skeleton-thumb" />
+          </div>
+        </div>
+
+        <div className="pd-info">
+          <div className="pd-skeleton pd-skeleton-title" />
+          <div className="pd-skeleton pd-skeleton-badge" />
+          <div className="pd-skeleton pd-skeleton-price" />
+          <div className="pd-skeleton pd-skeleton-line" />
+          <div className="pd-skeleton pd-skeleton-line" />
+          <div className="pd-skeleton pd-skeleton-line short" />
+          <div className="pd-skeleton pd-skeleton-btn" />
+          <div className="pd-skeleton pd-skeleton-btn" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -48,9 +76,11 @@ export default function ProductDetails() {
   const [selectedOptions, setSelectedOptions] = useState({});
   const [optionError, setOptionError] = useState("");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [addedFeedback, setAddedFeedback] = useState(false);
 
   const touchStartXRef = useRef(0);
   const touchEndXRef = useRef(0);
+  const feedbackTimerRef = useRef(null);
 
   useEffect(() => {
     const run = async () => {
@@ -76,6 +106,12 @@ export default function ProductDetails() {
     };
 
     run();
+
+    return () => {
+      if (feedbackTimerRef.current) {
+        window.clearTimeout(feedbackTimerRef.current);
+      }
+    };
   }, [id]);
 
   const customizations = useMemo(
@@ -100,6 +136,8 @@ export default function ProductDetails() {
 
   useEffect(() => {
     setActiveImageIndex(0);
+    setQty(1);
+    setAddedFeedback(false);
   }, [product?.id]);
 
   const formatMoney = (n) => `GHS ${Number(n || 0).toFixed(2)}`;
@@ -139,8 +177,21 @@ export default function ProductDetails() {
     };
   };
 
+  const triggerAddedFeedback = () => {
+    setAddedFeedback(true);
+
+    if (feedbackTimerRef.current) {
+      window.clearTimeout(feedbackTimerRef.current);
+    }
+
+    feedbackTimerRef.current = window.setTimeout(() => {
+      setAddedFeedback(false);
+    }, 1800);
+  };
+
   const handleAdd = () => {
     if (!product) return;
+    if (product?.inStock === false) return;
 
     const selectionError = validateSelections();
     if (selectionError) {
@@ -152,10 +203,12 @@ export default function ProductDetails() {
     if (!item) return;
 
     addToCart(item);
+    triggerAddedFeedback();
   };
 
   const handleBuyNow = () => {
     if (!product) return;
+    if (product?.inStock === false) return;
 
     const selectionError = validateSelections();
     if (selectionError) {
@@ -193,13 +246,37 @@ export default function ProductDetails() {
     else goPrevImage();
   };
 
-  if (loading) return <div className="pd-wrap">Loading...</div>;
-  if (!product) return <div className="pd-wrap">Product not found.</div>;
+  if (loading) return <ProductDetailsSkeleton />;
+
+  if (!product) {
+    return (
+      <div className="pd-page">
+        <div className="pd-empty-state">
+          <div className="pd-empty-card">
+            <h1>Product not found</h1>
+            <p>
+              The product you are looking for may have been removed or is no
+              longer available.
+            </p>
+            <div className="pd-empty-actions">
+              <Link to="/shop" className="pd-empty-btn">
+                Back to shop
+              </Link>
+              <Link to="/" className="pd-empty-btn pd-empty-btn--ghost">
+                Go home
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const name = product?.name ?? "Untitled";
   const desc =
     product?.description ??
     "This is a premium product from Beme Market. Add a description in Firestore to show details here.";
+  const isOutOfStock = product?.inStock === false;
 
   return (
     <div className="pd-page">
@@ -291,8 +368,15 @@ export default function ProductDetails() {
           <div className="pd-meta">
             <div className="pd-badge">
               <span className="pd-badge-icon">👜</span>
-              <span>{product?.inStock === false ? "Out of stock" : "In stock"}</span>
+              <span>{isOutOfStock ? "Out of stock" : "In stock"}</span>
             </div>
+
+            {images.length > 1 ? (
+              <div className="pd-badge">
+                <span className="pd-badge-icon">🖼</span>
+                <span>{images.length} product images</span>
+              </div>
+            ) : null}
           </div>
 
           <div className="pd-price-row">
@@ -331,7 +415,9 @@ export default function ProductDetails() {
                       <select
                         className="pd-option-select"
                         value={selectedOptions[group.name] || ""}
-                        onChange={(e) => setOptionValue(group.name, e.target.value)}
+                        onChange={(e) =>
+                          setOptionValue(group.name, e.target.value)
+                        }
                       >
                         <option value="">
                           Select {group.name.toLowerCase()}
@@ -363,7 +449,9 @@ export default function ProductDetails() {
                 ))}
               </div>
 
-              {optionError ? <div className="pd-option-error">{optionError}</div> : null}
+              {optionError ? (
+                <div className="pd-option-error">{optionError}</div>
+              ) : null}
             </div>
           )}
 
@@ -376,6 +464,7 @@ export default function ProductDetails() {
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
                 type="button"
                 aria-label="Decrease"
+                disabled={isOutOfStock}
               >
                 −
               </button>
@@ -385,19 +474,32 @@ export default function ProductDetails() {
                 onClick={() => setQty((q) => q + 1)}
                 type="button"
                 aria-label="Increase"
+                disabled={isOutOfStock}
               >
                 +
               </button>
             </div>
           </div>
 
+          {addedFeedback ? (
+            <div className="pd-added-feedback">Added to cart successfully.</div>
+          ) : null}
+
           <div className="pd-actions">
-            <button className="pd-btn pd-btn-outline" onClick={handleAdd}>
-              Add to cart
+            <button
+              className="pd-btn pd-btn-outline"
+              onClick={handleAdd}
+              disabled={isOutOfStock}
+            >
+              {isOutOfStock ? "Unavailable" : "Add to cart"}
             </button>
 
-            <button className="pd-btn pd-btn-black" onClick={handleBuyNow}>
-              Buy now
+            <button
+              className="pd-btn pd-btn-black"
+              onClick={handleBuyNow}
+              disabled={isOutOfStock}
+            >
+              {isOutOfStock ? "Out of stock" : "Buy now"}
             </button>
           </div>
 

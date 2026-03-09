@@ -121,6 +121,8 @@ body.dark .order-success-glow {
   margin-top: 24px;
   display: flex;
   justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .order-success-btn {
@@ -147,20 +149,13 @@ body.dark .order-success-glow {
   transform: scale(0.98);
 }
 
-body.dark .order-success-btn {
+.order-success-btn--ghost {
   background: transparent;
   color: var(--text);
-  border-color: var(--text);
 }
 
-.order-success-link {
-  margin-top: 18px;
-  display: inline-block;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--muted);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+body.dark .order-success-btn {
+  color: var(--text);
 }
 
 .order-success-letters {
@@ -223,5 +218,10 @@ body.dark .order-success-btn {
 
   .order-success-meta b {
     max-width: 180px;
+  }
+
+  .order-success-btn {
+    width: 100%;
+    text-align: center;
   }
 }

@@ -138,7 +138,9 @@ export default function OrderSuccess() {
 
         {status === "paid" && (
           <>
-            <div className="order-success-icon order-success-icon--success">✓</div>
+            <div className="order-success-icon order-success-icon--success">
+              ✓
+            </div>
             <h2 className="order-success-title">
               <AnimatedTitle text="Order Complete" />
             </h2>
@@ -161,7 +163,13 @@ export default function OrderSuccess() {
             </div>
 
             <div className="order-success-actions">
-              <Link to="/shop" className="order-success-btn">
+              <Link to="/orders" className="order-success-btn">
+                View my orders
+              </Link>
+              <Link
+                to="/shop"
+                className="order-success-btn order-success-btn--ghost"
+              >
                 Continue shopping
               </Link>
             </div>
@@ -170,16 +178,36 @@ export default function OrderSuccess() {
 
         {status === "cod" && (
           <>
-            <div className="order-success-icon order-success-icon--success">✓</div>
+            <div className="order-success-icon order-success-icon--success">
+              ✓
+            </div>
             <h2 className="order-success-title">
               <AnimatedTitle text="Order Received" />
             </h2>
             <p className="order-success-sub">
-              Pay on delivery selected. Estimated delivery: <b>{etaText}</b>
+              Your order has been placed successfully with pay on delivery.
+              Estimated delivery: <b>{etaText}</b>
             </p>
 
+            <div className="order-success-meta">
+              <div>
+                <span>Payment method</span>
+                <b>Pay on Delivery</b>
+              </div>
+              <div>
+                <span>Status</span>
+                <b>Pending confirmation</b>
+              </div>
+            </div>
+
             <div className="order-success-actions">
-              <Link to="/shop" className="order-success-btn">
+              <Link to="/orders" className="order-success-btn">
+                View my orders
+              </Link>
+              <Link
+                to="/shop"
+                className="order-success-btn order-success-btn--ghost"
+              >
                 Continue shopping
               </Link>
             </div>
@@ -191,7 +219,8 @@ export default function OrderSuccess() {
             <div className="order-success-icon order-success-icon--failed">!</div>
             <h2 className="order-success-title">Payment not confirmed</h2>
             <p className="order-success-sub">
-              If you were charged, contact support with your reference.
+              We could not confirm this payment yet. If you were charged, contact
+              support and share your payment reference.
             </p>
 
             <div className="order-success-meta">
@@ -209,9 +238,17 @@ export default function OrderSuccess() {
               ) : null}
             </div>
 
-            <Link to="/checkout" className="order-success-link">
-              Back to checkout
-            </Link>
+            <div className="order-success-actions">
+              <Link to="/checkout" className="order-success-btn">
+                Back to checkout
+              </Link>
+              <Link
+                to="/support"
+                className="order-success-btn order-success-btn--ghost"
+              >
+                Contact support
+              </Link>
+            </div>
           </>
         )}
       </div>
