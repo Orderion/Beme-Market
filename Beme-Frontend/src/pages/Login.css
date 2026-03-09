@@ -2,6 +2,7 @@
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
+  animation: fadeUpSoft 0.4s ease;
 }
 
 .auth-banner {
@@ -12,7 +13,7 @@
   padding: 12px 16px;
   font-size: 13px;
   line-height: 1.5;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.01em;
 }
 
 .auth-wrap {
@@ -25,17 +26,19 @@
   display: flex;
   justify-content: center;
   margin-bottom: 18px;
+  animation: fadeUpSoft 0.45s ease;
 }
 
 .auth-logo-box {
   width: 112px;
   height: 112px;
-  border-radius: 28px;
+  border-radius: 30px;
   background: var(--card);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
   display: grid;
   place-items: center;
+  animation: floatSoft 5s ease-in-out infinite;
 }
 
 .auth-mark-icon {
@@ -47,16 +50,18 @@
 .auth-title {
   margin: 0 0 28px;
   text-align: center;
-  font-size: clamp(2.2rem, 6vw, 4rem);
-  line-height: 0.95;
-  letter-spacing: 0.04em;
-  font-weight: 900;
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 6vw, 4.2rem);
+  line-height: 0.92;
+  letter-spacing: -0.06em;
+  font-weight: 700;
 }
 
 .auth-card {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  animation: fadeUpSoft 0.55s ease;
 }
 
 .auth-label {
@@ -76,12 +81,13 @@
   background: var(--card);
   color: var(--text);
   outline: none;
-  font-size: 1.05rem;
+  font-size: 1rem;
+  font-weight: 600;
   box-shadow: var(--shadow);
 }
 
 .auth-input::placeholder {
-  color: var(--muted, #8f8f8f);
+  color: var(--muted);
 }
 
 .auth-input:focus {
@@ -101,6 +107,11 @@
   display: grid;
   place-items: center;
   cursor: pointer;
+  transition: transform 0.18s ease;
+}
+
+.auth-eye:hover {
+  transform: translateY(-50%) scale(1.04);
 }
 
 .auth-alert {
@@ -108,6 +119,7 @@
   padding: 14px 16px;
   font-size: 0.95rem;
   line-height: 1.45;
+  animation: fadeUpSoft 0.22s ease;
 }
 
 .auth-alert--error {
@@ -132,10 +144,23 @@
   border: 1px solid #050505;
   background: #050505;
   color: #fff;
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: 1.06rem;
+  font-weight: 800;
   cursor: pointer;
   box-shadow: var(--shadow);
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease,
+    box-shadow 0.2s ease;
+}
+
+.auth-cta:hover {
+  opacity: 0.94;
+  transform: translateY(-1px);
+}
+
+.auth-cta:active {
+  transform: scale(0.985);
 }
 
 .auth-cta:disabled,
@@ -160,8 +185,8 @@
   color: var(--text);
   text-decoration: underline;
   text-underline-offset: 3px;
-  font-size: 0.98rem;
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
 }
 
@@ -172,33 +197,41 @@
   background: var(--card);
   color: var(--text);
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 800;
   cursor: pointer;
   box-shadow: var(--shadow);
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.auth-ghost:hover {
+  opacity: 0.94;
+  transform: translateY(-1px);
 }
 
 .auth-news {
   margin-top: 32px;
-  border-radius: 32px;
+  border-radius: 34px;
   background: #050505;
   color: #fff;
   padding: 34px 26px 28px;
   box-shadow: var(--shadow);
+  animation: fadeUpSoft 0.68s ease;
 }
 
 .auth-news-title {
   margin: 0 0 12px;
-  font-size: clamp(1.9rem, 5vw, 3rem);
-  line-height: 1;
-  font-weight: 900;
-  letter-spacing: 0.02em;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  line-height: 0.95;
+  font-weight: 700;
+  letter-spacing: -0.05em;
 }
 
 .auth-news-text {
   margin: 0 0 24px;
   max-width: 680px;
   color: rgba(255, 255, 255, 0.86);
-  font-size: 1rem;
+  font-size: 0.98rem;
   line-height: 1.7;
 }
 
@@ -233,6 +266,11 @@
   display: grid;
   place-items: center;
   cursor: pointer;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.auth-news-btn:hover {
+  transform: translateY(-1px);
 }
 
 .auth-pay-row {
@@ -252,8 +290,14 @@
   align-items: center;
   justify-content: center;
   color: rgba(255, 255, 255, 0.92);
-  font-weight: 700;
-  letter-spacing: 0.03em;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.auth-pay:hover {
+  transform: translateY(-2px);
+  opacity: 0.92;
 }
 
 .sr-only {

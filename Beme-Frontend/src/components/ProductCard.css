@@ -1,22 +1,33 @@
 .p-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 22px;
+  border-radius: 24px;
   overflow: hidden;
-  transition: transform 0.2s ease;
+  box-shadow: var(--shadow);
+  transition:
+    transform 0.26s ease,
+    box-shadow 0.26s ease,
+    border-color 0.26s ease;
+  animation: fadeUpSoft 0.45s ease;
 }
 
 .p-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-6px);
+  box-shadow: 0 18px 36px rgba(17, 17, 17, 0.12);
 }
 
-/* IMAGE AREA */
+body.dark .p-card:hover {
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.34);
+}
+
 .p-media {
   position: relative;
-  background: var(--soft);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent),
+    var(--soft);
   border-bottom: 1px solid var(--border);
   padding: 16px;
-  border-radius: 22px 22px 0 0;
+  border-radius: 24px 24px 0 0;
   min-height: 240px;
   display: flex;
   align-items: center;
@@ -28,6 +39,11 @@
   max-height: 220px;
   object-fit: contain;
   border-radius: 16px;
+  transition: transform 0.35s ease;
+}
+
+.p-card:hover .p-img {
+  transform: scale(1.035);
 }
 
 .p-img--empty {
@@ -39,7 +55,6 @@
   opacity: 0.6;
 }
 
-/* ADD TO CART BUTTON */
 .p-cart-btn {
   position: absolute;
   right: 14px;
@@ -53,29 +68,36 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .p-cart-btn:hover {
-  transform: scale(1.05);
+  transform: scale(1.06);
+  box-shadow: 0 12px 22px rgba(17, 17, 17, 0.12);
 }
 
-/* SVG STYLE */
+.p-cart-btn:active {
+  transform: scale(0.95);
+}
+
 .cart-svg {
   width: 20px;
   height: 20px;
-  color: var(--text); /* adapts to light/dark mode */
+  color: var(--text);
 }
 
-/* BODY */
 .p-body {
-  padding: 14px 16px 18px;
+  padding: 16px 16px 18px;
 }
 
 .p-name {
   margin: 0 0 8px;
-  font-weight: 700;
-  font-size: 15px;
+  font-weight: 800;
+  font-size: 0.98rem;
+  letter-spacing: -0.03em;
 }
 
 .p-prices {
@@ -85,12 +107,14 @@
 }
 
 .p-price {
-  font-weight: 800;
-  font-size: 16px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: -0.04em;
 }
 
 .p-old {
-  opacity: 0.6;
+  opacity: 0.56;
   text-decoration: line-through;
   font-weight: 700;
 }

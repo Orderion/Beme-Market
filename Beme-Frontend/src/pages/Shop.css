@@ -1,26 +1,20 @@
 .shop-page {
   background: var(--bg);
   min-height: 100vh;
+  animation: fadeUpSoft 0.4s ease;
 }
 
-/* ====== PREMIUM TOP BAR (center title) ====== */
 .shop-topbar {
   position: sticky;
   top: 0;
   z-index: 20;
-
   padding: 14px 18px 10px;
   display: grid;
   grid-template-columns: 44px 1fr 44px;
   align-items: center;
-
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
-}
-
-body.dark .shop-topbar {
-  background: rgba(10, 12, 16, 0.62);
 }
 
 .shop-top-btn {
@@ -49,9 +43,10 @@ body.dark .shop-topbar {
 
 .shop-title {
   margin: 0;
-  font-size: 34px;
-  font-weight: 900;
-  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.06em;
   color: var(--text);
 }
 
@@ -60,14 +55,12 @@ body.dark .shop-topbar {
   height: 44px;
 }
 
-/* ====== CONTROLS ROW ====== */
 .shop-controls {
-  margin: 10px 18px 0;
+  margin: 12px 18px 0;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 12px;
-
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   padding: 12px 0;
@@ -78,16 +71,13 @@ body.dark .shop-topbar {
   gap: 10px;
   align-items: center;
   justify-content: center;
-
   border: 0;
   background: transparent;
   padding: 10px 8px;
   cursor: pointer;
-
-  font-size: 16px;
-  font-weight: 650;
+  font-size: 15px;
+  font-weight: 800;
   color: var(--text);
-
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
@@ -114,18 +104,16 @@ body.dark .shop-topbar {
   background: var(--border);
 }
 
-/* ====== META ====== */
 .shop-meta {
-  padding: 12px 18px 6px;
+  padding: 14px 18px 8px;
 }
 
 .shop-count {
-  color: rgba(127, 127, 127, 0.9);
-  font-size: 15px;
-  font-weight: 500;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
 }
 
-/* ====== re-use your sidebar styles from Home ====== */
 .side-panel {
   position: fixed;
   top: 0;
@@ -183,7 +171,7 @@ body.dark .shop-topbar {
   background: rgba(0, 0, 0, 0.35);
   z-index: 55;
 }
-/* Collapsible filter panel */
+
 .shop-filter-panel {
   max-height: 0;
   overflow: hidden;
@@ -191,7 +179,7 @@ body.dark .shop-topbar {
 }
 
 .shop-filter-panel.open {
-  max-height: 520px; /* enough to show both chip rows */
+  max-height: 520px;
 }
 
 .shop-filter-inner {
@@ -211,7 +199,7 @@ body.dark .shop-topbar {
 
 .shop-filter-label {
   font-size: 12px;
-  color: var(--soft);
+  color: var(--muted);
   letter-spacing: 0.02em;
 }
 
@@ -234,11 +222,6 @@ body.dark .shop-topbar {
   background: var(--text);
 }
 
-body.dark .shop-filter-dot {
-  background: var(--text);
-}
-
-/* Chips container (if you don't already have it) */
 .shop-chips {
   display: flex;
   gap: 10px;
@@ -249,11 +232,11 @@ body.dark .shop-filter-dot {
 .shop-chips-secondary {
   padding-top: 2px;
 }
-/* Panels (Filter + Sort) */
+
 .shop-panel {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.22s ease;
+  transition: max-height 0.24s ease;
 }
 
 .shop-panel.open {
@@ -261,7 +244,8 @@ body.dark .shop-filter-dot {
 }
 
 .shop-panel-inner {
-  padding: 12px 0 8px;
+  padding: 12px 18px 8px;
+  animation: fadeUpSoft 0.2s ease;
 }
 
 .shop-panel-head {
@@ -271,10 +255,17 @@ body.dark .shop-filter-dot {
   margin: 6px 0 12px;
 }
 
+.shop-panel-head-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .shop-panel-title {
   font-size: 12px;
-  color: var(--soft);
-  letter-spacing: 0.02em;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 800;
 }
 
 .shop-panel-action {
@@ -285,6 +276,7 @@ body.dark .shop-filter-dot {
   padding: 6px 10px;
   font-size: 12px;
   cursor: pointer;
+  font-weight: 700;
 }
 
 .shop-panel-section {
@@ -293,23 +285,13 @@ body.dark .shop-filter-dot {
 
 .shop-panel-label {
   font-size: 12px;
-  color: var(--soft);
+  color: var(--muted);
   margin: 0 0 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-/* Chips (if you don't have already) */
-.shop-chips {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding-bottom: 6px;
-}
-
-.shop-chips-secondary {
-  padding-top: 2px;
-}
-
-/* Active dot on buttons */
 .shop-dot {
   display: inline-block;
   width: 7px;
@@ -319,7 +301,6 @@ body.dark .shop-filter-dot {
   background: var(--text);
 }
 
-/* Sort panel controls */
 .shop-radio {
   display: flex;
   flex-direction: column;
@@ -332,6 +313,7 @@ body.dark .shop-filter-dot {
   gap: 10px;
   color: var(--text);
   font-size: 13px;
+  font-weight: 700;
 }
 
 .shop-range {
@@ -351,7 +333,7 @@ body.dark .shop-filter-dot {
 }
 
 .shop-range-dash {
-  color: var(--soft);
+  color: var(--muted);
 }
 
 .shop-toggle {
@@ -361,6 +343,7 @@ body.dark .shop-filter-dot {
   gap: 10px;
   color: var(--text);
   font-size: 13px;
+  font-weight: 700;
 }
 
 .shop-panel-actions {
@@ -375,6 +358,16 @@ body.dark .shop-filter-dot {
   border-radius: 14px;
   border: 1px solid var(--border);
   cursor: pointer;
+  font-weight: 800;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.shop-btn:hover {
+  opacity: 0.92;
+}
+
+.shop-btn:active {
+  transform: scale(0.98);
 }
 
 .shop-btn.solid {

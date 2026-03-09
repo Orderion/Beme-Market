@@ -3,6 +3,7 @@
   min-height: 100vh;
   padding: 28px 16px 60px;
   color: var(--text);
+  animation: fadeUpSoft 0.4s ease;
 }
 
 .pd-container {
@@ -10,7 +11,7 @@
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1.2fr 0.8fr;
-  gap: 36px;
+  gap: 40px;
   align-items: start;
 }
 
@@ -22,14 +23,17 @@
 
 .pd-media {
   position: relative;
-  border-radius: 18px;
-  background: var(--soft);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent),
+    var(--soft);
   overflow: hidden;
-  min-height: 420px;
+  min-height: 440px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border);
+  box-shadow: var(--shadow);
 }
 
 .pd-img {
@@ -38,6 +42,7 @@
   object-fit: contain;
   display: block;
   background: var(--soft);
+  animation: fadeInSoft 0.3s ease;
 }
 
 .pd-img--empty {
@@ -55,11 +60,11 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.9);
   color: #111;
   font-size: 28px;
   line-height: 1;
@@ -67,6 +72,11 @@
   display: grid;
   place-items: center;
   z-index: 2;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.pd-carousel-btn:hover {
+  transform: translateY(-50%) scale(1.05);
 }
 
 .pd-carousel-btn--left {
@@ -94,10 +104,12 @@
   border: 0;
   background: rgba(255, 255, 255, 0.6);
   cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease;
 }
 
 .pd-dot.active {
   background: #fff;
+  transform: scale(1.18);
 }
 
 .pd-thumbs {
@@ -115,12 +127,17 @@
   flex: 0 0 86px;
   width: 86px;
   height: 86px;
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
   border: 1px solid var(--border);
   background: var(--card);
   padding: 0;
   cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.pd-thumb:hover {
+  transform: translateY(-2px);
 }
 
 .pd-thumb.active {
@@ -140,10 +157,12 @@
 }
 
 .pd-title {
-  font-size: 40px;
-  line-height: 1.05;
+  font-family: var(--font-display);
+  font-size: 42px;
+  line-height: 0.98;
   margin: 0 0 12px;
   font-weight: 700;
+  letter-spacing: -0.06em;
   color: var(--text);
 }
 
@@ -158,9 +177,10 @@
   background: var(--soft);
   color: var(--text);
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: 14px;
   font-size: 14px;
   border: 1px solid var(--border);
+  animation: fadeUpSoft 0.5s ease;
 }
 
 .pd-price-row {
@@ -172,8 +192,10 @@
 }
 
 .pd-price {
-  font-size: 22px;
+  font-family: var(--font-display);
+  font-size: 24px;
   font-weight: 700;
+  letter-spacing: -0.05em;
   color: var(--text);
 }
 
@@ -193,7 +215,7 @@
 
 .pd-save {
   color: #c14a00;
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .pd-section {
@@ -204,16 +226,18 @@
 
 .pd-section-title {
   margin: 0 0 10px;
-  font-size: 16px;
+  font-family: var(--font-display);
+  font-size: 17px;
   font-weight: 700;
   color: var(--text);
+  letter-spacing: -0.04em;
 }
 
 .pd-desc {
   margin: 0;
   color: var(--text);
-  opacity: 0.9;
-  line-height: 1.7;
+  opacity: 0.92;
+  line-height: 1.8;
   font-size: 15px;
 }
 
@@ -238,7 +262,7 @@
 }
 
 .pd-option-name {
-  font-weight: 700;
+  font-weight: 800;
   font-size: 14px;
 }
 
@@ -261,7 +285,14 @@
   background: var(--card);
   color: var(--text);
   cursor: pointer;
-  transition: 0.2s ease;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.pd-option-btn:hover {
+  transform: translateY(-1px);
 }
 
 .pd-option-btn.active {
@@ -298,7 +329,7 @@
 }
 
 .pd-qty-label {
-  font-weight: 700;
+  font-weight: 800;
   font-size: 15px;
 }
 
@@ -320,12 +351,17 @@
   color: var(--text);
   font-size: 20px;
   cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.pd-qty-btn:hover {
+  background: var(--soft);
 }
 
 .pd-qty-num {
   width: 46px;
   text-align: center;
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .pd-actions {
@@ -336,12 +372,24 @@
 
 .pd-btn {
   width: 100%;
-  height: 54px;
-  border-radius: 16px;
+  height: 56px;
+  border-radius: 18px;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
-  transition: 0.2s ease;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease,
+    box-shadow 0.2s ease;
+}
+
+.pd-btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.pd-btn:active {
+  transform: scale(0.985);
 }
 
 .pd-btn-outline {
@@ -356,21 +404,18 @@
   color: var(--btnText);
 }
 
-.pd-btn:hover {
-  opacity: 0.88;
-}
-
 .pd-note {
   margin-top: 14px;
   background: var(--soft);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 12px 12px;
   display: flex;
   align-items: center;
   gap: 10px;
   color: var(--text);
   font-size: 14px;
+  animation: fadeUpSoft 0.5s ease;
 }
 
 @media (max-width: 900px) {
@@ -379,7 +424,7 @@
   }
 
   .pd-title {
-    font-size: 32px;
+    font-size: 34px;
   }
 
   .pd-media {

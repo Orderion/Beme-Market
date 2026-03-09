@@ -14,7 +14,8 @@
   inset: 0;
   background: var(--overlay);
   opacity: 0;
-  transition: opacity 0.2s ease;
+  backdrop-filter: blur(2px);
+  transition: opacity 0.26s ease;
 }
 
 .cd--open .cd-overlay {
@@ -30,10 +31,11 @@
   background: var(--card);
   color: var(--text);
   transform: translateX(100%);
-  transition: transform 0.22s ease;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--border);
+  box-shadow: -16px 0 40px rgba(0, 0, 0, 0.08);
 }
 
 .cd--open .cd-panel {
@@ -50,8 +52,9 @@
 
 .cd-title {
   margin: 0;
-  font-size: 18px;
-  letter-spacing: 0.04em;
+  font-family: var(--font-display);
+  font-size: 1.04rem;
+  letter-spacing: -0.04em;
 }
 
 .cd-close {
@@ -61,6 +64,11 @@
   cursor: pointer;
   line-height: 1;
   color: var(--text);
+  transition: transform 0.2s ease;
+}
+
+.cd-close:hover {
+  transform: rotate(90deg);
 }
 
 .cd-body {
@@ -70,9 +78,10 @@
 }
 
 .cd-empty {
-  padding: 30px 0;
+  padding: 36px 0;
   text-align: center;
   color: var(--text);
+  animation: fadeUpSoft 0.32s ease;
 }
 
 .cd-ghost {
@@ -81,8 +90,13 @@
   background: var(--card);
   color: var(--text);
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.cd-ghost:hover {
+  opacity: 0.88;
 }
 
 .cd-item {
@@ -91,12 +105,13 @@
   gap: 14px;
   padding: 14px 0;
   border-bottom: 1px solid var(--border);
+  animation: fadeUpSoft 0.28s ease;
 }
 
 .cd-item-img {
   width: 84px;
   height: 84px;
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--soft);
   overflow: hidden;
   display: flex;
@@ -124,18 +139,16 @@
 
 .cd-item-name {
   margin: 0;
-  font-weight: 600;
+  font-weight: 800;
   font-size: 14px;
+  letter-spacing: -0.02em;
 }
 
-/* price */
 .cd-item-price {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
 }
-
-/* ---------- NEW: OPTION STYLE ---------- */
 
 .cd-item-options {
   margin-top: 2px;
@@ -153,8 +166,6 @@
   color: var(--text);
   opacity: 0.85;
 }
-
-/* --------------------------------------- */
 
 .cd-item-actions {
   display: flex;
@@ -180,12 +191,18 @@
   cursor: pointer;
   font-size: 18px;
   color: var(--text);
+  transition: background 0.2s ease;
+}
+
+.cd-qty button:hover {
+  background: var(--soft);
 }
 
 .cd-qty span {
   width: 34px;
   text-align: center;
   font-size: 14px;
+  font-weight: 700;
 }
 
 .cd-remove {
@@ -195,6 +212,12 @@
   font-size: 18px;
   opacity: 0.75;
   color: var(--text);
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.cd-remove:hover {
+  opacity: 1;
+  transform: scale(1.08);
 }
 
 .cd-footer {
@@ -211,23 +234,36 @@
   font-size: 16px;
 }
 
+.cd-total strong {
+  font-family: var(--font-display);
+  letter-spacing: -0.04em;
+}
+
 .cd-checkout {
   width: 100%;
   padding: 16px;
   background: var(--btn);
   color: var(--btnText);
   border: none;
-  border-radius: 14px;
-  font-weight: 700;
+  border-radius: 16px;
+  font-weight: 800;
   cursor: pointer;
-  transition: 0.2s ease;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease,
+    box-shadow 0.2s ease;
+}
+
+.cd-checkout:hover {
+  opacity: 0.92;
+  box-shadow: 0 12px 26px rgba(17, 17, 17, 0.12);
+}
+
+.cd-checkout:active {
+  transform: scale(0.985);
 }
 
 .cd-checkout:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-.cd-checkout:hover {
-  opacity: 0.88;
 }

@@ -1,5 +1,3 @@
-// src/pages/Home.jsx
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, limit, query } from "firebase/firestore";
@@ -7,6 +5,7 @@ import { db } from "../firebase";
 import ProductGrid from "../components/ProductGrid";
 import banner from "../assets/home-banner.png";
 import kenteBanner from "../assets/kente-banner.png";
+import perfumeBanner from "../assets/perfume-banner.png";
 import "./Home.css";
 
 const COLLECTION_NAME = "Products";
@@ -170,6 +169,8 @@ export default function Home() {
   }, [products, search]);
 
   const goToShop = () => navigate("/shop");
+  const goToPerfumeShop = () => navigate("/shop?kind=perfumes");
+  const goToKenteCollection = () => navigate("/shop?q=kente");
 
   const goToSearch = (value) => {
     const q = String(value || "").trim();
@@ -318,8 +319,26 @@ export default function Home() {
 
           <div className="kente-overlay">
             <h2>Mintah&apos;s Kente</h2>
-            <button className="primary-btn" onClick={goToShop}>
+            <button className="primary-btn" onClick={goToKenteCollection}>
               View collection
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="perfume-card">
+          <img
+            src={perfumeBanner}
+            alt="Perfume shop collection"
+            className="perfume-image"
+          />
+
+          <div className="perfume-overlay">
+            <span className="perfume-badge">Perfume Shop</span>
+            <h2>Luxury scents for every mood</h2>
+            <button className="primary-btn" onClick={goToPerfumeShop}>
+              View perfumes
             </button>
           </div>
         </div>

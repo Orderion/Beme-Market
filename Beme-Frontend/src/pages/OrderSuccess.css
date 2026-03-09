@@ -1,7 +1,5 @@
-/* src/pages/OrderSuccess.css */
-
 .page {
-  max-width: 720px;
+  max-width: 760px;
   margin: 0 auto;
   padding: 60px 20px 80px;
   color: var(--text);
@@ -10,64 +8,84 @@
 }
 
 .order-success-card {
+  position: relative;
   width: 100%;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 28px;
   box-shadow: var(--shadow);
-  padding: 44px 32px;
+  padding: 46px 32px;
   text-align: center;
-  animation: fadeIn 0.3s ease;
+  overflow: hidden;
+  animation: fadeUpSoft 0.38s ease;
+}
+
+.order-success-glow {
+  position: absolute;
+  inset: auto;
+  top: -120px;
+  left: 50%;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(17, 17, 17, 0.07), transparent 66%);
+  pointer-events: none;
+}
+
+body.dark .order-success-glow {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.06), transparent 66%);
 }
 
 .order-success-title {
-  font-size: 22px;
-  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  font-size: 30px;
+  letter-spacing: -0.06em;
   margin: 0 0 10px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .order-success-sub {
   font-size: 14px;
-  opacity: 0.75;
+  color: var(--muted);
   margin: 0 0 18px;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 .order-success-icon {
-  width: 52px;
-  height: 52px;
+  width: 62px;
+  height: 62px;
   margin: 0 auto 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   border: 1px solid var(--border);
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 800;
   background: var(--soft);
+  animation: popIn 0.4s ease;
 }
 
-/* ✅ state accents (still monochrome) */
-.order-success-card.paid .order-success-icon,
-.order-success-card.cod .order-success-icon {
-  background: var(--soft);
+.order-success-icon--success {
+  animation: popIn 0.4s ease, pulseSoft 2s infinite;
 }
 
-.order-success-card.failed .order-success-icon {
+.order-success-icon--failed {
   background: transparent;
 }
 
 .order-success-meta {
   margin: 14px auto 0;
-  max-width: 420px;
+  max-width: 440px;
   border: 1px solid var(--border);
   background: var(--soft);
-  border-radius: 14px;
-  padding: 12px 14px;
+  border-radius: 16px;
+  padding: 14px 16px;
   text-align: left;
   display: grid;
   gap: 10px;
+  animation: fadeUpSoft 0.48s ease;
 }
 
 .order-success-meta > div {
@@ -75,7 +93,7 @@
   justify-content: space-between;
   gap: 14px;
   font-size: 13px;
-  opacity: 0.9;
+  opacity: 0.92;
 }
 
 .order-success-meta span {
@@ -83,14 +101,13 @@
 }
 
 .order-success-meta b {
-  font-weight: 600;
+  font-weight: 800;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 240px;
 }
 
-/* spinner */
 .spinner {
   width: 18px;
   height: 18px;
@@ -100,10 +117,6 @@
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 .order-success-actions {
   margin-top: 24px;
   display: flex;
@@ -111,19 +124,28 @@
 }
 
 .order-success-btn {
-  padding: 13px 24px;
-  border-radius: 14px;
+  padding: 14px 24px;
+  border-radius: 16px;
   border: 1px solid var(--border);
   background: var(--text);
   color: var(--bg);
   text-decoration: none;
   font-size: 14px;
-  font-weight: 500;
-  transition: transform 0.08s ease, opacity 0.2s ease;
+  font-weight: 800;
+  transition:
+    transform 0.12s ease,
+    opacity 0.2s ease,
+    box-shadow 0.22s ease;
 }
 
-.order-success-btn:hover { opacity: 0.85; }
-.order-success-btn:active { transform: scale(0.97); }
+.order-success-btn:hover {
+  opacity: 0.92;
+  box-shadow: 0 12px 24px rgba(17, 17, 17, 0.12);
+}
+
+.order-success-btn:active {
+  transform: scale(0.98);
+}
 
 body.dark .order-success-btn {
   background: transparent;
@@ -135,19 +157,71 @@ body.dark .order-success-btn {
   margin-top: 18px;
   display: inline-block;
   font-size: 13px;
-  opacity: 0.75;
+  font-weight: 700;
+  color: var(--muted);
   text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+.order-success-letters {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.order-success-letter {
+  opacity: 0;
+  transform: translateY(14px);
+  display: inline-block;
+  animation: letterRise 0.45s ease forwards;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  70% {
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes letterRise {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 600px) {
-  .page { padding: 40px 16px 60px; }
-  .order-success-card { padding: 32px 22px; }
-  .order-success-title { font-size: 20px; }
-  .order-success-sub { font-size: 13px; }
-  .order-success-meta b { max-width: 180px; }
+  .page {
+    padding: 40px 16px 60px;
+  }
+
+  .order-success-card {
+    padding: 34px 22px;
+    border-radius: 24px;
+  }
+
+  .order-success-title {
+    font-size: 24px;
+  }
+
+  .order-success-sub {
+    font-size: 13px;
+  }
+
+  .order-success-meta b {
+    max-width: 180px;
+  }
 }
