@@ -1,8 +1,12 @@
+// src/pages/Admin.jsx
 import { useEffect, useMemo, useState } from "react";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
-import { DEPARTMENTS, KINDS } from "../constants/catalog";
-import { uploadImagesToCloudinary, validateImageFiles } from "../lib/cloudinary";
+import { DEPARTMENTS, KINDS, SHOPS } from "../constants/catalog";
+import {
+  uploadImagesToCloudinary,
+  validateImageFiles,
+} from "../lib/cloudinary";
 import "./Admin.css";
 
 const COLLECTION_NAME = "Products";
@@ -22,6 +26,7 @@ const initial = {
   description: "",
   dept: "men",
   kind: "fashion",
+  shop: "main",
   inStock: true,
   featured: false,
   customizations: [],
@@ -58,6 +63,7 @@ export default function Admin() {
 
   const deptOptions = useMemo(() => DEPARTMENTS.map((d) => d.key), []);
   const kindOptions = useMemo(() => KINDS.map((k) => k.key), []);
+  const shopOptions = useMemo(() => SHOPS.map((s) => s.key), []);
 
   useEffect(() => {
     return () => {
@@ -178,6 +184,7 @@ export default function Admin() {
 
     if (!deptOptions.includes(form.dept)) return "Invalid department selected.";
     if (!kindOptions.includes(form.kind)) return "Invalid type selected.";
+    if (!shopOptions.includes(form.shop)) return "Invalid shop selected.";
 
     for (const group of form.customizations) {
       const groupName = String(group.name || "").trim();
@@ -247,6 +254,7 @@ export default function Admin() {
         description: form.description.trim(),
         dept: form.dept,
         kind: form.kind,
+        shop: form.shop,
         inStock: !!form.inStock,
         featured: !!form.featured,
         customizations,
@@ -265,7 +273,10 @@ export default function Admin() {
     } catch (err) {
       console.error("Add product error:", err);
       setMsg(
-        `❌ ${err.message || "Failed to add products. Check Firestore rules or console logs."}`
+        `❌ ${
+          err.message ||
+          "Failed to add products. Check Firestore rules or console logs."
+        }`
       );
     } finally {
       setSubmitting(false);
@@ -320,7 +331,8 @@ export default function Admin() {
               <div>
                 <h3 className="admin-upload-title">Product images</h3>
                 <p className="admin-upload-sub">
-                  Upload multiple product images to Cloudinary. The first image becomes the cover image.
+                  Upload multiple product images to Cloudinary. The first image
+                  becomes the cover image.
                 </p>
               </div>
             </div>
@@ -338,7 +350,10 @@ export default function Admin() {
             {imagePreviews.length ? (
               <div className="admin-image-preview-grid">
                 {imagePreviews.map((src, index) => (
-                  <div className="admin-image-preview-wrap" key={`${src}-${index}`}>
+                  <div
+                    className="admin-image-preview-wrap"
+                    key={`${src}-${index}`}
+                  >
                     <img
                       src={src}
                       alt={`Product preview ${index + 1}`}
@@ -378,7 +393,8 @@ export default function Admin() {
               <div className="admin-upload-success">
                 <span className="admin-upload-badge">Uploaded</span>
                 <span className="admin-upload-count">
-                  {uploadedImages.length} image{uploadedImages.length > 1 ? "s" : ""}
+                  {uploadedImages.length} image
+                  {uploadedImages.length > 1 ? "s" : ""}
                 </span>
                 <a
                   href={uploadedImages[0].url}
@@ -401,6 +417,26 @@ export default function Admin() {
               rows={5}
             />
           </label>
+
+          <div className="admin-shop-card">
+            <div className="admin-shop-head">
+              <h3 className="admin-shop-title">Store placement</h3>
+              <p className="admin-shop-sub">
+                Choose which storefront this product should appear under.
+              </p>
+            </div>
+
+            <label className="admin-field">
+              <span>Shop</span>
+              <select value={form.shop} onChange={setField("shop")}>
+                {SHOPS.map((shop) => (
+                  <option key={shop.key} value={shop.key}>
+                    {shop.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
 
           <div className="admin-row">
             <label className="admin-field">
@@ -453,7 +489,8 @@ export default function Admin() {
               <div>
                 <h3 className="admin-options-title">Product customizations</h3>
                 <p className="admin-options-sub">
-                  Add options like Storage, Color, Size, RAM, Material, Scent, Edition, Bundle and more.
+                  Add options like Storage, Color, Size, RAM, Material, Scent,
+                  Edition, Bundle and more.
                 </p>
               </div>
 
@@ -491,7 +528,11 @@ export default function Admin() {
                         <input
                           value={group.name}
                           onChange={(e) =>
-                            updateCustomizationGroup(group.id, "name", e.target.value)
+                            updateCustomizationGroup(
+                              group.id,
+                              "name",
+                              e.target.value
+                            )
                           }
                           placeholder="e.g. Storage"
                         />
@@ -502,7 +543,11 @@ export default function Admin() {
                         <select
                           value={group.type}
                           onChange={(e) =>
-                            updateCustomizationGroup(group.id, "type", e.target.value)
+                            updateCustomizationGroup(
+                              group.id,
+                              "type",
+                              e.target.value
+                            )
                           }
                         >
                           <option value="buttons">Buttons</option>
@@ -516,7 +561,11 @@ export default function Admin() {
                       <input
                         value={group.valuesText}
                         onChange={(e) =>
-                          updateCustomizationGroup(group.id, "valuesText", e.target.value)
+                          updateCustomizationGroup(
+                            group.id,
+                            "valuesText",
+                            e.target.value
+                          )
                         }
                         placeholder="e.g. 128GB, 256GB, 512GB"
                       />
@@ -527,7 +576,11 @@ export default function Admin() {
                         type="checkbox"
                         checked={group.required}
                         onChange={(e) =>
-                          updateCustomizationGroup(group.id, "required", e.target.checked)
+                          updateCustomizationGroup(
+                            group.id,
+                            "required",
+                            e.target.checked
+                          )
                         }
                       />
                       <span>Required selection</span>

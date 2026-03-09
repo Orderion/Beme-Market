@@ -1,3 +1,4 @@
+/* src/pages/Admin.css */
 .admin-page {
   background: var(--bg);
   color: var(--text);
@@ -81,7 +82,9 @@
   resize: vertical;
 }
 
-.admin-upload-card {
+.admin-upload-card,
+.admin-options-card,
+.admin-shop-card {
   margin-top: 2px;
   padding: 14px;
   border-radius: 16px;
@@ -89,17 +92,20 @@
   background: var(--soft);
 }
 
-.admin-upload-head {
+.admin-upload-head,
+.admin-shop-head {
   margin-bottom: 12px;
 }
 
-.admin-upload-title {
+.admin-upload-title,
+.admin-shop-title {
   margin: 0;
   font-size: 15px;
   font-weight: 700;
 }
 
-.admin-upload-sub {
+.admin-upload-sub,
+.admin-shop-sub {
   margin: 6px 0 0;
   font-size: 12px;
   opacity: 0.72;
@@ -273,14 +279,6 @@
 
 .admin-switch input:checked + .admin-switch-ui::after {
   transform: translateX(20px);
-}
-
-.admin-options-card {
-  margin-top: 4px;
-  padding: 14px;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  background: var(--soft);
 }
 
 .admin-options-head {

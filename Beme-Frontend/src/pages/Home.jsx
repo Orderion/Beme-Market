@@ -1,3 +1,4 @@
+// src/pages/Home.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, limit, query } from "firebase/firestore";
@@ -6,6 +7,7 @@ import ProductGrid from "../components/ProductGrid";
 import banner from "../assets/home-banner.png";
 import kenteBanner from "../assets/kente-banner.png";
 import perfumeBanner from "../assets/perfume-banner.png";
+import techBanner from "../assets/tech-banner.png";
 import "./Home.css";
 
 const COLLECTION_NAME = "Products";
@@ -22,6 +24,7 @@ function normalizeProduct(doc) {
     description: String(d.description || "").trim(),
     dept: String(d.dept || "").trim(),
     kind: String(d.kind || "").trim(),
+    shop: String(d.shop || "").trim(),
   };
 }
 
@@ -64,11 +67,13 @@ function buildSuggestions(products, term) {
     const description = product.description;
     const dept = product.dept;
     const kind = product.kind;
+    const shop = product.shop;
 
     const nameLc = name.toLowerCase();
     const descLc = description.toLowerCase();
     const deptLc = dept.toLowerCase();
     const kindLc = kind.toLowerCase();
+    const shopLc = shop.toLowerCase();
 
     if (nameLc.startsWith(q)) pushSuggestion(name, "product", name, 100);
     else if (nameLc.includes(q)) pushSuggestion(name, "product", name, 90);
@@ -83,6 +88,12 @@ function buildSuggestions(products, term) {
       pushSuggestion(titleize(kind), "type", titleize(kind), 65);
     } else if (kindLc.includes(q)) {
       pushSuggestion(titleize(kind), "type", titleize(kind), 55);
+    }
+
+    if (shopLc.startsWith(q)) {
+      pushSuggestion(titleize(shop), "shop", titleize(shop), 68);
+    } else if (shopLc.includes(q)) {
+      pushSuggestion(titleize(shop), "shop", titleize(shop), 58);
     }
 
     if (descLc.includes(q)) {
@@ -142,6 +153,14 @@ export default function Home() {
         title: "Luxury scents for every mood",
         cta: "View perfumes",
         action: () => navigate("/shop?q=perfume"),
+      },
+      {
+        id: "tech",
+        image: techBanner,
+        badge: "Tech Shop",
+        title: "Latest gadgets for modern living",
+        cta: "View tech",
+        action: () => navigate("/shop?q=tech"),
       },
     ],
     [navigate]
@@ -216,6 +235,7 @@ export default function Home() {
   const goToShop = () => navigate("/shop");
   const goToPerfumeShop = () => navigate("/shop?q=perfume");
   const goToKenteCollection = () => navigate("/shop?q=kente");
+  const goToTechShop = () => navigate("/shop?q=tech");
 
   const goToSearch = (value) => {
     const q = String(value || "").trim();
@@ -372,14 +392,15 @@ export default function Home() {
       </section>
 
       <section className="section">
-        <div className="kente-card">
+        <div className="shop-banner shop-banner--center">
           <img
             src={kenteBanner}
             alt="Mintah's Kente collection"
-            className="kente-image"
+            className="shop-banner-image"
           />
 
-          <div className="kente-overlay">
+          <div className="shop-banner-overlay shop-banner-overlay--center">
+            <span className="shop-banner-chip">Ghana Made</span>
             <h2>Mintah&apos;s Kente</h2>
             <button className="primary-btn" onClick={goToKenteCollection}>
               View collection
@@ -389,18 +410,36 @@ export default function Home() {
       </section>
 
       <section className="section">
-        <div className="perfume-card">
+        <div className="shop-banner shop-banner--left">
           <img
             src={perfumeBanner}
             alt="Perfume shop collection"
-            className="perfume-image"
+            className="shop-banner-image"
           />
 
-          <div className="perfume-overlay">
-            <span className="perfume-badge">Perfume Shop</span>
+          <div className="shop-banner-overlay shop-banner-overlay--left">
+            <span className="shop-banner-chip">Perfume Shop</span>
             <h2>Luxury scents for every mood</h2>
             <button className="primary-btn" onClick={goToPerfumeShop}>
               View perfumes
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="shop-banner shop-banner--left shop-banner--tech">
+          <img
+            src={techBanner}
+            alt="Tech shop collection"
+            className="shop-banner-image"
+          />
+
+          <div className="shop-banner-overlay shop-banner-overlay--left">
+            <span className="shop-banner-chip">Tech Shop</span>
+            <h2>Latest gadgets. Endless innovation.</h2>
+            <button className="primary-btn" onClick={goToTechShop}>
+              View tech
             </button>
           </div>
         </div>

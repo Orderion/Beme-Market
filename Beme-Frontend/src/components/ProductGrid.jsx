@@ -1,3 +1,4 @@
+// src/components/ProductGrid.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   collection,
@@ -22,6 +23,7 @@ function normalizeFilter(filter) {
     return {
       dept: null,
       kind: null,
+      shop: null,
       q: "",
       priceMin: null,
       priceMax: null,
@@ -35,6 +37,7 @@ function normalizeFilter(filter) {
     return {
       dept: filter.toLowerCase(),
       kind: null,
+      shop: null,
       q: "",
       priceMin: null,
       priceMax: null,
@@ -47,6 +50,7 @@ function normalizeFilter(filter) {
   return {
     dept: filter.dept ? String(filter.dept).toLowerCase() : null,
     kind: filter.kind ? String(filter.kind).toLowerCase() : null,
+    shop: filter.shop ? String(filter.shop).toLowerCase() : null,
     q: filter.q ? String(filter.q).toLowerCase().trim() : "",
     priceMin:
       filter.priceMin != null && !Number.isNaN(Number(filter.priceMin))
@@ -69,6 +73,7 @@ function normalizeDoc(doc) {
 
   const dept = d.dept ?? d.Dept ?? null;
   const kind = d.kind ?? d.Kind ?? null;
+  const shop = d.shop ?? d.Shop ?? "main";
 
   const inStock = Boolean(d.inStock ?? d.stock ?? d.in_stock ?? false);
   const featured = Boolean(d.featured ?? d.Featured ?? false);
@@ -80,6 +85,7 @@ function normalizeDoc(doc) {
     oldPrice: oldPrice != null ? Number(oldPrice) || oldPrice : null,
     dept: typeof dept === "string" ? dept.toLowerCase() : dept,
     kind: typeof kind === "string" ? kind.toLowerCase() : kind,
+    shop: typeof shop === "string" ? shop.toLowerCase() : shop,
     inStock,
     featured,
     createdAt: d.createdAt ?? null,
@@ -121,6 +127,7 @@ function matchesSearch(product, term) {
     product.description,
     product.dept,
     product.kind,
+    product.shop,
   ]
     .filter(Boolean)
     .join(" ")
@@ -148,12 +155,16 @@ export default function ProductGrid({
   const sentinelRef = useRef(null);
 
   const f = useMemo(() => normalizeFilter(filter), [filter]);
-  const sortKey = useMemo(() => (sortBy || f.sort || "new").toLowerCase(), [sortBy, f.sort]);
+  const sortKey = useMemo(
+    () => (sortBy || f.sort || "new").toLowerCase(),
+    [sortBy, f.sort]
+  );
 
   const signature = useMemo(() => {
     return JSON.stringify({
       dept: f.dept,
       kind: f.kind,
+      shop: f.shop,
       q: f.q,
       inStockOnly: f.inStockOnly,
       sortKey,
@@ -161,7 +172,17 @@ export default function ProductGrid({
       priceMax: f.priceMax,
       featuredOnly: f.featuredOnly,
     });
-  }, [f.dept, f.kind, f.q, f.inStockOnly, f.priceMin, f.priceMax, f.featuredOnly, sortKey]);
+  }, [
+    f.dept,
+    f.kind,
+    f.shop,
+    f.q,
+    f.inStockOnly,
+    f.priceMin,
+    f.priceMax,
+    f.featuredOnly,
+    sortKey,
+  ]);
 
   const baseQueryParts = useMemo(() => {
     const colRef = collection(db, COLLECTION_NAME);
@@ -169,11 +190,12 @@ export default function ProductGrid({
 
     if (f.dept) wheres.push(where("dept", "==", f.dept));
     if (f.kind) wheres.push(where("kind", "==", f.kind));
+    if (f.shop) wheres.push(where("shop", "==", f.shop));
     if (f.inStockOnly) wheres.push(where("inStock", "==", true));
 
     const ord = buildOrder(sortKey);
     return { colRef, wheres, ord };
-  }, [f.dept, f.kind, f.inStockOnly, sortKey]);
+  }, [f.dept, f.kind, f.shop, f.inStockOnly, sortKey]);
 
   useEffect(() => {
     let alive = true;
@@ -273,7 +295,13 @@ export default function ProductGrid({
     const { colRef, wheres, ord } = baseQueryParts;
 
     try {
-      const qMore = query(colRef, ...wheres, ord, startAfter(lastDoc), limit(PAGE_SIZE));
+      const qMore = query(
+        colRef,
+        ...wheres,
+        ord,
+        startAfter(lastDoc),
+        limit(PAGE_SIZE)
+      );
       const snap = await getDocs(qMore);
 
       const normalized = snap.docs.map(normalizeDoc);
@@ -291,7 +319,12 @@ export default function ProductGrid({
       setLoadingMore(false);
     } catch {
       try {
-        const qMore2 = query(colRef, ...wheres, startAfter(lastDoc), limit(PAGE_SIZE));
+        const qMore2 = query(
+          colRef,
+          ...wheres,
+          startAfter(lastDoc),
+          limit(PAGE_SIZE)
+        );
         const snap2 = await getDocs(qMore2);
         const normalized2 = snap2.docs.map(normalizeDoc);
 
@@ -325,14 +358,27 @@ export default function ProductGrid({
     io.observe(el);
     return () => io.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [infinite, sentinelRef.current, hasMore, lastDoc, loadingFirst, loadingMore, pagesLoaded, signature]);
+  }, [
+    infinite,
+    sentinelRef.current,
+    hasMore,
+    lastDoc,
+    loadingFirst,
+    loadingMore,
+    pagesLoaded,
+    signature,
+  ]);
 
   const finalList = useMemo(() => {
     let list = [...products];
 
     if (f.featuredOnly) list = list.filter((p) => !!p.featured);
-    if (f.priceMin != null) list = list.filter((p) => (Number(p.price) || 0) >= f.priceMin);
-    if (f.priceMax != null) list = list.filter((p) => (Number(p.price) || 0) <= f.priceMax);
+    if (f.priceMin != null) {
+      list = list.filter((p) => (Number(p.price) || 0) >= f.priceMin);
+    }
+    if (f.priceMax != null) {
+      list = list.filter((p) => (Number(p.price) || 0) <= f.priceMax);
+    }
     if (f.q) list = list.filter((p) => matchesSearch(p, f.q));
 
     return list;
@@ -369,7 +415,11 @@ export default function ProductGrid({
       <div className="product-grid-empty">
         <div className="product-grid-empty-title">Something went wrong</div>
         <div className="product-grid-empty-sub">{err}</div>
-        <button className="product-grid-empty-btn" type="button" onClick={() => window.location.reload()}>
+        <button
+          className="product-grid-empty-btn"
+          type="button"
+          onClick={() => window.location.reload()}
+        >
           Refresh
         </button>
       </div>
@@ -406,7 +456,11 @@ export default function ProductGrid({
         {loadingMore ? (
           <div className="product-grid-footer-muted">Loading more…</div>
         ) : hasMore ? (
-          <button className="product-grid-loadmore" type="button" onClick={loadMore}>
+          <button
+            className="product-grid-loadmore"
+            type="button"
+            onClick={loadMore}
+          >
             Load more
           </button>
         ) : (

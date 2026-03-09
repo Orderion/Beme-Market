@@ -1,3 +1,4 @@
+/* src/pages/Home.css */
 .home {
   padding: 18px 16px 12px;
   max-width: 1200px;
@@ -216,107 +217,99 @@
   text-wrap: balance;
 }
 
-/* ===== KENTE ===== */
-
-.kente-card {
-  position: relative;
-  width: 100%;
-  border-radius: 22px;
-  overflow: hidden;
-  box-shadow: var(--shadow);
-  animation: fadeUpSoft 0.62s ease;
-}
-
-.kente-image {
-  width: 100%;
-  height: 270px;
-  object-fit: cover;
-  transform: scale(1.01);
-  transition: transform 0.55s ease;
-}
-
-.kente-card:hover .kente-image {
-  transform: scale(1.05);
-}
-
-.kente-overlay {
+.hero-dots {
   position: absolute;
-  inset: 0;
+  z-index: 3;
+  right: 16px;
+  bottom: 16px;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-  gap: 12px;
-  padding: 18px;
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.48),
-    rgba(0, 0, 0, 0.14)
-  );
-  color: white;
-  text-align: center;
+  gap: 8px;
 }
 
-.kente-overlay h2 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: -0.05em;
-  max-width: 360px;
+.hero-dot {
+  width: 10px;
+  height: 10px;
+  border: 0;
+  padding: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    width 0.2s ease;
 }
 
-/* ===== PERFUME ===== */
+.hero-dot.active {
+  width: 24px;
+  background: rgba(255, 255, 255, 0.96);
+}
 
-.perfume-card {
+.hero-dot:hover {
+  transform: scale(1.08);
+}
+
+/* ===== SHOP BANNERS ===== */
+
+.shop-banner {
   position: relative;
   width: 100%;
   border-radius: 22px;
   overflow: hidden;
   box-shadow: var(--shadow);
-  animation: fadeUpSoft 0.7s ease;
+  animation: fadeUpSoft 0.68s ease;
+  border: 1px solid var(--border);
+  background: var(--card);
 }
 
-.perfume-image {
+.shop-banner-image {
   width: 100%;
   height: 270px;
   object-fit: cover;
+  display: block;
   transform: scale(1.01);
   transition: transform 0.55s ease;
 }
 
-.perfume-card:hover .perfume-image {
+.shop-banner:hover .shop-banner-image {
   transform: scale(1.05);
 }
 
-.perfume-overlay {
+.shop-banner-overlay {
   position: absolute;
   inset: 0;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 24px;
   gap: 12px;
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.58),
-    rgba(0, 0, 0, 0.18)
-  );
+  padding: 24px;
   color: #fff;
 }
 
-.perfume-overlay h2 {
-  margin: 0;
-  max-width: 360px;
-  font-family: var(--font-display);
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: -0.05em;
-  text-wrap: balance;
+.shop-banner-overlay--center {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.5),
+    rgba(0, 0, 0, 0.16)
+  );
 }
 
-.perfume-badge {
+.shop-banner-overlay--left {
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  text-align: left;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.62),
+    rgba(0, 0, 0, 0.18)
+  );
+}
+
+.shop-banner-chip {
   display: inline-flex;
   align-items: center;
   padding: 7px 13px;
@@ -326,6 +319,24 @@
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.02em;
+}
+
+.shop-banner-overlay h2 {
+  margin: 0;
+  max-width: 380px;
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  text-wrap: balance;
+}
+
+.shop-banner--tech .shop-banner-overlay--left {
+  background: linear-gradient(
+    90deg,
+    rgba(7, 15, 28, 0.76),
+    rgba(7, 15, 28, 0.22)
+  );
 }
 
 /* ===== CTA BUTTONS ===== */
@@ -414,55 +425,6 @@ body.dark .sidebar-link {
   transform: translateY(-1px);
 }
 
-/* ===== HORIZONTAL PRODUCT STRIP ===== */
-
-.product-scroll {
-  display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  padding-bottom: 6px;
-  scroll-snap-type: x proximity;
-}
-
-.product-scroll::-webkit-scrollbar {
-  height: 0;
-}
-
-.product-card {
-  min-width: 170px;
-  background: var(--card);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 22px;
-  box-shadow: var(--shadow);
-  padding: 12px;
-  cursor: pointer;
-  text-align: left;
-  scroll-snap-align: start;
-  transition:
-    transform 0.24s ease,
-    box-shadow 0.24s ease,
-    border-color 0.24s ease;
-}
-
-.product-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 30px rgba(17, 17, 17, 0.1);
-}
-
-.product-card img {
-  width: 100%;
-  border-radius: 16px;
-  display: block;
-}
-
-.product-name {
-  margin-top: 10px;
-  font-size: 14px;
-  font-weight: 700;
-  opacity: 0.92;
-}
-
 /* ===== OPTIONAL TRENDING LOOK HELPERS ===== */
 
 .home-trending-head {
@@ -503,13 +465,11 @@ body.dark .sidebar-link {
     max-width: 280px;
   }
 
-  .kente-image,
-  .perfume-image {
+  .shop-banner-image {
     height: 230px;
   }
 
-  .kente-overlay h2,
-  .perfume-overlay h2 {
+  .shop-banner-overlay h2 {
     font-size: 21px;
     max-width: 260px;
   }
@@ -536,18 +496,15 @@ body.dark .sidebar-link {
     font-size: 22px;
   }
 
-  .kente-image,
-  .perfume-image {
+  .shop-banner-image {
     height: 210px;
   }
 
-  .perfume-overlay,
-  .kente-overlay {
+  .shop-banner-overlay {
     padding: 18px;
   }
 
-  .kente-overlay h2,
-  .perfume-overlay h2 {
+  .shop-banner-overlay h2 {
     font-size: 19px;
     max-width: 220px;
   }
@@ -581,5 +538,10 @@ body.dark .sidebar-link {
   .see-all-btn {
     font-size: 12px;
     padding: 9px 12px;
+  }
+
+  .hero-dots {
+    right: 12px;
+    bottom: 12px;
   }
 }

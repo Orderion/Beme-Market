@@ -1,5 +1,4 @@
 // src/constants/catalog.js
-
 export const DEPARTMENTS = [
   { key: "men", label: "Men" },
   { key: "women", label: "Women" },
@@ -7,14 +6,19 @@ export const DEPARTMENTS = [
   { key: "accessories", label: "Accessories" },
 ];
 
-// Use "extras" instead of "accessories" to avoid name collision with dept=accessories
 export const KINDS = [
   { key: "fashion", label: "Fashion" },
   { key: "tech", label: "Tech" },
   { key: "extras", label: "Other" },
 ];
 
-// Defaults for better UX when user clicks top-level menu
+export const SHOPS = [
+  { key: "main", label: "Main Store" },
+  { key: "kente", label: "Mintah's Kente" },
+  { key: "perfume", label: "Perfume Shop" },
+  { key: "tech", label: "Tech Shop" },
+];
+
 export const DEFAULT_KIND_BY_DEPT = {
   men: "fashion",
   women: "fashion",
@@ -30,4 +34,9 @@ export function normalizeDept(raw) {
 export function normalizeKind(raw) {
   const v = String(raw || "").toLowerCase();
   return KINDS.some((k) => k.key === v) ? v : null;
+}
+
+export function normalizeShop(raw) {
+  const v = String(raw || "").toLowerCase();
+  return SHOPS.some((s) => s.key === v) ? v : null;
 }

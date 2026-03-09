@@ -1,20 +1,31 @@
+// src/pages/Shop.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductGrid from "../components/ProductGrid";
 import {
   DEPARTMENTS,
   KINDS,
+  SHOPS,
   DEFAULT_KIND_BY_DEPT,
   normalizeDept,
   normalizeKind,
+  normalizeShop,
 } from "../constants/catalog";
 import "./Shop.css";
+
+const SHOP_TITLE_MAP = {
+  main: "Main Store",
+  kente: "Mintah's Kente",
+  perfume: "Perfume Shop",
+  tech: "Tech Shop",
+};
 
 const Shop = () => {
   const [params, setParams] = useSearchParams();
 
   const deptParam = normalizeDept(params.get("dept"));
   const kindParam = normalizeKind(params.get("kind"));
+  const shopParam = normalizeShop(params.get("shop"));
   const qParam = (params.get("q") || "").trim();
 
   const sortParam = (params.get("sort") || "new").toLowerCase();
@@ -45,8 +56,6 @@ const Shop = () => {
   const title = useMemo(() => {
     if (qParam) return `Search: "${qParam}"`;
 
-    if (!deptParam && !kindParam) return "Hot sale";
-
     const deptLabel = deptParam
       ? DEPARTMENTS.find((d) => d.key === deptParam)?.label
       : null;
@@ -55,11 +64,29 @@ const Shop = () => {
       ? KINDS.find((k) => k.key === kindParam)?.label
       : null;
 
-    if (deptLabel && kindLabel) return `${deptLabel} · ${kindLabel}`;
-    return deptLabel || kindLabel || "Shop";
-  }, [deptParam, kindParam, qParam]);
+    const shopLabel = shopParam ? SHOP_TITLE_MAP[shopParam] || "Shop" : null;
 
-  const hasActiveFilters = !!deptParam || !!kindParam || !!qParam;
+    if (shopLabel && deptLabel && kindLabel) {
+      return `${shopLabel} · ${deptLabel} · ${kindLabel}`;
+    }
+
+    if (shopLabel && deptLabel) {
+      return `${shopLabel} · ${deptLabel}`;
+    }
+
+    if (shopLabel && kindLabel) {
+      return `${shopLabel} · ${kindLabel}`;
+    }
+
+    if (deptLabel && kindLabel) {
+      return `${deptLabel} · ${kindLabel}`;
+    }
+
+    return shopLabel || deptLabel || kindLabel || "Hot sale";
+  }, [deptParam, kindParam, shopParam, qParam]);
+
+  const hasActiveFilters =
+    !!deptParam || !!kindParam || !!shopParam || !!qParam;
 
   const hasActiveSort =
     sortParam !== "new" ||
@@ -102,19 +129,41 @@ const Shop = () => {
     setParams(next);
   };
 
+  const setShop = (shop) => {
+    const next = new URLSearchParams(params);
+
+    if (!shop) {
+      next.delete("shop");
+      setParams(next);
+      return;
+    }
+
+    next.set("shop", shop);
+    setParams(next);
+  };
+
   const clearFilterPanel = () => {
     const next = new URLSearchParams(params);
     next.delete("dept");
     next.delete("kind");
+    next.delete("shop");
     next.delete("q");
     setParams(next);
   };
 
   const clearAll = () => {
     const next = new URLSearchParams(params);
-    ["dept", "kind", "sort", "min", "max", "stock", "featured", "q"].forEach((k) =>
-      next.delete(k)
-    );
+    [
+      "dept",
+      "kind",
+      "shop",
+      "sort",
+      "min",
+      "max",
+      "stock",
+      "featured",
+      "q",
+    ].forEach((k) => next.delete(k));
     setParams(next);
     setFiltersOpen(false);
     setSortOpen(false);
@@ -141,11 +190,17 @@ const Shop = () => {
     const min = draft.min === "" ? null : Number(draft.min);
     const max = draft.max === "" ? null : Number(draft.max);
 
-    if (min != null && !Number.isNaN(min) && min >= 0) next.set("min", String(min));
-    else next.delete("min");
+    if (min != null && !Number.isNaN(min) && min >= 0) {
+      next.set("min", String(min));
+    } else {
+      next.delete("min");
+    }
 
-    if (max != null && !Number.isNaN(max) && max >= 0) next.set("max", String(max));
-    else next.delete("max");
+    if (max != null && !Number.isNaN(max) && max >= 0) {
+      next.set("max", String(max));
+    } else {
+      next.delete("max");
+    }
 
     if (draft.stock) next.set("stock", "1");
     else next.delete("stock");
@@ -175,6 +230,7 @@ const Shop = () => {
     return {
       dept: deptParam || null,
       kind: kindParam || null,
+      shop: shopParam || null,
       q: qParam || "",
       priceMin: minParam != null && !Number.isNaN(minParam) ? minParam : null,
       priceMax: maxParam != null && !Number.isNaN(maxParam) ? maxParam : null,
@@ -182,7 +238,17 @@ const Shop = () => {
       featuredOnly: featuredParam,
       sort: sortParam,
     };
-  }, [deptParam, kindParam, qParam, minParam, maxParam, stockParam, featuredParam, sortParam]);
+  }, [
+    deptParam,
+    kindParam,
+    shopParam,
+    qParam,
+    minParam,
+    maxParam,
+    stockParam,
+    featuredParam,
+    sortParam,
+  ]);
 
   return (
     <div className="shop-page">
@@ -201,16 +267,47 @@ const Shop = () => {
 
             <div className="shop-panel-head-actions">
               {(hasActiveFilters || hasActiveSort) && (
-                <button type="button" className="shop-panel-action" onClick={clearAll}>
+                <button
+                  type="button"
+                  className="shop-panel-action"
+                  onClick={clearAll}
+                >
                   Clear all
                 </button>
               )}
 
               {hasActiveFilters && (
-                <button type="button" className="shop-panel-action" onClick={clearFilterPanel}>
+                <button
+                  type="button"
+                  className="shop-panel-action"
+                  onClick={clearFilterPanel}
+                >
                   Clear
                 </button>
               )}
+            </div>
+          </div>
+
+          <div className="shop-panel-section">
+            <div className="shop-panel-label">Shop</div>
+            <div className="shop-chips">
+              <button
+                type="button"
+                className={!shopParam ? "chip active" : "chip"}
+                onClick={() => setShop(null)}
+              >
+                All shops
+              </button>
+              {SHOPS.map((shop) => (
+                <button
+                  key={shop.key}
+                  type="button"
+                  className={shopParam === shop.key ? "chip active" : "chip"}
+                  onClick={() => setShop(shop.key)}
+                >
+                  {shop.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -267,7 +364,11 @@ const Shop = () => {
           <div className="shop-panel-head">
             <span className="shop-panel-title">Sort & Price</span>
             {hasActiveSort && (
-              <button type="button" className="shop-panel-action" onClick={clearSortPanel}>
+              <button
+                type="button"
+                className="shop-panel-action"
+                onClick={clearSortPanel}
+              >
                 Reset
               </button>
             )}
@@ -291,7 +392,9 @@ const Shop = () => {
                   type="radio"
                   name="sort"
                   checked={draft.sort === "price-asc"}
-                  onChange={() => setDraft((p) => ({ ...p, sort: "price-asc" }))}
+                  onChange={() =>
+                    setDraft((p) => ({ ...p, sort: "price-asc" }))
+                  }
                 />
                 Price: Low to High
               </label>
@@ -301,7 +404,9 @@ const Shop = () => {
                   type="radio"
                   name="sort"
                   checked={draft.sort === "price-desc"}
-                  onChange={() => setDraft((p) => ({ ...p, sort: "price-desc" }))}
+                  onChange={() =>
+                    setDraft((p) => ({ ...p, sort: "price-desc" }))
+                  }
                 />
                 Price: High to Low
               </label>
@@ -315,14 +420,18 @@ const Shop = () => {
                 inputMode="numeric"
                 placeholder="Min"
                 value={draft.min}
-                onChange={(e) => setDraft((p) => ({ ...p, min: e.target.value }))}
+                onChange={(e) =>
+                  setDraft((p) => ({ ...p, min: e.target.value }))
+                }
               />
               <span className="shop-range-dash">—</span>
               <input
                 inputMode="numeric"
                 placeholder="Max"
                 value={draft.max}
-                onChange={(e) => setDraft((p) => ({ ...p, max: e.target.value }))}
+                onChange={(e) =>
+                  setDraft((p) => ({ ...p, max: e.target.value }))
+                }
               />
             </div>
 
@@ -330,7 +439,9 @@ const Shop = () => {
               <input
                 type="checkbox"
                 checked={draft.stock}
-                onChange={(e) => setDraft((p) => ({ ...p, stock: e.target.checked }))}
+                onChange={(e) =>
+                  setDraft((p) => ({ ...p, stock: e.target.checked }))
+                }
               />
               In stock only
             </label>
@@ -339,17 +450,27 @@ const Shop = () => {
               <input
                 type="checkbox"
                 checked={draft.featured}
-                onChange={(e) => setDraft((p) => ({ ...p, featured: e.target.checked }))}
+                onChange={(e) =>
+                  setDraft((p) => ({ ...p, featured: e.target.checked }))
+                }
               />
               Featured only
             </label>
           </div>
 
           <div className="shop-panel-actions">
-            <button type="button" className="shop-btn ghost" onClick={() => setSortOpen(false)}>
+            <button
+              type="button"
+              className="shop-btn ghost"
+              onClick={() => setSortOpen(false)}
+            >
               Cancel
             </button>
-            <button type="button" className="shop-btn solid" onClick={applySort}>
+            <button
+              type="button"
+              className="shop-btn solid"
+              onClick={applySort}
+            >
               Apply
             </button>
           </div>
@@ -367,7 +488,11 @@ const Shop = () => {
           aria-expanded={filtersOpen}
         >
           <span className="shop-control-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" className="shop-svg" xmlns="http://www.w3.org/2000/svg">
+            <svg
+              viewBox="0 0 24 24"
+              className="shop-svg"
+              xmlns="http://www.w3.org/2000/svg"
+            >
               <path
                 d="M4 7h10M18 7h2 M4 17h6M14 17h6"
                 fill="none"
@@ -398,7 +523,11 @@ const Shop = () => {
           aria-expanded={sortOpen}
         >
           <span className="shop-control-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" className="shop-svg" xmlns="http://www.w3.org/2000/svg">
+            <svg
+              viewBox="0 0 24 24"
+              className="shop-svg"
+              xmlns="http://www.w3.org/2000/svg"
+            >
               <path
                 d="M8 6v12M8 18l-3-3M8 18l3-3"
                 fill="none"
