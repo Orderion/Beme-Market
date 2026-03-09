@@ -11,6 +11,7 @@ import "./Home.css";
 const COLLECTION_NAME = "Products";
 const SEARCH_PREVIEW_LIMIT = 40;
 const SUGGESTION_LIMIT = 8;
+const HERO_SLIDE_INTERVAL = 5000;
 
 function normalizeProduct(doc) {
   const d = doc.data() || {};
@@ -106,13 +107,45 @@ function buildSuggestions(products, term) {
 
 export default function Home() {
   const navigate = useNavigate();
+
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [heroIndex, setHeroIndex] = useState(0);
 
   const searchWrapRef = useRef(null);
+
+  const heroSlides = useMemo(
+    () => [
+      {
+        id: "new-arrivals",
+        image: banner,
+        badge: "New Season",
+        title: "New Arrival 2026",
+        cta: "View products",
+        action: () => navigate("/shop"),
+      },
+      {
+        id: "kente",
+        image: kenteBanner,
+        badge: "Ghana Made",
+        title: "Mintah's Kente Collection",
+        cta: "View collection",
+        action: () => navigate("/shop?q=kente"),
+      },
+      {
+        id: "perfume",
+        image: perfumeBanner,
+        badge: "Perfume Shop",
+        title: "Luxury scents for every mood",
+        cta: "View perfumes",
+        action: () => navigate("/shop?q=perfume"),
+      },
+    ],
+    [navigate]
+  );
 
   useEffect(() => {
     let alive = true;
@@ -164,12 +197,24 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    if (heroSlides.length <= 1) return undefined;
+
+    const timer = window.setInterval(() => {
+      setHeroIndex((prev) => (prev + 1) % heroSlides.length);
+    }, HERO_SLIDE_INTERVAL);
+
+    return () => window.clearInterval(timer);
+  }, [heroSlides.length]);
+
   const suggestions = useMemo(() => {
     return buildSuggestions(products, search);
   }, [products, search]);
 
+  const currentSlide = heroSlides[heroIndex];
+
   const goToShop = () => navigate("/shop");
-  const goToPerfumeShop = () => navigate("/shop?kind=perfumes");
+  const goToPerfumeShop = () => navigate("/shop?q=perfume");
   const goToKenteCollection = () => navigate("/shop?q=kente");
 
   const goToSearch = (value) => {
@@ -218,6 +263,10 @@ export default function Home() {
       setSuggestionsOpen(false);
       setActiveIndex(-1);
     }
+  };
+
+  const goToSlide = (index) => {
+    setHeroIndex(index);
   };
 
   return (
@@ -295,17 +344,30 @@ export default function Home() {
 
       <section className="hero">
         <img
-          src={banner}
-          alt="Beme Market new arrivals banner"
+          key={currentSlide.id}
+          src={currentSlide.image}
+          alt={currentSlide.title}
           className="hero-image"
         />
 
         <div className="hero-overlay">
-          <span className="badge">Lowest price</span>
-          <h2>New Arrival 2026</h2>
-          <button className="primary-btn" onClick={goToShop}>
-            View products
+          <span className="badge">{currentSlide.badge}</span>
+          <h2>{currentSlide.title}</h2>
+          <button className="primary-btn" onClick={currentSlide.action}>
+            {currentSlide.cta}
           </button>
+        </div>
+
+        <div className="hero-dots" aria-label="Hero slides">
+          {heroSlides.map((slide, index) => (
+            <button
+              key={slide.id}
+              type="button"
+              className={`hero-dot ${index === heroIndex ? "active" : ""}`}
+              onClick={() => goToSlide(index)}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
         </div>
       </section>
 
@@ -342,6 +404,28 @@ export default function Home() {
             </button>
           </div>
         </div>
+      </section>
+
+      <section className="section">
+        <div className="section-header">
+          <div className="home-trending-head">
+            <span className="home-trending-dot" />
+            <h3>Trending now</h3>
+          </div>
+
+          <button
+            className="see-all-btn"
+            onClick={() => navigate("/shop?featured=1")}
+          >
+            See featured
+          </button>
+        </div>
+
+        <ProductGrid
+          sortBy="new"
+          filter={{ featuredOnly: true }}
+          infinite={false}
+        />
       </section>
 
       <section className="section">

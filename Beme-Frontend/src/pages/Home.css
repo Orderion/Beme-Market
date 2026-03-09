@@ -1,11 +1,13 @@
 .home {
-  padding: 18px 16px 8px;
+  padding: 18px 16px 12px;
   max-width: 1200px;
   margin: 0 auto;
   position: relative;
   color: var(--text);
   animation: fadeUpSoft 0.45s ease;
 }
+
+/* ===== SEARCH ===== */
 
 .search-wrap {
   position: relative;
@@ -46,6 +48,7 @@
   outline: none;
   color: var(--text);
   font-size: 14px;
+  font-weight: 600;
 }
 
 .search-input::placeholder {
@@ -60,11 +63,16 @@
   padding: 10px 14px;
   cursor: pointer;
   white-space: nowrap;
-  transition: transform 0.18s ease, opacity 0.18s ease;
+  font-weight: 800;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease,
+    box-shadow 0.2s ease;
 }
 
 .search-submit:hover {
   opacity: 0.92;
+  transform: translateY(-1px);
 }
 
 .search-submit:active {
@@ -128,6 +136,8 @@
   opacity: 0.7;
 }
 
+/* ===== NOTE ===== */
+
 .home-note {
   margin-bottom: 18px;
   padding: 13px 14px;
@@ -140,8 +150,10 @@
   animation: fadeUpSoft 0.55s ease;
 }
 
+/* ===== HERO ===== */
+
 .hero {
-  height: 340px;
+  height: 320px;
   border-radius: 28px;
   margin-bottom: 24px;
   position: relative;
@@ -157,14 +169,17 @@
   height: 100%;
   display: block;
   object-fit: cover;
-  animation: floatSoft 6s ease-in-out infinite;
+  transform: scale(1.02);
+  animation: homeHeroFloat 8s ease-in-out infinite;
 }
 
 .hero::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.34), rgba(0, 0, 0, 0.03));
+  background:
+    linear-gradient(to top, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.06)),
+    linear-gradient(to right, rgba(0, 0, 0, 0.16), transparent 38%);
   pointer-events: none;
 }
 
@@ -174,12 +189,39 @@
   bottom: 18px;
   z-index: 2;
   max-width: 72%;
+  animation: fadeUpSoft 0.7s ease;
 }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #111;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  opacity: 0.96;
+}
+
+.hero-overlay h2 {
+  margin: 10px 0 12px;
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+  color: #fff;
+  max-width: 420px;
+  text-wrap: balance;
+}
+
+/* ===== KENTE ===== */
 
 .kente-card {
   position: relative;
   width: 100%;
-  border-radius: 20px;
+  border-radius: 22px;
   overflow: hidden;
   box-shadow: var(--shadow);
   animation: fadeUpSoft 0.62s ease;
@@ -187,13 +229,14 @@
 
 .kente-image {
   width: 100%;
-  height: 300px;
+  height: 270px;
   object-fit: cover;
-  transition: transform 0.45s ease;
+  transform: scale(1.01);
+  transition: transform 0.55s ease;
 }
 
 .kente-card:hover .kente-image {
-  transform: scale(1.04);
+  transform: scale(1.05);
 }
 
 .kente-overlay {
@@ -203,14 +246,32 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: rgba(0, 0, 0, 0.36);
-  color: white;
   gap: 12px;
+  padding: 18px;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.48),
+    rgba(0, 0, 0, 0.14)
+  );
+  color: white;
+  text-align: center;
 }
+
+.kente-overlay h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  max-width: 360px;
+}
+
+/* ===== PERFUME ===== */
+
 .perfume-card {
   position: relative;
   width: 100%;
-  border-radius: 20px;
+  border-radius: 22px;
   overflow: hidden;
   box-shadow: var(--shadow);
   animation: fadeUpSoft 0.7s ease;
@@ -218,13 +279,14 @@
 
 .perfume-image {
   width: 100%;
-  height: 300px;
+  height: 270px;
   object-fit: cover;
-  transition: transform 0.45s ease;
+  transform: scale(1.01);
+  transition: transform 0.55s ease;
 }
 
 .perfume-card:hover .perfume-image {
-  transform: scale(1.04);
+  transform: scale(1.05);
 }
 
 .perfume-overlay {
@@ -238,7 +300,7 @@
   gap: 12px;
   background: linear-gradient(
     90deg,
-    rgba(0, 0, 0, 0.52),
+    rgba(0, 0, 0, 0.58),
     rgba(0, 0, 0, 0.18)
   );
   color: #fff;
@@ -246,11 +308,12 @@
 
 .perfume-overlay h2 {
   margin: 0;
-  max-width: 420px;
+  max-width: 360px;
   font-family: var(--font-display);
-  font-size: 32px;
+  font-size: 24px;
   line-height: 1;
   letter-spacing: -0.05em;
+  text-wrap: balance;
 }
 
 .perfume-badge {
@@ -260,72 +323,56 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.95);
   color: #111;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.02em;
 }
 
-@media (max-width: 640px) {
-  .perfume-image {
-    height: 220px;
-  }
-
-  .perfume-overlay {
-    padding: 18px;
-    align-items: flex-start;
-  }
-
-  .perfume-overlay h2 {
-    font-size: 24px;
-    max-width: 260px;
-  }
-}
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 7px 13px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.95);
-  color: #111;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  opacity: 0.95;
-}
-
-.hero-overlay h2 {
-  margin: 10px 0 12px;
-  font-family: var(--font-display);
-  font-size: 34px;
-  letter-spacing: -0.05em;
-  color: #fff;
-  animation: fadeUpSoft 0.7s ease;
-}
+/* ===== CTA BUTTONS ===== */
 
 .primary-btn {
-  padding: 14px 18px;
+  padding: 13px 18px;
   border-radius: 16px;
   background: var(--text);
   color: var(--button-text);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
   font-weight: 800;
+  font-size: 14px;
   letter-spacing: -0.02em;
   cursor: pointer;
   transition:
     transform 0.18s ease,
     opacity 0.18s ease,
-    box-shadow 0.22s ease;
+    box-shadow 0.22s ease,
+    background 0.22s ease;
 }
 
 .primary-btn:hover {
   opacity: 0.94;
   transform: translateY(-2px);
+  box-shadow: 0 18px 34px rgba(17, 17, 17, 0.12);
 }
 
 .primary-btn:active {
   transform: scale(0.98);
 }
+
+.primary-btn,
+.sidebar-link {
+  background: var(--text);
+  color: var(--button-text);
+  border: 1px solid var(--border);
+}
+
+body.dark .primary-btn,
+body.dark .sidebar-link {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+/* ===== SECTIONS ===== */
 
 .section {
   margin-top: 22px;
@@ -343,7 +390,7 @@
 .section-header h3 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.35rem;
+  font-size: 1.18rem;
   letter-spacing: -0.04em;
 }
 
@@ -356,18 +403,25 @@
   cursor: pointer;
   box-shadow: var(--shadow);
   font-weight: 800;
-  transition: transform 0.18s ease, opacity 0.18s ease;
+  font-size: 13px;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease,
+    box-shadow 0.22s ease;
 }
 
 .see-all-btn:hover {
   transform: translateY(-1px);
 }
 
+/* ===== HORIZONTAL PRODUCT STRIP ===== */
+
 .product-scroll {
   display: flex;
   gap: 16px;
   overflow-x: auto;
   padding-bottom: 6px;
+  scroll-snap-type: x proximity;
 }
 
 .product-scroll::-webkit-scrollbar {
@@ -384,6 +438,16 @@
   padding: 12px;
   cursor: pointer;
   text-align: left;
+  scroll-snap-align: start;
+  transition:
+    transform 0.24s ease,
+    box-shadow 0.24s ease,
+    border-color 0.24s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 30px rgba(17, 17, 17, 0.1);
 }
 
 .product-card img {
@@ -395,21 +459,60 @@
 .product-name {
   margin-top: 10px;
   font-size: 14px;
-  opacity: 0.9;
+  font-weight: 700;
+  opacity: 0.92;
 }
 
-.primary-btn,
-.sidebar-link {
+/* ===== OPTIONAL TRENDING LOOK HELPERS ===== */
+
+.home-trending-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.home-trending-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
   background: var(--text);
-  color: var(--button-text);
-  border: 1px solid var(--border);
+  animation: pulseSoft 1.6s infinite;
 }
 
-body.dark .primary-btn,
-body.dark .sidebar-link {
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border);
+/* ===== ANIMATIONS ===== */
+
+@keyframes homeHeroFloat {
+  0%,
+  100% {
+    transform: scale(1.02) translateY(0);
+  }
+  50% {
+    transform: scale(1.05) translateY(-6px);
+  }
+}
+
+/* ===== MOBILE ===== */
+
+@media (max-width: 768px) {
+  .hero {
+    height: 280px;
+  }
+
+  .hero-overlay h2 {
+    font-size: 24px;
+    max-width: 280px;
+  }
+
+  .kente-image,
+  .perfume-image {
+    height: 230px;
+  }
+
+  .kente-overlay h2,
+  .perfume-overlay h2 {
+    font-size: 21px;
+    max-width: 260px;
+  }
 }
 
 @media (max-width: 640px) {
@@ -418,7 +521,7 @@ body.dark .sidebar-link {
   }
 
   .hero {
-    height: 280px;
+    height: 260px;
     border-radius: 22px;
   }
 
@@ -430,11 +533,23 @@ body.dark .sidebar-link {
   }
 
   .hero-overlay h2 {
-    font-size: 26px;
+    font-size: 22px;
   }
 
-  .kente-image {
-    height: 220px;
+  .kente-image,
+  .perfume-image {
+    height: 210px;
+  }
+
+  .perfume-overlay,
+  .kente-overlay {
+    padding: 18px;
+  }
+
+  .kente-overlay h2,
+  .perfume-overlay h2 {
+    font-size: 19px;
+    max-width: 220px;
   }
 
   .section-header {
@@ -456,5 +571,15 @@ body.dark .sidebar-link {
 
   .search-suggestion-type {
     font-size: 10px;
+  }
+
+  .primary-btn {
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+
+  .see-all-btn {
+    font-size: 12px;
+    padding: 9px 12px;
   }
 }
