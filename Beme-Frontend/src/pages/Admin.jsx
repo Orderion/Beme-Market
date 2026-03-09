@@ -100,6 +100,10 @@ function normalizeAdminProduct(snapshotDoc) {
   };
 }
 
+function getFileKey(file) {
+  return `${file.name}-${file.size}-${file.lastModified}`;
+}
+
 export default function Admin() {
   const { user, reauthenticate } = useAuth();
 
@@ -167,8 +171,10 @@ export default function Admin() {
 
   useEffect(() => {
     return () => {
-      imagePreviews.forEach((url) => {
-        if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+      imagePreviews.forEach((item) => {
+        if (item?.preview?.startsWith("blob:")) {
+          URL.revokeObjectURL(item.preview);
+        }
       });
     };
   }, [imagePreviews]);
@@ -204,8 +210,10 @@ export default function Admin() {
   };
 
   const resetImageState = () => {
-    imagePreviews.forEach((url) => {
-      if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+    imagePreviews.forEach((item) => {
+      if (item?.preview?.startsWith("blob:")) {
+        URL.revokeObjectURL(item.preview);
+      }
     });
 
     setImageFiles([]);
@@ -222,15 +230,32 @@ export default function Admin() {
     try {
       validateImageFiles(files);
 
-      imagePreviews.forEach((url) => {
-        if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+      setImageFiles((prevFiles) => {
+        const existingKeys = new Set(prevFiles.map(getFileKey));
+        const uniqueNewFiles = files.filter(
+          (file) => !existingKeys.has(getFileKey(file))
+        );
+
+        if (!uniqueNewFiles.length) return prevFiles;
+
+        setImagePreviews((prevPreviews) => {
+          const nextPreviews = [...prevPreviews];
+
+          uniqueNewFiles.forEach((file) => {
+            nextPreviews.push({
+              key: getFileKey(file),
+              preview: URL.createObjectURL(file),
+            });
+          });
+
+          return nextPreviews;
+        });
+
+        setUploadedImages([]);
+        return [...prevFiles, ...uniqueNewFiles];
       });
 
-      const previews = files.map((file) => URL.createObjectURL(file));
-
-      setImageFiles(files);
-      setImagePreviews(previews);
-      setUploadedImages([]);
+      e.target.value = "";
     } catch (err) {
       console.error("Image validation error:", err);
       setMsg(`❌ ${err.message}`);
@@ -244,10 +269,11 @@ export default function Admin() {
     setImageFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
 
     setImagePreviews((prev) => {
-      const next = [...prev];
-      const removed = next[indexToRemove];
-      if (removed?.startsWith("blob:")) URL.revokeObjectURL(removed);
-      return next.filter((_, index) => index !== indexToRemove);
+      const removed = prev[indexToRemove];
+      if (removed?.preview?.startsWith("blob:")) {
+        URL.revokeObjectURL(removed.preview);
+      }
+      return prev.filter((_, index) => index !== indexToRemove);
     });
 
     setUploadedImages([]);
@@ -546,13 +572,13 @@ export default function Admin() {
                 </div>
 
                 <div className="admin-image-preview-grid">
-                  {imagePreviews.map((src, index) => (
+                  {imagePreviews.map((item, index) => (
                     <div
                       className="admin-image-preview-wrap"
-                      key={`${src}-${index}`}
+                      key={item.key || `${item.preview}-${index}`}
                     >
                       <img
-                        src={src}
+                        src={item.preview}
                         alt={`Product preview ${index + 1}`}
                         className="admin-image-preview"
                       />
