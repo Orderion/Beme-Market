@@ -1,6 +1,5 @@
-// src/pages/Checkout.jsx
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import LoaderOverlay from "../components/LoaderOverlay";
 import { useCart } from "../context/CartContext";
@@ -128,7 +127,7 @@ function formatTime(seconds) {
 export default function Checkout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { cartItems, clearCart } = useCart();
+  const { cartItems, clearCart, itemCount } = useCart();
   const { user } = useAuth();
 
   const [method, setMethod] = useState("paystack");
@@ -187,6 +186,7 @@ export default function Checkout() {
     () => normalizeGhanaPhone(form.phone),
     [form.phone]
   );
+
   const network = useMemo(
     () => detectNetwork(normalizedPhone),
     [normalizedPhone]
@@ -247,30 +247,30 @@ export default function Checkout() {
 
     if (!v.email.trim()) next.email = "Email is required.";
     else if (!isValidEmail(v.email)) {
-      next.email = "Enter a valid email (e.g., name@gmail.com).";
+      next.email = "Enter a valid email address.";
     }
 
     if (!v.firstName.trim()) next.firstName = "First name is required.";
     else if (!isValidName(v.firstName)) {
-      next.firstName = "Use letters only (spaces/hyphen allowed).";
+      next.firstName = "Use letters only.";
     }
 
     if (!v.lastName.trim()) next.lastName = "Last name is required.";
     else if (!isValidName(v.lastName)) {
-      next.lastName = "Use letters only (spaces/hyphen allowed).";
+      next.lastName = "Use letters only.";
     }
 
     if (!v.address.trim()) {
-      next.address = "Address is required (House No., Street, Landmark).";
+      next.address = "Address is required.";
     } else if (!isValidGhanaAddress(v.address)) {
-      next.address = "Use a valid address (e.g., Hse 12, Ring Rd, near ...).";
+      next.address = "Enter a valid address.";
     }
 
     if (!v.region) next.region = "Select a region.";
     if (!v.city) next.city = "Select a city.";
 
     if (!v.area.trim()) {
-      next.area = "Area/Locality is required (e.g., East Legon, Adum).";
+      next.area = "Area / locality is required.";
     } else if (v.area.trim().length < 2) {
       next.area = "Area is too short.";
     }
@@ -340,7 +340,7 @@ export default function Checkout() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const buildOrderPayload = () => {
+  const buildOrderPayload = (paymentMethod) => {
     return {
       userId: user.uid,
       customer: {
@@ -371,9 +371,9 @@ export default function Checkout() {
         total: totalUI,
         currency: "GHS",
       },
-      paymentMethod: method === "cod" ? "cod" : "paystack",
+      paymentMethod,
       paymentStatus: "pending",
-      status: method === "cod" ? "pending" : "pending_payment",
+      status: paymentMethod === "cod" ? "pending" : "pending_payment",
       source: "web",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -381,6 +381,8 @@ export default function Checkout() {
   };
 
   const placeCOD = async () => {
+    if (loading || sessionExpired) return;
+
     const err = validateRequired();
     if (err) return;
 
@@ -388,11 +390,10 @@ export default function Checkout() {
     setLoading(true);
 
     try {
-      const payload = buildOrderPayload();
+      const payload = buildOrderPayload("cod");
       await addDoc(collection(db, "orders"), payload);
-
       clearCart();
-      navigate("/order-success");
+      navigate("/order-success", { replace: true });
     } catch (e) {
       console.error("COD order failed:", e);
       alert(
@@ -406,6 +407,8 @@ export default function Checkout() {
   };
 
   const payWithPaystack = async () => {
+    if (loading || sessionExpired) return;
+
     const err = validateRequired();
     if (err) return;
 
@@ -413,7 +416,7 @@ export default function Checkout() {
     setLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 650));
+      await new Promise((resolve) => setTimeout(resolve, 450));
 
       await startPaystackCheckout({
         email: form.email.trim(),
@@ -494,238 +497,280 @@ export default function Checkout() {
 
         <h1 className="checkout-title">Checkout</h1>
 
-        <div className="checkout-grid">
-          <div className="checkout-form">
-            {!!errors.auth && (
-              <div className="field-error" style={{ marginBottom: 14 }}>
-                {errors.auth}
-              </div>
-            )}
-
-            {!!errors.cart && (
-              <div className="field-error" style={{ marginBottom: 14 }}>
-                {errors.cart}
-              </div>
-            )}
-
-            <h3>Contact</h3>
-            <input
-              placeholder="Email"
-              value={form.email}
-              onBlur={markTouched("email")}
-              onChange={setField("email")}
-              disabled={inputsDisabled}
-            />
-            {showError("email") ? (
-              <div className="field-error">{errors.email}</div>
-            ) : null}
-
-            <h3>Shipping address</h3>
-
-            <select value="Ghana" disabled>
-              <option>Ghana</option>
-            </select>
-
-            <div className="row-2">
-              <div>
-                <input
-                  placeholder="First name"
-                  value={form.firstName}
-                  onBlur={markTouched("firstName")}
-                  onChange={setField("firstName")}
-                  disabled={inputsDisabled}
-                />
-                {showError("firstName") ? (
-                  <div className="field-error">{errors.firstName}</div>
-                ) : null}
-              </div>
-
-              <div>
-                <input
-                  placeholder="Last name"
-                  value={form.lastName}
-                  onBlur={markTouched("lastName")}
-                  onChange={setField("lastName")}
-                  disabled={inputsDisabled}
-                />
-                {showError("lastName") ? (
-                  <div className="field-error">{errors.lastName}</div>
-                ) : null}
+        {!cartItems.length ? (
+          <div className="checkout-empty">
+            <div className="checkout-empty-card">
+              <h2>Your cart is empty</h2>
+              <p>
+                Add products to your cart before proceeding to checkout.
+              </p>
+              <div className="checkout-empty-actions">
+                <Link to="/shop" className="checkout-link-btn">
+                  Go to shop
+                </Link>
+                <Link to="/" className="checkout-link-btn checkout-link-btn--ghost">
+                  Back home
+                </Link>
               </div>
             </div>
-
-            <input
-              placeholder="Address (House No., Street, Landmark)"
-              value={form.address}
-              onBlur={markTouched("address")}
-              onChange={setField("address")}
-              disabled={inputsDisabled}
-            />
-            {showError("address") ? (
-              <div className="field-error">{errors.address}</div>
-            ) : null}
-
-            <div className="row-2">
-              <div>
-                <select
-                  value={form.region}
-                  onBlur={markTouched("region")}
-                  onChange={setField("region")}
-                  disabled={inputsDisabled}
-                >
-                  <option value="">Select region</option>
-                  {GH_REGIONS.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-                {showError("region") ? (
-                  <div className="field-error">{errors.region}</div>
-                ) : null}
-              </div>
-
-              <div>
-                <select
-                  value={form.city}
-                  onBlur={markTouched("city")}
-                  onChange={setField("city")}
-                  disabled={inputsDisabled || !form.region}
-                >
-                  <option value="">
-                    {form.region ? "Select city" : "Select region first"}
-                  </option>
-                  {citiesForRegion.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-                {showError("city") ? (
-                  <div className="field-error">{errors.city}</div>
-                ) : null}
-              </div>
-            </div>
-
-            <input
-              placeholder="Area / Locality (e.g., East Legon)"
-              value={form.area}
-              onBlur={markTouched("area")}
-              onChange={setField("area")}
-              disabled={inputsDisabled}
-            />
-            {showError("area") ? (
-              <div className="field-error">{errors.area}</div>
-            ) : null}
-
-            <input
-              placeholder="Phone (0XXXXXXXXX or +233XXXXXXXXX)"
-              value={form.phone}
-              onBlur={markTouched("phone")}
-              onChange={setField("phone")}
-              disabled={inputsDisabled}
-            />
-            {showError("phone") ? (
-              <div className="field-error">{errors.phone}</div>
-            ) : null}
-
-            {normalizedPhone && network ? (
-              <div className="field-hint">
-                Network detected: <b>{network}</b> ({normalizedPhone})
-              </div>
-            ) : null}
-
-            <h3>Payment method</h3>
-
-            <div className="payment-options">
-              <button
-                type="button"
-                className={method === "paystack" ? "chip active" : "chip"}
-                onClick={() => setMethod("paystack")}
-                disabled={inputsDisabled}
-              >
-                Paystack
-              </button>
-
-              <button
-                type="button"
-                className={method === "cod" ? "chip active" : "chip"}
-                onClick={() => setMethod("cod")}
-                disabled={inputsDisabled}
-              >
-                Pay on Delivery
-              </button>
-            </div>
-
-            {method === "cod" ? (
-              <button
-                className="primary-btn"
-                onClick={placeCOD}
-                disabled={inputsDisabled || !!errors.cart || !user}
-              >
-                Place Order
-              </button>
-            ) : (
-              <button
-                className="primary-btn"
-                onClick={payWithPaystack}
-                disabled={inputsDisabled || !!errors.cart || !user}
-              >
-                Pay with Paystack
-              </button>
-            )}
           </div>
-
-          <div className="checkout-summary">
-            <h3>Order Summary</h3>
-
-            {cartItems.map((item, index) => (
-              <div
-                key={item.lineId || `${item.id}-${index}`}
-                className="summary-item"
-              >
-                <div>
-                  <p>{item.name}</p>
-                  {item.selectedOptionsLabel ? (
-                    <small style={{ display: "block", opacity: 0.7, marginTop: 4 }}>
-                      {item.selectedOptionsLabel}
-                    </small>
-                  ) : null}
-                  <small>x{item.qty}</small>
+        ) : (
+          <div className="checkout-grid">
+            <div className="checkout-form">
+              {!!errors.auth && (
+                <div className="field-error" style={{ marginBottom: 14 }}>
+                  {errors.auth}
                 </div>
-                <p>GHS {(Number(item.price) * Number(item.qty)).toFixed(2)}</p>
+              )}
+
+              <h3>Contact</h3>
+              <input
+                placeholder="Email"
+                value={form.email}
+                onBlur={markTouched("email")}
+                onChange={setField("email")}
+                disabled={inputsDisabled}
+              />
+              {showError("email") ? (
+                <div className="field-error">{errors.email}</div>
+              ) : null}
+
+              <h3>Shipping address</h3>
+
+              <select value="Ghana" disabled>
+                <option>Ghana</option>
+              </select>
+
+              <div className="row-2">
+                <div>
+                  <input
+                    placeholder="First name"
+                    value={form.firstName}
+                    onBlur={markTouched("firstName")}
+                    onChange={setField("firstName")}
+                    disabled={inputsDisabled}
+                  />
+                  {showError("firstName") ? (
+                    <div className="field-error">{errors.firstName}</div>
+                  ) : null}
+                </div>
+
+                <div>
+                  <input
+                    placeholder="Last name"
+                    value={form.lastName}
+                    onBlur={markTouched("lastName")}
+                    onChange={setField("lastName")}
+                    disabled={inputsDisabled}
+                  />
+                  {showError("lastName") ? (
+                    <div className="field-error">{errors.lastName}</div>
+                  ) : null}
+                </div>
               </div>
-            ))}
 
-            <div className="summary-line">
-              <span>Subtotal</span>
-              <span>GHS {subtotalUI.toFixed(2)}</span>
+              <input
+                placeholder="Address (House No., Street, Landmark)"
+                value={form.address}
+                onBlur={markTouched("address")}
+                onChange={setField("address")}
+                disabled={inputsDisabled}
+              />
+              {showError("address") ? (
+                <div className="field-error">{errors.address}</div>
+              ) : null}
+
+              <div className="row-2">
+                <div>
+                  <select
+                    value={form.region}
+                    onBlur={markTouched("region")}
+                    onChange={setField("region")}
+                    disabled={inputsDisabled}
+                  >
+                    <option value="">Select region</option>
+                    {GH_REGIONS.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                  {showError("region") ? (
+                    <div className="field-error">{errors.region}</div>
+                  ) : null}
+                </div>
+
+                <div>
+                  <select
+                    value={form.city}
+                    onBlur={markTouched("city")}
+                    onChange={setField("city")}
+                    disabled={inputsDisabled || !form.region}
+                  >
+                    <option value="">
+                      {form.region ? "Select city" : "Select region first"}
+                    </option>
+                    {citiesForRegion.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                  {showError("city") ? (
+                    <div className="field-error">{errors.city}</div>
+                  ) : null}
+                </div>
+              </div>
+
+              <input
+                placeholder="Area / Locality (e.g., East Legon)"
+                value={form.area}
+                onBlur={markTouched("area")}
+                onChange={setField("area")}
+                disabled={inputsDisabled}
+              />
+              {showError("area") ? (
+                <div className="field-error">{errors.area}</div>
+              ) : null}
+
+              <input
+                placeholder="Phone (0XXXXXXXXX or +233XXXXXXXXX)"
+                value={form.phone}
+                onBlur={markTouched("phone")}
+                onChange={setField("phone")}
+                disabled={inputsDisabled}
+              />
+              {showError("phone") ? (
+                <div className="field-error">{errors.phone}</div>
+              ) : null}
+
+              {normalizedPhone && network ? (
+                <div className="field-hint">
+                  Network detected: <b>{network}</b> ({normalizedPhone})
+                </div>
+              ) : null}
+
+              <textarea
+                placeholder="Delivery notes (optional)"
+                value={form.notes}
+                onChange={setField("notes")}
+                disabled={inputsDisabled}
+              />
+
+              <h3>Payment method</h3>
+
+              <div className="payment-options">
+                <button
+                  type="button"
+                  className={method === "paystack" ? "chip active" : "chip"}
+                  onClick={() => setMethod("paystack")}
+                  disabled={inputsDisabled}
+                >
+                  Paystack
+                </button>
+
+                <button
+                  type="button"
+                  className={method === "cod" ? "chip active" : "chip"}
+                  onClick={() => setMethod("cod")}
+                  disabled={inputsDisabled}
+                >
+                  Pay on Delivery
+                </button>
+              </div>
+
+              <div className="checkout-actions">
+                <button
+                  className={`primary-btn ${
+                    method === "paystack" ? "" : "primary-btn--secondary"
+                  }`}
+                  onClick={payWithPaystack}
+                  disabled={inputsDisabled || !!errors.cart || !user}
+                  type="button"
+                >
+                  Pay with Paystack
+                </button>
+
+                <button
+                  className={`primary-btn ${
+                    method === "cod" ? "" : "primary-btn--secondary"
+                  }`}
+                  onClick={placeCOD}
+                  disabled={inputsDisabled || !!errors.cart || !user}
+                  type="button"
+                >
+                  Place Order
+                </button>
+              </div>
             </div>
 
-            <div className="summary-line">
-              <span>
-                Delivery
-                {form.region ? (
-                  <small style={{ display: "block", opacity: 0.7 }}>
-                    {FREE_DELIVERY_REGIONS.has(form.region)
-                      ? "Greater Accra delivery"
-                      : "Eastern Region delivery (+50)"}
-                  </small>
-                ) : (
-                  <small style={{ display: "block", opacity: 0.7 }}>
-                    Select region to calculate
-                  </small>
-                )}
-              </span>
-              <span>GHS {deliveryFeeUI.toFixed(2)}</span>
-            </div>
+            <div className="checkout-summary">
+              <div className="checkout-summary-head">
+                <h3>Order Summary</h3>
+                <span className="checkout-summary-count">
+                  {itemCount} item{itemCount > 1 ? "s" : ""}
+                </span>
+              </div>
 
-            <div className="summary-total">
-              <span>Total</span>
-              <strong>GHS {totalUI.toFixed(2)}</strong>
+              {cartItems.map((item, index) => (
+                <div
+                  key={item.lineId || `${item.id}-${index}`}
+                  className="summary-item"
+                >
+                  <div className="summary-item-left">
+                    <div className="summary-item-thumb">
+                      {item.image ? (
+                        <img src={item.image} alt={item.name || "Product"} />
+                      ) : (
+                        <div className="summary-item-thumb--empty">No image</div>
+                      )}
+                    </div>
+
+                    <div>
+                      <p>{item.name}</p>
+                      {item.selectedOptionsLabel ? (
+                        <small className="summary-item-options">
+                          {item.selectedOptionsLabel}
+                        </small>
+                      ) : null}
+                      <small>x{item.qty}</small>
+                    </div>
+                  </div>
+
+                  <p>GHS {(Number(item.price) * Number(item.qty)).toFixed(2)}</p>
+                </div>
+              ))}
+
+              <div className="summary-line">
+                <span>Subtotal</span>
+                <span>GHS {subtotalUI.toFixed(2)}</span>
+              </div>
+
+              <div className="summary-line">
+                <span>
+                  Delivery
+                  {form.region ? (
+                    <small className="summary-line-sub">
+                      {FREE_DELIVERY_REGIONS.has(form.region)
+                        ? "Greater Accra delivery"
+                        : "Eastern Region delivery (+50)"}
+                    </small>
+                  ) : (
+                    <small className="summary-line-sub">
+                      Select region to calculate
+                    </small>
+                  )}
+                </span>
+                <span>GHS {deliveryFeeUI.toFixed(2)}</span>
+              </div>
+
+              <div className="summary-total">
+                <span>Total</span>
+                <strong>GHS {totalUI.toFixed(2)}</strong>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -1,28 +1,104 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 const CartContext = createContext(null);
+const CART_STORAGE_KEY = "beme_market_cart";
 
 function normalizeSelectedOptions(selectedOptions) {
   if (!selectedOptions || typeof selectedOptions !== "object") return {};
+
   return Object.keys(selectedOptions)
     .sort()
     .reduce((acc, key) => {
-      acc[key] = selectedOptions[key];
+      const value = selectedOptions[key];
+      acc[key] = typeof value === "string" ? value.trim() : value;
       return acc;
     }, {});
 }
 
 function makeLineId(product) {
-  const baseId = product.id || "";
-  const selectedOptions = normalizeSelectedOptions(product.selectedOptions);
+  const baseId = String(product?.id || "").trim();
+  const selectedOptions = normalizeSelectedOptions(product?.selectedOptions);
   return `${baseId}__${JSON.stringify(selectedOptions)}`;
 }
 
+function normalizeCartItem(product) {
+  const safeSelectedOptions = normalizeSelectedOptions(product?.selectedOptions);
+
+  const images = Array.isArray(product?.images)
+    ? product.images.map((img) => String(img || "").trim()).filter(Boolean)
+    : [];
+
+  const image = String(product?.image || images[0] || "").trim();
+
+  const qty = Math.max(1, Number(product?.qty) || 1);
+  const price = Number(product?.price) || 0;
+
+  const normalized = {
+    id: String(product?.id || "").trim(),
+    lineId: String(product?.lineId || makeLineId(product)).trim(),
+    name: String(product?.name || "Untitled").trim(),
+    price,
+    image,
+    images: images.length ? images : image ? [image] : [],
+    qty,
+    selectedOptions: safeSelectedOptions,
+    selectedOptionsLabel: String(product?.selectedOptionsLabel || "").trim(),
+    customizations: Array.isArray(product?.customizations)
+      ? product.customizations
+      : [],
+  };
+
+  if (!normalized.selectedOptionsLabel) {
+    normalized.selectedOptionsLabel = Object.entries(safeSelectedOptions)
+      .filter(([, value]) => value)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(" • ");
+  }
+
+  return normalized;
+}
+
+function safeReadStoredCart() {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const raw = window.localStorage.getItem(CART_STORAGE_KEY);
+    if (!raw) return [];
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .map((item) => normalizeCartItem(item))
+      .filter((item) => item.id && item.lineId);
+  } catch (error) {
+    console.error("Failed to read cart from localStorage:", error);
+    return [];
+  }
+}
+
 export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState([]);
+  const [cartItems, setCartItems] = useState(() => safeReadStoredCart());
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+    } catch (error) {
+      console.error("Failed to save cart to localStorage:", error);
+    }
+  }, [cartItems]);
 
   const addToCart = (product) => {
-    const lineId = makeLineId(product);
+    const nextItem = normalizeCartItem(product);
+    const lineId = nextItem.lineId;
 
     setCartItems((prev) => {
       const existing = prev.find((item) => item.lineId === lineId);
@@ -30,21 +106,18 @@ export const CartProvider = ({ children }) => {
       if (existing) {
         return prev.map((item) =>
           item.lineId === lineId
-            ? { ...item, qty: Number(item.qty || 1) + Number(product.qty || 1) }
+            ? {
+                ...item,
+                qty: Math.max(
+                  1,
+                  Number(item.qty || 1) + Number(nextItem.qty || 1)
+                ),
+              }
             : item
         );
       }
 
-      return [
-        ...prev,
-        {
-          ...product,
-          lineId,
-          qty: Number(product.qty || 1),
-          selectedOptions: normalizeSelectedOptions(product.selectedOptions),
-          selectedOptionsLabel: product.selectedOptionsLabel || "",
-        },
-      ];
+      return [...prev, nextItem];
     });
   };
 
@@ -62,7 +135,13 @@ export const CartProvider = ({ children }) => {
     );
   };
 
-  const clearCart = () => setCartItems([]);
+  const clearCart = () => {
+    setCartItems([]);
+  };
+
+  const itemCount = useMemo(() => {
+    return cartItems.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+  }, [cartItems]);
 
   const subtotal = useMemo(() => {
     return cartItems.reduce((sum, item) => {
@@ -79,6 +158,7 @@ export const CartProvider = ({ children }) => {
     updateQty,
     clearCart,
     subtotal,
+    itemCount,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

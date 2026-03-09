@@ -72,6 +72,7 @@ body.dark .p-card:hover {
     transform 0.2s ease,
     background 0.2s ease,
     box-shadow 0.2s ease;
+  z-index: 3;
 }
 
 .p-cart-btn:hover {
@@ -89,40 +90,6 @@ body.dark .p-card:hover {
   color: var(--text);
 }
 
-.p-body {
-  padding: 16px 16px 18px;
-}
-
-.p-name {
-  margin: 0 0 8px;
-  font-weight: 800;
-  font-size: 0.98rem;
-  letter-spacing: -0.03em;
-}
-
-.p-prices {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-}
-
-.p-price {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1rem;
-  letter-spacing: -0.04em;
-}
-
-.p-old {
-  opacity: 0.56;
-  text-decoration: line-through;
-  font-weight: 700;
-}
-
-.p-missing {
-  opacity: 0.6;
-  font-size: 13px;
-}
 .p-gallery-badge {
   position: absolute;
   left: 12px;
@@ -146,4 +113,41 @@ body.dark .p-card:hover {
   height: 8px;
   border-radius: 999px;
   background: #fff;
+}
+
+.p-body {
+  padding: 16px 16px 18px;
+}
+
+.p-name {
+  margin: 0 0 8px;
+  font-weight: 800;
+  font-size: 0.98rem;
+  letter-spacing: -0.03em;
+  line-height: 1.35;
+}
+
+.p-prices {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.p-price {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: -0.04em;
+}
+
+.p-old {
+  opacity: 0.56;
+  text-decoration: line-through;
+  font-weight: 700;
+}
+
+.p-missing {
+  opacity: 0.6;
+  font-size: 13px;
 }

@@ -5,12 +5,8 @@ import "./CartDrawer.css";
 
 export default function CartDrawer({ isOpen, onClose }) {
   const navigate = useNavigate();
-  const { cartItems, removeFromCart, updateQty } = useCart();
-
-  const total = cartItems.reduce(
-    (sum, item) => sum + Number(item.price) * Number(item.qty),
-    0
-  );
+  const { cartItems, removeFromCart, updateQty, subtotal, itemCount } =
+    useCart();
 
   const goCheckout = () => {
     onClose?.();
@@ -23,7 +19,13 @@ export default function CartDrawer({ isOpen, onClose }) {
 
       <aside className="cd-panel" role="dialog" aria-modal="true">
         <div className="cd-header">
-          <h3 className="cd-title">CART</h3>
+          <div>
+            <h3 className="cd-title">CART</h3>
+            <p className="cd-subtitle">
+              {itemCount} item{itemCount !== 1 ? "s" : ""}
+            </p>
+          </div>
+
           <button className="cd-close" onClick={onClose} aria-label="Close cart">
             ×
           </button>
@@ -33,7 +35,10 @@ export default function CartDrawer({ isOpen, onClose }) {
           {cartItems.length === 0 ? (
             <div className="cd-empty">
               <p>Your cart is empty.</p>
-              <button className="cd-ghost" onClick={onClose}>
+              <span className="cd-empty-sub">
+                Add something you love and come back here to checkout.
+              </span>
+              <button className="cd-ghost" onClick={onClose} type="button">
                 Continue shopping
               </button>
             </div>
@@ -57,13 +62,17 @@ export default function CartDrawer({ isOpen, onClose }) {
                   <div className="cd-item-info">
                     <p className="cd-item-name">{name}</p>
 
-                    {item.selectedOptionsLabel ? (
-                      <p
-                        className="cd-item-price"
-                        style={{ opacity: 0.72, marginTop: 4, marginBottom: 6, fontSize: 12 }}
-                      >
-                        {item.selectedOptionsLabel}
-                      </p>
+                    {item.selectedOptions &&
+                    Object.keys(item.selectedOptions).length ? (
+                      <div className="cd-item-options">
+                        {Object.entries(item.selectedOptions).map(([key, value]) =>
+                          value ? (
+                            <span className="cd-option-pill" key={`${key}-${value}`}>
+                              {key}: {value}
+                            </span>
+                          ) : null
+                        )}
+                      </div>
                     ) : null}
 
                     <p className="cd-item-price">GHS {price.toFixed(2)}</p>
@@ -95,7 +104,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                         onClick={() => removeFromCart(item.lineId || item.id)}
                         aria-label="Remove item"
                       >
-                        🗑
+                        Remove
                       </button>
                     </div>
                   </div>
@@ -106,15 +115,18 @@ export default function CartDrawer({ isOpen, onClose }) {
         </div>
 
         <div className="cd-footer">
+          <div className="cd-note">Shipping fee is calculated at checkout.</div>
+
           <div className="cd-total">
             <span>Total</span>
-            <strong>GHS {total.toFixed(2)}</strong>
+            <strong>GHS {subtotal.toFixed(2)}</strong>
           </div>
 
           <button
             className="cd-checkout"
             onClick={goCheckout}
             disabled={cartItems.length === 0}
+            type="button"
           >
             Checkout
           </button>
