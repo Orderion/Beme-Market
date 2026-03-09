@@ -14,12 +14,16 @@
   inset: 0;
   background: var(--overlay);
   opacity: 0;
-  backdrop-filter: blur(2px);
-  transition: opacity 0.26s ease;
+  backdrop-filter: blur(1px);
+  transition:
+    opacity var(--drawer-motion),
+    backdrop-filter var(--drawer-motion),
+    background var(--motion-slow);
 }
 
 .cd--open .cd-overlay {
   opacity: 1;
+  backdrop-filter: blur(3px);
 }
 
 .cd-panel {
@@ -30,16 +34,25 @@
   width: min(420px, 92vw);
   background: var(--card);
   color: var(--text);
-  transform: translateX(100%);
-  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translateX(104%);
+  opacity: 0.98;
+  transition:
+    transform var(--drawer-motion),
+    opacity var(--drawer-motion),
+    background var(--motion-slow),
+    color var(--motion-slow),
+    border-color var(--motion-slow),
+    box-shadow var(--motion-slow);
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--border);
   box-shadow: -16px 0 40px rgba(0, 0, 0, 0.08);
+  will-change: transform;
 }
 
 .cd--open .cd-panel {
   transform: translateX(0);
+  opacity: 1;
 }
 
 .cd-header {
@@ -70,7 +83,10 @@
   cursor: pointer;
   line-height: 1;
   color: var(--text);
-  transition: transform 0.2s ease;
+  transition:
+    transform var(--motion-fast),
+    opacity var(--motion-fast),
+    color var(--motion-smooth);
 }
 
 .cd-close:hover {
@@ -81,6 +97,7 @@
   padding: 16px 18px;
   overflow: auto;
   flex: 1;
+  scroll-behavior: smooth;
 }
 
 .cd-empty {
@@ -105,11 +122,17 @@
   padding: 12px 14px;
   border-radius: 14px;
   cursor: pointer;
-  transition: transform 0.18s ease, opacity 0.18s ease;
+  transition:
+    transform var(--motion-fast),
+    opacity var(--motion-fast),
+    background var(--motion-smooth),
+    border-color var(--motion-smooth),
+    color var(--motion-smooth);
 }
 
 .cd-ghost:hover {
   opacity: 0.88;
+  transform: translateY(-1px);
 }
 
 .cd-item {
@@ -137,6 +160,11 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform var(--motion-smooth);
+}
+
+.cd-item:hover .cd-item-img img {
+  transform: scale(1.04);
 }
 
 .cd-img-placeholder {
@@ -179,6 +207,10 @@
   border: 1px solid var(--border);
   color: var(--text);
   opacity: 0.85;
+  transition:
+    background var(--motion-smooth),
+    border-color var(--motion-smooth),
+    color var(--motion-smooth);
 }
 
 .cd-item-actions {
@@ -196,6 +228,9 @@
   border-radius: 14px;
   overflow: hidden;
   background: var(--card);
+  transition:
+    background var(--motion-smooth),
+    border-color var(--motion-smooth);
 }
 
 .cd-qty button {
@@ -206,11 +241,18 @@
   cursor: pointer;
   font-size: 18px;
   color: var(--text);
-  transition: background 0.2s ease;
+  transition:
+    background var(--motion-fast),
+    color var(--motion-smooth),
+    transform var(--motion-fast);
 }
 
 .cd-qty button:hover {
   background: var(--soft);
+}
+
+.cd-qty button:active {
+  transform: scale(0.96);
 }
 
 .cd-qty span {
@@ -227,7 +269,12 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--text);
-  transition: transform 0.18s ease, opacity 0.18s ease;
+  transition:
+    transform var(--motion-fast),
+    opacity var(--motion-fast),
+    background var(--motion-smooth),
+    border-color var(--motion-smooth),
+    color var(--motion-smooth);
   border-radius: 999px;
   min-height: 34px;
   padding: 0 12px;
@@ -236,12 +283,16 @@
 .cd-remove:hover {
   opacity: 1;
   transform: scale(1.03);
+  background: var(--soft);
 }
 
 .cd-footer {
   border-top: 1px solid var(--border);
   padding: 16px 18px 18px;
   background: var(--card);
+  transition:
+    background var(--motion-slow),
+    border-color var(--motion-slow);
 }
 
 .cd-note {
@@ -273,14 +324,17 @@
   font-weight: 800;
   cursor: pointer;
   transition:
-    transform 0.18s ease,
-    opacity 0.18s ease,
-    box-shadow 0.2s ease;
+    transform var(--motion-fast),
+    opacity var(--motion-fast),
+    box-shadow var(--motion-smooth),
+    background var(--motion-smooth),
+    color var(--motion-smooth);
 }
 
 .cd-checkout:hover {
   opacity: 0.92;
   box-shadow: 0 12px 26px rgba(17, 17, 17, 0.12);
+  transform: translateY(-1px);
 }
 
 .cd-checkout:active {

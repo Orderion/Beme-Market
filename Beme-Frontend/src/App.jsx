@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Routes, Route } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
 
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
@@ -37,76 +37,87 @@ import TermsOfService from "./pages/TermsOfService";
 import RefundPolicy from "./pages/RefundPolicy";
 import CookiePolicy from "./pages/CookiePolicy";
 
-export default function App() {
+function AppShell() {
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
 
+  useEffect(() => {
+    setSidebarOpen(false);
+    setCartOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [location.pathname]);
+
+  return (
+    <>
+      <Header
+        onMenu={() => setSidebarOpen(true)}
+        onCart={() => setCartOpen(true)}
+      />
+
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+
+      <main key={location.pathname} className="route-shell">
+        <Routes location={location}>
+          <Route path="/" element={<Home />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/product/:id" element={<ProductDetails />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/order-success" element={<OrderSuccess />} />
+          <Route path="/orders" element={<Orders />} />
+
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/admin-login" element={<AdminLogin />} />
+
+          <Route path="/about" element={<About />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/shipping&returns" element={<ShippingReturns />} />
+
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
+          <Route path="/cookie-policy" element={<CookiePolicy />} />
+
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <RequireAdmin>
+                  <Admin />
+                </RequireAdmin>
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/admin-orders"
+            element={
+              <AdminRoute>
+                <RequireAdmin>
+                  <AdminOrders />
+                </RequireAdmin>
+              </AdminRoute>
+            }
+          />
+        </Routes>
+      </main>
+
+      <Footer />
+    </>
+  );
+}
+
+export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <CartProvider>
-          <Header
-            onMenu={() => setSidebarOpen(true)}
-            onCart={() => setCartOpen(true)}
-          />
-
-          <Sidebar
-            isOpen={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
-          />
-
-          <CartDrawer
-            isOpen={cartOpen}
-            onClose={() => setCartOpen(false)}
-          />
-
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/shop" element={<Shop />} />
-            <Route path="/product/:id" element={<ProductDetails />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/order-success" element={<OrderSuccess />} />
-            <Route path="/orders" element={<Orders />} />
-
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/admin-login" element={<AdminLogin />} />
-
-            <Route path="/about" element={<About />} />
-            <Route path="/support" element={<Support />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/faq" element={<FAQ />} />
-            <Route path="/shipping&returns" element={<ShippingReturns />} />
-
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/terms-of-service" element={<TermsOfService />} />
-            <Route path="/refund-policy" element={<RefundPolicy />} />
-            <Route path="/cookie-policy" element={<CookiePolicy />} />
-
-            <Route
-              path="/admin"
-              element={
-                <AdminRoute>
-                  <RequireAdmin>
-                    <Admin />
-                  </RequireAdmin>
-                </AdminRoute>
-              }
-            />
-
-            <Route
-              path="/admin-orders"
-              element={
-                <AdminRoute>
-                  <RequireAdmin>
-                    <AdminOrders />
-                  </RequireAdmin>
-                </AdminRoute>
-              }
-            />
-          </Routes>
-
-          <Footer />
+          <AppShell />
         </CartProvider>
       </AuthProvider>
     </ThemeProvider>

@@ -78,9 +78,12 @@ export default function ProductDetails() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [addedFeedback, setAddedFeedback] = useState(false);
 
-  const touchStartXRef = useRef(0);
-  const touchEndXRef = useRef(0);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
   const feedbackTimerRef = useRef(null);
+  const touchStartXRef = useRef(0);
+  const dragStartedRef = useRef(false);
 
   useEffect(() => {
     const run = async () => {
@@ -120,7 +123,6 @@ export default function ProductDetails() {
   );
 
   const images = useMemo(() => normalizeImages(product), [product]);
-  const activeImage = images[activeImageIndex] || images[0] || "";
 
   const price = useMemo(() => Number(product?.price || 0), [product]);
   const oldPrice = useMemo(() => Number(product?.oldPrice || 0), [product]);
@@ -138,6 +140,8 @@ export default function ProductDetails() {
     setActiveImageIndex(0);
     setQty(1);
     setAddedFeedback(false);
+    setDragOffset(0);
+    setIsDragging(false);
   }, [product?.id]);
 
   const formatMoney = (n) => `GHS ${Number(n || 0).toFixed(2)}`;
@@ -225,25 +229,54 @@ export default function ProductDetails() {
 
   const goPrevImage = () => {
     if (images.length <= 1) return;
+    setDragOffset(0);
     setActiveImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
   };
 
   const goNextImage = () => {
     if (images.length <= 1) return;
+    setDragOffset(0);
     setActiveImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   };
 
   const onTouchStart = (e) => {
+    if (images.length <= 1) return;
     touchStartXRef.current = e.changedTouches[0]?.clientX || 0;
+    dragStartedRef.current = true;
+    setIsDragging(true);
+  };
+
+  const onTouchMove = (e) => {
+    if (!dragStartedRef.current || images.length <= 1) return;
+    const currentX = e.changedTouches[0]?.clientX || 0;
+    const delta = currentX - touchStartXRef.current;
+    setDragOffset(delta);
   };
 
   const onTouchEnd = (e) => {
-    touchEndXRef.current = e.changedTouches[0]?.clientX || 0;
-    const delta = touchStartXRef.current - touchEndXRef.current;
+    if (!dragStartedRef.current || images.length <= 1) return;
 
-    if (Math.abs(delta) < 40) return;
-    if (delta > 0) goNextImage();
-    else goPrevImage();
+    const endX = e.changedTouches[0]?.clientX || 0;
+    const delta = endX - touchStartXRef.current;
+
+    dragStartedRef.current = false;
+    setIsDragging(false);
+
+    const threshold = 50;
+
+    if (Math.abs(delta) >= threshold) {
+      if (delta < 0) goNextImage();
+      else goPrevImage();
+      return;
+    }
+
+    setDragOffset(0);
+  };
+
+  const onTouchCancel = () => {
+    dragStartedRef.current = false;
+    setIsDragging(false);
+    setDragOffset(0);
   };
 
   if (loading) return <ProductDetailsSkeleton />;
@@ -278,18 +311,36 @@ export default function ProductDetails() {
     "This is a premium product from Beme Market. Add a description in Firestore to show details here.";
   const isOutOfStock = product?.inStock === false;
 
+  const sliderTranslate = `calc(${-activeImageIndex * 100}% + ${dragOffset}px)`;
+
   return (
     <div className="pd-page">
       <div className="pd-container">
         <div className="pd-media-col">
           <div
-            className="pd-media"
+            className={`pd-media ${isDragging ? "is-dragging" : ""}`}
             onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
+            onTouchCancel={onTouchCancel}
           >
-            {activeImage ? (
+            {images.length ? (
               <>
-                <img className="pd-img" src={activeImage} alt={name} />
+                <div
+                  className={`pd-slider ${isDragging ? "is-dragging" : ""}`}
+                  style={{ transform: `translate3d(${sliderTranslate}, 0, 0)` }}
+                >
+                  {images.map((src, index) => (
+                    <div className="pd-slide" key={`${src}-${index}`}>
+                      <img
+                        className="pd-img"
+                        src={src}
+                        alt={`${name} ${index + 1}`}
+                        draggable="false"
+                      />
+                    </div>
+                  ))}
+                </div>
 
                 {images.length > 1 ? (
                   <>
@@ -326,7 +377,10 @@ export default function ProductDetails() {
                           className={`pd-dot ${
                             index === activeImageIndex ? "active" : ""
                           }`}
-                          onClick={() => setActiveImageIndex(index)}
+                          onClick={() => {
+                            setDragOffset(0);
+                            setActiveImageIndex(index);
+                          }}
                           aria-label={`Go to image ${index + 1}`}
                         />
                       ))}
@@ -348,7 +402,10 @@ export default function ProductDetails() {
                   className={`pd-thumb ${
                     index === activeImageIndex ? "active" : ""
                   }`}
-                  onClick={() => setActiveImageIndex(index)}
+                  onClick={() => {
+                    setDragOffset(0);
+                    setActiveImageIndex(index);
+                  }}
                   aria-label={`Select image ${index + 1}`}
                 >
                   <img

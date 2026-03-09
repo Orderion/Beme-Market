@@ -1,4 +1,13 @@
-/* src/components/Sidebar.css */
+.side-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.side-shell.is-open {
+  pointer-events: auto;
+}
 
 .side-panel {
   position: fixed;
@@ -10,14 +19,22 @@
   border-right: 1px solid var(--border);
   box-shadow: var(--shadow);
   transform: translateX(-105%);
-  transition: transform 0.24s ease;
-  z-index: 1000;
+  opacity: 0.98;
+  transition:
+    transform var(--drawer-motion),
+    opacity var(--drawer-motion),
+    background var(--motion-slow),
+    border-color var(--motion-slow),
+    box-shadow var(--motion-slow);
+  z-index: 1001;
   padding: 18px;
   overflow-y: auto;
+  will-change: transform;
 }
 
 .side-panel.open {
   transform: translateX(0);
+  opacity: 1;
 }
 
 .side-header {
@@ -43,6 +60,15 @@
   font-size: 22px;
   display: grid;
   place-items: center;
+  transition:
+    transform var(--motion-fast),
+    background var(--motion-smooth),
+    border-color var(--motion-smooth),
+    color var(--motion-smooth);
+}
+
+.side-close:hover {
+  transform: rotate(90deg);
 }
 
 .side-links {
@@ -60,10 +86,22 @@
   color: var(--text);
   box-shadow: var(--shadow);
   cursor: pointer;
+  transition:
+    transform var(--motion-fast),
+    opacity var(--motion-fast),
+    background var(--motion-smooth),
+    border-color var(--motion-smooth),
+    box-shadow var(--motion-smooth),
+    color var(--motion-smooth);
 }
 
 .sidebar-link:hover {
-  opacity: 0.95;
+  opacity: 0.96;
+  transform: translateY(-1px);
+}
+
+.sidebar-link:active {
+  transform: scale(0.985);
 }
 
 .side-link-content {
@@ -76,6 +114,7 @@
   width: 18px;
   height: 18px;
   flex: 0 0 auto;
+  transition: transform var(--motion-fast);
 }
 
 .sidebar-link--expand {
@@ -85,7 +124,7 @@
 }
 
 .side-chevron {
-  transition: transform 0.18s ease;
+  transition: transform var(--motion-smooth), opacity var(--motion-fast);
   opacity: 0.7;
 }
 
@@ -93,7 +132,22 @@
   transform: rotate(180deg);
 }
 
+.side-submenu-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--motion-smooth),
+    opacity var(--motion-smooth);
+}
+
+.side-submenu-wrap.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
 .side-submenu {
+  overflow: hidden;
   display: grid;
   gap: 8px;
   margin-top: -2px;
@@ -109,16 +163,23 @@
   background: transparent;
   color: var(--text);
   cursor: pointer;
+  transition:
+    transform var(--motion-fast),
+    background var(--motion-smooth),
+    border-color var(--motion-smooth),
+    color var(--motion-smooth);
 }
 
 .side-subitem:hover {
   background: var(--soft);
+  transform: translateX(2px);
 }
 
 .side-divider {
   height: 1px;
   background: var(--border);
   margin: 6px 0;
+  transition: background var(--motion-slow);
 }
 
 .side-confirm {
@@ -127,6 +188,11 @@
   border-radius: 16px;
   padding: 14px;
   box-shadow: var(--shadow);
+  animation: fadeUpSoft 0.22s ease;
+  transition:
+    background var(--motion-smooth),
+    border-color var(--motion-smooth),
+    box-shadow var(--motion-smooth);
 }
 
 .side-confirm-text {
@@ -148,6 +214,16 @@
   background: var(--card);
   color: var(--text);
   cursor: pointer;
+  transition:
+    transform var(--motion-fast),
+    opacity var(--motion-fast),
+    background var(--motion-smooth),
+    border-color var(--motion-smooth),
+    color var(--motion-smooth);
+}
+
+.side-confirm-btn:hover {
+  transform: translateY(-1px);
 }
 
 .side-confirm-btn--danger,
@@ -166,6 +242,10 @@
   border: 1px solid var(--border);
   background: var(--soft);
   box-shadow: var(--shadow);
+  transition:
+    background var(--motion-smooth),
+    border-color var(--motion-smooth),
+    box-shadow var(--motion-smooth);
 }
 
 .theme-toggle {
@@ -187,7 +267,9 @@
   display: inline-flex;
   align-items: center;
   padding: 3px;
-  transition: background 0.2s ease;
+  transition:
+    background var(--motion-smooth),
+    border-color var(--motion-smooth);
 }
 
 .theme-toggle-thumb {
@@ -195,7 +277,9 @@
   height: 22px;
   border-radius: 999px;
   background: var(--text);
-  transition: transform 0.22s ease;
+  transition:
+    transform var(--motion-smooth),
+    background var(--motion-smooth);
   transform: translateX(0);
 }
 
@@ -207,5 +291,14 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  backdrop-filter: blur(1px);
+  transition:
+    opacity var(--drawer-motion),
+    backdrop-filter var(--drawer-motion);
   z-index: 999;
+}
+
+.overlay.is-open {
+  opacity: 1;
 }

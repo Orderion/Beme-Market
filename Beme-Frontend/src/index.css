@@ -22,6 +22,12 @@
 
   --font-main: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
   --font-display: "Space Grotesk", "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --motion-fast: 180ms ease;
+  --motion-smooth: 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-slow: 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  --drawer-motion: 380ms cubic-bezier(0.22, 1, 0.36, 1);
+  --page-motion: 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 body.dark {
@@ -67,8 +73,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition:
-    background 0.35s ease,
-    color 0.35s ease;
+    background var(--motion-slow),
+    color var(--motion-slow);
 }
 
 #root {
@@ -154,6 +160,11 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  transition:
+    background var(--motion-slow),
+    border-color var(--motion-slow),
+    color var(--motion-slow),
+    box-shadow var(--motion-slow);
 }
 
 input,
@@ -167,9 +178,10 @@ textarea {
   font-family: var(--font-main);
   outline: none;
   transition:
-    border-color 0.22s ease,
-    transform 0.22s ease,
-    background 0.22s ease;
+    border-color var(--motion-fast),
+    transform var(--motion-fast),
+    background var(--motion-smooth),
+    color var(--motion-smooth);
 }
 
 input:focus,
@@ -243,6 +255,22 @@ textarea::placeholder {
   }
 }
 
+@keyframes routeEnter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.route-shell {
+  animation: routeEnter var(--page-motion);
+  will-change: opacity, transform;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -265,11 +293,29 @@ textarea::placeholder {
 .site-footer,
 .hdr,
 .cd-panel,
-.order-success-card {
+.order-success-card,
+.sidebar-link,
+.side-subitem,
+.theme-toggle-track,
+.theme-toggle-thumb,
+.hdr-icon,
+.hdr-confirm,
+.cd-item,
+.cd-qty,
+.cd-remove,
+.cd-checkout,
+button,
+a,
+input,
+select,
+textarea,
+.card,
+.route-shell {
   transition:
-    background 0.35s ease,
-    color 0.35s ease,
-    border-color 0.35s ease,
-    box-shadow 0.35s ease,
-    transform 0.25s ease;
+    background var(--motion-slow),
+    color var(--motion-slow),
+    border-color var(--motion-slow),
+    box-shadow var(--motion-slow),
+    transform var(--motion-fast),
+    opacity var(--motion-fast);
 }

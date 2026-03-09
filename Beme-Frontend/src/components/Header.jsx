@@ -1,4 +1,3 @@
-// src/components/Header.jsx
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
@@ -194,32 +193,33 @@ export default function Header({ onMenu, onCart }) {
         ) : (
           <div className="hdr-auth-wrap" ref={logoutWrapRef}>
             <button
-              className="hdr-icon"
+              className={`hdr-icon ${showLogoutConfirm ? "is-active" : ""}`}
               onClick={() => setShowLogoutConfirm((prev) => !prev)}
               aria-label="Open logout confirmation"
             >
               <IconLogout />
             </button>
 
-            {showLogoutConfirm && (
-              <div className="hdr-confirm">
-                <p className="hdr-confirm-text">Log out of your account?</p>
-                <div className="hdr-confirm-actions">
-                  <button
-                    className="hdr-confirm-btn"
-                    onClick={() => setShowLogoutConfirm(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="hdr-confirm-btn hdr-confirm-btn--danger"
-                    onClick={onConfirmLogout}
-                  >
-                    Log out
-                  </button>
-                </div>
+            <div
+              className={`hdr-confirm ${showLogoutConfirm ? "is-open" : ""}`}
+              aria-hidden={!showLogoutConfirm}
+            >
+              <p className="hdr-confirm-text">Log out of your account?</p>
+              <div className="hdr-confirm-actions">
+                <button
+                  className="hdr-confirm-btn"
+                  onClick={() => setShowLogoutConfirm(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="hdr-confirm-btn hdr-confirm-btn--danger"
+                  onClick={onConfirmLogout}
+                >
+                  Log out
+                </button>
               </div>
-            )}
+            </div>
           </div>
         )}
 
