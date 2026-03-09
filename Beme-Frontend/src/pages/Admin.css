@@ -1,5 +1,3 @@
-/* src/pages/Admin.css */
-
 .admin-page {
   background: var(--bg);
   color: var(--text);
@@ -108,7 +106,14 @@
   line-height: 1.6;
 }
 
+.admin-image-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
 .admin-image-preview-wrap {
+  position: relative;
   width: 100%;
   border-radius: 16px;
   overflow: hidden;
@@ -121,6 +126,21 @@
   width: 100%;
   aspect-ratio: 1 / 1;
   object-fit: cover;
+}
+
+.admin-image-cover-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .admin-image-empty {
@@ -178,6 +198,11 @@
   color: var(--bg);
   font-size: 12px;
   font-weight: 600;
+}
+
+.admin-upload-count {
+  font-size: 13px;
+  opacity: 0.85;
 }
 
 .admin-upload-link {
@@ -377,5 +402,9 @@
 
   .admin-secondary-btn {
     width: 100%;
+  }
+
+  .admin-image-preview-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }

@@ -1,10 +1,8 @@
-// src/pages/Admin.jsx
-
 import { useEffect, useMemo, useState } from "react";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
 import { DEPARTMENTS, KINDS } from "../constants/catalog";
-import { uploadImageToCloudinary, validateImageFile } from "../lib/cloudinary";
+import { uploadImagesToCloudinary, validateImageFiles } from "../lib/cloudinary";
 import "./Admin.css";
 
 const COLLECTION_NAME = "Products";
@@ -12,7 +10,7 @@ const COLLECTION_NAME = "Products";
 const makeOptionGroup = () => ({
   id: crypto.randomUUID(),
   name: "",
-  type: "buttons", // buttons | select
+  type: "buttons",
   required: true,
   valuesText: "",
 });
@@ -54,20 +52,20 @@ export default function Admin() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [msg, setMsg] = useState("");
 
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState("");
-  const [uploadedImage, setUploadedImage] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [uploadedImages, setUploadedImages] = useState([]);
 
   const deptOptions = useMemo(() => DEPARTMENTS.map((d) => d.key), []);
   const kindOptions = useMemo(() => KINDS.map((k) => k.key), []);
 
   useEffect(() => {
     return () => {
-      if (imagePreview?.startsWith("blob:")) {
-        URL.revokeObjectURL(imagePreview);
-      }
+      imagePreviews.forEach((url) => {
+        if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+      });
     };
-  }, [imagePreview]);
+  }, [imagePreviews]);
 
   const setField = (key) => (e) => {
     const value =
@@ -100,33 +98,33 @@ export default function Admin() {
   };
 
   const resetImageState = () => {
-    if (imagePreview?.startsWith("blob:")) {
-      URL.revokeObjectURL(imagePreview);
-    }
+    imagePreviews.forEach((url) => {
+      if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+    });
 
-    setImageFile(null);
-    setImagePreview("");
-    setUploadedImage(null);
+    setImageFiles([]);
+    setImagePreviews([]);
+    setUploadedImages([]);
   };
 
   const handleImageChange = (e) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []);
     setMsg("");
 
-    if (!file) return;
+    if (!files.length) return;
 
     try {
-      validateImageFile(file);
+      validateImageFiles(files);
 
-      if (imagePreview?.startsWith("blob:")) {
-        URL.revokeObjectURL(imagePreview);
-      }
+      imagePreviews.forEach((url) => {
+        if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+      });
 
-      const localPreview = URL.createObjectURL(file);
+      const previews = files.map((file) => URL.createObjectURL(file));
 
-      setImageFile(file);
-      setImagePreview(localPreview);
-      setUploadedImage(null);
+      setImageFiles(files);
+      setImagePreviews(previews);
+      setUploadedImages([]);
     } catch (err) {
       console.error("Image validation error:", err);
       setMsg(`❌ ${err.message}`);
@@ -135,8 +133,8 @@ export default function Admin() {
   };
 
   const handleUploadImage = async () => {
-    if (!imageFile) {
-      setMsg("❌ Please choose an image first.");
+    if (!imageFiles.length) {
+      setMsg("❌ Please choose product images first.");
       return null;
     }
 
@@ -144,10 +142,10 @@ export default function Admin() {
     setMsg("");
 
     try {
-      const result = await uploadImageToCloudinary(imageFile);
-      setUploadedImage(result);
-      setMsg("✅ Image uploaded successfully.");
-      return result;
+      const results = await uploadImagesToCloudinary(imageFiles);
+      setUploadedImages(results);
+      setMsg("✅ Images uploaded successfully.");
+      return results;
     } catch (err) {
       console.error("Cloudinary upload error:", err);
       setMsg(`❌ ${err.message || "Image upload failed."}`);
@@ -174,8 +172,8 @@ export default function Admin() {
       if (old < price) return "Old price should be higher than current price.";
     }
 
-    if (!imageFile && !uploadedImage?.url) {
-      return "Product image is required.";
+    if (!imageFiles.length && !uploadedImages.length) {
+      return "At least one product image is required.";
     }
 
     if (!deptOptions.includes(form.dept)) return "Invalid department selected.";
@@ -189,7 +187,6 @@ export default function Admin() {
         .filter(Boolean);
 
       if (!groupName && !values.length) continue;
-
       if (!groupName) return "Each customization group must have a label.";
       if (values.length < 2) {
         return `Customization "${groupName}" must have at least 2 values.`;
@@ -212,30 +209,41 @@ export default function Admin() {
     setSubmitting(true);
 
     try {
-      let imagePayload = uploadedImage;
+      let imagePayloads = uploadedImages;
 
-      if (!imagePayload?.url && imageFile) {
-        imagePayload = await handleUploadImage();
+      if (!imagePayloads.length && imageFiles.length) {
+        imagePayloads = await handleUploadImage();
       }
 
-      if (!imagePayload?.url) {
+      if (!imagePayloads?.length) {
         throw new Error("Image upload did not complete successfully.");
       }
 
       const customizations = normalizeCustomizationGroups(form.customizations);
+      const imageUrls = imagePayloads.map((item) => item.url).filter(Boolean);
 
       const payload = {
         name: form.name.trim(),
         price: Number(form.price),
-        image: imagePayload.url,
+        image: imageUrls[0],
+        images: imageUrls,
         imageMeta: {
-          publicId: imagePayload.publicId || "",
-          width: imagePayload.width || null,
-          height: imagePayload.height || null,
-          format: imagePayload.format || "",
-          bytes: imagePayload.bytes || 0,
-          originalFilename: imagePayload.originalFilename || "",
+          publicId: imagePayloads[0]?.publicId || "",
+          width: imagePayloads[0]?.width || null,
+          height: imagePayloads[0]?.height || null,
+          format: imagePayloads[0]?.format || "",
+          bytes: imagePayloads[0]?.bytes || 0,
+          originalFilename: imagePayloads[0]?.originalFilename || "",
         },
+        imageMetaList: imagePayloads.map((item) => ({
+          publicId: item.publicId || "",
+          width: item.width || null,
+          height: item.height || null,
+          format: item.format || "",
+          bytes: item.bytes || 0,
+          originalFilename: item.originalFilename || "",
+          url: item.url || "",
+        })),
         description: form.description.trim(),
         dept: form.dept,
         kind: form.kind,
@@ -310,32 +318,40 @@ export default function Admin() {
           <div className="admin-upload-card">
             <div className="admin-upload-head">
               <div>
-                <h3 className="admin-upload-title">Product image</h3>
+                <h3 className="admin-upload-title">Product images</h3>
                 <p className="admin-upload-sub">
-                  Upload product image to Cloudinary, then store the secure URL in Firestore.
+                  Upload multiple product images to Cloudinary. The first image becomes the cover image.
                 </p>
               </div>
             </div>
 
             <label className="admin-field">
-              <span>Choose image</span>
+              <span>Choose images</span>
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
+                multiple
                 onChange={handleImageChange}
               />
             </label>
 
-            {imagePreview ? (
-              <div className="admin-image-preview-wrap">
-                <img
-                  src={imagePreview}
-                  alt="Product preview"
-                  className="admin-image-preview"
-                />
+            {imagePreviews.length ? (
+              <div className="admin-image-preview-grid">
+                {imagePreviews.map((src, index) => (
+                  <div className="admin-image-preview-wrap" key={`${src}-${index}`}>
+                    <img
+                      src={src}
+                      alt={`Product preview ${index + 1}`}
+                      className="admin-image-preview"
+                    />
+                    {index === 0 ? (
+                      <span className="admin-image-cover-badge">Cover</span>
+                    ) : null}
+                  </div>
+                ))}
               </div>
             ) : (
-              <div className="admin-image-empty">No image selected yet.</div>
+              <div className="admin-image-empty">No images selected yet.</div>
             )}
 
             <div className="admin-upload-actions">
@@ -343,9 +359,9 @@ export default function Admin() {
                 type="button"
                 className="admin-secondary-btn"
                 onClick={handleUploadImage}
-                disabled={!imageFile || uploadingImage || submitting}
+                disabled={!imageFiles.length || uploadingImage || submitting}
               >
-                {uploadingImage ? "Uploading…" : "Upload image"}
+                {uploadingImage ? "Uploading…" : "Upload images"}
               </button>
 
               <button
@@ -354,20 +370,23 @@ export default function Admin() {
                 onClick={resetImageState}
                 disabled={uploadingImage || submitting}
               >
-                Remove image
+                Remove images
               </button>
             </div>
 
-            {uploadedImage?.url ? (
+            {uploadedImages.length ? (
               <div className="admin-upload-success">
                 <span className="admin-upload-badge">Uploaded</span>
+                <span className="admin-upload-count">
+                  {uploadedImages.length} image{uploadedImages.length > 1 ? "s" : ""}
+                </span>
                 <a
-                  href={uploadedImage.url}
+                  href={uploadedImages[0].url}
                   target="_blank"
                   rel="noreferrer"
                   className="admin-upload-link"
                 >
-                  View uploaded image
+                  View cover image
                 </a>
               </div>
             ) : null}

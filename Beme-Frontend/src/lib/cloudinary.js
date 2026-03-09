@@ -1,16 +1,10 @@
-// src/lib/cloudinary.js
-
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
-const ALLOWED_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-];
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 function ensureEnv() {
   if (!CLOUD_NAME) {
@@ -38,12 +32,20 @@ export function validateImageFile(file) {
   return true;
 }
 
+export function validateImageFiles(files) {
+  if (!Array.isArray(files) || files.length === 0) {
+    throw new Error("Please choose at least one image.");
+  }
+
+  files.forEach(validateImageFile);
+  return true;
+}
+
 export async function uploadImageToCloudinary(file) {
   ensureEnv();
   validateImageFile(file);
 
   const formData = new FormData();
-
   formData.append("file", file);
   formData.append("upload_preset", UPLOAD_PRESET);
 
@@ -58,9 +60,7 @@ export async function uploadImageToCloudinary(file) {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      data?.error?.message || "Cloudinary upload failed"
-    );
+    throw new Error(data?.error?.message || "Cloudinary upload failed");
   }
 
   return {
@@ -72,4 +72,17 @@ export async function uploadImageToCloudinary(file) {
     bytes: data.bytes,
     originalFilename: data.original_filename,
   };
+}
+
+export async function uploadImagesToCloudinary(files) {
+  ensureEnv();
+  validateImageFiles(files);
+
+  const uploaded = [];
+  for (const file of files) {
+    const result = await uploadImageToCloudinary(file);
+    uploaded.push(result);
+  }
+
+  return uploaded;
 }

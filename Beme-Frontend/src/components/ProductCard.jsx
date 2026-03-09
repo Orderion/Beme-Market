@@ -1,5 +1,3 @@
-// src/components/ProductCard.jsx  (FRONTEND)
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
@@ -10,7 +8,10 @@ export default function ProductCard({ product }) {
 
   const id = product?.id ?? product?.docId ?? product?._id ?? "";
   const name = product?.name ?? "Untitled";
-  const image = product?.image ?? "";
+  const image =
+    product?.image ??
+    (Array.isArray(product?.images) && product.images[0]) ??
+    "";
   const priceRaw = product?.price;
   const oldPriceRaw = product?.oldPrice;
 
@@ -30,13 +31,11 @@ export default function ProductCard({ product }) {
   };
 
   const handleAddToCart = (e) => {
-    // Prevent clicking the add-to-cart button from navigating to product page
     e.preventDefault();
     e.stopPropagation();
     addToCart(product);
   };
 
-  // If for any reason id isn't present, don't break UI—just render non-clickable card
   const Wrapper = id ? Link : "div";
   const wrapperProps = id
     ? { to: `/product/${id}`, className: "p-card-link", "aria-label": `View ${name}` }
@@ -58,7 +57,6 @@ export default function ProductCard({ product }) {
             aria-label="Add to cart"
             type="button"
           >
-            {/* Minimal Black SVG Shopping Bag */}
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"

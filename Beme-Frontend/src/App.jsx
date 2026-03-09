@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { ThemeProvider } from "./context/ThemeContext";
 
@@ -11,7 +11,7 @@ import RequireAdmin from "./components/auth/RequireAdmin";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import CartDrawer from "./components/CartDrawer";
-import LoaderOverlay from "./components/LoaderOverlay";
+import Footer from "./components/Footer";
 
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
@@ -20,7 +20,6 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import AdminLogin from "./pages/AdminLogin";
 import AdminOrders from "./pages/AdminOrders";
-import AdminAnalytics from "./pages/AdminAnalytics";
 
 import ProductDetails from "./pages/ProductDetails";
 import Checkout from "./pages/Checkout";
@@ -33,76 +32,81 @@ import Contact from "./pages/Contact";
 import FAQ from "./pages/FAQ";
 import ShippingReturns from "./pages/ShippingReturns";
 
-function AppShell() {
-  const [cartOpen, setCartOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const { loading } = useAuth();
-
-  return (
-    <>
-      <Header onMenu={() => setMenuOpen(true)} onCart={() => setCartOpen(true)} />
-
-      <LoaderOverlay show={loading} label="Preparing your experience..." />
-
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/shop" element={<Shop />} />
-        <Route path="/product/:id" element={<ProductDetails />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/order-success" element={<OrderSuccess />} />
-        <Route path="/orders" element={<Orders />} />
-
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-
-        <Route path="/admin-login" element={<AdminLogin />} />
-
-        <Route
-          path="/admin/orders"
-          element={
-            <RequireAdmin>
-              <AdminOrders />
-            </RequireAdmin>
-          }
-        />
-
-        <Route
-          path="/admin/analytics"
-          element={
-            <RequireAdmin>
-              <AdminAnalytics />
-            </RequireAdmin>
-          }
-        />
-
-        <Route
-          path="/admin"
-          element={
-            <AdminRoute>
-              <Admin />
-            </AdminRoute>
-          }
-        />
-
-        <Route path="/about" element={<About />} />
-        <Route path="/support" element={<Support />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/faq" element={<FAQ />} />
-        <Route path="/shipping-returns" element={<ShippingReturns />} />
-      </Routes>
-
-      <Sidebar isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
-      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
-    </>
-  );
-}
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import RefundPolicy from "./pages/RefundPolicy";
+import CookiePolicy from "./pages/CookiePolicy";
 
 export default function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+
   return (
     <ThemeProvider>
       <AuthProvider>
         <CartProvider>
-          <AppShell />
+          <Header
+            onOpenSidebar={() => setSidebarOpen(true)}
+            onOpenCart={() => setCartOpen(true)}
+          />
+
+          <Sidebar
+            open={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+          />
+
+          <CartDrawer
+            open={cartOpen}
+            onClose={() => setCartOpen(false)}
+          />
+
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/shop" element={<Shop />} />
+            <Route path="/product/:id" element={<ProductDetails />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/order-success" element={<OrderSuccess />} />
+            <Route path="/orders" element={<Orders />} />
+
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/admin-login" element={<AdminLogin />} />
+
+            <Route path="/about" element={<About />} />
+            <Route path="/support" element={<Support />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/shipping&returns" element={<ShippingReturns />} />
+
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/refund-policy" element={<RefundPolicy />} />
+            <Route path="/cookie-policy" element={<CookiePolicy />} />
+
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <RequireAdmin>
+                    <Admin />
+                  </RequireAdmin>
+                </AdminRoute>
+              }
+            />
+
+            <Route
+              path="/admin-orders"
+              element={
+                <AdminRoute>
+                  <RequireAdmin>
+                    <AdminOrders />
+                  </RequireAdmin>
+                </AdminRoute>
+              }
+            />
+          </Routes>
+
+          <Footer />
         </CartProvider>
       </AuthProvider>
     </ThemeProvider>

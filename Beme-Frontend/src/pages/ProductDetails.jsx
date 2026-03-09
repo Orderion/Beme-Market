@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
@@ -28,6 +28,12 @@ function buildSelectedOptionsLabel(selectedOptions) {
     .join(" • ");
 }
 
+function normalizeImages(product) {
+  const list = Array.isArray(product?.images) ? product.images.filter(Boolean) : [];
+  if (list.length) return list;
+  return product?.image ? [product.image] : [];
+}
+
 export default function ProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -38,6 +44,10 @@ export default function ProductDetails() {
   const [loading, setLoading] = useState(true);
   const [selectedOptions, setSelectedOptions] = useState({});
   const [optionError, setOptionError] = useState("");
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  const touchStartXRef = useRef(0);
+  const touchEndXRef = useRef(0);
 
   useEffect(() => {
     const run = async () => {
@@ -63,6 +73,9 @@ export default function ProductDetails() {
     [product?.customizations]
   );
 
+  const images = useMemo(() => normalizeImages(product), [product]);
+  const activeImage = images[activeImageIndex] || images[0] || "";
+
   const price = useMemo(() => Number(product?.price || 0), [product]);
   const oldPrice = useMemo(() => Number(product?.oldPrice || 0), [product]);
 
@@ -74,6 +87,10 @@ export default function ProductDetails() {
     setSelectedOptions(initialSelections);
     setOptionError("");
   }, [customizations, product?.id]);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [product?.id]);
 
   const formatMoney = (n) => `GHS ${Number(n || 0).toFixed(2)}`;
 
@@ -103,7 +120,8 @@ export default function ProductDetails() {
       id: product.id,
       name: product.name,
       price: Number(product.price || 0),
-      image: product.image || "",
+      image: product.image || images[0] || "",
+      images,
       qty,
       selectedOptions,
       selectedOptionsLabel,
@@ -142,11 +160,33 @@ export default function ProductDetails() {
     navigate("/checkout");
   };
 
+  const goPrevImage = () => {
+    if (images.length <= 1) return;
+    setActiveImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  };
+
+  const goNextImage = () => {
+    if (images.length <= 1) return;
+    setActiveImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+  };
+
+  const onTouchStart = (e) => {
+    touchStartXRef.current = e.changedTouches[0]?.clientX || 0;
+  };
+
+  const onTouchEnd = (e) => {
+    touchEndXRef.current = e.changedTouches[0]?.clientX || 0;
+    const delta = touchStartXRef.current - touchEndXRef.current;
+
+    if (Math.abs(delta) < 40) return;
+    if (delta > 0) goNextImage();
+    else goPrevImage();
+  };
+
   if (loading) return <div className="pd-wrap">Loading...</div>;
   if (!product) return <div className="pd-wrap">Product not found.</div>;
 
   const name = product?.name ?? "Untitled";
-  const image = product?.image ?? "";
   const desc =
     product?.description ??
     "This is a premium product from Beme Market. Add a description in Firestore to show details here.";
@@ -154,12 +194,69 @@ export default function ProductDetails() {
   return (
     <div className="pd-page">
       <div className="pd-container">
-        <div className="pd-media">
-          {image ? (
-            <img className="pd-img" src={image} alt={name} />
-          ) : (
-            <div className="pd-img pd-img--empty">No image</div>
-          )}
+        <div className="pd-media-col">
+          <div
+            className="pd-media"
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+          >
+            {activeImage ? (
+              <>
+                <img className="pd-img" src={activeImage} alt={name} />
+
+                {images.length > 1 ? (
+                  <>
+                    <button
+                      type="button"
+                      className="pd-carousel-btn pd-carousel-btn--left"
+                      onClick={goPrevImage}
+                      aria-label="Previous image"
+                    >
+                      ‹
+                    </button>
+
+                    <button
+                      type="button"
+                      className="pd-carousel-btn pd-carousel-btn--right"
+                      onClick={goNextImage}
+                      aria-label="Next image"
+                    >
+                      ›
+                    </button>
+
+                    <div className="pd-carousel-dots">
+                      {images.map((_, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          className={`pd-dot ${index === activeImageIndex ? "active" : ""}`}
+                          onClick={() => setActiveImageIndex(index)}
+                          aria-label={`Go to image ${index + 1}`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+              </>
+            ) : (
+              <div className="pd-img pd-img--empty">No image</div>
+            )}
+          </div>
+
+          {images.length > 1 ? (
+            <div className="pd-thumbs">
+              {images.map((src, index) => (
+                <button
+                  key={`${src}-${index}`}
+                  type="button"
+                  className={`pd-thumb ${index === activeImageIndex ? "active" : ""}`}
+                  onClick={() => setActiveImageIndex(index)}
+                >
+                  <img src={src} alt={`${name} ${index + 1}`} className="pd-thumb-img" />
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="pd-info">
