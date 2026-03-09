@@ -123,3 +123,27 @@ body.dark .p-card:hover {
   opacity: 0.6;
   font-size: 13px;
 }
+.p-gallery-badge {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.74);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  z-index: 2;
+  backdrop-filter: blur(8px);
+}
+
+.p-gallery-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #fff;
+}

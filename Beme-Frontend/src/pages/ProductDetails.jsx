@@ -29,7 +29,10 @@ function buildSelectedOptionsLabel(selectedOptions) {
 }
 
 function normalizeImages(product) {
-  const list = Array.isArray(product?.images) ? product.images.filter(Boolean) : [];
+  const list = Array.isArray(product?.images)
+    ? product.images.map((item) => String(item || "").trim()).filter(Boolean)
+    : [];
+
   if (list.length) return list;
   return product?.image ? [product.image] : [];
 }
@@ -53,16 +56,23 @@ export default function ProductDetails() {
     const run = async () => {
       setLoading(true);
 
-      const snap = await getDoc(doc(db, "Products", id));
-      if (!snap.exists()) {
-        setProduct(null);
-        setLoading(false);
-        return;
-      }
+      try {
+        const snap = await getDoc(doc(db, "Products", id));
 
-      const nextProduct = { id: snap.id, ...snap.data() };
-      setProduct(nextProduct);
-      setLoading(false);
+        if (!snap.exists()) {
+          setProduct(null);
+          setLoading(false);
+          return;
+        }
+
+        const nextProduct = { id: snap.id, ...snap.data() };
+        setProduct(nextProduct);
+      } catch (error) {
+        console.error("Product details fetch error:", error);
+        setProduct(null);
+      } finally {
+        setLoading(false);
+      }
     };
 
     run();
@@ -206,6 +216,13 @@ export default function ProductDetails() {
 
                 {images.length > 1 ? (
                   <>
+                    <div className="pd-gallery-topbar">
+                      <span className="pd-gallery-chip">Gallery</span>
+                      <span className="pd-gallery-count">
+                        {activeImageIndex + 1} / {images.length}
+                      </span>
+                    </div>
+
                     <button
                       type="button"
                       className="pd-carousel-btn pd-carousel-btn--left"
@@ -229,7 +246,9 @@ export default function ProductDetails() {
                         <button
                           key={index}
                           type="button"
-                          className={`pd-dot ${index === activeImageIndex ? "active" : ""}`}
+                          className={`pd-dot ${
+                            index === activeImageIndex ? "active" : ""
+                          }`}
                           onClick={() => setActiveImageIndex(index)}
                           aria-label={`Go to image ${index + 1}`}
                         />
@@ -249,10 +268,17 @@ export default function ProductDetails() {
                 <button
                   key={`${src}-${index}`}
                   type="button"
-                  className={`pd-thumb ${index === activeImageIndex ? "active" : ""}`}
+                  className={`pd-thumb ${
+                    index === activeImageIndex ? "active" : ""
+                  }`}
                   onClick={() => setActiveImageIndex(index)}
+                  aria-label={`Select image ${index + 1}`}
                 >
-                  <img src={src} alt={`${name} ${index + 1}`} className="pd-thumb-img" />
+                  <img
+                    src={src}
+                    alt={`${name} ${index + 1}`}
+                    className="pd-thumb-img"
+                  />
                 </button>
               ))}
             </div>

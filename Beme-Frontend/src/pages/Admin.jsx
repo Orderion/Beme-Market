@@ -1,4 +1,3 @@
-// src/pages/Admin.jsx
 import { useEffect, useMemo, useState } from "react";
 import {
   addDoc,
@@ -76,6 +75,11 @@ function titleize(value) {
 
 function normalizeAdminProduct(snapshotDoc) {
   const d = snapshotDoc.data() || {};
+  const images = Array.isArray(d.images)
+    ? d.images.map((item) => String(item || "").trim()).filter(Boolean)
+    : [];
+
+  const cover = String(d.image || images[0] || "").trim();
 
   return {
     id: snapshotDoc.id,
@@ -85,7 +89,8 @@ function normalizeAdminProduct(snapshotDoc) {
       d.oldPrice !== undefined && d.oldPrice !== null
         ? Number(d.oldPrice || 0)
         : null,
-    image: String(d.image || d.images?.[0] || "").trim(),
+    image: cover,
+    images: images.length ? images : cover ? [cover] : [],
     dept: String(d.dept || "").trim(),
     kind: String(d.kind || "").trim(),
     shop: String(d.shop || "main").trim(),
@@ -231,6 +236,21 @@ export default function Admin() {
       setMsg(`❌ ${err.message}`);
       e.target.value = "";
     }
+  };
+
+  const removeSelectedImage = (indexToRemove) => {
+    setMsg("");
+
+    setImageFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
+
+    setImagePreviews((prev) => {
+      const next = [...prev];
+      const removed = next[indexToRemove];
+      if (removed?.startsWith("blob:")) URL.revokeObjectURL(removed);
+      return next.filter((_, index) => index !== indexToRemove);
+    });
+
+    setUploadedImages([]);
   };
 
   const handleUploadImage = async () => {
@@ -434,7 +454,10 @@ export default function Admin() {
         code === "auth/invalid-login-credentials"
       ) {
         message = "Incorrect password. Delete cancelled.";
-      } else if (code === "permission-denied" || code === "firestore/permission-denied") {
+      } else if (
+        code === "permission-denied" ||
+        code === "firestore/permission-denied"
+      ) {
         message = "You do not have permission to delete this product.";
       } else if (error?.message) {
         message = error.message;
@@ -511,23 +534,48 @@ export default function Admin() {
             </label>
 
             {imagePreviews.length ? (
-              <div className="admin-image-preview-grid">
-                {imagePreviews.map((src, index) => (
-                  <div
-                    className="admin-image-preview-wrap"
-                    key={`${src}-${index}`}
-                  >
-                    <img
-                      src={src}
-                      alt={`Product preview ${index + 1}`}
-                      className="admin-image-preview"
-                    />
-                    {index === 0 ? (
-                      <span className="admin-image-cover-badge">Cover</span>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
+              <>
+                <div className="admin-image-preview-head">
+                  <span className="admin-image-preview-title">
+                    Selected images
+                  </span>
+                  <span className="admin-image-preview-count">
+                    {imagePreviews.length} image
+                    {imagePreviews.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+
+                <div className="admin-image-preview-grid">
+                  {imagePreviews.map((src, index) => (
+                    <div
+                      className="admin-image-preview-wrap"
+                      key={`${src}-${index}`}
+                    >
+                      <img
+                        src={src}
+                        alt={`Product preview ${index + 1}`}
+                        className="admin-image-preview"
+                      />
+
+                      <div className="admin-image-preview-overlay">
+                        <span className="admin-image-index">
+                          {index === 0 ? "Cover" : `Image ${index + 1}`}
+                        </span>
+
+                        <button
+                          type="button"
+                          className="admin-image-remove-btn"
+                          onClick={() => removeSelectedImage(index)}
+                          disabled={uploadingImage || submitting}
+                          aria-label={`Remove image ${index + 1}`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             ) : (
               <div className="admin-image-empty">No images selected yet.</div>
             )}
@@ -553,20 +601,43 @@ export default function Admin() {
             </div>
 
             {uploadedImages.length ? (
-              <div className="admin-upload-success">
-                <span className="admin-upload-badge">Uploaded</span>
-                <span className="admin-upload-count">
-                  {uploadedImages.length} image
-                  {uploadedImages.length > 1 ? "s" : ""}
-                </span>
-                <a
-                  href={uploadedImages[0].url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="admin-upload-link"
-                >
-                  View cover image
-                </a>
+              <div className="admin-upload-success-wrap">
+                <div className="admin-upload-success">
+                  <span className="admin-upload-badge">Uploaded</span>
+                  <span className="admin-upload-count">
+                    {uploadedImages.length} image
+                    {uploadedImages.length > 1 ? "s" : ""}
+                  </span>
+                  <a
+                    href={uploadedImages[0].url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="admin-upload-link"
+                  >
+                    View cover image
+                  </a>
+                </div>
+
+                <div className="admin-uploaded-grid">
+                  {uploadedImages.map((item, index) => (
+                    <a
+                      key={`${item.url}-${index}`}
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="admin-uploaded-thumb"
+                    >
+                      <img
+                        src={item.url}
+                        alt={`Uploaded product ${index + 1}`}
+                        className="admin-uploaded-thumb-img"
+                      />
+                      {index === 0 ? (
+                        <span className="admin-uploaded-badge">Cover</span>
+                      ) : null}
+                    </a>
+                  ))}
+                </div>
               </div>
             ) : null}
           </div>
@@ -782,16 +853,49 @@ export default function Admin() {
           <div className="admin-products-list">
             {products.map((product) => {
               const isDeleting = deletingId === product.id;
+              const gallery = Array.isArray(product.images)
+                ? product.images
+                : product.image
+                ? [product.image]
+                : [];
 
               return (
                 <div className="admin-product-item" key={product.id}>
                   <div className="admin-product-media">
                     {product.image ? (
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="admin-product-image"
-                      />
+                      <>
+                        <div className="admin-product-cover-wrap">
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="admin-product-image"
+                          />
+                          {gallery.length > 1 ? (
+                            <span className="admin-product-gallery-badge">
+                              {gallery.length} photos
+                            </span>
+                          ) : null}
+                        </div>
+
+                        {gallery.length > 1 ? (
+                          <div className="admin-product-gallery-strip">
+                            {gallery.slice(0, 4).map((src, index) => (
+                              <img
+                                key={`${src}-${index}`}
+                                src={src}
+                                alt={`${product.name} ${index + 1}`}
+                                className="admin-product-gallery-thumb"
+                              />
+                            ))}
+
+                            {gallery.length > 4 ? (
+                              <div className="admin-product-gallery-more">
+                                +{gallery.length - 4}
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </>
                     ) : (
                       <div className="admin-product-image admin-product-image--empty">
                         No image
