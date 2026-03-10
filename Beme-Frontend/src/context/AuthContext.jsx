@@ -1,4 +1,3 @@
-// src/context/AuthContext.jsx
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   EmailAuthProvider,
@@ -13,6 +12,13 @@ import { auth, db } from "../firebase";
 
 const AuthContext = createContext(null);
 
+function normalizeRole(value) {
+  const role = String(value || "").trim().toLowerCase();
+  if (role === "admin") return "admin";
+  if (role === "customer") return "customer";
+  return "customer";
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState("guest");
@@ -21,12 +27,13 @@ export function AuthProvider({ children }) {
   const resolveRole = async (uid) => {
     const snap = await getDoc(doc(db, "users", uid));
     if (!snap.exists()) return "customer";
-    return snap.data()?.role || "customer";
+    return normalizeRole(snap.data()?.role);
   };
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setLoading(true);
+
       try {
         if (!u) {
           setUser(null);
@@ -35,8 +42,12 @@ export function AuthProvider({ children }) {
         }
 
         setUser(u);
-        const r = await resolveRole(u.uid);
-        setRole(r);
+        const resolvedRole = await resolveRole(u.uid);
+        setRole(resolvedRole);
+      } catch (error) {
+        console.error("Auth role resolution error:", error);
+        setUser(u || null);
+        setRole(u ? "customer" : "guest");
       } finally {
         setLoading(false);
       }
@@ -47,10 +58,10 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const cred = await signInWithEmailAndPassword(auth, email, password);
-    const r = await resolveRole(cred.user.uid);
+    const resolvedRole = await resolveRole(cred.user.uid);
     setUser(cred.user);
-    setRole(r);
-    return { user: cred.user, role: r };
+    setRole(resolvedRole);
+    return { user: cred.user, role: resolvedRole };
   };
 
   const signup = async (email, password) => {
