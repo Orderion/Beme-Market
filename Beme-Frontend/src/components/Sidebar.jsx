@@ -303,16 +303,66 @@ function IconAnalytics() {
   );
 }
 
+function IconStorefront() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <path
+        d="M4 8h16M5 8l1 11h12l1-11"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8 8V5h8v3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconWallet() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <path
+        d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6.5A2.5 2.5 0 0 1 4 16.5v-9Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M15 12h5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <circle cx="15" cy="12" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
   const { darkMode, toggleTheme } = useTheme();
-  const { user, role, logout } = useAuth();
+  const {
+    user,
+    role,
+    adminShop,
+    isAdmin,
+    isSuperAdmin,
+    isShopAdmin,
+    logout,
+  } = useAuth();
 
   const [openSection, setOpenSection] = useState(null);
   const [confirmLogout, setConfirmLogout] = useState(false);
 
   const offers = useMemo(() => [], []);
-  const isAdmin = !!user && role === "admin";
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
@@ -365,6 +415,12 @@ export default function Sidebar({ isOpen, onClose }) {
     setOpenSection((prev) => (prev === name ? null : name));
   };
 
+  const adminLabel = isSuperAdmin
+    ? "Super Admin"
+    : isShopAdmin
+      ? `${adminShop || "shop"} Admin`
+      : role;
+
   return (
     <>
       <div
@@ -403,6 +459,13 @@ export default function Sidebar({ isOpen, onClose }) {
               </span>
             </button>
 
+            <button className="sidebar-link" onClick={() => go("/own-a-shop")}>
+              <span className="side-link-content">
+                <IconStorefront />
+                <span>Own a Shop</span>
+              </span>
+            </button>
+
             {user && (
               <button className="sidebar-link" onClick={() => go("/orders")}>
                 <span className="side-link-content">
@@ -415,6 +478,13 @@ export default function Sidebar({ isOpen, onClose }) {
             {isAdmin && (
               <>
                 <div className="side-divider" />
+
+                <div className="sidebar-link" style={{ cursor: "default" }}>
+                  <span className="side-link-content">
+                    <IconShield />
+                    <span>{adminLabel}</span>
+                  </span>
+                </div>
 
                 <button
                   className="sidebar-link sidebar-link--expand"
@@ -443,18 +513,20 @@ export default function Sidebar({ isOpen, onClose }) {
                     <button className="side-subitem" onClick={() => go("/admin")}>
                       Product manager
                     </button>
-                    <button
-                      className="side-subitem"
-                      onClick={() => go("/admin-orders")}
-                    >
-                      Admin orders
+                    <button className="side-subitem" onClick={() => go("/admin-orders")}>
+                      {isSuperAdmin ? "Admin orders" : "Shop orders"}
                     </button>
-                    <button
-                      className="side-subitem"
-                      onClick={() => go("/analytics")}
-                    >
+                    <button className="side-subitem" onClick={() => go("/analytics")}>
                       Analytics
                     </button>
+                    <button className="side-subitem" onClick={() => go("/payout-requests")}>
+                      Payout requests
+                    </button>
+                    {isSuperAdmin ? (
+                      <button className="side-subitem" onClick={() => go("/shop-applications")}>
+                        Shop applications
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               </>
@@ -489,16 +561,10 @@ export default function Sidebar({ isOpen, onClose }) {
                 <button className="side-subitem" onClick={() => goCategory("tech")}>
                   Tech
                 </button>
-                <button
-                  className="side-subitem"
-                  onClick={() => goCategory("fashion")}
-                >
+                <button className="side-subitem" onClick={() => goCategory("fashion")}>
                   Fashion
                 </button>
-                <button
-                  className="side-subitem"
-                  onClick={() => goCategory("accessories")}
-                >
+                <button className="side-subitem" onClick={() => goCategory("accessories")}>
                   Accessories
                 </button>
               </div>
@@ -537,10 +603,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 <button className="side-subitem" onClick={() => goDept("kids")}>
                   Kids
                 </button>
-                <button
-                  className="side-subitem"
-                  onClick={() => goDept("accessories")}
-                >
+                <button className="side-subitem" onClick={() => goDept("accessories")}>
                   Accessories
                 </button>
               </div>
@@ -580,10 +643,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 <button className="side-subitem" onClick={() => go("/faq")}>
                   FAQ
                 </button>
-                <button
-                  className="side-subitem"
-                  onClick={() => go("/shipping&returns")}
-                >
+                <button className="side-subitem" onClick={() => go("/shipping&returns")}>
                   Shipping & Returns
                 </button>
               </div>

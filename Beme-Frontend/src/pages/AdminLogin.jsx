@@ -44,7 +44,7 @@ export default function AdminLogin() {
     try {
       const result = await login(email, password);
 
-      if (result?.role !== "admin") {
+      if (!result || !["super_admin", "shop_admin"].includes(result.role)) {
         await logout();
         setError("This account is not authorized for admin access.");
         setLoading(false);
@@ -66,7 +66,7 @@ export default function AdminLogin() {
         <p className="admin-login-eyebrow">Beme Market</p>
         <h1 className="admin-login-title">Admin Login</h1>
         <p className="admin-login-subtitle">
-          Sign in with your authorized admin account to manage orders and analytics.
+          Sign in with your authorized shop admin or super admin account.
         </p>
 
         <form className="admin-login-form" onSubmit={handleSubmit}>

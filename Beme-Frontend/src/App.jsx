@@ -21,6 +21,9 @@ import Signup from "./pages/Signup";
 import AdminLogin from "./pages/AdminLogin";
 import AdminOrders from "./pages/AdminOrders";
 import Analytics from "./pages/Analytics";
+import ShopOwnerApply from "./pages/ShopOwnerApply";
+import PayoutRequests from "./pages/PayoutRequests";
+import ShopApplications from "./pages/ShopApplications";
 
 import ProductDetails from "./pages/ProductDetails";
 import Checkout from "./pages/Checkout";
@@ -72,6 +75,7 @@ function AppShell() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="/own-a-shop" element={<ShopOwnerApply />} />
 
           <Route path="/about" element={<About />} />
           <Route path="/support" element={<Support />} />
@@ -112,6 +116,28 @@ function AppShell() {
               <AdminRoute>
                 <RequireAdmin>
                   <Analytics />
+                </RequireAdmin>
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/payout-requests"
+            element={
+              <AdminRoute>
+                <RequireAdmin>
+                  <PayoutRequests />
+                </RequireAdmin>
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/shop-applications"
+            element={
+              <AdminRoute>
+                <RequireAdmin>
+                  <ShopApplications />
                 </RequireAdmin>
               </AdminRoute>
             }

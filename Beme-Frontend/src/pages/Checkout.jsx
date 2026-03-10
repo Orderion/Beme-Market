@@ -9,7 +9,6 @@ import { startPaystackCheckout } from "../lib/checkout";
 import "./Checkout.css";
 
 const FREE_DELIVERY_REGIONS = new Set(["Greater Accra"]);
-
 const GH_REGIONS = ["Greater Accra", "Eastern Region"];
 
 const CITY_MAP = {
@@ -102,10 +101,8 @@ const PREFIX_TO_NETWORK = [
   { prefix: "054", network: "MTN" },
   { prefix: "055", network: "MTN" },
   { prefix: "059", network: "MTN" },
-
   { prefix: "020", network: "Telecel" },
   { prefix: "050", network: "Telecel" },
-
   { prefix: "026", network: "AirtelTigo" },
   { prefix: "056", network: "AirtelTigo" },
   { prefix: "027", network: "AirtelTigo" },
@@ -122,6 +119,10 @@ function formatTime(seconds) {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function normalizeShop(value) {
+  return String(value || "main").trim().toLowerCase() || "main";
 }
 
 export default function Checkout() {
@@ -192,6 +193,12 @@ export default function Checkout() {
     [normalizedPhone]
   );
 
+  const cartShops = useMemo(() => {
+    return Array.from(
+      new Set(cartItems.map((item) => normalizeShop(item.shop)))
+    ).filter(Boolean);
+  }, [cartItems]);
+
   const isFinalMinute = timeLeft <= 60 && !sessionExpired;
   const inputsDisabled = loading || sessionExpired;
   const formattedTimeLeft = formatTime(timeLeft);
@@ -246,34 +253,22 @@ export default function Checkout() {
     if (!user) next.auth = "Please login before checkout.";
 
     if (!v.email.trim()) next.email = "Email is required.";
-    else if (!isValidEmail(v.email)) {
-      next.email = "Enter a valid email address.";
-    }
+    else if (!isValidEmail(v.email)) next.email = "Enter a valid email address.";
 
     if (!v.firstName.trim()) next.firstName = "First name is required.";
-    else if (!isValidName(v.firstName)) {
-      next.firstName = "Use letters only.";
-    }
+    else if (!isValidName(v.firstName)) next.firstName = "Use letters only.";
 
     if (!v.lastName.trim()) next.lastName = "Last name is required.";
-    else if (!isValidName(v.lastName)) {
-      next.lastName = "Use letters only.";
-    }
+    else if (!isValidName(v.lastName)) next.lastName = "Use letters only.";
 
-    if (!v.address.trim()) {
-      next.address = "Address is required.";
-    } else if (!isValidGhanaAddress(v.address)) {
-      next.address = "Enter a valid address.";
-    }
+    if (!v.address.trim()) next.address = "Address is required.";
+    else if (!isValidGhanaAddress(v.address)) next.address = "Enter a valid address.";
 
     if (!v.region) next.region = "Select a region.";
     if (!v.city) next.city = "Select a city.";
 
-    if (!v.area.trim()) {
-      next.area = "Area / locality is required.";
-    } else if (v.area.trim().length < 2) {
-      next.area = "Area is too short.";
-    }
+    if (!v.area.trim()) next.area = "Area / locality is required.";
+    else if (v.area.trim().length < 2) next.area = "Area is too short.";
 
     if (!v.phone.trim()) next.phone = "Phone is required.";
     else if (!normalizedPhone) next.phone = "Use 0XXXXXXXXX or +233XXXXXXXXX.";
@@ -341,6 +336,19 @@ export default function Checkout() {
   };
 
   const buildOrderPayload = (paymentMethod) => {
+    const items = cartItems.map((item) => ({
+      id: item.id || "",
+      name: item.name || "",
+      price: Number(item.price) || 0,
+      qty: Number(item.qty) || 1,
+      image: item.image || "",
+      shop: normalizeShop(item.shop),
+      selectedOptions: item.selectedOptions || {},
+      selectedOptionsLabel: item.selectedOptionsLabel || "",
+    }));
+
+    const shops = Array.from(new Set(items.map((item) => item.shop))).filter(Boolean);
+
     return {
       userId: user.uid,
       customer: {
@@ -356,15 +364,9 @@ export default function Checkout() {
         country: "Ghana",
         network,
       },
-      items: cartItems.map((item) => ({
-        id: item.id || "",
-        name: item.name || "",
-        price: Number(item.price) || 0,
-        qty: Number(item.qty) || 1,
-        image: item.image || "",
-        selectedOptions: item.selectedOptions || {},
-        selectedOptionsLabel: item.selectedOptionsLabel || "",
-      })),
+      items,
+      shops,
+      primaryShop: shops[0] || "main",
       pricing: {
         subtotal: subtotalUI,
         deliveryFee: deliveryFeeUI,
@@ -420,7 +422,10 @@ export default function Checkout() {
 
       await startPaystackCheckout({
         email: form.email.trim(),
-        cartItems,
+        cartItems: cartItems.map((item) => ({
+          ...item,
+          shop: normalizeShop(item.shop),
+        })),
         customer: {
           ...form,
           country: "Ghana",
@@ -474,8 +479,7 @@ export default function Checkout() {
             {sessionExpired ? (
               <>
                 <p className="checkout-timer__message">
-                  Your checkout session has expired. Please restart checkout to
-                  continue.
+                  Your checkout session has expired. Please restart checkout to continue.
                 </p>
                 <button
                   type="button"
@@ -501,9 +505,7 @@ export default function Checkout() {
           <div className="checkout-empty">
             <div className="checkout-empty-card">
               <h2>Your cart is empty</h2>
-              <p>
-                Add products to your cart before proceeding to checkout.
-              </p>
+              <p>Add products to your cart before proceeding to checkout.</p>
               <div className="checkout-empty-actions">
                 <Link to="/shop" className="checkout-link-btn">
                   Go to shop
@@ -531,9 +533,7 @@ export default function Checkout() {
                 onChange={setField("email")}
                 disabled={inputsDisabled}
               />
-              {showError("email") ? (
-                <div className="field-error">{errors.email}</div>
-              ) : null}
+              {showError("email") ? <div className="field-error">{errors.email}</div> : null}
 
               <h3>Shipping address</h3>
 
@@ -576,9 +576,7 @@ export default function Checkout() {
                 onChange={setField("address")}
                 disabled={inputsDisabled}
               />
-              {showError("address") ? (
-                <div className="field-error">{errors.address}</div>
-              ) : null}
+              {showError("address") ? <div className="field-error">{errors.address}</div> : null}
 
               <div className="row-2">
                 <div>
@@ -595,9 +593,7 @@ export default function Checkout() {
                       </option>
                     ))}
                   </select>
-                  {showError("region") ? (
-                    <div className="field-error">{errors.region}</div>
-                  ) : null}
+                  {showError("region") ? <div className="field-error">{errors.region}</div> : null}
                 </div>
 
                 <div>
@@ -616,9 +612,7 @@ export default function Checkout() {
                       </option>
                     ))}
                   </select>
-                  {showError("city") ? (
-                    <div className="field-error">{errors.city}</div>
-                  ) : null}
+                  {showError("city") ? <div className="field-error">{errors.city}</div> : null}
                 </div>
               </div>
 
@@ -629,9 +623,7 @@ export default function Checkout() {
                 onChange={setField("area")}
                 disabled={inputsDisabled}
               />
-              {showError("area") ? (
-                <div className="field-error">{errors.area}</div>
-              ) : null}
+              {showError("area") ? <div className="field-error">{errors.area}</div> : null}
 
               <input
                 placeholder="Phone (0XXXXXXXXX or +233XXXXXXXXX)"
@@ -640,9 +632,7 @@ export default function Checkout() {
                 onChange={setField("phone")}
                 disabled={inputsDisabled}
               />
-              {showError("phone") ? (
-                <div className="field-error">{errors.phone}</div>
-              ) : null}
+              {showError("phone") ? <div className="field-error">{errors.phone}</div> : null}
 
               {normalizedPhone && network ? (
                 <div className="field-hint">
@@ -681,9 +671,7 @@ export default function Checkout() {
 
               <div className="checkout-actions">
                 <button
-                  className={`primary-btn ${
-                    method === "paystack" ? "" : "primary-btn--secondary"
-                  }`}
+                  className={`primary-btn ${method === "paystack" ? "" : "primary-btn--secondary"}`}
                   onClick={payWithPaystack}
                   disabled={inputsDisabled || !!errors.cart || !user}
                   type="button"
@@ -692,9 +680,7 @@ export default function Checkout() {
                 </button>
 
                 <button
-                  className={`primary-btn ${
-                    method === "cod" ? "" : "primary-btn--secondary"
-                  }`}
+                  className={`primary-btn ${method === "cod" ? "" : "primary-btn--secondary"}`}
                   onClick={placeCOD}
                   disabled={inputsDisabled || !!errors.cart || !user}
                   type="button"
@@ -713,10 +699,7 @@ export default function Checkout() {
               </div>
 
               {cartItems.map((item, index) => (
-                <div
-                  key={item.lineId || `${item.id}-${index}`}
-                  className="summary-item"
-                >
+                <div key={item.lineId || `${item.id}-${index}`} className="summary-item">
                   <div className="summary-item-left">
                     <div className="summary-item-thumb">
                       {item.image ? (
@@ -756,12 +739,20 @@ export default function Checkout() {
                         : "Eastern Region delivery (+50)"}
                     </small>
                   ) : (
-                    <small className="summary-line-sub">
-                      Select region to calculate
-                    </small>
+                    <small className="summary-line-sub">Select region to calculate</small>
                   )}
                 </span>
                 <span>GHS {deliveryFeeUI.toFixed(2)}</span>
+              </div>
+
+              <div className="summary-line">
+                <span>
+                  Shops
+                  <small className="summary-line-sub">
+                    {cartShops.length ? cartShops.join(", ") : "main"}
+                  </small>
+                </span>
+                <span>{cartShops.length || 1}</span>
               </div>
 
               <div className="summary-total">

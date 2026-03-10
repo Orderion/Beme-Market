@@ -4,8 +4,8 @@ import {
   doc,
   onSnapshot,
   query,
-  updateDoc,
   serverTimestamp,
+  updateDoc,
 } from "firebase/firestore";
 import { Navigate } from "react-router-dom";
 import { db } from "../firebase";
@@ -35,24 +35,51 @@ function getSortableTime(value) {
   }
 }
 
+function normalizeShop(value) {
+  return String(value || "main").trim().toLowerCase() || "main";
+}
+
+function orderMatchesShop(order, adminShop) {
+  if (!adminShop) return false;
+
+  const shops = Array.isArray(order?.shops)
+    ? order.shops.map((shop) => normalizeShop(shop))
+    : [];
+
+  if (shops.includes(adminShop)) return true;
+
+  const items = Array.isArray(order?.items) ? order.items : [];
+  return items.some((item) => normalizeShop(item?.shop) === adminShop);
+}
+
+function getOrderTotal(order) {
+  return Number(order?.pricing?.total ?? 0);
+}
+
 export default function AdminOrders() {
-  const { user, role, loading } = useAuth();
+  const { user, isAdmin, isSuperAdmin, isShopAdmin, adminShop, loading } =
+    useAuth();
+
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (loading || !user || role !== "admin") return;
+    if (loading || !user || !isAdmin) return;
 
     const q = query(collection(db, "orders"));
 
     const unsub = onSnapshot(
       q,
       (snap) => {
-        const rows = snap.docs.map((d) => ({
+        let rows = snap.docs.map((d) => ({
           id: d.id,
           ...d.data(),
         }));
+
+        if (isShopAdmin && adminShop) {
+          rows = rows.filter((order) => orderMatchesShop(order, adminShop));
+        }
 
         rows.sort((a, b) => getSortableTime(b.createdAt) - getSortableTime(a.createdAt));
 
@@ -66,12 +93,16 @@ export default function AdminOrders() {
     );
 
     return () => unsub();
-  }, [loading, user, role]);
+  }, [loading, user, isAdmin, isShopAdmin, adminShop]);
 
   const filtered = useMemo(() => {
     if (filter === "all") return orders;
     return orders.filter((o) => (o.status || "pending") === filter);
   }, [orders, filter]);
+
+  const totalRevenue = useMemo(() => {
+    return filtered.reduce((sum, order) => sum + getOrderTotal(order), 0);
+  }, [filtered]);
 
   const setStatus = async (id, status) => {
     try {
@@ -97,7 +128,7 @@ export default function AdminOrders() {
     return <Navigate to="/admin-login" replace />;
   }
 
-  if (role !== "admin") {
+  if (!isAdmin) {
     return (
       <div className="admin-orders">
         <div className="muted">Signed in, but this account is not an admin.</div>
@@ -108,7 +139,14 @@ export default function AdminOrders() {
   return (
     <div className="admin-orders">
       <div className="admin-orders-head">
-        <h1>Orders</h1>
+        <div>
+          <h1>{isSuperAdmin ? "Admin Orders" : "Shop Orders"}</h1>
+          <div className="muted">
+            {isSuperAdmin
+              ? `Viewing all marketplace orders • Revenue GHS ${totalRevenue.toFixed(2)}`
+              : `Viewing only ${adminShop} orders • Revenue GHS ${totalRevenue.toFixed(2)}`}
+          </div>
+        </div>
 
         <div className="admin-filters">
           <button
@@ -144,6 +182,9 @@ export default function AdminOrders() {
             o.paymentStatus === "paid" ||
             o.status === "paid";
 
+          const itemCount = Array.isArray(o.items) ? o.items.length : 0;
+          const shops = Array.isArray(o.shops) ? o.shops : [];
+
           return (
             <div className="order-card" key={o.id}>
               <div className="order-top">
@@ -165,23 +206,38 @@ export default function AdminOrders() {
               <div className="order-items">
                 {(o.items || []).slice(0, 3).map((it, index) => (
                   <div key={it.id || `${o.id}-${index}`} className="order-item">
-                    <span>{it.name || "Item"}</span>
+                    <span>
+                      {it.name || "Item"}
+                      {it.shop ? (
+                        <span className="muted"> • {normalizeShop(it.shop)}</span>
+                      ) : null}
+                    </span>
                     <span className="muted">x{it.qty || 1}</span>
                   </div>
                 ))}
 
                 {(o.items || []).length > 3 && (
-                  <div className="muted">
-                    +{(o.items || []).length - 3} more
-                  </div>
+                  <div className="muted">+{(o.items || []).length - 3} more</div>
                 )}
               </div>
 
-              <div className="order-bottom">
-                <div className="pill">
-                  {o.status || "pending"}
-                  {paid && " • Paid"}
-                  {emailSent && " • Email sent"}
+              <div className="order-bottom" style={{ justifyContent: "space-between", gap: 12 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                  <div className="pill">
+                    {o.status || "pending"}
+                    {paid && " • Paid"}
+                    {emailSent && " • Email sent"}
+                  </div>
+
+                  <div className="pill">
+                    {itemCount} item{itemCount === 1 ? "" : "s"}
+                  </div>
+
+                  {shops.length ? (
+                    <div className="pill">
+                      {shops.join(", ")}
+                    </div>
+                  ) : null}
                 </div>
 
                 <select

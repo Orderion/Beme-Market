@@ -74,7 +74,8 @@ function titleize(value) {
 }
 
 function formatShopLabel(value) {
-  const match = SHOPS.find((shop) => shop.key === String(value || "").trim());
+  const key = String(value || "").trim();
+  const match = SHOPS.find((shop) => shop.key === key);
   if (match?.label) return match.label;
   return titleize(value);
 }
@@ -100,6 +101,7 @@ function normalizeAdminProduct(snapshotDoc) {
     dept: String(d.dept || "").trim(),
     kind: String(d.kind || "").trim(),
     shop: String(d.shop || "fashion").trim(),
+    ownerId: String(d.ownerId || "").trim(),
     featured: !!d.featured,
     inStock: !!d.inStock,
     createdAt: d.createdAt || null,
@@ -111,7 +113,14 @@ function getFileKey(file) {
 }
 
 export default function Admin() {
-  const { user, reauthenticate } = useAuth();
+  const {
+    user,
+    role,
+    adminShop,
+    isSuperAdmin,
+    isShopAdmin,
+    reauthenticate,
+  } = useAuth();
 
   const [form, setForm] = useState(initial);
   const [submitting, setSubmitting] = useState(false);
@@ -133,7 +142,22 @@ export default function Admin() {
 
   const deptOptions = useMemo(() => DEPARTMENTS.map((d) => d.key), []);
   const kindOptions = useMemo(() => KINDS.map((k) => k.key), []);
-  const shopOptions = useMemo(() => SHOPS.map((s) => s.key), []);
+  const allShopOptions = useMemo(() => SHOPS.map((s) => s.key), []);
+
+  const availableShops = useMemo(() => {
+    if (isSuperAdmin) return allShopOptions;
+    if (isShopAdmin && adminShop) return [adminShop];
+    return [];
+  }, [isSuperAdmin, isShopAdmin, adminShop, allShopOptions]);
+
+  useEffect(() => {
+    if (isShopAdmin && adminShop) {
+      setForm((prev) => ({
+        ...prev,
+        shop: adminShop,
+      }));
+    }
+  }, [isShopAdmin, adminShop]);
 
   const loadProducts = async () => {
     setLoadingProducts(true);
@@ -145,14 +169,25 @@ export default function Admin() {
         orderBy("createdAt", "desc")
       );
       const snap = await getDocs(qRef);
-      setProducts(snap.docs.map(normalizeAdminProduct));
+
+      let rows = snap.docs.map(normalizeAdminProduct);
+
+      if (isShopAdmin && adminShop) {
+        rows = rows.filter((product) => product.shop === adminShop);
+      }
+
+      setProducts(rows);
     } catch (error) {
       console.error("Admin products fetch error:", error);
 
       try {
         const fallbackRef = collection(db, COLLECTION_NAME);
         const fallbackSnap = await getDocs(fallbackRef);
-        const normalized = fallbackSnap.docs.map(normalizeAdminProduct);
+        let normalized = fallbackSnap.docs.map(normalizeAdminProduct);
+
+        if (isShopAdmin && adminShop) {
+          normalized = normalized.filter((product) => product.shop === adminShop);
+        }
 
         normalized.sort((a, b) => {
           const at = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
@@ -173,7 +208,8 @@ export default function Admin() {
 
   useEffect(() => {
     loadProducts();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role, adminShop]);
 
   useEffect(() => {
     return () => {
@@ -188,6 +224,8 @@ export default function Admin() {
   const setField = (key) => (e) => {
     const value =
       e?.target?.type === "checkbox" ? e.target.checked : e.target.value;
+
+    if (key === "shop" && isShopAdmin) return;
 
     setForm((prev) => ({ ...prev, [key]: value }));
   };
@@ -331,7 +369,7 @@ export default function Admin() {
 
     if (!deptOptions.includes(form.dept)) return "Invalid department selected.";
     if (!kindOptions.includes(form.kind)) return "Invalid type selected.";
-    if (!shopOptions.includes(form.shop)) return "Invalid shop selected.";
+    if (!availableShops.includes(form.shop)) return "Invalid shop selected.";
 
     for (const group of form.customizations) {
       const groupName = String(group.name || "").trim();
@@ -373,6 +411,9 @@ export default function Admin() {
         throw new Error("Image upload did not complete successfully.");
       }
 
+      const shopValue =
+        isShopAdmin && adminShop ? adminShop : String(form.shop || "").trim();
+
       const customizations = normalizeCustomizationGroups(form.customizations);
       const imageUrls = imagePayloads.map((item) => item.url).filter(Boolean);
 
@@ -401,11 +442,13 @@ export default function Admin() {
         description: form.description.trim(),
         dept: form.dept,
         kind: form.kind,
-        shop: form.shop,
+        shop: shopValue,
+        ownerId: user?.uid || "",
         inStock: !!form.inStock,
         featured: !!form.featured,
         customizations,
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       };
 
       if (form.oldPrice !== "") payload.oldPrice = Number(form.oldPrice);
@@ -415,7 +458,10 @@ export default function Admin() {
       await addDoc(collection(db, COLLECTION_NAME), payload);
 
       setMsg("✅ Product added successfully.");
-      setForm(initial);
+      setForm({
+        ...initial,
+        shop: isShopAdmin && adminShop ? adminShop : initial.shop,
+      });
       resetImageState();
       await loadProducts();
     } catch (err) {
@@ -456,6 +502,11 @@ export default function Admin() {
 
     if (!deletePassword.trim()) {
       setDeleteError("Enter your admin password to continue.");
+      return;
+    }
+
+    if (isShopAdmin && productToDelete.shop !== adminShop) {
+      setDeleteError("❌ You can only delete products from your own shop.");
       return;
     }
 
@@ -501,14 +552,20 @@ export default function Admin() {
     }
   };
 
+  const pageTitle = isSuperAdmin
+    ? "Product Manager"
+    : `${formatShopLabel(adminShop)} Product Manager`;
+
+  const pageSub = isSuperAdmin
+    ? `Manage products across all shops.`
+    : `Manage only products belonging to ${formatShopLabel(adminShop)}.`;
+
   return (
     <div className="admin-page">
       <div className="admin-card">
         <div className="admin-head">
-          <h2 className="admin-title">Add Product</h2>
-          <p className="admin-sub">
-            Uploads to Firestore collection: <b>{COLLECTION_NAME}</b>
-          </p>
+          <h2 className="admin-title">{pageTitle}</h2>
+          <p className="admin-sub">{pageSub}</p>
         </div>
 
         <form className="admin-form" onSubmit={onSubmit}>
@@ -549,8 +606,8 @@ export default function Admin() {
               <div>
                 <h3 className="admin-upload-title">Product images</h3>
                 <p className="admin-upload-sub">
-                  Upload multiple product images to Cloudinary. The first image
-                  becomes the cover image.
+                  Upload multiple product images to Cloudinary. The first image becomes
+                  the cover image.
                 </p>
               </div>
             </div>
@@ -568,12 +625,9 @@ export default function Admin() {
             {imagePreviews.length ? (
               <>
                 <div className="admin-image-preview-head">
-                  <span className="admin-image-preview-title">
-                    Selected images
-                  </span>
+                  <span className="admin-image-preview-title">Selected images</span>
                   <span className="admin-image-preview-count">
-                    {imagePreviews.length} image
-                    {imagePreviews.length > 1 ? "s" : ""}
+                    {imagePreviews.length} image{imagePreviews.length > 1 ? "s" : ""}
                   </span>
                 </div>
 
@@ -637,8 +691,7 @@ export default function Admin() {
                 <div className="admin-upload-success">
                   <span className="admin-upload-badge">Uploaded</span>
                   <span className="admin-upload-count">
-                    {uploadedImages.length} image
-                    {uploadedImages.length > 1 ? "s" : ""}
+                    {uploadedImages.length} image{uploadedImages.length > 1 ? "s" : ""}
                   </span>
                   <a
                     href={uploadedImages[0].url}
@@ -688,40 +741,53 @@ export default function Admin() {
             <div className="admin-shop-head">
               <h3 className="admin-shop-title">Store placement</h3>
               <p className="admin-shop-sub">
-                Choose which storefront this product should appear under.
+                {isSuperAdmin
+                  ? "Choose which storefront this product should appear under."
+                  : "Products you add will be locked to your assigned shop."}
               </p>
             </div>
 
             <div className="admin-store-pills">
-              {SHOPS.map((shop) => (
-                <button
-                  key={shop.key}
-                  type="button"
-                  className={
-                    form.shop === shop.key
-                      ? "admin-store-pill active"
-                      : "admin-store-pill"
-                  }
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      shop: shop.key,
-                    }))
-                  }
-                >
-                  {shop.label}
-                </button>
-              ))}
+              {availableShops.map((shopKey) => {
+                const shopMeta = SHOPS.find((shop) => shop.key === shopKey);
+                return (
+                  <button
+                    key={shopKey}
+                    type="button"
+                    className={
+                      form.shop === shopKey
+                        ? "admin-store-pill active"
+                        : "admin-store-pill"
+                    }
+                    onClick={() =>
+                      setForm((prev) => ({
+                        ...prev,
+                        shop: shopKey,
+                      }))
+                    }
+                    disabled={isShopAdmin}
+                  >
+                    {shopMeta?.label || titleize(shopKey)}
+                  </button>
+                );
+              })}
             </div>
 
             <label className="admin-field">
               <span>Shop</span>
-              <select value={form.shop} onChange={setField("shop")}>
-                {SHOPS.map((shop) => (
-                  <option key={shop.key} value={shop.key}>
-                    {shop.label}
-                  </option>
-                ))}
+              <select
+                value={form.shop}
+                onChange={setField("shop")}
+                disabled={isShopAdmin}
+              >
+                {availableShops.map((shopKey) => {
+                  const shopMeta = SHOPS.find((shop) => shop.key === shopKey);
+                  return (
+                    <option key={shopKey} value={shopKey}>
+                      {shopMeta?.label || titleize(shopKey)}
+                    </option>
+                  );
+                })}
               </select>
             </label>
           </div>
@@ -792,9 +858,7 @@ export default function Admin() {
             </div>
 
             {!form.customizations.length ? (
-              <div className="admin-options-empty">
-                No customization groups yet.
-              </div>
+              <div className="admin-options-empty">No customization groups yet.</div>
             ) : (
               <div className="admin-options-list">
                 {form.customizations.map((group, index) => (
@@ -895,7 +959,9 @@ export default function Admin() {
         <div className="admin-head">
           <h2 className="admin-title">Manage Products</h2>
           <p className="admin-sub">
-            Delete products only after password verification.
+            {isSuperAdmin
+              ? "Delete products across all shops after password verification."
+              : "Delete only your shop products after password verification."}
           </p>
         </div>
 
