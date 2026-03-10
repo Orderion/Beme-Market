@@ -40,7 +40,6 @@ export default function ShopOwnerApply() {
 
   const [form, setForm] = useState(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
-  const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
 
   useEffect(() => {
@@ -86,7 +85,6 @@ export default function ShopOwnerApply() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setMsg("");
     setErr("");
 
     const validationError = validate();
@@ -151,7 +149,9 @@ export default function ShopOwnerApply() {
         <p className="admin-login-subtitle">
           Apply to become a verified Beme Market shop owner. Yearly access fee:
           <strong> ${YEARLY_PRICE_USD}</strong> or <strong>GHS {YEARLY_PRICE_GHS}</strong>.
-          You will continue to payment after submitting this form. Your shop is only activated after payment verification and super admin approval.
+          After you submit this form, you will continue to payment. Once Paystack
+          confirms payment successfully, your shop will be activated automatically
+          and you can start uploading products immediately.
         </p>
 
         <form className="admin-login-form" onSubmit={onSubmit}>
@@ -269,11 +269,6 @@ export default function ShopOwnerApply() {
           </label>
 
           {err ? <div className="admin-login-error">{err}</div> : null}
-          {msg ? (
-            <div className="admin-login-error" style={{ color: "green" }}>
-              {msg}
-            </div>
-          ) : null}
 
           <button type="submit" className="admin-login-btn" disabled={submitting}>
             {submitting ? "Redirecting to payment..." : "Continue to payment"}

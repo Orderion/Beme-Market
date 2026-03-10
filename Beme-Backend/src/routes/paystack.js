@@ -20,9 +20,20 @@ async function safeFetch(...args) {
 
 const SPECIAL_REGIONS = new Set(["Ashanti", "Greater Accra", "Eastern", "Western"]);
 const SHOP_OWNER_FEE_GHS = 1300;
+const SHOP_OWNER_FEE_USD = 120;
 
 function safeTrim(v) {
   return String(v ?? "").trim();
+}
+
+function normalizeShopKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
 }
 
 function computeDeliveryFee(region) {
@@ -62,7 +73,11 @@ async function computeAmountFromItems(items) {
     if (!p) throw new Error(`Product not found: ${id}`);
 
     const price = Number(p.price ?? 0);
-    if (!Number.isFinite(price) || price < 0) throw new Error(`Invalid price for product: ${id}`);
+    if (!Number.isFinite(price) || price < 0) {
+      throw new Error(`Invalid price for product: ${id}`);
+    }
+
+    const productShop = normalizeShopKey(p.shop || "main");
 
     subtotal += price * qty;
 
@@ -72,7 +87,7 @@ async function computeAmountFromItems(items) {
       price,
       qty,
       image: p.image || "",
-      shop: safeTrim(p.shop || "main").toLowerCase(),
+      shop: productShop,
     });
   }
 
@@ -86,13 +101,17 @@ router.post("/checkout/init", async (req, res) => {
     const customer = req.body?.customer || {};
 
     if (!email) return res.status(400).json({ error: "Email is required" });
-    if (!Array.isArray(items) || !items.length) return res.status(400).json({ error: "Cart is empty" });
+    if (!Array.isArray(items) || !items.length) {
+      return res.status(400).json({ error: "Cart is empty" });
+    }
 
     const region = safeTrim(customer.region);
     const deliveryFee = computeDeliveryFee(region);
 
     const { subtotal, lineItems } = await computeAmountFromItems(items);
-    if (!lineItems.length) return res.status(400).json({ error: "Cart items invalid" });
+    if (!lineItems.length) {
+      return res.status(400).json({ error: "Cart items invalid" });
+    }
 
     const total = subtotal + deliveryFee;
     const amountPesewas = Math.round(total * 100);
@@ -100,7 +119,9 @@ router.post("/checkout/init", async (req, res) => {
     const orderRef = adminDb.collection("orders").doc();
     const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
 
-    const shops = Array.from(new Set(lineItems.map((item) => safeTrim(item.shop).toLowerCase()).filter(Boolean)));
+    const shops = Array.from(
+      new Set(lineItems.map((item) => normalizeShopKey(item.shop)).filter(Boolean))
+    );
 
     await orderRef.set({
       status: "pending_payment",
@@ -170,7 +191,10 @@ router.post("/checkout/init", async (req, res) => {
         updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
         paystack: { initError: initData },
       });
-      return res.status(400).json({ error: initData?.message || "Paystack init failed" });
+
+      return res.status(400).json({
+        error: initData?.message || "Paystack init failed",
+      });
     }
 
     await orderRef.update({
@@ -203,12 +227,15 @@ router.post("/shop-owner/init", async (req, res) => {
     const phone = safeTrim(body.phone);
     const email = safeTrim(body.email).toLowerCase();
     const shopName = safeTrim(body.shopName);
-    const shop = safeTrim(body.shop).toLowerCase();
-    const requestedShop = safeTrim(body.requestedShop || shop).toLowerCase();
+    const rawShop = safeTrim(body.shop);
+    const rawRequestedShop = safeTrim(body.requestedShop || rawShop);
     const category = safeTrim(body.category);
     const description = safeTrim(body.description);
     const website = safeTrim(body.website);
     const instagram = safeTrim(body.instagram);
+
+    const shop = normalizeShopKey(rawShop);
+    const requestedShop = normalizeShopKey(rawRequestedShop);
 
     if (!userId) return res.status(400).json({ error: "Missing userId" });
     if (!businessName) return res.status(400).json({ error: "Business name is required" });
@@ -216,20 +243,37 @@ router.post("/shop-owner/init", async (req, res) => {
     if (!phone) return res.status(400).json({ error: "Phone is required" });
     if (!email) return res.status(400).json({ error: "Email is required" });
     if (!shopName) return res.status(400).json({ error: "Shop name is required" });
-    if (!shop) return res.status(400).json({ error: "Shop key is required" });
+    if (!shop) return res.status(400).json({ error: "Valid shop key is required" });
     if (!category) return res.status(400).json({ error: "Category is required" });
     if (!description) return res.status(400).json({ error: "Description is required" });
 
-    const existingApproved = await adminDb
+    const existingActiveUserShop = await adminDb
+      .collection("users")
+      .where("shop", "==", shop)
+      .limit(1)
+      .get();
+
+    if (!existingActiveUserShop.empty) {
+      return res.status(400).json({ error: "That shop key is already assigned to another account." });
+    }
+
+    const existingApplication = await adminDb
       .collection("shopApplications")
       .where("shop", "==", shop)
-      .where("approvalStatus", "in", ["pending", "approved"])
+      .where("paymentStatus", "in", ["pending_payment", "pending", "paid"])
       .limit(1)
       .get()
       .catch(() => null);
 
-    if (existingApproved && !existingApproved.empty) {
-      return res.status(400).json({ error: "That shop key is already in use or pending approval." });
+    if (existingApplication && !existingApplication.empty) {
+      const docData = existingApplication.docs[0]?.data?.() || {};
+      const sameApplicant = safeTrim(docData.userId) === userId;
+
+      if (!sameApplicant) {
+        return res.status(400).json({
+          error: "That shop key is already being used in another application.",
+        });
+      }
     }
 
     const applicationRef = adminDb.collection("shopApplications").doc();
@@ -249,13 +293,20 @@ router.post("/shop-owner/init", async (req, res) => {
       website,
       instagram,
       yearlyFee: {
-        usd: 120,
+        usd: SHOP_OWNER_FEE_USD,
         ghs: SHOP_OWNER_FEE_GHS,
       },
       roleToGrant: "shop_admin",
       paymentMethod: "paystack",
       paymentStatus: "pending_payment",
       approvalStatus: "pending",
+      capabilities: [
+        "manage_products",
+        "view_orders",
+        "view_analytics",
+        "request_payout",
+      ],
+      activated: false,
       reference: "",
       createdAt: now,
       updatedAt: now,
@@ -293,7 +344,10 @@ router.post("/shop-owner/init", async (req, res) => {
         updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
         paystack: { initError: initData },
       });
-      return res.status(400).json({ error: initData?.message || "Paystack init failed" });
+
+      return res.status(400).json({
+        error: initData?.message || "Paystack init failed",
+      });
     }
 
     await applicationRef.update({
@@ -319,7 +373,9 @@ router.post("/shop-owner/init", async (req, res) => {
 async function verifyOrderAndUpdate(reference) {
   const vr = await safeFetch(
     `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-    { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } }
+    {
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
+    }
   );
 
   const data = await vr.json();
@@ -393,10 +449,12 @@ async function verifyOrderAndUpdate(reference) {
   return { status: status || "failed", orderId: orderDoc.id };
 }
 
-async function verifyShopOwnerAndUpdate(reference) {
+async function verifyShopOwnerAndActivate(reference) {
   const vr = await safeFetch(
     `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-    { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } }
+    {
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
+    }
   );
 
   const data = await vr.json();
@@ -412,39 +470,90 @@ async function verifyShopOwnerAndUpdate(reference) {
     .limit(1)
     .get();
 
-  if (q.empty) return { status, applicationId: null };
+  if (q.empty) {
+    return { status, applicationId: null, userId: null, shop: null };
+  }
 
   const applicationDoc = q.docs[0];
   const applicationRef = applicationDoc.ref;
-  const existing = applicationDoc.data();
+  const existing = applicationDoc.data() || {};
 
-  if (status === "success") {
+  if (status !== "success") {
     await applicationRef.update({
-      paymentStatus: "paid",
+      paymentStatus: "failed",
+      approvalStatus: "rejected",
+      activated: false,
       updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
       paystack: {
         ...(existing?.paystack || {}),
         verified: true,
-        status,
-        amountPesewas,
-        paidAt,
+        status: status || "failed",
       },
     });
 
-    return { status, applicationId: applicationDoc.id };
+    return {
+      status: status || "failed",
+      applicationId: applicationDoc.id,
+      userId: safeTrim(existing.userId),
+      shop: normalizeShopKey(existing.shop),
+    };
   }
 
+  const userId = safeTrim(existing.userId);
+  const shop = normalizeShopKey(existing.shop);
+  const capabilities = Array.isArray(existing.capabilities)
+    ? existing.capabilities
+    : ["manage_products", "view_orders", "view_analytics", "request_payout"];
+
+  if (!userId) throw new Error("Application has no userId");
+  if (!shop) throw new Error("Application has no valid shop key");
+
+  const existingShopOwner = await adminDb
+    .collection("users")
+    .where("shop", "==", shop)
+    .limit(1)
+    .get();
+
+  if (!existingShopOwner.empty) {
+    const foundDoc = existingShopOwner.docs[0];
+    if (foundDoc.id !== userId) {
+      throw new Error("This shop key is already assigned to another account.");
+    }
+  }
+
+  const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
+
+  await adminDb.collection("users").doc(userId).set(
+    {
+      role: "shop_admin",
+      shop,
+      capabilities,
+      updatedAt: now,
+    },
+    { merge: true }
+  );
+
   await applicationRef.update({
-    paymentStatus: "failed",
-    updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+    paymentStatus: "paid",
+    approvalStatus: "approved",
+    activated: true,
+    activatedAt: now,
+    updatedAt: now,
     paystack: {
       ...(existing?.paystack || {}),
       verified: true,
-      status: status || "failed",
+      status,
+      amountPesewas,
+      paidAt,
     },
   });
 
-  return { status: status || "failed", applicationId: applicationDoc.id };
+  return {
+    status: "success",
+    applicationId: applicationDoc.id,
+    userId,
+    shop,
+  };
 }
 
 router.get("/checkout/callback", async (req, res) => {
@@ -462,7 +571,9 @@ router.get("/checkout/callback", async (req, res) => {
     }
 
     return res.redirect(
-      `${FRONTEND_URL}/order-success?reference=${reference}&status=${encodeURIComponent(out?.status || "failed")}`
+      `${FRONTEND_URL}/order-success?reference=${reference}&status=${encodeURIComponent(
+        out?.status || "failed"
+      )}`
     );
   } catch (err) {
     console.error("Paystack callback verify error:", err);
@@ -497,18 +608,24 @@ router.get("/shop-owner/callback", async (req, res) => {
   }
 
   try {
-    const out = await verifyShopOwnerAndUpdate(reference);
+    const out = await verifyShopOwnerAndActivate(reference);
 
     if (out?.status === "success") {
-      return res.redirect(`${FRONTEND_URL}/shop-payment-status?reference=${reference}&status=success`);
+      return res.redirect(
+        `${FRONTEND_URL}/shop-payment-status?reference=${reference}&status=success&activated=1`
+      );
     }
 
     return res.redirect(
-      `${FRONTEND_URL}/shop-payment-status?reference=${reference}&status=${encodeURIComponent(out?.status || "failed")}`
+      `${FRONTEND_URL}/shop-payment-status?reference=${reference}&status=${encodeURIComponent(
+        out?.status || "failed"
+      )}`
     );
   } catch (err) {
     console.error("Shop owner callback verify error:", err);
-    return res.redirect(`${FRONTEND_URL}/shop-payment-status?reference=${reference}&status=verify_error`);
+    return res.redirect(
+      `${FRONTEND_URL}/shop-payment-status?reference=${reference}&status=verify_error`
+    );
   }
 });
 
@@ -517,13 +634,16 @@ router.get("/shop-owner/verify", async (req, res) => {
     const reference = safeTrim(req.query?.reference);
     if (!reference) return res.status(400).json({ error: "Missing reference" });
 
-    const out = await verifyShopOwnerAndUpdate(reference);
+    const out = await verifyShopOwnerAndActivate(reference);
 
     return res.json({
       ok: true,
       status: out.status,
       reference,
       applicationId: out.applicationId,
+      userId: out.userId,
+      shop: out.shop,
+      activated: out.status === "success",
     });
   } catch (err) {
     console.error("Shop owner verify error:", err);
