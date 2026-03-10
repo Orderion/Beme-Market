@@ -123,27 +123,6 @@ function IconLogout() {
   );
 }
 
-function IconStorefront() {
-  return (
-    <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true">
-      <path
-        d="M4 8h16M5 8l1 11h12l1-11"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M8 8V5h8v3"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 export default function Header({ onMenu, onCart }) {
   const navigate = useNavigate();
   const { darkMode, toggleTheme } = useTheme();
@@ -157,7 +136,6 @@ export default function Header({ onMenu, onCart }) {
     cartItems?.reduce((sum, i) => sum + Number(i.qty || 1), 0) || 0;
 
   const goAuth = () => navigate("/login");
-  const goOwnShop = () => navigate("/own-a-shop");
 
   const onConfirmLogout = async () => {
     try {
@@ -195,7 +173,7 @@ export default function Header({ onMenu, onCart }) {
 
   return (
     <header className="hdr">
-      <button className="hdr-icon" onClick={onMenu} aria-label="Open menu">
+      <button className="hdr-icon" onClick={onMenu} aria-label="Open menu" type="button">
         <IconMenu />
       </button>
 
@@ -203,23 +181,14 @@ export default function Header({ onMenu, onCart }) {
         className="hdr-brand"
         onClick={() => navigate("/shop")}
         aria-label="Go to shop"
+        type="button"
       >
         Beme Market
       </button>
 
       <div className="hdr-right">
-        <button
-          className="hdr-seller-btn"
-          onClick={goOwnShop}
-          aria-label="Own a shop"
-          type="button"
-        >
-          <IconStorefront />
-          <span className="hdr-seller-text">Own a Shop</span>
-        </button>
-
         {!user ? (
-          <button className="hdr-icon" onClick={goAuth} aria-label="Login">
+          <button className="hdr-icon" onClick={goAuth} aria-label="Login" type="button">
             <IconUser />
           </button>
         ) : (

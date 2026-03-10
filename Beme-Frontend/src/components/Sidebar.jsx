@@ -306,15 +306,7 @@ function IconStorefront() {
 export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
   const { darkMode, toggleTheme } = useTheme();
-  const {
-    user,
-    role,
-    adminShop,
-    isAdmin,
-    isSuperAdmin,
-    isShopAdmin,
-    logout,
-  } = useAuth();
+  const { user, isAdmin, isSuperAdmin, logout } = useAuth();
 
   const [openSection, setOpenSection] = useState(null);
   const [confirmLogout, setConfirmLogout] = useState(false);
@@ -371,12 +363,6 @@ export default function Sidebar({ isOpen, onClose }) {
   const toggleSection = (name) => {
     setOpenSection((prev) => (prev === name ? null : name));
   };
-
-  const adminLabel = isSuperAdmin
-    ? "Super Admin"
-    : isShopAdmin
-      ? `${adminShop || "shop"} Admin`
-      : role;
 
   return (
     <>
@@ -441,13 +427,6 @@ export default function Sidebar({ isOpen, onClose }) {
               <>
                 <div className="side-divider" />
 
-                <div className="sidebar-link" style={{ cursor: "default" }}>
-                  <span className="side-link-content">
-                    <IconShield />
-                    <span>{adminLabel}</span>
-                  </span>
-                </div>
-
                 <button
                   className="sidebar-link sidebar-link--expand"
                   onClick={() => toggleSection("admin")}
@@ -481,7 +460,7 @@ export default function Sidebar({ isOpen, onClose }) {
                       onClick={() => go("/admin-orders")}
                       type="button"
                     >
-                      {isSuperAdmin ? "Admin orders" : "Shop orders"}
+                      Shop orders
                     </button>
                     <button
                       className="side-subitem"
