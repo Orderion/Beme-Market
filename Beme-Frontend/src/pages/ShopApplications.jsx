@@ -41,7 +41,7 @@ function normalizeStatus(value, fallback = "pending") {
 }
 
 const APPROVAL_OPTIONS = ["pending", "approved", "rejected"];
-const PAYMENT_OPTIONS = ["pending", "paid", "failed"];
+const PAYMENT_OPTIONS = ["pending_payment", "pending", "paid", "failed"];
 
 export default function ShopApplications() {
   const { user, loading, isSuperAdmin } = useAuth();
@@ -159,7 +159,7 @@ export default function ShopApplications() {
         <div>
           <h1>Shop Applications</h1>
           <div className="muted">
-            Review new shop owner requests, verify payment, and approve access.
+            Review paid shop submissions and approve access.
           </div>
         </div>
       </div>
@@ -185,22 +185,20 @@ export default function ShopApplications() {
                   <div className="order-id">#{app.id.slice(0, 8)}</div>
                   <div className="order-meta">
                     <span>{app.businessName || "Business"}</span>
-                    {app.ownerName ? (
-                      <span className="muted">{app.ownerName}</span>
-                    ) : null}
+                    {app.ownerName ? <span className="muted">{app.ownerName}</span> : null}
                     {app.email ? <span className="muted">{app.email}</span> : null}
                   </div>
                 </div>
 
                 <div className="order-total">
-                  {titleize(app.shop || "shop")}
+                  {titleize(app.shopName || app.shop || "shop")}
                 </div>
               </div>
 
               <div className="order-items">
                 <div className="order-item">
-                  <span>Shop display name</span>
-                  <span className="muted">{app.shopName || "—"}</span>
+                  <span>Shop key</span>
+                  <span className="muted">{app.shop || "—"}</span>
                 </div>
 
                 <div className="order-item">
@@ -216,6 +214,11 @@ export default function ShopApplications() {
                 <div className="order-item">
                   <span>Applied</span>
                   <span className="muted">{formatDate(app.createdAt)}</span>
+                </div>
+
+                <div className="order-item">
+                  <span>Payment reference</span>
+                  <span className="muted">{app.reference || "—"}</span>
                 </div>
 
                 {app.description ? (

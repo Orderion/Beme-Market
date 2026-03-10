@@ -22,6 +22,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminOrders from "./pages/AdminOrders";
 import Analytics from "./pages/Analytics";
 import ShopOwnerApply from "./pages/ShopOwnerApply";
+import ShopOwnerPaymentStatus from "./pages/ShopOwnerPaymentStatus";
 import PayoutRequests from "./pages/PayoutRequests";
 import ShopApplications from "./pages/ShopApplications";
 
@@ -76,6 +77,7 @@ function AppShell() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/own-a-shop" element={<ShopOwnerApply />} />
+          <Route path="/shop-payment-status" element={<ShopOwnerPaymentStatus />} />
 
           <Route path="/about" element={<About />} />
           <Route path="/support" element={<Support />} />

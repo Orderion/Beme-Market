@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { Navigate } from "react-router-dom";
-import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import { SHOPS } from "../constants/catalog";
+import { startShopOwnerCheckout } from "../lib/checkout";
 import "./AdminLogin.css";
 
 const YEARLY_PRICE_USD = 120;
@@ -72,6 +71,7 @@ export default function ShopOwnerApply() {
   };
 
   const validate = () => {
+    if (!user?.uid) return "You must be logged in.";
     if (!form.businessName.trim()) return "Business name is required.";
     if (!form.ownerName.trim()) return "Owner name is required.";
     if (!form.phone.trim()) return "Phone number is required.";
@@ -98,7 +98,7 @@ export default function ShopOwnerApply() {
     setSubmitting(true);
 
     try {
-      await addDoc(collection(db, "shopApplications"), {
+      await startShopOwnerCheckout({
         userId: user.uid,
         businessName: form.businessName.trim(),
         ownerName: form.ownerName.trim(),
@@ -115,24 +115,10 @@ export default function ShopOwnerApply() {
           usd: YEARLY_PRICE_USD,
           ghs: YEARLY_PRICE_GHS,
         },
-        paymentStatus: "pending",
-        approvalStatus: "pending",
-        roleToGrant: "shop_admin",
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      setMsg(
-        "Application submitted successfully. Next step: payment verification and super admin approval."
-      );
-      setForm({
-        ...INITIAL_FORM,
-        email: user?.email || "",
       });
     } catch (error) {
-      console.error("Shop application error:", error);
-      setErr(error?.message || "Failed to submit application.");
-    } finally {
+      console.error("Shop owner payment init error:", error);
+      setErr(error?.message || "Failed to continue to payment.");
       setSubmitting(false);
     }
   };
@@ -165,7 +151,7 @@ export default function ShopOwnerApply() {
         <p className="admin-login-subtitle">
           Apply to become a verified Beme Market shop owner. Yearly access fee:
           <strong> ${YEARLY_PRICE_USD}</strong> or <strong>GHS {YEARLY_PRICE_GHS}</strong>.
-          Approval happens only after payment verification and super admin review.
+          You will continue to payment after submitting this form. Your shop is only activated after payment verification and super admin approval.
         </p>
 
         <form className="admin-login-form" onSubmit={onSubmit}>
@@ -283,10 +269,14 @@ export default function ShopOwnerApply() {
           </label>
 
           {err ? <div className="admin-login-error">{err}</div> : null}
-          {msg ? <div className="admin-login-error" style={{ color: "green" }}>{msg}</div> : null}
+          {msg ? (
+            <div className="admin-login-error" style={{ color: "green" }}>
+              {msg}
+            </div>
+          ) : null}
 
           <button type="submit" className="admin-login-btn" disabled={submitting}>
-            {submitting ? "Submitting..." : "Submit shop application"}
+            {submitting ? "Redirecting to payment..." : "Continue to payment"}
           </button>
         </form>
       </div>

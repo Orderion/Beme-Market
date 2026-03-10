@@ -282,27 +282,6 @@ function IconShield() {
   );
 }
 
-function IconAnalytics() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M5 19V11M12 19V5M19 19v-8"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="M4 19h16"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 function IconStorefront() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
@@ -320,28 +299,6 @@ function IconStorefront() {
         strokeWidth="1.7"
         strokeLinecap="round"
       />
-    </svg>
-  );
-}
-
-function IconWallet() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6.5A2.5 2.5 0 0 1 4 16.5v-9Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M15 12h5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <circle cx="15" cy="12" r="1" fill="currentColor" />
     </svg>
   );
 }
@@ -439,27 +396,32 @@ export default function Sidebar({ isOpen, onClose }) {
               onClick={onClose}
               aria-label="Close menu"
               className="side-close"
+              type="button"
             >
               ×
             </button>
           </div>
 
           <div className="side-links">
-            <button className="sidebar-link" onClick={() => go("/")}>
+            <button className="sidebar-link" onClick={() => go("/")} type="button">
               <span className="side-link-content">
                 <IconHome />
                 <span>Home</span>
               </span>
             </button>
 
-            <button className="sidebar-link" onClick={() => go("/shop")}>
+            <button className="sidebar-link" onClick={() => go("/shop")} type="button">
               <span className="side-link-content">
                 <IconShop />
                 <span>Shop</span>
               </span>
             </button>
 
-            <button className="sidebar-link" onClick={() => go("/own-a-shop")}>
+            <button
+              className="sidebar-link"
+              onClick={() => go("/own-a-shop")}
+              type="button"
+            >
               <span className="side-link-content">
                 <IconStorefront />
                 <span>Own a Shop</span>
@@ -467,7 +429,7 @@ export default function Sidebar({ isOpen, onClose }) {
             </button>
 
             {user && (
-              <button className="sidebar-link" onClick={() => go("/orders")}>
+              <button className="sidebar-link" onClick={() => go("/orders")} type="button">
                 <span className="side-link-content">
                   <IconOrders />
                   <span>Orders</span>
@@ -490,6 +452,7 @@ export default function Sidebar({ isOpen, onClose }) {
                   className="sidebar-link sidebar-link--expand"
                   onClick={() => toggleSection("admin")}
                   aria-expanded={openSection === "admin"}
+                  type="button"
                 >
                   <span className="side-link-content">
                     <IconShield />
@@ -510,20 +473,36 @@ export default function Sidebar({ isOpen, onClose }) {
                   }`}
                 >
                   <div className="side-submenu">
-                    <button className="side-subitem" onClick={() => go("/admin")}>
+                    <button className="side-subitem" onClick={() => go("/admin")} type="button">
                       Product manager
                     </button>
-                    <button className="side-subitem" onClick={() => go("/admin-orders")}>
+                    <button
+                      className="side-subitem"
+                      onClick={() => go("/admin-orders")}
+                      type="button"
+                    >
                       {isSuperAdmin ? "Admin orders" : "Shop orders"}
                     </button>
-                    <button className="side-subitem" onClick={() => go("/analytics")}>
+                    <button
+                      className="side-subitem"
+                      onClick={() => go("/analytics")}
+                      type="button"
+                    >
                       Analytics
                     </button>
-                    <button className="side-subitem" onClick={() => go("/payout-requests")}>
+                    <button
+                      className="side-subitem"
+                      onClick={() => go("/payout-requests")}
+                      type="button"
+                    >
                       Payout requests
                     </button>
                     {isSuperAdmin ? (
-                      <button className="side-subitem" onClick={() => go("/shop-applications")}>
+                      <button
+                        className="side-subitem"
+                        onClick={() => go("/shop-applications")}
+                        type="button"
+                      >
                         Shop applications
                       </button>
                     ) : null}
@@ -538,6 +517,7 @@ export default function Sidebar({ isOpen, onClose }) {
               className="sidebar-link sidebar-link--expand"
               onClick={() => toggleSection("categories")}
               aria-expanded={openSection === "categories"}
+              type="button"
             >
               <span className="side-link-content">
                 <IconGrid />
@@ -558,13 +538,17 @@ export default function Sidebar({ isOpen, onClose }) {
               }`}
             >
               <div className="side-submenu">
-                <button className="side-subitem" onClick={() => goCategory("tech")}>
+                <button className="side-subitem" onClick={() => goCategory("tech")} type="button">
                   Tech
                 </button>
-                <button className="side-subitem" onClick={() => goCategory("fashion")}>
+                <button className="side-subitem" onClick={() => goCategory("fashion")} type="button">
                   Fashion
                 </button>
-                <button className="side-subitem" onClick={() => goCategory("accessories")}>
+                <button
+                  className="side-subitem"
+                  onClick={() => goCategory("accessories")}
+                  type="button"
+                >
                   Accessories
                 </button>
               </div>
@@ -574,6 +558,7 @@ export default function Sidebar({ isOpen, onClose }) {
               className="sidebar-link sidebar-link--expand"
               onClick={() => toggleSection("departments")}
               aria-expanded={openSection === "departments"}
+              type="button"
             >
               <span className="side-link-content">
                 <IconLayers />
@@ -594,16 +579,20 @@ export default function Sidebar({ isOpen, onClose }) {
               }`}
             >
               <div className="side-submenu">
-                <button className="side-subitem" onClick={() => goDept("men")}>
+                <button className="side-subitem" onClick={() => goDept("men")} type="button">
                   Men
                 </button>
-                <button className="side-subitem" onClick={() => goDept("women")}>
+                <button className="side-subitem" onClick={() => goDept("women")} type="button">
                   Women
                 </button>
-                <button className="side-subitem" onClick={() => goDept("kids")}>
+                <button className="side-subitem" onClick={() => goDept("kids")} type="button">
                   Kids
                 </button>
-                <button className="side-subitem" onClick={() => goDept("accessories")}>
+                <button
+                  className="side-subitem"
+                  onClick={() => goDept("accessories")}
+                  type="button"
+                >
                   Accessories
                 </button>
               </div>
@@ -613,6 +602,7 @@ export default function Sidebar({ isOpen, onClose }) {
               className="sidebar-link sidebar-link--expand"
               onClick={() => toggleSection("more")}
               aria-expanded={openSection === "more"}
+              type="button"
             >
               <span className="side-link-content">
                 <IconMore />
@@ -631,25 +621,29 @@ export default function Sidebar({ isOpen, onClose }) {
               }`}
             >
               <div className="side-submenu">
-                <button className="side-subitem" onClick={() => go("/about")}>
+                <button className="side-subitem" onClick={() => go("/about")} type="button">
                   About us
                 </button>
-                <button className="side-subitem" onClick={() => go("/support")}>
+                <button className="side-subitem" onClick={() => go("/support")} type="button">
                   Support us
                 </button>
-                <button className="side-subitem" onClick={() => go("/contact")}>
+                <button className="side-subitem" onClick={() => go("/contact")} type="button">
                   Contact
                 </button>
-                <button className="side-subitem" onClick={() => go("/faq")}>
+                <button className="side-subitem" onClick={() => go("/faq")} type="button">
                   FAQ
                 </button>
-                <button className="side-subitem" onClick={() => go("/shipping&returns")}>
+                <button
+                  className="side-subitem"
+                  onClick={() => go("/shipping&returns")}
+                  type="button"
+                >
                   Shipping & Returns
                 </button>
               </div>
             </div>
 
-            <button className="sidebar-link" onClick={onOffersClick}>
+            <button className="sidebar-link" onClick={onOffersClick} type="button">
               <span className="side-link-content">
                 <IconTag />
                 <span>Offers</span>
@@ -660,14 +654,14 @@ export default function Sidebar({ isOpen, onClose }) {
 
             {!user ? (
               <>
-                <button className="sidebar-link" onClick={() => go("/login")}>
+                <button className="sidebar-link" onClick={() => go("/login")} type="button">
                   <span className="side-link-content">
                     <IconLogin />
                     <span>Login</span>
                   </span>
                 </button>
 
-                <button className="sidebar-link" onClick={() => go("/signup")}>
+                <button className="sidebar-link" onClick={() => go("/signup")} type="button">
                   <span className="side-link-content">
                     <IconUserPlus />
                     <span>Sign up</span>
@@ -678,6 +672,7 @@ export default function Sidebar({ isOpen, onClose }) {
               <button
                 className="sidebar-link sidebar-link--danger"
                 onClick={() => setConfirmLogout(true)}
+                type="button"
               >
                 <span className="side-link-content">
                   <IconLogout />
@@ -691,12 +686,14 @@ export default function Sidebar({ isOpen, onClose }) {
                   <button
                     className="side-confirm-btn"
                     onClick={() => setConfirmLogout(false)}
+                    type="button"
                   >
                     Cancel
                   </button>
                   <button
                     className="side-confirm-btn side-confirm-btn--danger"
                     onClick={onLogout}
+                    type="button"
                   >
                     Log out
                   </button>
