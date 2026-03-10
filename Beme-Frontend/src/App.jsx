@@ -20,6 +20,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import AdminLogin from "./pages/AdminLogin";
 import AdminOrders from "./pages/AdminOrders";
+import Analytics from "./pages/Analytics";
 
 import ProductDetails from "./pages/ProductDetails";
 import Checkout from "./pages/Checkout";
@@ -100,6 +101,17 @@ function AppShell() {
               <AdminRoute>
                 <RequireAdmin>
                   <AdminOrders />
+                </RequireAdmin>
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/analytics"
+            element={
+              <AdminRoute>
+                <RequireAdmin>
+                  <Analytics />
                 </RequireAdmin>
               </AdminRoute>
             }
