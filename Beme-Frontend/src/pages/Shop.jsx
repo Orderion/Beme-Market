@@ -1,4 +1,3 @@
-// src/pages/Shop.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductGrid from "../components/ProductGrid";
@@ -14,11 +13,21 @@ import {
 import "./Shop.css";
 
 const SHOP_TITLE_MAP = {
-  main: "Main Store",
+  main: "Fashion Shop",
   kente: "Mintah's Kente",
   perfume: "Perfume Shop",
   tech: "Tech Shop",
 };
+
+const SHOP_FILTER_OPTIONS = SHOPS.map((shop) =>
+  shop.key === "main"
+    ? { ...shop, label: "Fashion Shop" }
+    : { ...shop }
+);
+
+function getLabel(list, key) {
+  return list.find((item) => item.key === key)?.label || null;
+}
 
 const Shop = () => {
   const [params, setParams] = useSearchParams();
@@ -40,6 +49,7 @@ const Shop = () => {
   useEffect(() => {
     const anyOpen = filtersOpen || sortOpen;
     document.body.style.overflow = anyOpen ? "hidden" : "";
+
     return () => {
       document.body.style.overflow = "";
     };
@@ -53,17 +63,21 @@ const Shop = () => {
     featured: featuredParam,
   }));
 
+  useEffect(() => {
+    setDraft({
+      sort: sortParam,
+      min: minParam ?? "",
+      max: maxParam ?? "",
+      stock: stockParam,
+      featured: featuredParam,
+    });
+  }, [sortParam, minParam, maxParam, stockParam, featuredParam]);
+
   const title = useMemo(() => {
     if (qParam) return `Search: "${qParam}"`;
 
-    const deptLabel = deptParam
-      ? DEPARTMENTS.find((d) => d.key === deptParam)?.label
-      : null;
-
-    const kindLabel = kindParam
-      ? KINDS.find((k) => k.key === kindParam)?.label
-      : null;
-
+    const deptLabel = deptParam ? getLabel(DEPARTMENTS, deptParam) : null;
+    const kindLabel = kindParam ? getLabel(KINDS, kindParam) : null;
     const shopLabel = shopParam ? SHOP_TITLE_MAP[shopParam] || "Shop" : null;
 
     if (shopLabel && deptLabel && kindLabel) {
@@ -94,6 +108,91 @@ const Shop = () => {
     featuredParam ||
     minParam != null ||
     maxParam != null;
+
+  const activePills = useMemo(() => {
+    const pills = [];
+
+    if (shopParam) {
+      pills.push({
+        key: `shop:${shopParam}`,
+        label: SHOP_TITLE_MAP[shopParam] || "Shop",
+        onRemove: () => setShop(null),
+      });
+    }
+
+    if (deptParam) {
+      pills.push({
+        key: `dept:${deptParam}`,
+        label: getLabel(DEPARTMENTS, deptParam) || deptParam,
+        onRemove: () => setDept(null),
+      });
+    }
+
+    if (kindParam) {
+      pills.push({
+        key: `kind:${kindParam}`,
+        label: getLabel(KINDS, kindParam) || kindParam,
+        onRemove: () => setKind(null),
+      });
+    }
+
+    if (qParam) {
+      pills.push({
+        key: `q:${qParam}`,
+        label: `Search: ${qParam}`,
+        onRemove: () => clearSearch(),
+      });
+    }
+
+    if (sortParam !== "new") {
+      pills.push({
+        key: `sort:${sortParam}`,
+        label:
+          sortParam === "price-asc"
+            ? "Price: Low to High"
+            : sortParam === "price-desc"
+              ? "Price: High to Low"
+              : "Newest",
+        onRemove: () => resetSortOnly(),
+      });
+    }
+
+    if (minParam != null || maxParam != null) {
+      pills.push({
+        key: "price-range",
+        label: `GHS ${minParam ?? 0} - ${maxParam ?? "∞"}`,
+        onRemove: () => resetPriceOnly(),
+      });
+    }
+
+    if (stockParam) {
+      pills.push({
+        key: "stock",
+        label: "In stock",
+        onRemove: () => toggleStock(false),
+      });
+    }
+
+    if (featuredParam) {
+      pills.push({
+        key: "featured",
+        label: "Featured",
+        onRemove: () => toggleFeatured(false),
+      });
+    }
+
+    return pills;
+  }, [
+    shopParam,
+    deptParam,
+    kindParam,
+    qParam,
+    sortParam,
+    minParam,
+    maxParam,
+    stockParam,
+    featuredParam,
+  ]);
 
   const setDept = (dept) => {
     const next = new URLSearchParams(params);
@@ -142,6 +241,43 @@ const Shop = () => {
     setParams(next);
   };
 
+  const clearSearch = () => {
+    const next = new URLSearchParams(params);
+    next.delete("q");
+    setParams(next);
+  };
+
+  const resetSortOnly = () => {
+    const next = new URLSearchParams(params);
+    next.delete("sort");
+    setParams(next);
+  };
+
+  const resetPriceOnly = () => {
+    const next = new URLSearchParams(params);
+    next.delete("min");
+    next.delete("max");
+    setParams(next);
+  };
+
+  const toggleStock = (value) => {
+    const next = new URLSearchParams(params);
+
+    if (value) next.set("stock", "1");
+    else next.delete("stock");
+
+    setParams(next);
+  };
+
+  const toggleFeatured = (value) => {
+    const next = new URLSearchParams(params);
+
+    if (value) next.set("featured", "1");
+    else next.delete("featured");
+
+    setParams(next);
+  };
+
   const clearFilterPanel = () => {
     const next = new URLSearchParams(params);
     next.delete("dept");
@@ -153,6 +289,7 @@ const Shop = () => {
 
   const clearAll = () => {
     const next = new URLSearchParams(params);
+
     [
       "dept",
       "kind",
@@ -163,7 +300,8 @@ const Shop = () => {
       "stock",
       "featured",
       "q",
-    ].forEach((k) => next.delete(k));
+    ].forEach((key) => next.delete(key));
+
     setParams(next);
     setFiltersOpen(false);
     setSortOpen(false);
@@ -213,7 +351,13 @@ const Shop = () => {
   };
 
   const clearSortPanel = () => {
-    setDraft({ sort: "new", min: "", max: "", stock: false, featured: false });
+    setDraft({
+      sort: "new",
+      min: "",
+      max: "",
+      stock: false,
+      featured: false,
+    });
 
     const next = new URLSearchParams(params);
     next.delete("sort");
@@ -260,6 +404,73 @@ const Shop = () => {
         <div className="shop-top-spacer" />
       </div>
 
+      <div className="shop-quick-store-bar">
+        <div className="shop-quick-store-head">
+          <span className="shop-quick-store-label">Browse by store</span>
+          {shopParam ? (
+            <button
+              type="button"
+              className="shop-quick-store-clear"
+              onClick={() => setShop(null)}
+            >
+              Show all
+            </button>
+          ) : null}
+        </div>
+
+        <div className="shop-quick-store-row">
+          <button
+            type="button"
+            className={!shopParam ? "shop-store-chip active" : "shop-store-chip"}
+            onClick={() => setShop(null)}
+          >
+            All stores
+          </button>
+
+          {SHOP_FILTER_OPTIONS.map((shop) => (
+            <button
+              key={shop.key}
+              type="button"
+              className={
+                shopParam === shop.key
+                  ? "shop-store-chip active"
+                  : "shop-store-chip"
+              }
+              onClick={() => setShop(shop.key)}
+            >
+              {shop.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {activePills.length ? (
+        <div className="shop-active-pills-wrap">
+          <div className="shop-active-pills">
+            {activePills.map((pill) => (
+              <button
+                key={pill.key}
+                type="button"
+                className="shop-active-pill"
+                onClick={pill.onRemove}
+                aria-label={`Remove ${pill.label}`}
+              >
+                <span>{pill.label}</span>
+                <span className="shop-active-pill-x">×</span>
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            className="shop-active-clearall"
+            onClick={clearAll}
+          >
+            Clear all
+          </button>
+        </div>
+      ) : null}
+
       <div className={`shop-panel ${filtersOpen ? "open" : ""}`}>
         <div className="shop-panel-inner">
           <div className="shop-panel-head">
@@ -298,7 +509,8 @@ const Shop = () => {
               >
                 All shops
               </button>
-              {SHOPS.map((shop) => (
+
+              {SHOP_FILTER_OPTIONS.map((shop) => (
                 <button
                   key={shop.key}
                   type="button"
@@ -321,14 +533,15 @@ const Shop = () => {
               >
                 All
               </button>
-              {DEPARTMENTS.map((d) => (
+
+              {DEPARTMENTS.map((dept) => (
                 <button
-                  key={d.key}
+                  key={dept.key}
                   type="button"
-                  className={deptParam === d.key ? "chip active" : "chip"}
-                  onClick={() => setDept(d.key)}
+                  className={deptParam === dept.key ? "chip active" : "chip"}
+                  onClick={() => setDept(dept.key)}
                 >
-                  {d.label}
+                  {dept.label}
                 </button>
               ))}
             </div>
@@ -344,14 +557,15 @@ const Shop = () => {
               >
                 All types
               </button>
-              {KINDS.map((k) => (
+
+              {KINDS.map((kind) => (
                 <button
-                  key={k.key}
+                  key={kind.key}
                   type="button"
-                  className={kindParam === k.key ? "chip active" : "chip"}
-                  onClick={() => setKind(k.key)}
+                  className={kindParam === kind.key ? "chip active" : "chip"}
+                  onClick={() => setKind(kind.key)}
                 >
-                  {k.label}
+                  {kind.label}
                 </button>
               ))}
             </div>
@@ -363,6 +577,7 @@ const Shop = () => {
         <div className="shop-panel-inner">
           <div className="shop-panel-head">
             <span className="shop-panel-title">Sort & Price</span>
+
             {hasActiveSort && (
               <button
                 type="button"
@@ -376,13 +591,14 @@ const Shop = () => {
 
           <div className="shop-panel-section">
             <div className="shop-panel-label">Sort</div>
+
             <div className="shop-radio">
               <label className="shop-radio-item">
                 <input
                   type="radio"
                   name="sort"
                   checked={draft.sort === "new"}
-                  onChange={() => setDraft((p) => ({ ...p, sort: "new" }))}
+                  onChange={() => setDraft((prev) => ({ ...prev, sort: "new" }))}
                 />
                 Newest
               </label>
@@ -393,7 +609,7 @@ const Shop = () => {
                   name="sort"
                   checked={draft.sort === "price-asc"}
                   onChange={() =>
-                    setDraft((p) => ({ ...p, sort: "price-asc" }))
+                    setDraft((prev) => ({ ...prev, sort: "price-asc" }))
                   }
                 />
                 Price: Low to High
@@ -405,7 +621,7 @@ const Shop = () => {
                   name="sort"
                   checked={draft.sort === "price-desc"}
                   onChange={() =>
-                    setDraft((p) => ({ ...p, sort: "price-desc" }))
+                    setDraft((prev) => ({ ...prev, sort: "price-desc" }))
                   }
                 />
                 Price: High to Low
@@ -415,13 +631,14 @@ const Shop = () => {
 
           <div className="shop-panel-section">
             <div className="shop-panel-label">Price range (GHS)</div>
+
             <div className="shop-range">
               <input
                 inputMode="numeric"
                 placeholder="Min"
                 value={draft.min}
                 onChange={(e) =>
-                  setDraft((p) => ({ ...p, min: e.target.value }))
+                  setDraft((prev) => ({ ...prev, min: e.target.value }))
                 }
               />
               <span className="shop-range-dash">—</span>
@@ -430,7 +647,7 @@ const Shop = () => {
                 placeholder="Max"
                 value={draft.max}
                 onChange={(e) =>
-                  setDraft((p) => ({ ...p, max: e.target.value }))
+                  setDraft((prev) => ({ ...prev, max: e.target.value }))
                 }
               />
             </div>
@@ -440,7 +657,7 @@ const Shop = () => {
                 type="checkbox"
                 checked={draft.stock}
                 onChange={(e) =>
-                  setDraft((p) => ({ ...p, stock: e.target.checked }))
+                  setDraft((prev) => ({ ...prev, stock: e.target.checked }))
                 }
               />
               In stock only
@@ -451,7 +668,7 @@ const Shop = () => {
                 type="checkbox"
                 checked={draft.featured}
                 onChange={(e) =>
-                  setDraft((p) => ({ ...p, featured: e.target.checked }))
+                  setDraft((prev) => ({ ...prev, featured: e.target.checked }))
                 }
               />
               Featured only
@@ -466,6 +683,7 @@ const Shop = () => {
             >
               Cancel
             </button>
+
             <button
               type="button"
               className="shop-btn solid"
@@ -482,7 +700,7 @@ const Shop = () => {
           className="shop-control-btn"
           type="button"
           onClick={() => {
-            setFiltersOpen((v) => !v);
+            setFiltersOpen((open) => !open);
             setSortOpen(false);
           }}
           aria-expanded={filtersOpen}

@@ -4,6 +4,7 @@ import { collection, getDocs, limit, query } from "firebase/firestore";
 import { db } from "../firebase";
 import ProductGrid from "../components/ProductGrid";
 import banner from "../assets/home-banner.png";
+import fashionBanner from "../assets/fashion-banner.png";
 import kenteBanner from "../assets/kente-banner.png";
 import perfumeBanner from "../assets/perfume-banner.png";
 import techBanner from "../assets/tech-banner.png";
@@ -189,11 +190,11 @@ export default function Home() {
       },
       {
         id: "fashion",
-        image: banner,
+        image: fashionBanner,
         badge: "Fashion Shop",
         title: "Modern fashion for every day",
-        subtitle: "Elevated style, clean looks, easy shopping.",
-        action: () => navigate("/shop?shop=main"),
+        subtitle: "Elevated style, clean looks, and curated wardrobe essentials.",
+        action: () => navigate("/shop?shop=fashion"),
       },
       {
         id: "kente",
@@ -290,7 +291,8 @@ export default function Home() {
   const currentSlide = heroSlides[heroIndex];
 
   const goToShop = () => navigate("/shop");
-  const goToFashionShop = () => navigate("/shop?shop=main");
+  const goToFashionShop = () => navigate("/shop?shop=fashion");
+  const goToMainStore = () => navigate("/shop?shop=main");
   const goToPerfumeShop = () => navigate("/shop?shop=perfume");
   const goToKenteCollection = () => navigate("/shop?shop=kente");
   const goToTechShop = () => navigate("/shop?shop=tech");
@@ -474,7 +476,7 @@ export default function Home() {
 
         <div className="shop-banner-grid">
           <BannerLinkCard
-            image={banner}
+            image={fashionBanner}
             chip="Fashion Shop"
             title="Modern fashion essentials"
             subtitle="Clean everyday style, curated for confident dressing."
@@ -482,6 +484,17 @@ export default function Home() {
             tone="fashion"
             onClick={goToFashionShop}
             ariaLabel="Open Fashion Shop"
+          />
+
+          <BannerLinkCard
+            image={banner}
+            chip="Main Store"
+            title="Everyday bestsellers"
+            subtitle="Browse mixed essentials, standout finds, and store highlights."
+            align="left"
+            tone="main"
+            onClick={goToMainStore}
+            ariaLabel="Open Main Store"
           />
 
           <BannerLinkCard

@@ -35,7 +35,7 @@ const initial = {
   description: "",
   dept: "men",
   kind: "fashion",
-  shop: "main",
+  shop: "fashion",
   inStock: true,
   featured: false,
   customizations: [],
@@ -73,6 +73,12 @@ function titleize(value) {
     .replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
+function formatShopLabel(value) {
+  const match = SHOPS.find((shop) => shop.key === String(value || "").trim());
+  if (match?.label) return match.label;
+  return titleize(value);
+}
+
 function normalizeAdminProduct(snapshotDoc) {
   const d = snapshotDoc.data() || {};
   const images = Array.isArray(d.images)
@@ -93,7 +99,7 @@ function normalizeAdminProduct(snapshotDoc) {
     images: images.length ? images : cover ? [cover] : [],
     dept: String(d.dept || "").trim(),
     kind: String(d.kind || "").trim(),
-    shop: String(d.shop || "main").trim(),
+    shop: String(d.shop || "fashion").trim(),
     featured: !!d.featured,
     inStock: !!d.inStock,
     createdAt: d.createdAt || null,
@@ -686,6 +692,28 @@ export default function Admin() {
               </p>
             </div>
 
+            <div className="admin-store-pills">
+              {SHOPS.map((shop) => (
+                <button
+                  key={shop.key}
+                  type="button"
+                  className={
+                    form.shop === shop.key
+                      ? "admin-store-pill active"
+                      : "admin-store-pill"
+                  }
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      shop: shop.key,
+                    }))
+                  }
+                >
+                  {shop.label}
+                </button>
+              ))}
+            </div>
+
             <label className="admin-field">
               <span>Shop</span>
               <select value={form.shop} onChange={setField("shop")}>
@@ -882,8 +910,8 @@ export default function Admin() {
               const gallery = Array.isArray(product.images)
                 ? product.images
                 : product.image
-                ? [product.image]
-                : [];
+                  ? [product.image]
+                  : [];
 
               return (
                 <div className="admin-product-item" key={product.id}>
@@ -934,7 +962,7 @@ export default function Admin() {
                       <div>
                         <h3 className="admin-product-name">{product.name}</h3>
                         <div className="admin-product-meta">
-                          <span>{titleize(product.shop)}</span>
+                          <span>{formatShopLabel(product.shop)}</span>
                           <span>{titleize(product.kind)}</span>
                           <span>{titleize(product.dept)}</span>
                         </div>

@@ -27,7 +27,9 @@
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .shop-top-btn:hover {
@@ -48,11 +50,161 @@
   font-weight: 700;
   letter-spacing: -0.06em;
   color: var(--text);
+  text-align: center;
 }
 
 .shop-top-spacer {
   width: 44px;
   height: 44px;
+}
+
+.shop-quick-store-bar {
+  padding: 14px 18px 4px;
+  animation: fadeUpSoft 0.42s ease;
+}
+
+.shop-quick-store-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.shop-quick-store-label {
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.shop-quick-store-clear {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease,
+    background 0.18s ease;
+}
+
+.shop-quick-store-clear:hover {
+  transform: translateY(-1px);
+  opacity: 0.92;
+}
+
+.shop-quick-store-row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px 0 8px;
+  scrollbar-width: none;
+}
+
+.shop-quick-store-row::-webkit-scrollbar {
+  display: none;
+}
+
+.shop-store-chip {
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease,
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.shop-store-chip:hover {
+  transform: translateY(-1px);
+  opacity: 0.94;
+}
+
+.shop-store-chip.active {
+  background: var(--text);
+  color: var(--button-text);
+  border-color: var(--text);
+}
+
+.shop-active-pills-wrap {
+  padding: 6px 18px 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  animation: fadeUpSoft 0.42s ease;
+}
+
+.shop-active-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.shop-active-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--soft);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease,
+    background 0.18s ease;
+}
+
+.shop-active-pill:hover {
+  transform: translateY(-1px);
+  opacity: 0.94;
+}
+
+.shop-active-pill-x {
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0.72;
+}
+
+.shop-active-clearall {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  opacity: 0.74;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.shop-active-clearall:hover {
+  opacity: 1;
+  transform: translateY(-1px);
 }
 
 .shop-controls {
@@ -78,7 +230,9 @@
   font-size: 15px;
   font-weight: 800;
   color: var(--text);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .shop-control-btn:hover {
@@ -253,11 +407,13 @@
   align-items: center;
   justify-content: space-between;
   margin: 6px 0 12px;
+  gap: 10px;
 }
 
 .shop-panel-head-actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .shop-panel-title {
@@ -277,6 +433,14 @@
   font-size: 12px;
   cursor: pointer;
   font-weight: 700;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.shop-panel-action:hover {
+  transform: translateY(-1px);
+  opacity: 0.92;
 }
 
 .shop-panel-section {
@@ -332,6 +496,11 @@
   outline: none;
 }
 
+.shop-range input:focus {
+  border-color: color-mix(in srgb, var(--text) 20%, var(--border));
+  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.04);
+}
+
 .shop-range-dash {
   color: var(--muted);
 }
@@ -359,7 +528,9 @@
   border: 1px solid var(--border);
   cursor: pointer;
   font-weight: 800;
-  transition: transform 0.18s ease, opacity 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease;
 }
 
 .shop-btn:hover {
@@ -383,4 +554,102 @@ body.dark .shop-btn.solid {
 .shop-btn.ghost {
   background: transparent;
   color: var(--text);
+}
+
+.chip {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.chip:hover {
+  transform: translateY(-1px);
+  opacity: 0.94;
+}
+
+.chip.active {
+  background: var(--text);
+  color: var(--button-text);
+  border-color: var(--text);
+}
+
+@media (max-width: 768px) {
+  .shop-title {
+    font-size: 28px;
+  }
+
+  .shop-controls {
+    margin: 10px 14px 0;
+  }
+
+  .shop-meta {
+    padding: 12px 14px 8px;
+  }
+
+  .shop-quick-store-bar {
+    padding: 12px 14px 2px;
+  }
+
+  .shop-active-pills-wrap {
+    padding: 6px 14px 0;
+    align-items: flex-start;
+  }
+
+  .shop-panel-inner {
+    padding: 12px 14px 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .shop-topbar {
+    padding: 12px 14px 10px;
+  }
+
+  .shop-title {
+    font-size: 24px;
+    letter-spacing: -0.05em;
+  }
+
+  .shop-control-btn {
+    font-size: 14px;
+    padding: 10px 4px;
+  }
+
+  .shop-range {
+    grid-template-columns: 1fr;
+  }
+
+  .shop-range-dash {
+    display: none;
+  }
+
+  .shop-panel-actions {
+    justify-content: stretch;
+  }
+
+  .shop-btn {
+    flex: 1 1 0;
+  }
+
+  .shop-quick-store-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .shop-active-clearall {
+    padding-left: 2px;
+  }
 }

@@ -409,6 +409,14 @@
   );
 }
 
+.shop-banner--main .shop-banner-overlay--left {
+  background: linear-gradient(
+    180deg,
+    rgba(20, 20, 20, 0.08),
+    rgba(20, 20, 20, 0.6)
+  );
+}
+
 /* ===== SECTIONS ===== */
 
 .section {

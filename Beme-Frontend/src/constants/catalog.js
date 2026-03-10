@@ -1,4 +1,3 @@
-// src/constants/catalog.js
 export const DEPARTMENTS = [
   { key: "men", label: "Men" },
   { key: "women", label: "Women" },
@@ -13,6 +12,7 @@ export const KINDS = [
 ];
 
 export const SHOPS = [
+  { key: "fashion", label: "Fashion Shop" },
   { key: "main", label: "Main Store" },
   { key: "kente", label: "Mintah's Kente" },
   { key: "perfume", label: "Perfume Shop" },
