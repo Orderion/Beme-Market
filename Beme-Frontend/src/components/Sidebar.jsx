@@ -306,12 +306,13 @@ function IconStorefront() {
 export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
   const { darkMode, toggleTheme } = useTheme();
-  const { user, isAdmin, isSuperAdmin, logout } = useAuth();
+  const { user, isAdmin, isSuperAdmin, adminShop, profile, logout } = useAuth();
 
   const [openSection, setOpenSection] = useState(null);
   const [confirmLogout, setConfirmLogout] = useState(false);
 
   const offers = useMemo(() => [], []);
+  const ownsShop = !!adminShop || !!profile?.shop || isAdmin;
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
@@ -403,16 +404,18 @@ export default function Sidebar({ isOpen, onClose }) {
               </span>
             </button>
 
-            <button
-              className="sidebar-link"
-              onClick={() => go("/own-a-shop")}
-              type="button"
-            >
-              <span className="side-link-content">
-                <IconStorefront />
-                <span>Own a Shop</span>
-              </span>
-            </button>
+            {!ownsShop ? (
+              <button
+                className="sidebar-link"
+                onClick={() => go("/own-a-shop")}
+                type="button"
+              >
+                <span className="side-link-content">
+                  <IconStorefront />
+                  <span>Own a Shop</span>
+                </span>
+              </button>
+            ) : null}
 
             {user && (
               <button className="sidebar-link" onClick={() => go("/orders")} type="button">

@@ -47,6 +47,21 @@
   font-size: 13px;
   font-weight: 800;
   white-space: nowrap;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+button.analytics-head-pill {
+  cursor: pointer;
+}
+
+button.analytics-head-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.06);
 }
 
 .analytics-metrics {

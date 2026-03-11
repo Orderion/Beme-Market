@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   collection,
+  deleteDoc,
+  doc,
   getDocs,
   limit,
   orderBy,
   query,
+  where,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
@@ -13,6 +16,7 @@ import "./Analytics.css";
 const PRODUCTS_COLLECTION = "Products";
 const ORDERS_COLLECTION = "orders";
 const USERS_COLLECTION = "users";
+const RESET_CONFIRM_TEXT = "RESET BEME";
 
 function formatMoney(value) {
   return `GHS ${Number(value || 0).toFixed(2)}`;
@@ -179,34 +183,43 @@ function buildTopProducts(orders) {
     .slice(0, 6);
 }
 
-function filterOrdersForShop(orders, shopKey) {
-  if (!shopKey) return [];
-
-  return orders.filter((order) => {
-    const shops = Array.isArray(order?.shops)
-      ? order.shops.map((shop) => normalizeShop(shop))
-      : [];
-
-    if (shops.includes(shopKey)) return true;
-
-    const items = Array.isArray(order?.items) ? order.items : [];
-    return items.some((item) => normalizeShop(item?.shop) === shopKey);
-  });
-}
-
 function filterProductsForShop(products, shopKey) {
   if (!shopKey) return [];
   return products.filter((product) => normalizeShop(product.shop) === shopKey);
 }
 
+async function deleteAllDocsInCollection(collectionName) {
+  const snap = await getDocs(collection(db, collectionName));
+  const docs = snap.docs;
+
+  for (const item of docs) {
+    await deleteDoc(doc(db, collectionName, item.id));
+  }
+
+  return docs.length;
+}
+
 export default function Analytics() {
-  const { isSuperAdmin, isShopAdmin, adminShop } = useAuth();
+  const { isSuperAdmin, isShopAdmin, adminShop, reauthenticate } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
+
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetConfirmText, setResetConfirmText] = useState("");
+  const [resetError, setResetError] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const [resetSelections, setResetSelections] = useState({
+    orders: true,
+    products: true,
+    shopApplications: false,
+    payoutRequests: false,
+    subscriptions: false,
+  });
 
   useEffect(() => {
     let alive = true;
@@ -216,12 +229,33 @@ export default function Analytics() {
       setError("");
 
       try {
+        const productsPromise = isShopAdmin && adminShop
+          ? getDocs(query(collection(db, PRODUCTS_COLLECTION), where("shop", "==", adminShop)))
+          : getDocs(query(collection(db, PRODUCTS_COLLECTION)));
+
+        const ordersPromise = isShopAdmin && adminShop
+          ? getDocs(
+              query(
+                collection(db, ORDERS_COLLECTION),
+                where("shops", "array-contains", adminShop),
+                orderBy("createdAt", "desc"),
+                limit(300)
+              )
+            ).catch(() =>
+              getDocs(query(collection(db, ORDERS_COLLECTION), where("shops", "array-contains", adminShop)))
+            )
+          : getDocs(
+              query(collection(db, ORDERS_COLLECTION), orderBy("createdAt", "desc"), limit(300))
+            ).catch(async () => getDocs(collection(db, ORDERS_COLLECTION)));
+
+        const usersPromise = isSuperAdmin
+          ? getDocs(collection(db, USERS_COLLECTION)).catch(() => ({ docs: [] }))
+          : Promise.resolve({ docs: [] });
+
         const [productsSnap, ordersSnap, usersSnap] = await Promise.all([
-          getDocs(query(collection(db, PRODUCTS_COLLECTION))),
-          getDocs(
-            query(collection(db, ORDERS_COLLECTION), orderBy("createdAt", "desc"), limit(300))
-          ).catch(async () => getDocs(collection(db, ORDERS_COLLECTION))),
-          getDocs(collection(db, USERS_COLLECTION)).catch(() => ({ docs: [] })),
+          productsPromise,
+          ordersPromise,
+          usersPromise,
         ]);
 
         if (!alive) return;
@@ -231,7 +265,7 @@ export default function Analytics() {
           ...docSnap.data(),
         }));
 
-        let nextOrders = ordersSnap.docs.map((docSnap) => ({
+        const nextOrders = ordersSnap.docs.map((docSnap) => ({
           id: docSnap.id,
           ...docSnap.data(),
         }));
@@ -243,7 +277,6 @@ export default function Analytics() {
 
         if (isShopAdmin && adminShop) {
           nextProducts = filterProductsForShop(nextProducts, adminShop);
-          nextOrders = filterOrdersForShop(nextOrders, adminShop);
         }
 
         setProducts(nextProducts);
@@ -263,7 +296,7 @@ export default function Analytics() {
     return () => {
       alive = false;
     };
-  }, [isShopAdmin, adminShop]);
+  }, [isShopAdmin, adminShop, isSuperAdmin]);
 
   const metrics = useMemo(() => {
     const totalProducts = products.length;
@@ -316,8 +349,102 @@ export default function Analytics() {
 
   const pageTitle = isShopAdmin ? "Shop Analytics" : "Admin Analytics";
   const pageSub = isShopAdmin
-    ? `Performance overview for your shop only.`
-    : `Performance overview across products, orders, customers, stores, and selling trends.`;
+    ? "Performance overview for your shop only."
+    : "Performance overview across products, orders, customers, stores, and selling trends.";
+
+  const closeResetModal = () => {
+    if (resetting) return;
+    setResetOpen(false);
+    setResetPassword("");
+    setResetConfirmText("");
+    setResetError("");
+    setResetSelections({
+      orders: true,
+      products: true,
+      shopApplications: false,
+      payoutRequests: false,
+      subscriptions: false,
+    });
+  };
+
+  const handleResetSelection = (key) => {
+    setResetSelections((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const handleResetData = async () => {
+    if (!isSuperAdmin) {
+      setResetError("Only the super admin can reset marketplace data.");
+      return;
+    }
+
+    if (!resetPassword.trim()) {
+      setResetError("Enter your admin password.");
+      return;
+    }
+
+    if (resetConfirmText.trim() !== RESET_CONFIRM_TEXT) {
+      setResetError(`Type ${RESET_CONFIRM_TEXT} to confirm this reset.`);
+      return;
+    }
+
+    const targets = Object.entries(resetSelections).filter(([, value]) => value);
+    if (!targets.length) {
+      setResetError("Select at least one data group to reset.");
+      return;
+    }
+
+    setResetting(true);
+    setResetError("");
+
+    try {
+      await reauthenticate(resetPassword.trim());
+
+      for (const [key] of targets) {
+        if (key === "orders") {
+          await deleteAllDocsInCollection("orders");
+        }
+        if (key === "products") {
+          await deleteAllDocsInCollection("Products");
+        }
+        if (key === "shopApplications") {
+          await deleteAllDocsInCollection("shopApplications");
+        }
+        if (key === "payoutRequests") {
+          await deleteAllDocsInCollection("payoutRequests");
+        }
+        if (key === "subscriptions") {
+          await deleteAllDocsInCollection("subscriptions");
+        }
+      }
+
+      setProducts([]);
+      setOrders([]);
+      if (resetSelections.products) setProducts([]);
+      if (resetSelections.orders) setOrders([]);
+      closeResetModal();
+    } catch (err) {
+      console.error("Analytics reset error:", err);
+      const code = err?.code || "";
+      let message = "Failed to reset selected data.";
+
+      if (
+        code === "auth/wrong-password" ||
+        code === "auth/invalid-credential" ||
+        code === "auth/invalid-login-credentials"
+      ) {
+        message = "Incorrect password. Reset cancelled.";
+      } else if (err?.message) {
+        message = err.message;
+      }
+
+      setResetError(message);
+    } finally {
+      setResetting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -354,8 +481,21 @@ export default function Analytics() {
             <p className="analytics-sub">{pageSub}</p>
           </div>
 
-          <div className="analytics-head-pill">
-            {orders.length} orders analysed
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            {isSuperAdmin ? (
+              <button
+                type="button"
+                className="analytics-head-pill"
+                onClick={() => setResetOpen(true)}
+                style={{ cursor: "pointer", border: "none" }}
+              >
+                Reset test data
+              </button>
+            ) : null}
+
+            <div className="analytics-head-pill">
+              {orders.length} orders analysed
+            </div>
           </div>
         </div>
 
@@ -556,6 +696,137 @@ export default function Analytics() {
           </div>
         </section>
       </div>
+
+      {resetOpen ? (
+        <div
+          className="admin-modal-backdrop"
+          onClick={closeResetModal}
+          role="presentation"
+        >
+          <div
+            className="admin-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="analytics-reset-title"
+          >
+            <div className="admin-modal-head">
+              <h3 id="analytics-reset-title" className="admin-modal-title">
+                Reset test marketplace data
+              </h3>
+              <button
+                type="button"
+                className="admin-modal-close"
+                onClick={closeResetModal}
+                disabled={resetting}
+                aria-label="Close reset modal"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="admin-modal-text">
+              This permanently deletes selected test data from Firestore.
+            </p>
+
+            <div className="admin-options-list" style={{ marginTop: 12 }}>
+              <label className="admin-checkline">
+                <input
+                  type="checkbox"
+                  checked={resetSelections.orders}
+                  onChange={() => handleResetSelection("orders")}
+                  disabled={resetting}
+                />
+                <span>Orders</span>
+              </label>
+
+              <label className="admin-checkline">
+                <input
+                  type="checkbox"
+                  checked={resetSelections.products}
+                  onChange={() => handleResetSelection("products")}
+                  disabled={resetting}
+                />
+                <span>Products</span>
+              </label>
+
+              <label className="admin-checkline">
+                <input
+                  type="checkbox"
+                  checked={resetSelections.shopApplications}
+                  onChange={() => handleResetSelection("shopApplications")}
+                  disabled={resetting}
+                />
+                <span>Shop applications</span>
+              </label>
+
+              <label className="admin-checkline">
+                <input
+                  type="checkbox"
+                  checked={resetSelections.payoutRequests}
+                  onChange={() => handleResetSelection("payoutRequests")}
+                  disabled={resetting}
+                />
+                <span>Payout requests</span>
+              </label>
+
+              <label className="admin-checkline">
+                <input
+                  type="checkbox"
+                  checked={resetSelections.subscriptions}
+                  onChange={() => handleResetSelection("subscriptions")}
+                  disabled={resetting}
+                />
+                <span>Subscriptions</span>
+              </label>
+            </div>
+
+            <label className="admin-field">
+              <span>Admin password</span>
+              <input
+                type="password"
+                value={resetPassword}
+                onChange={(e) => setResetPassword(e.target.value)}
+                placeholder="Enter your current password"
+                autoComplete="current-password"
+                disabled={resetting}
+              />
+            </label>
+
+            <label className="admin-field">
+              <span>Type {RESET_CONFIRM_TEXT} to confirm</span>
+              <input
+                value={resetConfirmText}
+                onChange={(e) => setResetConfirmText(e.target.value)}
+                placeholder={RESET_CONFIRM_TEXT}
+                disabled={resetting}
+              />
+            </label>
+
+            {resetError ? <div className="admin-msg">❌ {resetError}</div> : null}
+
+            <div className="admin-modal-actions">
+              <button
+                type="button"
+                className="admin-secondary-btn admin-secondary-btn--ghost"
+                onClick={closeResetModal}
+                disabled={resetting}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="admin-danger-btn"
+                onClick={handleResetData}
+                disabled={resetting}
+              >
+                {resetting ? "Resetting…" : "Verify and reset"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

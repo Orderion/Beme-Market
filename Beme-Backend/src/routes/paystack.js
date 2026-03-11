@@ -12,6 +12,8 @@ if (!PAYSTACK_SECRET_KEY) throw new Error("Missing PAYSTACK_SECRET_KEY in backen
 if (!FRONTEND_URL) throw new Error("Missing FRONTEND_URL in backend env");
 if (!BACKEND_URL) throw new Error("Missing BACKEND_URL in backend env");
 
+const ALLOWED_SHOPS = new Set(["fashion", "main", "kente", "perfume", "tech"]);
+
 async function safeFetch(...args) {
   if (typeof fetch !== "undefined") return fetch(...args);
   const mod = await import("node-fetch");
@@ -36,6 +38,10 @@ function normalizeShopKey(value) {
     .slice(0, 40);
 }
 
+function isAllowedShop(value) {
+  return ALLOWED_SHOPS.has(normalizeShopKey(value));
+}
+
 function computeDeliveryFee(region) {
   if (!region) return 0;
   return SPECIAL_REGIONS.has(region) ? 0 : 50;
@@ -57,7 +63,7 @@ async function computeAmountFromItems(items) {
       .where(firebaseAdmin.firestore.FieldPath.documentId(), "in", chunk)
       .get();
 
-    snap.forEach((doc) => productMap.set(doc.id, doc.data()));
+    snap.forEach((docSnap) => productMap.set(docSnap.id, docSnap.data()));
   }
 
   let subtotal = 0;
@@ -243,9 +249,28 @@ router.post("/shop-owner/init", async (req, res) => {
     if (!phone) return res.status(400).json({ error: "Phone is required" });
     if (!email) return res.status(400).json({ error: "Email is required" });
     if (!shopName) return res.status(400).json({ error: "Shop name is required" });
-    if (!shop) return res.status(400).json({ error: "Valid shop key is required" });
+    if (!shop || !isAllowedShop(shop)) {
+      return res.status(400).json({ error: "Please choose a valid marketplace shop." });
+    }
+    if (requestedShop !== shop) {
+      return res.status(400).json({ error: "Requested shop must match the selected shop." });
+    }
     if (!category) return res.status(400).json({ error: "Category is required" });
     if (!description) return res.status(400).json({ error: "Description is required" });
+
+    const userRef = adminDb.collection("users").doc(userId);
+    const userSnap = await userRef.get();
+    const userData = userSnap.exists ? userSnap.data() || {} : {};
+    const currentRole = safeTrim(userData.role).toLowerCase();
+    const currentShop = normalizeShopKey(userData.shop || "");
+
+    if (currentRole === "shop_admin" || currentRole === "super_admin" || currentRole === "admin") {
+      return res.status(400).json({ error: "This account already has admin shop access." });
+    }
+
+    if (currentShop) {
+      return res.status(400).json({ error: "This account already owns a shop." });
+    }
 
     const existingActiveUserShop = await adminDb
       .collection("users")
@@ -254,7 +279,21 @@ router.post("/shop-owner/init", async (req, res) => {
       .get();
 
     if (!existingActiveUserShop.empty) {
-      return res.status(400).json({ error: "That shop key is already assigned to another account." });
+      return res.status(400).json({ error: "That shop is already assigned to another account." });
+    }
+
+    const existingUserApplication = await adminDb
+      .collection("shopApplications")
+      .where("userId", "==", userId)
+      .where("paymentStatus", "in", ["pending_payment", "pending", "paid"])
+      .limit(1)
+      .get()
+      .catch(() => null);
+
+    if (existingUserApplication && !existingUserApplication.empty) {
+      return res.status(400).json({
+        error: "You already have an active shop application on this account.",
+      });
     }
 
     const existingApplication = await adminDb
@@ -271,7 +310,7 @@ router.post("/shop-owner/init", async (req, res) => {
 
       if (!sameApplicant) {
         return res.status(400).json({
-          error: "That shop key is already being used in another application.",
+          error: "That shop is already being used in another application.",
         });
       }
     }
@@ -506,7 +545,25 @@ async function verifyShopOwnerAndActivate(reference) {
     : ["manage_products", "view_orders", "view_analytics", "request_payout"];
 
   if (!userId) throw new Error("Application has no userId");
-  if (!shop) throw new Error("Application has no valid shop key");
+  if (!shop || !isAllowedShop(shop)) throw new Error("Application has no valid shop key");
+
+  const userRef = adminDb.collection("users").doc(userId);
+  const userSnap = await userRef.get();
+  const userData = userSnap.exists ? userSnap.data() || {} : {};
+  const currentRole = safeTrim(userData.role).toLowerCase();
+  const currentShop = normalizeShopKey(userData.shop || "");
+
+  if (
+    currentRole === "super_admin" ||
+    currentRole === "admin" ||
+    (currentRole === "shop_admin" && currentShop && currentShop !== shop)
+  ) {
+    throw new Error("This account already has another shop assignment.");
+  }
+
+  if (currentShop && currentShop !== shop) {
+    throw new Error("This account already owns another shop.");
+  }
 
   const existingShopOwner = await adminDb
     .collection("users")
@@ -517,13 +574,13 @@ async function verifyShopOwnerAndActivate(reference) {
   if (!existingShopOwner.empty) {
     const foundDoc = existingShopOwner.docs[0];
     if (foundDoc.id !== userId) {
-      throw new Error("This shop key is already assigned to another account.");
+      throw new Error("This shop is already assigned to another account.");
     }
   }
 
   const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
 
-  await adminDb.collection("users").doc(userId).set(
+  await userRef.set(
     {
       role: "shop_admin",
       shop,

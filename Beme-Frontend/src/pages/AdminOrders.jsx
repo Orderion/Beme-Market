@@ -3,9 +3,11 @@ import {
   collection,
   doc,
   onSnapshot,
+  orderBy,
   query,
   serverTimestamp,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { Navigate } from "react-router-dom";
 import { db } from "../firebase";
@@ -65,12 +67,28 @@ export default function AdminOrders() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (loading || !user || !isAdmin) return;
+    if (loading || !user || !isAdmin) return undefined;
 
-    const q = query(collection(db, "orders"));
+    let qRef;
+
+    if (isShopAdmin) {
+      if (!adminShop) {
+        setOrders([]);
+        setError("No assigned shop found for this account.");
+        return undefined;
+      }
+
+      qRef = query(
+        collection(db, "orders"),
+        where("shops", "array-contains", adminShop),
+        orderBy("createdAt", "desc")
+      );
+    } else {
+      qRef = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+    }
 
     const unsub = onSnapshot(
-      q,
+      qRef,
       (snap) => {
         let rows = snap.docs.map((d) => ({
           id: d.id,
@@ -105,6 +123,14 @@ export default function AdminOrders() {
   }, [filtered]);
 
   const setStatus = async (id, status) => {
+    const order = orders.find((item) => item.id === id);
+    if (!order) return;
+
+    if (isShopAdmin && adminShop && !orderMatchesShop(order, adminShop)) {
+      alert("You can only update orders that belong to your shop.");
+      return;
+    }
+
     try {
       await updateDoc(doc(db, "orders", id), {
         status,
