@@ -183,11 +183,6 @@ function buildTopProducts(orders) {
     .slice(0, 6);
 }
 
-function filterProductsForShop(products, shopKey) {
-  if (!shopKey) return [];
-  return products.filter((product) => normalizeShop(product.shop) === shopKey);
-}
-
 async function deleteAllDocsInCollection(collectionName) {
   const snap = await getDocs(collection(db, collectionName));
   const docs = snap.docs;
@@ -229,24 +224,31 @@ export default function Analytics() {
       setError("");
 
       try {
-        const productsPromise = isShopAdmin && adminShop
-          ? getDocs(query(collection(db, PRODUCTS_COLLECTION), where("shop", "==", adminShop)))
-          : getDocs(query(collection(db, PRODUCTS_COLLECTION)));
+        const productsPromise =
+          isShopAdmin && adminShop
+            ? getDocs(query(collection(db, PRODUCTS_COLLECTION), where("shop", "==", adminShop)))
+            : getDocs(collection(db, PRODUCTS_COLLECTION));
 
-        const ordersPromise = isShopAdmin && adminShop
-          ? getDocs(
-              query(
-                collection(db, ORDERS_COLLECTION),
-                where("shops", "array-contains", adminShop),
-                orderBy("createdAt", "desc"),
-                limit(300)
+        const ordersPromise =
+          isShopAdmin && adminShop
+            ? getDocs(
+                query(
+                  collection(db, ORDERS_COLLECTION),
+                  where("shops", "array-contains", adminShop),
+                  orderBy("createdAt", "desc"),
+                  limit(300)
+                )
+              ).catch(() =>
+                getDocs(
+                  query(
+                    collection(db, ORDERS_COLLECTION),
+                    where("shops", "array-contains", adminShop)
+                  )
+                )
               )
-            ).catch(() =>
-              getDocs(query(collection(db, ORDERS_COLLECTION), where("shops", "array-contains", adminShop)))
-            )
-          : getDocs(
-              query(collection(db, ORDERS_COLLECTION), orderBy("createdAt", "desc"), limit(300))
-            ).catch(async () => getDocs(collection(db, ORDERS_COLLECTION)));
+            : getDocs(
+                query(collection(db, ORDERS_COLLECTION), orderBy("createdAt", "desc"), limit(300))
+              ).catch(() => getDocs(collection(db, ORDERS_COLLECTION)));
 
         const usersPromise = isSuperAdmin
           ? getDocs(collection(db, USERS_COLLECTION)).catch(() => ({ docs: [] }))
@@ -260,7 +262,7 @@ export default function Analytics() {
 
         if (!alive) return;
 
-        let nextProducts = productsSnap.docs.map((docSnap) => ({
+        const nextProducts = productsSnap.docs.map((docSnap) => ({
           id: docSnap.id,
           ...docSnap.data(),
         }));
@@ -274,10 +276,6 @@ export default function Analytics() {
           id: docSnap.id,
           ...docSnap.data(),
         }));
-
-        if (isShopAdmin && adminShop) {
-          nextProducts = filterProductsForShop(nextProducts, adminShop);
-        }
 
         setProducts(nextProducts);
         setOrders(nextOrders);
@@ -305,8 +303,14 @@ export default function Analytics() {
     const totalOrders = orders.length;
     const totalRevenue = orders.reduce((sum, order) => sum + getOrderTotal(order), 0);
     const totalUnitsSold = orders.reduce((sum, order) => sum + getOrderItemsCount(order), 0);
+
     const activeCustomers = isSuperAdmin
-      ? users.filter((u) => !["super_admin", "shop_admin", "admin"].includes(String(u.role || "").toLowerCase())).length
+      ? users.filter(
+          (u) =>
+            !["super_admin", "shop_admin", "admin"].includes(
+              String(u.role || "").toLowerCase()
+            )
+        ).length
       : new Set(
           orders
             .map((order) => String(order.userId || "").trim())
@@ -403,27 +407,15 @@ export default function Analytics() {
       await reauthenticate(resetPassword.trim());
 
       for (const [key] of targets) {
-        if (key === "orders") {
-          await deleteAllDocsInCollection("orders");
-        }
-        if (key === "products") {
-          await deleteAllDocsInCollection("Products");
-        }
-        if (key === "shopApplications") {
-          await deleteAllDocsInCollection("shopApplications");
-        }
-        if (key === "payoutRequests") {
-          await deleteAllDocsInCollection("payoutRequests");
-        }
-        if (key === "subscriptions") {
-          await deleteAllDocsInCollection("subscriptions");
-        }
+        if (key === "orders") await deleteAllDocsInCollection("orders");
+        if (key === "products") await deleteAllDocsInCollection("Products");
+        if (key === "shopApplications") await deleteAllDocsInCollection("shopApplications");
+        if (key === "payoutRequests") await deleteAllDocsInCollection("payoutRequests");
+        if (key === "subscriptions") await deleteAllDocsInCollection("subscriptions");
       }
 
-      setProducts([]);
-      setOrders([]);
-      if (resetSelections.products) setProducts([]);
-      if (resetSelections.orders) setOrders([]);
+      setProducts((prev) => (resetSelections.products ? [] : prev));
+      setOrders((prev) => (resetSelections.orders ? [] : prev));
       closeResetModal();
     } catch (err) {
       console.error("Analytics reset error:", err);
