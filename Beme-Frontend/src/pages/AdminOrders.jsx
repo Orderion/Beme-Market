@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   collection,
   doc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -58,6 +59,12 @@ function getOrderTotal(order) {
   return Number(order?.pricing?.total ?? 0);
 }
 
+function sortOrders(rows) {
+  return [...rows].sort(
+    (a, b) => getSortableTime(b.createdAt) - getSortableTime(a.createdAt)
+  );
+}
+
 export default function AdminOrders() {
   const { user, isAdmin, isSuperAdmin, isShopAdmin, adminShop, loading } =
     useAuth();
@@ -69,48 +76,154 @@ export default function AdminOrders() {
   useEffect(() => {
     if (loading || !user || !isAdmin) return undefined;
 
-    let qRef;
+    let unsub = null;
+    let cancelled = false;
 
-    if (isShopAdmin) {
-      if (!adminShop) {
-        setOrders([]);
-        setError("No assigned shop found for this account.");
-        return undefined;
-      }
+    async function setup() {
+      try {
+        if (isShopAdmin) {
+          if (!adminShop) {
+            setOrders([]);
+            setError("No assigned shop found for this account.");
+            return;
+          }
 
-      qRef = query(
-        collection(db, "orders"),
-        where("shops", "array-contains", adminShop),
-        orderBy("createdAt", "desc")
-      );
-    } else {
-      qRef = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-    }
+          try {
+            const qRef = query(
+              collection(db, "orders"),
+              where("shops", "array-contains", adminShop),
+              orderBy("createdAt", "desc")
+            );
 
-    const unsub = onSnapshot(
-      qRef,
-      (snap) => {
-        let rows = snap.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }));
+            unsub = onSnapshot(
+              qRef,
+              (snap) => {
+                if (cancelled) return;
 
-        if (isShopAdmin && adminShop) {
-          rows = rows.filter((order) => orderMatchesShop(order, adminShop));
+                const rows = sortOrders(
+                  snap.docs.map((d) => ({
+                    id: d.id,
+                    ...d.data(),
+                  }))
+                );
+
+                setOrders(rows);
+                setError("");
+              },
+              async (err) => {
+                console.error("Admin orders snapshot error:", err);
+
+                try {
+                  const fallbackQ = query(
+                    collection(db, "orders"),
+                    where("shops", "array-contains", adminShop)
+                  );
+
+                  const fallbackSnap = await getDocs(fallbackQ);
+                  if (cancelled) return;
+
+                  const rows = sortOrders(
+                    fallbackSnap.docs.map((d) => ({
+                      id: d.id,
+                      ...d.data(),
+                    }))
+                  ).filter((order) => orderMatchesShop(order, adminShop));
+
+                  setOrders(rows);
+                  setError("");
+                } catch (fallbackErr) {
+                  console.error("Admin orders fallback error:", fallbackErr);
+                  if (cancelled) return;
+                  setOrders([]);
+                  setError(
+                    fallbackErr?.message || err?.message || "Failed to load orders."
+                  );
+                }
+              }
+            );
+          } catch (outerErr) {
+            console.error("Admin orders shop query setup error:", outerErr);
+
+            const fallbackQ = query(
+              collection(db, "orders"),
+              where("shops", "array-contains", adminShop)
+            );
+
+            const fallbackSnap = await getDocs(fallbackQ);
+            if (cancelled) return;
+
+            const rows = sortOrders(
+              fallbackSnap.docs.map((d) => ({
+                id: d.id,
+                ...d.data(),
+              }))
+            ).filter((order) => orderMatchesShop(order, adminShop));
+
+            setOrders(rows);
+            setError("");
+          }
+
+          return;
         }
 
-        rows.sort((a, b) => getSortableTime(b.createdAt) - getSortableTime(a.createdAt));
+        const qRef = query(collection(db, "orders"), orderBy("createdAt", "desc"));
 
-        setError("");
-        setOrders(rows);
-      },
-      (err) => {
-        console.error("Admin orders snapshot error:", err);
-        setError(err?.message || "Failed to load orders.");
+        unsub = onSnapshot(
+          qRef,
+          (snap) => {
+            if (cancelled) return;
+
+            const rows = sortOrders(
+              snap.docs.map((d) => ({
+                id: d.id,
+                ...d.data(),
+              }))
+            );
+
+            setOrders(rows);
+            setError("");
+          },
+          async (err) => {
+            console.error("Admin orders snapshot error:", err);
+
+            try {
+              const fallbackSnap = await getDocs(collection(db, "orders"));
+              if (cancelled) return;
+
+              const rows = sortOrders(
+                fallbackSnap.docs.map((d) => ({
+                  id: d.id,
+                  ...d.data(),
+                }))
+              );
+
+              setOrders(rows);
+              setError("");
+            } catch (fallbackErr) {
+              console.error("Admin orders fallback error:", fallbackErr);
+              if (cancelled) return;
+              setOrders([]);
+              setError(
+                fallbackErr?.message || err?.message || "Failed to load orders."
+              );
+            }
+          }
+        );
+      } catch (err) {
+        console.error("Admin orders setup error:", err);
+        if (!cancelled) {
+          setOrders([]);
+          setError(err?.message || "Failed to load orders.");
+        }
       }
-    );
+    }
 
-    return () => unsub();
+    setup();
+
+    return () => {
+      cancelled = true;
+      if (typeof unsub === "function") unsub();
+    };
   }, [loading, user, isAdmin, isShopAdmin, adminShop]);
 
   const filtered = useMemo(() => {
