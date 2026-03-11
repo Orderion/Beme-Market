@@ -1,18 +1,14 @@
 import { useEffect, useState } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
-
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { ThemeProvider } from "./context/ThemeContext";
-
 import AdminRoute from "./components/AdminRoute";
 import RequireAdmin from "./components/auth/RequireAdmin";
-
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import CartDrawer from "./components/CartDrawer";
 import Footer from "./components/Footer";
-
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
 import Admin from "./pages/Admin";
@@ -25,22 +21,20 @@ import ShopOwnerApply from "./pages/ShopOwnerApply";
 import ShopOwnerPaymentStatus from "./pages/ShopOwnerPaymentStatus";
 import PayoutRequests from "./pages/PayoutRequests";
 import ShopApplications from "./pages/ShopApplications";
-
 import ProductDetails from "./pages/ProductDetails";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
 import Orders from "./pages/Orders";
-
 import About from "./pages/About";
 import Support from "./pages/Support";
 import Contact from "./pages/Contact";
 import FAQ from "./pages/FAQ";
 import ShippingReturns from "./pages/ShippingReturns";
-
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import RefundPolicy from "./pages/RefundPolicy";
 import CookiePolicy from "./pages/CookiePolicy";
+import AccountManagement from "./pages/AccountManagement";
 
 function AppShell() {
   const location = useLocation();
@@ -55,13 +49,8 @@ function AppShell() {
 
   return (
     <>
-      <Header
-        onMenu={() => setSidebarOpen(true)}
-        onCart={() => setCartOpen(true)}
-      />
-
+      <Header onMenu={() => setSidebarOpen(true)} onCart={() => setCartOpen(true)} />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
       <main key={location.pathname} className="route-shell">
@@ -72,19 +61,16 @@ function AppShell() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/order-success" element={<OrderSuccess />} />
           <Route path="/orders" element={<Orders />} />
-
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/own-a-shop" element={<ShopOwnerApply />} />
           <Route path="/shop-payment-status" element={<ShopOwnerPaymentStatus />} />
-
           <Route path="/about" element={<About />} />
           <Route path="/support" element={<Support />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/shipping&returns" element={<ShippingReturns />} />
-
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />
@@ -140,6 +126,17 @@ function AppShell() {
               <AdminRoute>
                 <RequireAdmin>
                   <ShopApplications />
+                </RequireAdmin>
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/account-management"
+            element={
+              <AdminRoute>
+                <RequireAdmin>
+                  <AccountManagement />
                 </RequireAdmin>
               </AdminRoute>
             }
