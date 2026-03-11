@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import {
   addDoc,
   collection,
+  doc,
   getDocs,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
   updateDoc,
-  doc,
+  where,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
@@ -49,6 +50,24 @@ function titleize(value) {
     .replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
+function getSortableTime(value) {
+  if (!value) return 0;
+
+  try {
+    if (typeof value?.toMillis === "function") return value.toMillis();
+    if (typeof value?.seconds === "number") return value.seconds * 1000;
+    return new Date(value).getTime() || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function sortByCreatedAtDesc(rows) {
+  return [...rows].sort(
+    (a, b) => getSortableTime(b.createdAt) - getSortableTime(a.createdAt)
+  );
+}
+
 function getOrderTotal(order) {
   const direct =
     order?.pricing?.total ??
@@ -69,30 +88,27 @@ function getOrderTotal(order) {
 function orderBelongsToShop(order, shopKey) {
   if (!shopKey) return false;
 
+  const normalizedShopKey = normalizeShop(shopKey);
+
   const shops = Array.isArray(order?.shops)
     ? order.shops.map((shop) => normalizeShop(shop))
     : [];
 
-  if (shops.includes(shopKey)) return true;
+  if (shops.includes(normalizedShopKey)) return true;
 
   const items = Array.isArray(order?.items) ? order.items : [];
-  return items.some((item) => normalizeShop(item?.shop) === shopKey);
+  return items.some((item) => normalizeShop(item?.shop) === normalizedShopKey);
 }
 
 const STATUS_OPTIONS = ["pending", "approved", "paid", "rejected"];
 
 export default function PayoutRequests() {
-  const {
-    user,
-    loading,
-    isSuperAdmin,
-    isShopAdmin,
-    adminShop,
-  } = useAuth();
+  const { user, loading, isSuperAdmin, isShopAdmin, adminShop } = useAuth();
 
   const [requests, setRequests] = useState([]);
   const [requestsError, setRequestsError] = useState("");
   const [orders, setOrders] = useState([]);
+  const [ordersError, setOrdersError] = useState("");
 
   const [form, setForm] = useState({
     amount: "",
@@ -105,78 +121,248 @@ export default function PayoutRequests() {
   const [updatingId, setUpdatingId] = useState("");
 
   useEffect(() => {
-    if (loading || !user) return;
+    if (loading || !user) return undefined;
 
-    const qRef = query(
-      collection(db, "payoutRequests"),
-      orderBy("createdAt", "desc")
-    );
+    let unsub = null;
+    let cancelled = false;
 
-    const unsub = onSnapshot(
-      qRef,
-      (snap) => {
-        let rows = snap.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }));
-
+    async function setupRequests() {
+      try {
         if (isShopAdmin && adminShop) {
-          rows = rows.filter(
-            (row) =>
-              row.shopAdminId === user.uid &&
-              normalizeShop(row.shop) === normalizeShop(adminShop)
-          );
+          const normalizedAdminShop = normalizeShop(adminShop);
+
+          try {
+            const qRef = query(
+              collection(db, "payoutRequests"),
+              where("shopAdminId", "==", user.uid),
+              where("shop", "==", normalizedAdminShop),
+              orderBy("createdAt", "desc")
+            );
+
+            unsub = onSnapshot(
+              qRef,
+              (snap) => {
+                if (cancelled) return;
+
+                const rows = sortByCreatedAtDesc(
+                  snap.docs.map((docSnap) => ({
+                    id: docSnap.id,
+                    ...docSnap.data(),
+                  }))
+                );
+
+                setRequests(rows);
+                setRequestsError("");
+              },
+              async (error) => {
+                console.error("Payout requests snapshot error:", error);
+
+                try {
+                  const fallbackQ = query(
+                    collection(db, "payoutRequests"),
+                    where("shopAdminId", "==", user.uid),
+                    where("shop", "==", normalizedAdminShop)
+                  );
+
+                  const fallbackSnap = await getDocs(fallbackQ);
+                  if (cancelled) return;
+
+                  const rows = sortByCreatedAtDesc(
+                    fallbackSnap.docs.map((docSnap) => ({
+                      id: docSnap.id,
+                      ...docSnap.data(),
+                    }))
+                  );
+
+                  setRequests(rows);
+                  setRequestsError("");
+                } catch (fallbackError) {
+                  console.error("Payout requests fallback error:", fallbackError);
+                  if (cancelled) return;
+                  setRequests([]);
+                  setRequestsError(
+                    fallbackError?.message ||
+                      error?.message ||
+                      "Failed to load payout requests."
+                  );
+                }
+              }
+            );
+          } catch (outerError) {
+            console.error("Payout requests shop query setup error:", outerError);
+
+            const fallbackQ = query(
+              collection(db, "payoutRequests"),
+              where("shopAdminId", "==", user.uid),
+              where("shop", "==", normalizedAdminShop)
+            );
+
+            const fallbackSnap = await getDocs(fallbackQ);
+            if (cancelled) return;
+
+            const rows = sortByCreatedAtDesc(
+              fallbackSnap.docs.map((docSnap) => ({
+                id: docSnap.id,
+                ...docSnap.data(),
+              }))
+            );
+
+            setRequests(rows);
+            setRequestsError("");
+          }
+
+          return;
         }
 
-        setRequests(rows);
-        setRequestsError("");
-      },
-      (error) => {
-        console.error("Payout requests snapshot error:", error);
-        setRequestsError(error?.message || "Failed to load payout requests.");
-      }
-    );
+        if (isSuperAdmin) {
+          const qRef = query(
+            collection(db, "payoutRequests"),
+            orderBy("createdAt", "desc")
+          );
 
-    return () => unsub();
-  }, [loading, user, isShopAdmin, adminShop]);
+          unsub = onSnapshot(
+            qRef,
+            (snap) => {
+              if (cancelled) return;
+
+              const rows = sortByCreatedAtDesc(
+                snap.docs.map((docSnap) => ({
+                  id: docSnap.id,
+                  ...docSnap.data(),
+                }))
+              );
+
+              setRequests(rows);
+              setRequestsError("");
+            },
+            async (error) => {
+              console.error("Payout requests snapshot error:", error);
+
+              try {
+                const fallbackSnap = await getDocs(collection(db, "payoutRequests"));
+                if (cancelled) return;
+
+                const rows = sortByCreatedAtDesc(
+                  fallbackSnap.docs.map((docSnap) => ({
+                    id: docSnap.id,
+                    ...docSnap.data(),
+                  }))
+                );
+
+                setRequests(rows);
+                setRequestsError("");
+              } catch (fallbackError) {
+                console.error("Payout requests fallback error:", fallbackError);
+                if (cancelled) return;
+                setRequests([]);
+                setRequestsError(
+                  fallbackError?.message ||
+                    error?.message ||
+                    "Failed to load payout requests."
+                );
+              }
+            }
+          );
+          return;
+        }
+
+        setRequests([]);
+        setRequestsError("");
+      } catch (error) {
+        console.error("Payout requests setup error:", error);
+        if (!cancelled) {
+          setRequests([]);
+          setRequestsError(error?.message || "Failed to load payout requests.");
+        }
+      }
+    }
+
+    setupRequests();
+
+    return () => {
+      cancelled = true;
+      if (typeof unsub === "function") unsub();
+    };
+  }, [loading, user, isSuperAdmin, isShopAdmin, adminShop]);
 
   useEffect(() => {
     if (loading || !user || !isShopAdmin || !adminShop) return;
 
-    async function loadOrders() {
-      try {
-        const snap = await getDocs(collection(db, "orders"));
-        const rows = snap.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }));
+    let cancelled = false;
 
-        const filtered = rows.filter((order) =>
-          orderBelongsToShop(order, adminShop)
+    async function loadOrders() {
+      setOrdersError("");
+
+      try {
+        try {
+          const qRef = query(
+            collection(db, "orders"),
+            where("shops", "array-contains", normalizeShop(adminShop)),
+            orderBy("createdAt", "desc")
+          );
+
+          const snap = await getDocs(qRef);
+          if (cancelled) return;
+
+          const rows = sortByCreatedAtDesc(
+            snap.docs.map((docSnap) => ({
+              id: docSnap.id,
+              ...docSnap.data(),
+            }))
+          );
+
+          setOrders(rows);
+          return;
+        } catch (error) {
+          console.error("Orders payout indexed query error:", error);
+        }
+
+        const fallbackQ = query(
+          collection(db, "orders"),
+          where("shops", "array-contains", normalizeShop(adminShop))
         );
 
-        setOrders(filtered);
+        const fallbackSnap = await getDocs(fallbackQ);
+        if (cancelled) return;
+
+        const rows = sortByCreatedAtDesc(
+          fallbackSnap.docs.map((docSnap) => ({
+            id: docSnap.id,
+            ...docSnap.data(),
+          }))
+        ).filter((order) => orderBelongsToShop(order, adminShop));
+
+        setOrders(rows);
       } catch (error) {
         console.error("Failed to load orders for payout calculations:", error);
+        if (cancelled) return;
         setOrders([]);
+        setOrdersError(error?.message || "Failed to load shop orders.");
       }
     }
 
     loadOrders();
+
+    return () => {
+      cancelled = true;
+    };
   }, [loading, user, isShopAdmin, adminShop]);
 
   const paidRevenue = useMemo(() => {
     if (!isShopAdmin || !adminShop) return 0;
 
     return orders.reduce((sum, order) => {
-      const status = String(order?.paymentStatus || order?.status || "")
+      const paymentStatus = String(order?.paymentStatus || "")
+        .trim()
+        .toLowerCase();
+      const orderStatus = String(order?.status || "")
         .trim()
         .toLowerCase();
 
       const paid =
         order?.paid === true ||
-        status === "paid" ||
-        String(order?.status || "").toLowerCase() === "paid";
+        paymentStatus === "paid" ||
+        orderStatus === "paid";
 
       if (!paid) return sum;
 
@@ -224,7 +410,10 @@ export default function PayoutRequests() {
 
   const availableBalance = useMemo(() => {
     if (!isShopAdmin) return 0;
-    return Math.max(paidRevenue - approvedOrPaidRequestsTotal - pendingRequestsTotal, 0);
+    return Math.max(
+      paidRevenue - approvedOrPaidRequestsTotal - pendingRequestsTotal,
+      0
+    );
   }, [isShopAdmin, paidRevenue, approvedOrPaidRequestsTotal, pendingRequestsTotal]);
 
   const setField = (key) => (e) => {
@@ -348,6 +537,8 @@ export default function PayoutRequests() {
             <div className="pill">Pending requests: {formatMoney(pendingRequestsTotal)}</div>
             <div className="pill">Available: {formatMoney(availableBalance)}</div>
           </div>
+
+          {ordersError ? <div className="muted">{ordersError}</div> : null}
 
           <form onSubmit={submitRequest} style={{ display: "grid", gap: 12 }}>
             <div style={{ display: "grid", gap: 8 }}>
