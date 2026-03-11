@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   signInWithEmailAndPassword,
@@ -7,6 +7,16 @@ import {
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import "./Login.css";
+
+const RESET_COOLDOWN_MS = 45000;
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
 
 export default function Login() {
   const navigate = useNavigate();
@@ -25,10 +35,26 @@ export default function Login() {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
 
+  const [resetLoading, setResetLoading] = useState(false);
+  const [lastResetAt, setLastResetAt] = useState(0);
+
   const redirectTo = location.state?.from || "/";
 
-  const isValidEmail = (value) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+  const resetCooldownLeft = useMemo(() => {
+    const remaining = RESET_COOLDOWN_MS - (Date.now() - lastResetAt);
+    return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
+  }, [lastResetAt]);
+
+  const getPasswordResetSettings = () => {
+    const origin =
+      typeof window !== "undefined" && window.location?.origin
+        ? window.location.origin
+        : "http://localhost:5173";
+
+    return {
+      url: `${origin}/login?reset=1`,
+      handleCodeInApp: false,
+    };
   };
 
   const onSubmit = async (e) => {
@@ -36,11 +62,16 @@ export default function Login() {
     setErr("");
     setMsg("");
 
-    const emailTrim = email.trim();
-    const passwordTrim = password.trim();
+    const emailTrim = normalizeEmail(email);
+    const passwordTrim = String(password || "").trim();
 
     if (!emailTrim || !passwordTrim) {
       setErr("Enter your email and password.");
+      return;
+    }
+
+    if (!isValidEmail(emailTrim)) {
+      setErr("Enter a valid email address.");
       return;
     }
 
@@ -52,14 +83,16 @@ export default function Login() {
     } catch (e) {
       const code = e?.code || "";
 
-      if (code.includes("auth/invalid-credential")) {
+      if (
+        code.includes("auth/invalid-credential") ||
+        code.includes("auth/user-not-found") ||
+        code.includes("auth/wrong-password")
+      ) {
         setErr("Invalid email or password.");
-      } else if (code.includes("auth/user-not-found")) {
-        setErr("Account not found.");
-      } else if (code.includes("auth/wrong-password")) {
-        setErr("Wrong password.");
       } else if (code.includes("auth/invalid-email")) {
         setErr("Invalid email address.");
+      } else if (code.includes("auth/too-many-requests")) {
+        setErr("Too many attempts. Please wait and try again.");
       } else {
         setErr("Login failed. Try again.");
       }
@@ -69,12 +102,12 @@ export default function Login() {
   };
 
   const onForgot = async () => {
-    if (loading) return;
+    if (loading || resetLoading) return;
 
     setErr("");
     setMsg("");
 
-    const emailTrim = email.trim();
+    const emailTrim = normalizeEmail(email);
 
     if (!emailTrim) {
       setErr("Enter your email address first.");
@@ -86,23 +119,38 @@ export default function Login() {
       return;
     }
 
-    setLoading(true);
+    const cooldownRemaining = RESET_COOLDOWN_MS - (Date.now() - lastResetAt);
+    if (cooldownRemaining > 0) {
+      setErr(`Please wait ${Math.ceil(cooldownRemaining / 1000)} seconds before trying again.`);
+      return;
+    }
+
+    setResetLoading(true);
 
     try {
-      await sendPasswordResetEmail(auth, emailTrim);
-      setMsg("Password reset email sent. Check your inbox.");
+      await sendPasswordResetEmail(auth, emailTrim, getPasswordResetSettings());
+      setLastResetAt(Date.now());
+      setMsg(
+        "If an account exists for this email, a password reset link has been sent. Check inbox, spam, and promotions."
+      );
     } catch (e) {
       const code = e?.code || "";
 
-      if (code.includes("auth/user-not-found")) {
-        setErr("No account found with that email.");
-      } else if (code.includes("auth/invalid-email")) {
+      if (code.includes("auth/invalid-email")) {
         setErr("Invalid email address.");
+      } else if (code.includes("auth/too-many-requests")) {
+        setErr("Too many reset attempts. Please wait and try again.");
+      } else if (code.includes("auth/missing-continue-uri")) {
+        setErr("Password reset is not configured correctly yet.");
+      } else if (code.includes("auth/unauthorized-continue-uri")) {
+        setErr("This domain is not authorized for password reset links.");
+      } else if (code.includes("auth/argument-error")) {
+        setErr("Password reset configuration is invalid.");
       } else {
         setErr("Could not send reset email. Try again.");
       }
     } finally {
-      setLoading(false);
+      setResetLoading(false);
     }
   };
 
@@ -110,7 +158,7 @@ export default function Login() {
     setNewsErr("");
     setNewsMsg("");
 
-    const emailTrim = newsEmail.trim().toLowerCase();
+    const emailTrim = normalizeEmail(newsEmail);
 
     if (!emailTrim) {
       setNewsErr("Enter your email to subscribe.");
@@ -145,7 +193,7 @@ export default function Login() {
   return (
     <div className="auth-page">
       <div className="auth-banner">
-        🎉 Free shipping on two pairs of shoes (The more you buy, the cheaper it is!) 🎉
+        🎉 Get 10% discount on any product above 1000$ 🎉
       </div>
 
       <div className="auth-wrap">
@@ -234,7 +282,7 @@ export default function Login() {
           {err && <div className="auth-alert auth-alert--error">{err}</div>}
           {msg && <div className="auth-alert auth-alert--ok">{msg}</div>}
 
-          <button className="auth-cta" type="submit" disabled={loading}>
+          <button className="auth-cta" type="submit" disabled={loading || resetLoading}>
             {loading ? "Signing in..." : "Sign In"}
           </button>
 
@@ -243,9 +291,13 @@ export default function Login() {
               type="button"
               className="auth-link auth-forgot"
               onClick={onForgot}
-              disabled={loading}
+              disabled={loading || resetLoading}
             >
-              Forgot password
+              {resetLoading
+                ? "Sending..."
+                : resetCooldownLeft > 0
+                  ? `Try again in ${resetCooldownLeft}s`
+                  : "Forgot password"}
             </button>
 
             <Link className="auth-link" to="/signup">
@@ -257,7 +309,7 @@ export default function Login() {
             type="button"
             className="auth-ghost"
             onClick={() => navigate("/checkout")}
-            disabled={loading}
+            disabled={loading || resetLoading}
           >
             Continue as guest
           </button>
