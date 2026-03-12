@@ -4,7 +4,6 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useCart } from "../context/CartContext";
-import { SHOPS } from "../constants/catalog";
 import "./ProductDetails.css";
 
 function normalizeCustomizations(raw) {
@@ -51,13 +50,6 @@ function titleize(value) {
     .replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
-function formatShopLabel(value) {
-  const key = normalizeShop(value);
-  const match = SHOPS.find((shop) => shop.key === key);
-  if (match?.label) return match.label;
-  return key ? titleize(key) : "Beme Market";
-}
-
 function getEmailName(email) {
   const local = String(email || "").trim().split("@")[0] || "";
   return titleize(local);
@@ -92,6 +84,69 @@ function resolveSellerName(userData, fallbackEmail = "") {
   if (emailBased) return emailBased;
 
   return "Beme Seller";
+}
+
+function MonoStatusIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      aria-hidden="true"
+      focusable="false"
+      className="pd-badge-icon"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M8.5 12.3l2.2 2.2 4.8-5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function MonoGalleryIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      aria-hidden="true"
+      focusable="false"
+      className="pd-badge-icon"
+    >
+      <rect
+        x="4"
+        y="5"
+        width="16"
+        height="14"
+        rx="2.2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <circle cx="9" cy="10" r="1.4" fill="currentColor" />
+      <path
+        d="M7 16l3.5-3.5 2.5 2.5 2.5-3 1.5 1.8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
 
 function ProductDetailsSkeleton() {
@@ -160,14 +215,8 @@ export default function ProductDetails() {
         const nextProduct = { id: snap.id, ...snap.data() };
         setProduct(nextProduct);
 
-        const inlineSellerName = resolveSellerName(nextProduct, "");
-        if (
-          nextProduct?.sellerName ||
-          nextProduct?.ownerName ||
-          nextProduct?.displayName ||
-          nextProduct?.name
-        ) {
-          setSellerName(inlineSellerName);
+        if (nextProduct?.sellerName || nextProduct?.ownerName) {
+          setSellerName(resolveSellerName(nextProduct, ""));
         } else if (nextProduct?.ownerId) {
           try {
             const userSnap = await getDoc(doc(db, "users", nextProduct.ownerId));
@@ -220,7 +269,6 @@ export default function ProductDetails() {
   const oldPrice = useMemo(() => Number(product?.oldPrice || 0), [product]);
 
   const shopKey = useMemo(() => normalizeShop(product?.shop), [product?.shop]);
-  const shopLabel = useMemo(() => formatShopLabel(shopKey), [shopKey]);
 
   useEffect(() => {
     const initialSelections = {};
@@ -271,7 +319,6 @@ export default function ProductDetails() {
       images,
       qty,
       shop: shopKey || "",
-      shopLabel,
       selectedOptions,
       selectedOptionsLabel,
       customizations,
@@ -521,26 +568,15 @@ export default function ProductDetails() {
 
           <div className="pd-meta">
             <div className="pd-badge">
-              <span className="pd-badge-icon">👜</span>
+              <MonoStatusIcon />
               <span>{isOutOfStock ? "Out of stock" : "In stock"}</span>
             </div>
 
             {images.length > 1 ? (
               <div className="pd-badge">
-                <span className="pd-badge-icon">🖼</span>
+                <MonoGalleryIcon />
                 <span>{images.length} product images</span>
               </div>
-            ) : null}
-
-            {shopKey ? (
-              <Link
-                to={`/shop?shop=${encodeURIComponent(shopKey)}`}
-                className="pd-badge pd-badge--shop"
-                aria-label={`Browse ${shopLabel}`}
-              >
-                <span className="pd-badge-icon">🏬</span>
-                <span>{shopLabel}</span>
-              </Link>
             ) : null}
           </div>
 
@@ -557,31 +593,20 @@ export default function ProductDetails() {
             )}
           </div>
 
-          {(sellerName || shopKey) && (
+          {sellerName ? (
             <div className="pd-section">
-              <h3 className="pd-section-title">Store</h3>
+              <h3 className="pd-section-title">Seller</h3>
               <div className="pd-store-card">
                 <div className="pd-store-copy">
                   <span className="pd-store-label">Sold by</span>
-                  <strong className="pd-store-name">
-                    {sellerName || "Beme Seller"}
-                  </strong>
+                  <strong className="pd-store-name">{sellerName}</strong>
                   <p className="pd-store-text">
                     This product was uploaded by this seller on Beme Market.
                   </p>
                 </div>
-
-                {shopKey ? (
-                  <Link
-                    to={`/shop?shop=${encodeURIComponent(shopKey)}`}
-                    className="pd-store-link"
-                  >
-                    View store
-                  </Link>
-                ) : null}
               </div>
             </div>
-          )}
+          ) : null}
 
           <div className="pd-section">
             <h3 className="pd-section-title">Description</h3>
