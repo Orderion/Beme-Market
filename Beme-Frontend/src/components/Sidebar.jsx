@@ -303,6 +303,35 @@ function IconStorefront() {
   );
 }
 
+function IconAccount() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <circle
+        cx="12"
+        cy="8"
+        r="3.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M5 19a7 7 0 0 1 14 0"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="M18.5 5.5h2M19.5 4.5v2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
   const { darkMode, toggleTheme } = useTheme();
@@ -458,6 +487,7 @@ export default function Sidebar({ isOpen, onClose }) {
                     <button className="side-subitem" onClick={() => go("/admin")} type="button">
                       Product manager
                     </button>
+
                     <button
                       className="side-subitem"
                       onClick={() => go("/admin-orders")}
@@ -465,6 +495,7 @@ export default function Sidebar({ isOpen, onClose }) {
                     >
                       Shop orders
                     </button>
+
                     <button
                       className="side-subitem"
                       onClick={() => go("/analytics")}
@@ -472,6 +503,7 @@ export default function Sidebar({ isOpen, onClose }) {
                     >
                       Analytics
                     </button>
+
                     <button
                       className="side-subitem"
                       onClick={() => go("/payout-requests")}
@@ -479,6 +511,15 @@ export default function Sidebar({ isOpen, onClose }) {
                     >
                       Payout requests
                     </button>
+
+                    <button
+                      className="side-subitem"
+                      onClick={() => go("/account-management")}
+                      type="button"
+                    >
+                      Account management
+                    </button>
+
                     {isSuperAdmin ? (
                       <button
                         className="side-subitem"
@@ -490,6 +531,17 @@ export default function Sidebar({ isOpen, onClose }) {
                     ) : null}
                   </div>
                 </div>
+
+                <button
+                  className="sidebar-link"
+                  onClick={() => go("/account-management")}
+                  type="button"
+                >
+                  <span className="side-link-content">
+                    <IconAccount />
+                    <span>Account Management</span>
+                  </span>
+                </button>
               </>
             )}
 
