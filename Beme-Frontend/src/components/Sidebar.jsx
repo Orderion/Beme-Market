@@ -1,3 +1,4 @@
+// src/components/Sidebar.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
@@ -290,27 +291,6 @@ function IconShield() {
   );
 }
 
-function IconStorefront() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M4 8h16M5 8l1 11h12l1-11"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M8 8V5h8v3"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 function IconAccount() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
@@ -343,13 +323,12 @@ function IconAccount() {
 export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
   const { darkMode, toggleTheme } = useTheme();
-  const { user, isAdmin, isSuperAdmin, adminShop, profile, logout } = useAuth();
+  const { user, isAdmin, isSuperAdmin, adminShop, logout } = useAuth();
 
   const [openSection, setOpenSection] = useState(null);
   const [confirmLogout, setConfirmLogout] = useState(false);
 
   const offers = useMemo(() => [], []);
-  const ownsShop = !!adminShop || !!profile?.shop || isAdmin;
   const accountShopLabel = useMemo(
     () => (adminShop ? titleize(adminShop) : ""),
     [adminShop]
@@ -452,19 +431,6 @@ export default function Sidebar({ isOpen, onClose }) {
                 <span>Shop</span>
               </span>
             </button>
-
-            {!ownsShop ? (
-              <button
-                className="sidebar-link"
-                onClick={() => go("/own-a-shop")}
-                type="button"
-              >
-                <span className="side-link-content">
-                  <IconStorefront />
-                  <span>Own a Shop</span>
-                </span>
-              </button>
-            ) : null}
 
             {user ? (
               <button
