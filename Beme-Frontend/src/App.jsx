@@ -1,6 +1,6 @@
 // src/App.jsx
 import { useEffect, useState } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -19,7 +19,6 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminOrders from "./pages/AdminOrders";
 import Analytics from "./pages/Analytics";
 import ShopOwnerApply from "./pages/ShopOwnerApply";
-import ShopOwnerPaymentStatus from "./pages/ShopOwnerPaymentStatus";
 import PayoutRequests from "./pages/PayoutRequests";
 import ShopApplications from "./pages/ShopApplications";
 import ProductDetails from "./pages/ProductDetails";
@@ -68,11 +67,13 @@ function AppShell() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/admin-login" element={<AdminLogin />} />
+
           <Route path="/own-a-shop" element={<ShopOwnerApply />} />
           <Route
             path="/shop-payment-status"
-            element={<ShopOwnerPaymentStatus />}
+            element={<Navigate to="/" replace />}
           />
+
           <Route path="/about" element={<About />} />
           <Route path="/support" element={<Support />} />
           <Route path="/contact" element={<Contact />} />

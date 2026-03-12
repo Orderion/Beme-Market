@@ -277,62 +277,15 @@ function IconSun() {
   );
 }
 
-function IconShield() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M12 3 19 6v5c0 5-2.8 8.5-7 10-4.2-1.5-7-5-7-10V6l7-3Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IconAccount() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <circle
-        cx="12"
-        cy="8"
-        r="3.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M5 19a7 7 0 0 1 14 0"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="M18.5 5.5h2M19.5 4.5v2"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
   const { darkMode, toggleTheme } = useTheme();
-  const { user, isAdmin, isSuperAdmin, adminShop, logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const [openSection, setOpenSection] = useState(null);
   const [confirmLogout, setConfirmLogout] = useState(false);
 
   const offers = useMemo(() => [], []);
-  const accountShopLabel = useMemo(
-    () => (adminShop ? titleize(adminShop) : ""),
-    [adminShop]
-  );
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
@@ -443,105 +396,6 @@ export default function Sidebar({ isOpen, onClose }) {
                   <span>Orders</span>
                 </span>
               </button>
-            ) : null}
-
-            {isAdmin ? (
-              <>
-                <div className="side-divider" />
-
-                <button
-                  className="sidebar-link sidebar-link--expand"
-                  onClick={() => toggleSection("admin")}
-                  aria-expanded={openSection === "admin"}
-                  type="button"
-                >
-                  <span className="side-link-content">
-                    <IconShield />
-                    <span>
-                      Admin
-                      {accountShopLabel && !isSuperAdmin
-                        ? ` • ${accountShopLabel}`
-                        : ""}
-                    </span>
-                  </span>
-                  <span
-                    className={`side-chevron ${
-                      openSection === "admin" ? "open" : ""
-                    }`}
-                  >
-                    ▾
-                  </span>
-                </button>
-
-                <div
-                  className={`side-submenu-wrap ${
-                    openSection === "admin" ? "is-open" : ""
-                  }`}
-                >
-                  <div className="side-submenu">
-                    <button
-                      className="side-subitem"
-                      onClick={() => go("/admin")}
-                      type="button"
-                    >
-                      Product manager
-                    </button>
-
-                    <button
-                      className="side-subitem"
-                      onClick={() => go("/admin-orders")}
-                      type="button"
-                    >
-                      Shop orders
-                    </button>
-
-                    <button
-                      className="side-subitem"
-                      onClick={() => go("/analytics")}
-                      type="button"
-                    >
-                      Analytics
-                    </button>
-
-                    <button
-                      className="side-subitem"
-                      onClick={() => go("/payout-requests")}
-                      type="button"
-                    >
-                      Payout requests
-                    </button>
-
-                    <button
-                      className="side-subitem"
-                      onClick={() => go("/account-management")}
-                      type="button"
-                    >
-                      Account management
-                    </button>
-
-                    {isSuperAdmin ? (
-                      <button
-                        className="side-subitem"
-                        onClick={() => go("/shop-applications")}
-                        type="button"
-                      >
-                        Shop applications
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-
-                <button
-                  className="sidebar-link"
-                  onClick={() => go("/account-management")}
-                  type="button"
-                >
-                  <span className="side-link-content">
-                    <IconAccount />
-                    <span>Account Management</span>
-                  </span>
-                </button>
-              </>
             ) : null}
 
             <div className="side-divider" />

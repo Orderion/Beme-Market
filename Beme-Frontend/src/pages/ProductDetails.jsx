@@ -55,19 +55,18 @@ function getEmailName(email) {
   return titleize(local);
 }
 
-function resolveSellerName(userData, fallbackEmail = "") {
+function resolveSellerNameFromUser(userData, fallbackEmail = "") {
   if (!userData || typeof userData !== "object") {
     return getEmailName(fallbackEmail) || "Beme Seller";
   }
 
   const directCandidates = [
     userData.sellerName,
+    userData.ownerName,
+    userData.shopAdminName,
     userData.displayName,
     userData.fullName,
-    userData.name,
     userData.username,
-    userData.shopAdminName,
-    userData.ownerName,
   ];
 
   for (const candidate of directCandidates) {
@@ -92,9 +91,9 @@ function MonoStatusIcon() {
       viewBox="0 0 24 24"
       width="14"
       height="14"
+      className="pd-badge-icon"
       aria-hidden="true"
       focusable="false"
-      className="pd-badge-icon"
     >
       <circle
         cx="12"
@@ -122,9 +121,9 @@ function MonoGalleryIcon() {
       viewBox="0 0 24 24"
       width="14"
       height="14"
+      className="pd-badge-icon"
       aria-hidden="true"
       focusable="false"
-      className="pd-badge-icon"
     >
       <rect
         x="4"
@@ -215,14 +214,21 @@ export default function ProductDetails() {
         const nextProduct = { id: snap.id, ...snap.data() };
         setProduct(nextProduct);
 
-        if (nextProduct?.sellerName || nextProduct?.ownerName) {
-          setSellerName(resolveSellerName(nextProduct, ""));
+        const directSellerName = String(
+          nextProduct?.sellerName || nextProduct?.ownerName || ""
+        ).trim();
+
+        if (directSellerName) {
+          setSellerName(directSellerName);
         } else if (nextProduct?.ownerId) {
           try {
             const userSnap = await getDoc(doc(db, "users", nextProduct.ownerId));
             if (userSnap.exists()) {
               setSellerName(
-                resolveSellerName(userSnap.data(), nextProduct?.ownerEmail || "")
+                resolveSellerNameFromUser(
+                  userSnap.data(),
+                  nextProduct?.ownerEmail || ""
+                )
               );
             } else {
               setSellerName(
