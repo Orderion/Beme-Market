@@ -42,21 +42,69 @@ function normalizeShop(value) {
   return String(value || "main").trim().toLowerCase() || "main";
 }
 
+function titleize(value) {
+  return String(value || "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
 function orderMatchesShop(order, adminShop) {
   if (!adminShop) return false;
+
+  const normalizedAdminShop = normalizeShop(adminShop);
 
   const shops = Array.isArray(order?.shops)
     ? order.shops.map((shop) => normalizeShop(shop))
     : [];
 
-  if (shops.includes(adminShop)) return true;
+  if (shops.includes(normalizedAdminShop)) return true;
+
+  const primaryShop = normalizeShop(order?.primaryShop);
+  if (primaryShop === normalizedAdminShop) return true;
 
   const items = Array.isArray(order?.items) ? order.items : [];
-  return items.some((item) => normalizeShop(item?.shop) === adminShop);
+  return items.some((item) => normalizeShop(item?.shop) === normalizedAdminShop);
 }
 
 function getOrderTotal(order) {
-  return Number(order?.pricing?.total ?? 0);
+  const direct =
+    order?.pricing?.total ??
+    order?.total ??
+    order?.amount ??
+    order?.grandTotal ??
+    order?.subtotal;
+
+  if (Number.isFinite(Number(direct))) return Number(direct);
+
+  const items = Array.isArray(order?.items) ? order.items : [];
+  return items.reduce((sum, item) => {
+    const price = Number(item?.price || 0);
+    const qty = Number(item?.qty || 0);
+    return sum + price * qty;
+  }, 0);
+}
+
+function getShopRevenueFromOrder(order, adminShop) {
+  if (!adminShop) return 0;
+
+  const normalizedAdminShop = normalizeShop(adminShop);
+  const items = Array.isArray(order?.items) ? order.items : [];
+
+  const matchingItems = items.filter(
+    (item) => normalizeShop(item?.shop) === normalizedAdminShop
+  );
+
+  if (matchingItems.length) {
+    return matchingItems.reduce((sum, item) => {
+      const price = Number(item?.price || 0);
+      const qty = Number(item?.qty || 0);
+      return sum + price * qty;
+    }, 0);
+  }
+
+  return orderMatchesShop(order, normalizedAdminShop) ? getOrderTotal(order) : 0;
 }
 
 function sortOrders(rows) {
@@ -66,8 +114,16 @@ function sortOrders(rows) {
 }
 
 export default function AdminOrders() {
-  const { user, isAdmin, isSuperAdmin, isShopAdmin, adminShop, loading } =
-    useAuth();
+  const {
+    user,
+    isAdmin,
+    isSuperAdmin,
+    isShopAdmin,
+    adminShop,
+    loading,
+  } = useAuth();
+
+  const normalizedAdminShop = useMemo(() => normalizeShop(adminShop), [adminShop]);
 
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState("all");
@@ -82,7 +138,7 @@ export default function AdminOrders() {
     async function setup() {
       try {
         if (isShopAdmin) {
-          if (!adminShop) {
+          if (!normalizedAdminShop) {
             setOrders([]);
             setError("No assigned shop found for this account.");
             return;
@@ -91,7 +147,7 @@ export default function AdminOrders() {
           try {
             const qRef = query(
               collection(db, "orders"),
-              where("shops", "array-contains", adminShop),
+              where("shops", "array-contains", normalizedAdminShop),
               orderBy("createdAt", "desc")
             );
 
@@ -105,7 +161,7 @@ export default function AdminOrders() {
                     id: d.id,
                     ...d.data(),
                   }))
-                );
+                ).filter((order) => orderMatchesShop(order, normalizedAdminShop));
 
                 setOrders(rows);
                 setError("");
@@ -116,7 +172,7 @@ export default function AdminOrders() {
                 try {
                   const fallbackQ = query(
                     collection(db, "orders"),
-                    where("shops", "array-contains", adminShop)
+                    where("shops", "array-contains", normalizedAdminShop)
                   );
 
                   const fallbackSnap = await getDocs(fallbackQ);
@@ -127,7 +183,7 @@ export default function AdminOrders() {
                       id: d.id,
                       ...d.data(),
                     }))
-                  ).filter((order) => orderMatchesShop(order, adminShop));
+                  ).filter((order) => orderMatchesShop(order, normalizedAdminShop));
 
                   setOrders(rows);
                   setError("");
@@ -146,7 +202,7 @@ export default function AdminOrders() {
 
             const fallbackQ = query(
               collection(db, "orders"),
-              where("shops", "array-contains", adminShop)
+              where("shops", "array-contains", normalizedAdminShop)
             );
 
             const fallbackSnap = await getDocs(fallbackQ);
@@ -157,7 +213,7 @@ export default function AdminOrders() {
                 id: d.id,
                 ...d.data(),
               }))
-            ).filter((order) => orderMatchesShop(order, adminShop));
+            ).filter((order) => orderMatchesShop(order, normalizedAdminShop));
 
             setOrders(rows);
             setError("");
@@ -224,7 +280,7 @@ export default function AdminOrders() {
       cancelled = true;
       if (typeof unsub === "function") unsub();
     };
-  }, [loading, user, isAdmin, isShopAdmin, adminShop]);
+  }, [loading, user, isAdmin, isShopAdmin, normalizedAdminShop]);
 
   const filtered = useMemo(() => {
     if (filter === "all") return orders;
@@ -232,14 +288,33 @@ export default function AdminOrders() {
   }, [orders, filter]);
 
   const totalRevenue = useMemo(() => {
-    return filtered.reduce((sum, order) => sum + getOrderTotal(order), 0);
+    return filtered.reduce((sum, order) => {
+      if (isShopAdmin && normalizedAdminShop) {
+        return sum + getShopRevenueFromOrder(order, normalizedAdminShop);
+      }
+      return sum + getOrderTotal(order);
+    }, 0);
+  }, [filtered, isShopAdmin, normalizedAdminShop]);
+
+  const summary = useMemo(() => {
+    const total = filtered.length;
+    const paid = filtered.filter(
+      (o) =>
+        o.paid === true ||
+        o.paymentStatus === "paid" ||
+        o.status === "paid"
+    ).length;
+    const processing = filtered.filter((o) => o.status === "processing").length;
+    const delivered = filtered.filter((o) => o.status === "delivered").length;
+
+    return { total, paid, processing, delivered };
   }, [filtered]);
 
   const setStatus = async (id, status) => {
     const order = orders.find((item) => item.id === id);
     if (!order) return;
 
-    if (isShopAdmin && adminShop && !orderMatchesShop(order, adminShop)) {
+    if (isShopAdmin && normalizedAdminShop && !orderMatchesShop(order, normalizedAdminShop)) {
       alert("You can only update orders that belong to your shop.");
       return;
     }
@@ -283,7 +358,7 @@ export default function AdminOrders() {
           <div className="muted">
             {isSuperAdmin
               ? `Viewing all marketplace orders • Revenue GHS ${totalRevenue.toFixed(2)}`
-              : `Viewing only ${adminShop} orders • Revenue GHS ${totalRevenue.toFixed(2)}`}
+              : `Viewing only ${titleize(normalizedAdminShop)} orders • Revenue GHS ${totalRevenue.toFixed(2)}`}
           </div>
         </div>
 
@@ -291,6 +366,7 @@ export default function AdminOrders() {
           <button
             className={filter === "all" ? "chip active" : "chip"}
             onClick={() => setFilter("all")}
+            type="button"
           >
             All
           </button>
@@ -300,6 +376,7 @@ export default function AdminOrders() {
               key={s}
               className={filter === s ? "chip active" : "chip"}
               onClick={() => setFilter(s)}
+              type="button"
             >
               {s}
             </button>
@@ -307,11 +384,51 @@ export default function AdminOrders() {
         </div>
       </div>
 
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 12,
+          marginBottom: 18,
+        }}
+      >
+        <div className="order-card" style={{ padding: 16 }}>
+          <div className="muted">Visible orders</div>
+          <div style={{ fontSize: 26, fontWeight: 700, marginTop: 6 }}>
+            {summary.total}
+          </div>
+        </div>
+
+        <div className="order-card" style={{ padding: 16 }}>
+          <div className="muted">Paid</div>
+          <div style={{ fontSize: 26, fontWeight: 700, marginTop: 6 }}>
+            {summary.paid}
+          </div>
+        </div>
+
+        <div className="order-card" style={{ padding: 16 }}>
+          <div className="muted">Processing</div>
+          <div style={{ fontSize: 26, fontWeight: 700, marginTop: 6 }}>
+            {summary.processing}
+          </div>
+        </div>
+
+        <div className="order-card" style={{ padding: 16 }}>
+          <div className="muted">Delivered</div>
+          <div style={{ fontSize: 26, fontWeight: 700, marginTop: 6 }}>
+            {summary.delivered}
+          </div>
+        </div>
+      </div>
+
       {!!error && <div className="muted">{error}</div>}
 
       <div className="orders-list">
         {filtered.map((o) => {
-          const total = o.pricing?.total ?? 0;
+          const total = isShopAdmin && normalizedAdminShop
+            ? getShopRevenueFromOrder(o, normalizedAdminShop)
+            : getOrderTotal(o);
+
           const name = `${o.customer?.firstName || ""} ${o.customer?.lastName || ""}`.trim();
           const phone = o.customer?.phone || "";
           const email = o.customer?.email || "";
@@ -321,8 +438,19 @@ export default function AdminOrders() {
             o.paymentStatus === "paid" ||
             o.status === "paid";
 
-          const itemCount = Array.isArray(o.items) ? o.items.length : 0;
-          const shops = Array.isArray(o.shops) ? o.shops : [];
+          const items = Array.isArray(o.items) ? o.items : [];
+          const visibleItems = isShopAdmin && normalizedAdminShop
+            ? items.filter((it) => normalizeShop(it?.shop) === normalizedAdminShop)
+            : items;
+
+          const itemCount = visibleItems.length || items.length || 0;
+          const shops = Array.isArray(o.shops)
+            ? o.shops.map((shop) => normalizeShop(shop))
+            : [];
+
+          const displayShops = isShopAdmin && normalizedAdminShop
+            ? [normalizedAdminShop]
+            : shops;
 
           return (
             <div className="order-card" key={o.id}>
@@ -343,24 +471,27 @@ export default function AdminOrders() {
               </div>
 
               <div className="order-items">
-                {(o.items || []).slice(0, 3).map((it, index) => (
+                {visibleItems.slice(0, 3).map((it, index) => (
                   <div key={it.id || `${o.id}-${index}`} className="order-item">
                     <span>
                       {it.name || "Item"}
                       {it.shop ? (
-                        <span className="muted"> • {normalizeShop(it.shop)}</span>
+                        <span className="muted"> • {titleize(normalizeShop(it.shop))}</span>
                       ) : null}
                     </span>
                     <span className="muted">x{it.qty || 1}</span>
                   </div>
                 ))}
 
-                {(o.items || []).length > 3 && (
-                  <div className="muted">+{(o.items || []).length - 3} more</div>
+                {visibleItems.length > 3 && (
+                  <div className="muted">+{visibleItems.length - 3} more</div>
                 )}
               </div>
 
-              <div className="order-bottom" style={{ justifyContent: "space-between", gap: 12 }}>
+              <div
+                className="order-bottom"
+                style={{ justifyContent: "space-between", gap: 12 }}
+              >
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                   <div className="pill">
                     {o.status || "pending"}
@@ -372,9 +503,9 @@ export default function AdminOrders() {
                     {itemCount} item{itemCount === 1 ? "" : "s"}
                   </div>
 
-                  {shops.length ? (
+                  {displayShops.length ? (
                     <div className="pill">
-                      {shops.join(", ")}
+                      {displayShops.map(titleize).join(", ")}
                     </div>
                   ) : null}
                 </div>

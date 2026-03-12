@@ -1,4 +1,3 @@
-// src/components/ProductGrid.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   collection,
@@ -66,8 +65,8 @@ function normalizeFilter(filter) {
   };
 }
 
-function normalizeDoc(doc) {
-  const d = doc.data() || {};
+function normalizeDoc(docSnap) {
+  const d = docSnap.data() || {};
   const price = Number(d.price ?? d.Price ?? 0) || 0;
   const oldPrice = d.oldPrice ?? d.oldprice ?? null;
 
@@ -79,7 +78,7 @@ function normalizeDoc(doc) {
   const featured = Boolean(d.featured ?? d.Featured ?? false);
 
   return {
-    id: doc.id,
+    id: docSnap.id,
     ...d,
     price,
     oldPrice: oldPrice != null ? Number(oldPrice) || oldPrice : null,
@@ -92,21 +91,28 @@ function normalizeDoc(doc) {
   };
 }
 
+function getCreatedAtMillis(item) {
+  if (typeof item?.createdAt?.toMillis === "function") {
+    return item.createdAt.toMillis();
+  }
+  if (typeof item?.createdAt?.seconds === "number") {
+    return item.createdAt.seconds * 1000;
+  }
+  return 0;
+}
+
 function clientSort(list, sortKey) {
   const arr = [...list];
 
   if (sortKey === "price-asc") {
     return arr.sort((a, b) => (a.price || 0) - (b.price || 0));
   }
+
   if (sortKey === "price-desc") {
     return arr.sort((a, b) => (b.price || 0) - (a.price || 0));
   }
 
-  return arr.sort((a, b) => {
-    const at = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-    const bt = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-    return bt - at;
-  });
+  return arr.sort((a, b) => getCreatedAtMillis(b) - getCreatedAtMillis(a));
 }
 
 function buildOrder(sortKey) {
@@ -134,6 +140,32 @@ function matchesSearch(product, term) {
     .toLowerCase();
 
   return haystack.includes(term);
+}
+
+function seededHash(input) {
+  let hash = 2166136261;
+
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
+function shouldRandomize(sortKey) {
+  return sortKey === "new" || sortKey === "";
+}
+
+function randomizedStableOrder(list, seedBase) {
+  return [...list].sort((a, b) => {
+    const aSeed = seededHash(`${seedBase}:${a.id}`);
+    const bSeed = seededHash(`${seedBase}:${b.id}`);
+
+    if (aSeed !== bSeed) return aSeed - bSeed;
+
+    return getCreatedAtMillis(b) - getCreatedAtMillis(a);
+  });
 }
 
 export default function ProductGrid({
@@ -182,6 +214,29 @@ export default function ProductGrid({
     f.priceMax,
     f.featuredOnly,
     sortKey,
+  ]);
+
+  const randomSeedBase = useMemo(() => {
+    return [
+      "beme-market",
+      f.dept || "all",
+      f.kind || "all",
+      f.shop || "all",
+      f.q || "none",
+      f.featuredOnly ? "featured" : "not-featured",
+      f.inStockOnly ? "in-stock" : "stock-any",
+      f.priceMin ?? "min-any",
+      f.priceMax ?? "max-any",
+    ].join("|");
+  }, [
+    f.dept,
+    f.kind,
+    f.shop,
+    f.q,
+    f.featuredOnly,
+    f.inStockOnly,
+    f.priceMin,
+    f.priceMax,
   ]);
 
   const baseQueryParts = useMemo(() => {
@@ -309,7 +364,9 @@ export default function ProductGrid({
       setProducts((prev) => {
         const seen = new Set(prev.map((p) => p.id));
         const merged = [...prev];
-        for (const p of normalized) if (!seen.has(p.id)) merged.push(p);
+        for (const p of normalized) {
+          if (!seen.has(p.id)) merged.push(p);
+        }
         return merged;
       });
 
@@ -328,7 +385,15 @@ export default function ProductGrid({
         const snap2 = await getDocs(qMore2);
         const normalized2 = snap2.docs.map(normalizeDoc);
 
-        setProducts((prev) => clientSort([...prev, ...normalized2], sortKey));
+        setProducts((prev) => {
+          const seen = new Set(prev.map((p) => p.id));
+          const merged = [...prev];
+          for (const p of normalized2) {
+            if (!seen.has(p.id)) merged.push(p);
+          }
+          return clientSort(merged, sortKey);
+        });
+
         setLastDoc(snap2.docs[snap2.docs.length - 1] || lastDoc);
         setHasMore(snap2.docs.length === PAGE_SIZE);
         setPagesLoaded((p) => p + 1);
@@ -360,7 +425,6 @@ export default function ProductGrid({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     infinite,
-    sentinelRef.current,
     hasMore,
     lastDoc,
     loadingFirst,
@@ -372,17 +436,36 @@ export default function ProductGrid({
   const finalList = useMemo(() => {
     let list = [...products];
 
-    if (f.featuredOnly) list = list.filter((p) => !!p.featured);
+    if (f.featuredOnly) {
+      list = list.filter((p) => !!p.featured);
+    }
+
     if (f.priceMin != null) {
       list = list.filter((p) => (Number(p.price) || 0) >= f.priceMin);
     }
+
     if (f.priceMax != null) {
       list = list.filter((p) => (Number(p.price) || 0) <= f.priceMax);
     }
-    if (f.q) list = list.filter((p) => matchesSearch(p, f.q));
+
+    if (f.q) {
+      list = list.filter((p) => matchesSearch(p, f.q));
+    }
+
+    if (shouldRandomize(sortKey)) {
+      return randomizedStableOrder(list, randomSeedBase);
+    }
 
     return list;
-  }, [products, f.priceMin, f.priceMax, f.featuredOnly, f.q]);
+  }, [
+    products,
+    f.priceMin,
+    f.priceMax,
+    f.featuredOnly,
+    f.q,
+    sortKey,
+    randomSeedBase,
+  ]);
 
   if (withCount) {
     if (loadingFirst) return <>…</>;

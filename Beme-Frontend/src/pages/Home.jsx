@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { collection, getDocs, limit, query } from "firebase/firestore";
 import { db } from "../firebase";
 import ProductGrid from "../components/ProductGrid";
+import { SHOPS } from "../constants/catalog";
 import banner from "../assets/home-banner.png";
 import fashionBanner from "../assets/fashion-banner.png";
 import kenteBanner from "../assets/kente-banner.png";
@@ -15,16 +16,16 @@ const SEARCH_PREVIEW_LIMIT = 40;
 const SUGGESTION_LIMIT = 8;
 const HERO_SLIDE_INTERVAL = 5000;
 
-function normalizeProduct(doc) {
-  const d = doc.data() || {};
+function normalizeProduct(docSnap) {
+  const d = docSnap.data() || {};
 
   return {
-    id: doc.id,
+    id: docSnap.id,
     name: String(d.name || "").trim(),
     description: String(d.description || "").trim(),
     dept: String(d.dept || "").trim(),
     kind: String(d.kind || "").trim(),
-    shop: String(d.shop || "").trim(),
+    shop: String(d.shop || "").trim().toLowerCase(),
   };
 }
 
@@ -36,6 +37,13 @@ function titleize(value) {
     .replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
+function formatShopLabel(value) {
+  const key = String(value || "").trim().toLowerCase();
+  const match = SHOPS.find((shop) => shop.key === key);
+  if (match?.label) return match.label;
+  return titleize(key);
+}
+
 function buildSuggestions(products, term) {
   const q = term.trim().toLowerCase();
   if (!q) return [];
@@ -45,11 +53,11 @@ function buildSuggestions(products, term) {
 
   const pushSuggestion = (label, type, value, score) => {
     const cleanLabel = String(label || "").trim();
-    const cleanValue = String(value || "").trim().toLowerCase();
+    const cleanValue = String(value || "").trim();
 
     if (!cleanLabel || !cleanValue) return;
 
-    const key = `${type}:${cleanValue}`;
+    const key = `${type}:${cleanValue.toLowerCase()}`;
     if (seen.has(key)) return;
 
     seen.add(key);
@@ -57,7 +65,7 @@ function buildSuggestions(products, term) {
       id: key,
       label: cleanLabel,
       type,
-      value: cleanLabel,
+      value: cleanValue,
       score,
     });
   };
@@ -91,9 +99,9 @@ function buildSuggestions(products, term) {
     }
 
     if (shopLc.startsWith(q)) {
-      pushSuggestion(titleize(shop), "shop", titleize(shop), 68);
+      pushSuggestion(formatShopLabel(shop), "shop", `shop:${shop}`, 68);
     } else if (shopLc.includes(q)) {
-      pushSuggestion(titleize(shop), "shop", titleize(shop), 58);
+      pushSuggestion(formatShopLabel(shop), "shop", `shop:${shop}`, 58);
     }
 
     if (descLc.includes(q)) {
@@ -301,7 +309,19 @@ export default function Home() {
     const q = String(value || "").trim();
     setSuggestionsOpen(false);
     setActiveIndex(-1);
-    navigate(q ? `/shop?q=${encodeURIComponent(q)}` : "/shop");
+
+    if (!q) {
+      navigate("/shop");
+      return;
+    }
+
+    if (q.startsWith("shop:")) {
+      const shopKey = q.replace(/^shop:/, "").trim().toLowerCase();
+      navigate(`/shop?shop=${encodeURIComponent(shopKey)}`);
+      return;
+    }
+
+    navigate(`/shop?q=${encodeURIComponent(q)}`);
   };
 
   const submitSearch = (e) => {
@@ -376,7 +396,7 @@ export default function Home() {
 
           <input
             type="text"
-            placeholder="Search products"
+            placeholder="Search products or stores"
             className="search-input"
             value={search}
             onChange={handleInputChange}

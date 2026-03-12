@@ -49,7 +49,10 @@ function AppShell() {
 
   return (
     <>
-      <Header onMenu={() => setSidebarOpen(true)} onCart={() => setCartOpen(true)} />
+      <Header
+        onMenu={() => setSidebarOpen(true)}
+        onCart={() => setCartOpen(true)}
+      />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
@@ -65,7 +68,10 @@ function AppShell() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/own-a-shop" element={<ShopOwnerApply />} />
-          <Route path="/shop-payment-status" element={<ShopOwnerPaymentStatus />} />
+          <Route
+            path="/shop-payment-status"
+            element={<ShopOwnerPaymentStatus />}
+          />
           <Route path="/about" element={<About />} />
           <Route path="/support" element={<Support />} />
           <Route path="/contact" element={<Contact />} />

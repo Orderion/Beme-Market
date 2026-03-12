@@ -13,17 +13,14 @@ import {
 import "./Shop.css";
 
 const SHOP_TITLE_MAP = {
-  main: "Fashion Shop",
+  fashion: "Fashion Shop",
+  main: "Main Store",
   kente: "Mintah's Kente",
   perfume: "Perfume Shop",
   tech: "Tech Shop",
 };
 
-const SHOP_FILTER_OPTIONS = SHOPS.map((shop) =>
-  shop.key === "main"
-    ? { ...shop, label: "Fashion Shop" }
-    : { ...shop }
-);
+const SHOP_FILTER_OPTIONS = SHOPS.map((shop) => ({ ...shop }));
 
 function getLabel(list, key) {
   return list.find((item) => item.key === key)?.label || null;
@@ -115,7 +112,7 @@ const Shop = () => {
     if (shopParam) {
       pills.push({
         key: `shop:${shopParam}`,
-        label: SHOP_TITLE_MAP[shopParam] || "Shop",
+        label: SHOP_TITLE_MAP[shopParam] || getLabel(SHOPS, shopParam) || "Shop",
         onRemove: () => setShop(null),
       });
     }
@@ -600,7 +597,7 @@ const Shop = () => {
                   checked={draft.sort === "new"}
                   onChange={() => setDraft((prev) => ({ ...prev, sort: "new" }))}
                 />
-                Newest
+                Dynamic
               </label>
 
               <label className="shop-radio-item">

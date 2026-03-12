@@ -17,10 +17,15 @@ function normalizeRole(value) {
 
   if (role === "super_admin") return "super_admin";
   if (role === "shop_admin") return "shop_admin";
-  if (role === "admin") return "super_admin"; // backward compatibility
+  if (role === "admin") return "super_admin";
   if (role === "customer") return "customer";
 
   return "customer";
+}
+
+function normalizeShop(value) {
+  const shop = String(value || "").trim().toLowerCase();
+  return shop || null;
 }
 
 function normalizeCapabilities(value) {
@@ -45,7 +50,7 @@ async function resolveProfile(uid) {
 
   const data = snap.data() || {};
   const role = normalizeRole(data.role);
-  const shop = data.shop ? String(data.shop).trim().toLowerCase() : null;
+  const shop = normalizeShop(data.shop);
   const capabilities = normalizeCapabilities(data.capabilities);
 
   return {
@@ -62,13 +67,42 @@ async function resolveProfile(uid) {
   };
 }
 
+function buildInitialState() {
+  return {
+    user: null,
+    role: "guest",
+    adminShop: null,
+    capabilities: [],
+    profile: null,
+    loading: true,
+  };
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [role, setRole] = useState("guest");
-  const [adminShop, setAdminShop] = useState(null);
-  const [capabilities, setCapabilities] = useState([]);
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(buildInitialState().user);
+  const [role, setRole] = useState(buildInitialState().role);
+  const [adminShop, setAdminShop] = useState(buildInitialState().adminShop);
+  const [capabilities, setCapabilities] = useState(
+    buildInitialState().capabilities
+  );
+  const [profile, setProfile] = useState(buildInitialState().profile);
+  const [loading, setLoading] = useState(buildInitialState().loading);
+
+  const clearAuthState = () => {
+    setUser(null);
+    setRole("guest");
+    setAdminShop(null);
+    setCapabilities([]);
+    setProfile(null);
+  };
+
+  const applyResolvedProfile = (firebaseUser, resolved) => {
+    setUser(firebaseUser || null);
+    setRole(resolved?.role || "customer");
+    setAdminShop(resolved?.shop || null);
+    setCapabilities(resolved?.capabilities || []);
+    setProfile(resolved?.profile || null);
+  };
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -76,22 +110,12 @@ export function AuthProvider({ children }) {
 
       try {
         if (!u) {
-          setUser(null);
-          setRole("guest");
-          setAdminShop(null);
-          setCapabilities([]);
-          setProfile(null);
+          clearAuthState();
           return;
         }
 
-        setUser(u);
-
         const resolved = await resolveProfile(u.uid);
-
-        setRole(resolved.role);
-        setAdminShop(resolved.shop);
-        setCapabilities(resolved.capabilities);
-        setProfile(resolved.profile);
+        applyResolvedProfile(u, resolved);
       } catch (error) {
         console.error("Auth role resolution error:", error);
         setUser(u || null);
@@ -111,11 +135,7 @@ export function AuthProvider({ children }) {
     const cred = await signInWithEmailAndPassword(auth, email, password);
     const resolved = await resolveProfile(cred.user.uid);
 
-    setUser(cred.user);
-    setRole(resolved.role);
-    setAdminShop(resolved.shop);
-    setCapabilities(resolved.capabilities);
-    setProfile(resolved.profile);
+    applyResolvedProfile(cred.user, resolved);
 
     return {
       user: cred.user,
@@ -137,27 +157,32 @@ export function AuthProvider({ children }) {
         capabilities: [],
         email,
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       },
       { merge: true }
     );
 
-    setUser(cred.user);
-    setRole("customer");
-    setAdminShop(null);
-    setCapabilities([]);
-    setProfile({
-      id: cred.user.uid,
+    const resolved = {
       role: "customer",
       shop: null,
       capabilities: [],
-      email,
-    });
+      profile: {
+        id: cred.user.uid,
+        role: "customer",
+        shop: null,
+        capabilities: [],
+        email,
+      },
+    };
+
+    applyResolvedProfile(cred.user, resolved);
 
     return {
       user: cred.user,
-      role: "customer",
-      shop: null,
-      capabilities: [],
+      role: resolved.role,
+      shop: resolved.shop,
+      capabilities: resolved.capabilities,
+      profile: resolved.profile,
     };
   };
 
@@ -165,12 +190,7 @@ export function AuthProvider({ children }) {
     if (!auth.currentUser?.uid) return null;
 
     const resolved = await resolveProfile(auth.currentUser.uid);
-
-    setRole(resolved.role);
-    setAdminShop(resolved.shop);
-    setCapabilities(resolved.capabilities);
-    setProfile(resolved.profile);
-
+    applyResolvedProfile(auth.currentUser, resolved);
     return resolved;
   };
 
@@ -190,17 +210,20 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     await signOut(auth);
-    setUser(null);
-    setRole("guest");
-    setAdminShop(null);
-    setCapabilities([]);
-    setProfile(null);
+    clearAuthState();
   };
 
   const value = useMemo(() => {
     const isSuperAdmin = role === "super_admin";
     const isShopAdmin = role === "shop_admin";
     const isAdmin = isSuperAdmin || isShopAdmin;
+
+    const hasCapability = (capability) => {
+      const key = String(capability || "").trim().toLowerCase();
+      if (!key) return false;
+      if (isSuperAdmin) return true;
+      return capabilities.includes(key);
+    };
 
     return {
       user,
@@ -212,6 +235,7 @@ export function AuthProvider({ children }) {
       isAdmin,
       isSuperAdmin,
       isShopAdmin,
+      hasCapability,
       login,
       signup,
       logout,

@@ -73,8 +73,12 @@ function titleize(value) {
     .replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
+function normalizeShopKey(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 function formatShopLabel(value) {
-  const key = String(value || "").trim();
+  const key = normalizeShopKey(value);
   const match = SHOPS.find((shop) => shop.key === key);
   if (match?.label) return match.label;
   return titleize(value);
@@ -98,9 +102,9 @@ function normalizeAdminProduct(snapshotDoc) {
         : null,
     image: cover,
     images: images.length ? images : cover ? [cover] : [],
-    dept: String(d.dept || "").trim(),
-    kind: String(d.kind || "").trim(),
-    shop: String(d.shop || "fashion").trim(),
+    dept: String(d.dept || "").trim().toLowerCase(),
+    kind: String(d.kind || "").trim().toLowerCase(),
+    shop: normalizeShopKey(d.shop || "fashion"),
     ownerId: String(d.ownerId || "").trim(),
     featured: !!d.featured,
     inStock: !!d.inStock,
@@ -110,6 +114,14 @@ function normalizeAdminProduct(snapshotDoc) {
 
 function getFileKey(file) {
   return `${file.name}-${file.size}-${file.lastModified}`;
+}
+
+function sortByCreatedAtDesc(rows) {
+  return [...rows].sort((a, b) => {
+    const at = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+    const bt = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+    return bt - at;
+  });
 }
 
 export default function Admin() {
@@ -140,24 +152,40 @@ export default function Admin() {
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState("");
 
+  const normalizedAdminShop = useMemo(
+    () => normalizeShopKey(adminShop),
+    [adminShop]
+  );
+
   const deptOptions = useMemo(() => DEPARTMENTS.map((d) => d.key), []);
   const kindOptions = useMemo(() => KINDS.map((k) => k.key), []);
   const allShopOptions = useMemo(() => SHOPS.map((s) => s.key), []);
 
   const availableShops = useMemo(() => {
     if (isSuperAdmin) return allShopOptions;
-    if (isShopAdmin && adminShop) return [adminShop];
+    if (isShopAdmin && normalizedAdminShop) return [normalizedAdminShop];
     return [];
-  }, [isSuperAdmin, isShopAdmin, adminShop, allShopOptions]);
+  }, [isSuperAdmin, isShopAdmin, normalizedAdminShop, allShopOptions]);
 
   useEffect(() => {
-    if (isShopAdmin && adminShop) {
+    if (isShopAdmin && normalizedAdminShop) {
       setForm((prev) => ({
         ...prev,
-        shop: adminShop,
+        shop: normalizedAdminShop,
       }));
     }
-  }, [isShopAdmin, adminShop]);
+  }, [isShopAdmin, normalizedAdminShop]);
+
+  const canCurrentUserDeleteProduct = (product) => {
+    if (!product) return false;
+    if (isShopAdmin) {
+      return !!normalizedAdminShop && product.shop === normalizedAdminShop;
+    }
+    if (isSuperAdmin) {
+      return product.ownerId && product.ownerId === user?.uid;
+    }
+    return false;
+  };
 
   const loadProducts = async () => {
     setLoadingProducts(true);
@@ -172,11 +200,11 @@ export default function Admin() {
 
       let rows = snap.docs.map(normalizeAdminProduct);
 
-      if (isShopAdmin && adminShop) {
-        rows = rows.filter((product) => product.shop === adminShop);
+      if (isShopAdmin && normalizedAdminShop) {
+        rows = rows.filter((product) => product.shop === normalizedAdminShop);
       }
 
-      setProducts(rows);
+      setProducts(sortByCreatedAtDesc(rows));
     } catch (error) {
       console.error("Admin products fetch error:", error);
 
@@ -185,17 +213,13 @@ export default function Admin() {
         const fallbackSnap = await getDocs(fallbackRef);
         let normalized = fallbackSnap.docs.map(normalizeAdminProduct);
 
-        if (isShopAdmin && adminShop) {
-          normalized = normalized.filter((product) => product.shop === adminShop);
+        if (isShopAdmin && normalizedAdminShop) {
+          normalized = normalized.filter(
+            (product) => product.shop === normalizedAdminShop
+          );
         }
 
-        normalized.sort((a, b) => {
-          const at = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-          const bt = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-          return bt - at;
-        });
-
-        setProducts(normalized);
+        setProducts(sortByCreatedAtDesc(normalized));
       } catch (fallbackError) {
         console.error("Admin fallback fetch error:", fallbackError);
         setProducts([]);
@@ -209,7 +233,7 @@ export default function Admin() {
   useEffect(() => {
     loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [role, adminShop]);
+  }, [role, normalizedAdminShop, isSuperAdmin, isShopAdmin]);
 
   useEffect(() => {
     return () => {
@@ -369,7 +393,9 @@ export default function Admin() {
 
     if (!deptOptions.includes(form.dept)) return "Invalid department selected.";
     if (!kindOptions.includes(form.kind)) return "Invalid type selected.";
-    if (!availableShops.includes(form.shop)) return "Invalid shop selected.";
+    if (!availableShops.includes(normalizeShopKey(form.shop))) {
+      return "Invalid shop selected.";
+    }
 
     for (const group of form.customizations) {
       const groupName = String(group.name || "").trim();
@@ -412,7 +438,9 @@ export default function Admin() {
       }
 
       const shopValue =
-        isShopAdmin && adminShop ? adminShop : String(form.shop || "").trim();
+        isShopAdmin && normalizedAdminShop
+          ? normalizedAdminShop
+          : normalizeShopKey(form.shop);
 
       const customizations = normalizeCustomizationGroups(form.customizations);
       const imageUrls = imagePayloads.map((item) => item.url).filter(Boolean);
@@ -460,7 +488,7 @@ export default function Admin() {
       setMsg("✅ Product added successfully.");
       setForm({
         ...initial,
-        shop: isShopAdmin && adminShop ? adminShop : initial.shop,
+        shop: isShopAdmin && normalizedAdminShop ? normalizedAdminShop : initial.shop,
       });
       resetImageState();
       await loadProducts();
@@ -478,6 +506,15 @@ export default function Admin() {
   };
 
   const openDeleteModal = (product) => {
+    if (!canCurrentUserDeleteProduct(product)) {
+      setMsg(
+        isSuperAdmin
+          ? "❌ Super admin can view all shop products here, but can only delete products uploaded from this super admin account."
+          : "❌ You can only delete products from your own shop."
+      );
+      return;
+    }
+
     setProductToDelete(product);
     setDeletePassword("");
     setDeleteError("");
@@ -505,8 +542,12 @@ export default function Admin() {
       return;
     }
 
-    if (isShopAdmin && productToDelete.shop !== adminShop) {
-      setDeleteError("❌ You can only delete products from your own shop.");
+    if (!canCurrentUserDeleteProduct(productToDelete)) {
+      setDeleteError(
+        isSuperAdmin
+          ? "❌ You can only delete products uploaded from this super admin account."
+          : "❌ You can only delete products from your own shop."
+      );
       return;
     }
 
@@ -552,13 +593,62 @@ export default function Admin() {
     }
   };
 
+  const productSummary = useMemo(() => {
+    const summaryMap = new Map();
+
+    products.forEach((product) => {
+      const key = product.shop || "unknown";
+      if (!summaryMap.has(key)) {
+        summaryMap.set(key, {
+          shop: key,
+          label: formatShopLabel(key),
+          count: 0,
+          inStock: 0,
+          featured: 0,
+        });
+      }
+
+      const row = summaryMap.get(key);
+      row.count += 1;
+      if (product.inStock) row.inStock += 1;
+      if (product.featured) row.featured += 1;
+    });
+
+    return Array.from(summaryMap.values()).sort((a, b) =>
+      a.label.localeCompare(b.label)
+    );
+  }, [products]);
+
+  const groupedProducts = useMemo(() => {
+    const groups = new Map();
+
+    products.forEach((product) => {
+      const key = product.shop || "unknown";
+      if (!groups.has(key)) {
+        groups.set(key, {
+          shop: key,
+          label: formatShopLabel(key),
+          items: [],
+        });
+      }
+      groups.get(key).items.push(product);
+    });
+
+    return Array.from(groups.values())
+      .map((group) => ({
+        ...group,
+        items: sortByCreatedAtDesc(group.items),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [products]);
+
   const pageTitle = isSuperAdmin
     ? "Product Manager"
-    : `${formatShopLabel(adminShop)} Product Manager`;
+    : `${formatShopLabel(normalizedAdminShop)} Product Manager`;
 
   const pageSub = isSuperAdmin
-    ? `Manage products across all shops.`
-    : `Manage only products belonging to ${formatShopLabel(adminShop)}.`;
+    ? "Create products from this super admin account and review products across every shop. Other shops remain visible here but are read-only."
+    : `Manage only products belonging to ${formatShopLabel(normalizedAdminShop)}.`;
 
   return (
     <div className="admin-page">
@@ -742,7 +832,7 @@ export default function Admin() {
               <h3 className="admin-shop-title">Store placement</h3>
               <p className="admin-shop-sub">
                 {isSuperAdmin
-                  ? "Choose which storefront this product should appear under."
+                  ? "Choose which storefront this super admin product should appear under."
                   : "Products you add will be locked to your assigned shop."}
               </p>
             </div>
@@ -755,7 +845,7 @@ export default function Admin() {
                     key={shopKey}
                     type="button"
                     className={
-                      form.shop === shopKey
+                      normalizeShopKey(form.shop) === shopKey
                         ? "admin-store-pill active"
                         : "admin-store-pill"
                     }
@@ -960,117 +1050,190 @@ export default function Admin() {
           <h2 className="admin-title">Manage Products</h2>
           <p className="admin-sub">
             {isSuperAdmin
-              ? "Delete products across all shops after password verification."
+              ? "You can review all shop products here. Products uploaded by other shop admins are visible but read-only. Products uploaded by this super admin account remain manageable."
               : "Delete only your shop products after password verification."}
           </p>
         </div>
+
+        {productSummary.length ? (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: 12,
+              marginBottom: 18,
+            }}
+          >
+            {productSummary.map((shop) => (
+              <div
+                key={shop.shop}
+                style={{
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 18,
+                  padding: 14,
+                  background: "rgba(255,255,255,0.02)",
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>
+                  {shop.label}
+                </div>
+                <div style={{ opacity: 0.82, fontSize: 14 }}>
+                  {shop.count} products
+                </div>
+                <div style={{ opacity: 0.72, fontSize: 13, marginTop: 6 }}>
+                  {shop.inStock} in stock • {shop.featured} featured
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         {productsError ? <div className="admin-msg">{productsError}</div> : null}
 
         {loadingProducts ? (
           <div className="admin-products-empty">Loading products…</div>
-        ) : products.length ? (
-          <div className="admin-products-list">
-            {products.map((product) => {
-              const isDeleting = deletingId === product.id;
-              const gallery = Array.isArray(product.images)
-                ? product.images
-                : product.image
-                  ? [product.image]
-                  : [];
+        ) : groupedProducts.length ? (
+          <div style={{ display: "grid", gap: 18 }}>
+            {groupedProducts.map((group) => (
+              <div key={group.shop} style={{ display: "grid", gap: 12 }}>
+                <div className="admin-head" style={{ marginBottom: 0 }}>
+                  <h3 className="admin-title" style={{ fontSize: "1.05rem" }}>
+                    {group.label}
+                  </h3>
+                  <p className="admin-sub">
+                    {group.items.length} product{group.items.length === 1 ? "" : "s"}
+                  </p>
+                </div>
 
-              return (
-                <div className="admin-product-item" key={product.id}>
-                  <div className="admin-product-media">
-                    {product.image ? (
-                      <>
-                        <div className="admin-product-cover-wrap">
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="admin-product-image"
-                          />
-                          {gallery.length > 1 ? (
-                            <span className="admin-product-gallery-badge">
-                              {gallery.length} photos
-                            </span>
-                          ) : null}
+                <div className="admin-products-list">
+                  {group.items.map((product) => {
+                    const isDeleting = deletingId === product.id;
+                    const gallery = Array.isArray(product.images)
+                      ? product.images
+                      : product.image
+                        ? [product.image]
+                        : [];
+                    const canDelete = canCurrentUserDeleteProduct(product);
+                    const uploadedByCurrentUser = product.ownerId === user?.uid;
+
+                    return (
+                      <div className="admin-product-item" key={product.id}>
+                        <div className="admin-product-media">
+                          {product.image ? (
+                            <>
+                              <div className="admin-product-cover-wrap">
+                                <img
+                                  src={product.image}
+                                  alt={product.name}
+                                  className="admin-product-image"
+                                />
+                                {gallery.length > 1 ? (
+                                  <span className="admin-product-gallery-badge">
+                                    {gallery.length} photos
+                                  </span>
+                                ) : null}
+                              </div>
+
+                              {gallery.length > 1 ? (
+                                <div className="admin-product-gallery-strip">
+                                  {gallery.slice(0, 4).map((src, index) => (
+                                    <img
+                                      key={`${src}-${index}`}
+                                      src={src}
+                                      alt={`${product.name} ${index + 1}`}
+                                      className="admin-product-gallery-thumb"
+                                    />
+                                  ))}
+
+                                  {gallery.length > 4 ? (
+                                    <div className="admin-product-gallery-more">
+                                      +{gallery.length - 4}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </>
+                          ) : (
+                            <div className="admin-product-image admin-product-image--empty">
+                              No image
+                            </div>
+                          )}
                         </div>
 
-                        {gallery.length > 1 ? (
-                          <div className="admin-product-gallery-strip">
-                            {gallery.slice(0, 4).map((src, index) => (
-                              <img
-                                key={`${src}-${index}`}
-                                src={src}
-                                alt={`${product.name} ${index + 1}`}
-                                className="admin-product-gallery-thumb"
-                              />
-                            ))}
-
-                            {gallery.length > 4 ? (
-                              <div className="admin-product-gallery-more">
-                                +{gallery.length - 4}
+                        <div className="admin-product-content">
+                          <div className="admin-product-top">
+                            <div>
+                              <h3 className="admin-product-name">{product.name}</h3>
+                              <div className="admin-product-meta">
+                                <span>{formatShopLabel(product.shop)}</span>
+                                <span>{titleize(product.kind)}</span>
+                                <span>{titleize(product.dept)}</span>
+                                <span>
+                                  {uploadedByCurrentUser
+                                    ? "Uploaded by you"
+                                    : "Uploaded by shop admin"}
+                                </span>
                               </div>
+                            </div>
+
+                            <div className="admin-product-price">
+                              {formatMoney(product.price)}
+                            </div>
+                          </div>
+
+                          <div className="admin-product-flags">
+                            <span
+                              className={
+                                product.inStock
+                                  ? "admin-flag admin-flag--success"
+                                  : "admin-flag"
+                              }
+                            >
+                              {product.inStock ? "In stock" : "Out of stock"}
+                            </span>
+
+                            {product.featured ? (
+                              <span className="admin-flag admin-flag--featured">
+                                Featured
+                              </span>
+                            ) : null}
+
+                            {!canDelete ? (
+                              <span className="admin-flag">Read only</span>
                             ) : null}
                           </div>
-                        ) : null}
-                      </>
-                    ) : (
-                      <div className="admin-product-image admin-product-image--empty">
-                        No image
-                      </div>
-                    )}
-                  </div>
 
-                  <div className="admin-product-content">
-                    <div className="admin-product-top">
-                      <div>
-                        <h3 className="admin-product-name">{product.name}</h3>
-                        <div className="admin-product-meta">
-                          <span>{formatShopLabel(product.shop)}</span>
-                          <span>{titleize(product.kind)}</span>
-                          <span>{titleize(product.dept)}</span>
+                          <div className="admin-product-actions">
+                            <button
+                              type="button"
+                              className="admin-danger-btn"
+                              onClick={() => openDeleteModal(product)}
+                              disabled={!!deletingId || !canDelete}
+                              title={
+                                canDelete
+                                  ? "Delete product"
+                                  : "You cannot manage this product from this account"
+                              }
+                              style={
+                                !canDelete
+                                  ? { opacity: 0.55, cursor: "not-allowed" }
+                                  : undefined
+                              }
+                            >
+                              {isDeleting
+                                ? "Deleting…"
+                                : canDelete
+                                  ? "Delete product"
+                                  : "Read only"}
+                            </button>
+                          </div>
                         </div>
                       </div>
-
-                      <div className="admin-product-price">
-                        {formatMoney(product.price)}
-                      </div>
-                    </div>
-
-                    <div className="admin-product-flags">
-                      <span
-                        className={
-                          product.inStock
-                            ? "admin-flag admin-flag--success"
-                            : "admin-flag"
-                        }
-                      >
-                        {product.inStock ? "In stock" : "Out of stock"}
-                      </span>
-
-                      {product.featured ? (
-                        <span className="admin-flag admin-flag--featured">
-                          Featured
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <div className="admin-product-actions">
-                      <button
-                        type="button"
-                        className="admin-danger-btn"
-                        onClick={() => openDeleteModal(product)}
-                        disabled={!!deletingId}
-                      >
-                        {isDeleting ? "Deleting…" : "Delete product"}
-                      </button>
-                    </div>
-                  </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         ) : (
           <div className="admin-products-empty">No products found yet.</div>

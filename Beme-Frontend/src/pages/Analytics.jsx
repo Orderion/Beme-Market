@@ -34,6 +34,12 @@ function normalizeShop(value) {
   return String(value || "main").trim().toLowerCase() || "main";
 }
 
+function toShopLabel(value) {
+  return normalizeShop(value)
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
 function getOrderTotal(order) {
   const direct =
     order.total ??
@@ -71,7 +77,108 @@ function labelFromDayKey(dayKey) {
   });
 }
 
-function buildDailySeries(orders, days = 7) {
+function productBelongsToShop(product, shopKey) {
+  return normalizeShop(product?.shop) === normalizeShop(shopKey);
+}
+
+function orderBelongsToShop(order, shopKey) {
+  const normalizedShop = normalizeShop(shopKey);
+
+  const shops = Array.isArray(order?.shops)
+    ? order.shops.map((shop) => normalizeShop(shop))
+    : [];
+
+  if (shops.includes(normalizedShop)) return true;
+
+  const primaryShop = normalizeShop(order?.primaryShop);
+  if (primaryShop === normalizedShop) return true;
+
+  const items = Array.isArray(order?.items) ? order.items : [];
+  return items.some((item) => normalizeShop(item?.shop) === normalizedShop);
+}
+
+function getRevenueForShopFromOrder(order, shopKey) {
+  const normalizedShop = normalizeShop(shopKey);
+  const items = Array.isArray(order?.items) ? order.items : [];
+
+  const matchingItems = items.filter(
+    (item) => normalizeShop(item?.shop) === normalizedShop
+  );
+
+  if (matchingItems.length) {
+    return matchingItems.reduce((sum, item) => {
+      const price = Number(item?.price || 0);
+      const qty = Number(item?.qty || 0);
+      return sum + price * qty;
+    }, 0);
+  }
+
+  if (orderBelongsToShop(order, normalizedShop)) {
+    return getOrderTotal(order);
+  }
+
+  return 0;
+}
+
+function getUnitsForShopFromOrder(order, shopKey) {
+  const normalizedShop = normalizeShop(shopKey);
+  const items = Array.isArray(order?.items) ? order.items : [];
+
+  const matchingItems = items.filter(
+    (item) => normalizeShop(item?.shop) === normalizedShop
+  );
+
+  if (matchingItems.length) {
+    return matchingItems.reduce((sum, item) => sum + Number(item?.qty || 0), 0);
+  }
+
+  if (orderBelongsToShop(order, normalizedShop)) {
+    return getOrderItemsCount(order);
+  }
+
+  return 0;
+}
+
+function getTopProductsForShop(orders, shopKey) {
+  const normalizedShop = normalizeShop(shopKey);
+  const map = new Map();
+
+  for (const order of orders) {
+    const items = Array.isArray(order.items) ? order.items : [];
+
+    for (const item of items) {
+      if (normalizeShop(item?.shop) !== normalizedShop) continue;
+
+      const id = String(item?.id || item?.productId || item?.name || "").trim();
+      const name =
+        String(item?.name || "Unnamed Product").trim() || "Unnamed Product";
+
+      if (!id) continue;
+
+      if (!map.has(id)) {
+        map.set(id, {
+          id,
+          name,
+          units: 0,
+          revenue: 0,
+        });
+      }
+
+      const row = map.get(id);
+      const qty = Number(item?.qty || 0);
+      const price = Number(item?.price || 0);
+
+      row.units += qty;
+      row.revenue += qty * price;
+    }
+  }
+
+  return Array.from(map.values())
+    .sort((a, b) => b.units - a.units || b.revenue - a.revenue)
+    .slice(0, 6);
+}
+
+function buildDailySeries(orders, days = 7, shopKey = null) {
   const today = new Date();
   const map = new Map();
 
@@ -92,23 +199,39 @@ function buildDailySeries(orders, days = 7) {
     if (!map.has(key)) continue;
 
     const current = map.get(key);
-    current.orders += 1;
-    current.revenue += getOrderTotal(order);
+
+    if (shopKey) {
+      if (!orderBelongsToShop(order, shopKey)) continue;
+      current.orders += 1;
+      current.revenue += getRevenueForShopFromOrder(order, shopKey);
+    } else {
+      current.orders += 1;
+      current.revenue += getOrderTotal(order);
+    }
   }
 
   return Array.from(map.values());
 }
 
-function buildShopPerformance(products, orders) {
+function buildShopPerformance(products, orders, options = {}) {
+  const { activeShopOnly = null, restrictRevenueToOwnerId = null } = options;
   const bucket = new Map();
 
-  for (const product of products) {
+  const filteredProducts = activeShopOnly
+    ? products.filter((product) => productBelongsToShop(product, activeShopOnly))
+    : products;
+
+  const filteredOrders = activeShopOnly
+    ? orders.filter((order) => orderBelongsToShop(order, activeShopOnly))
+    : orders;
+
+  for (const product of filteredProducts) {
     const shop = normalizeShop(product.shop);
 
     if (!bucket.has(shop)) {
       bucket.set(shop, {
         key: shop,
-        label: shop.replace(/[-_]+/g, " ").replace(/\b\w/g, (m) => m.toUpperCase()),
+        label: toShopLabel(shop),
         products: 0,
         featured: 0,
         inStock: 0,
@@ -122,15 +245,25 @@ function buildShopPerformance(products, orders) {
     if (product.inStock) row.inStock += 1;
   }
 
-  for (const order of orders) {
+  for (const order of filteredOrders) {
     const items = Array.isArray(order.items) ? order.items : [];
+
     for (const item of items) {
       const shop = normalizeShop(item?.shop);
+
+      if (activeShopOnly && shop !== normalizeShop(activeShopOnly)) continue;
+
+      if (
+        restrictRevenueToOwnerId &&
+        String(item?.ownerId || "").trim() !== String(restrictRevenueToOwnerId).trim()
+      ) {
+        continue;
+      }
 
       if (!bucket.has(shop)) {
         bucket.set(shop, {
           key: shop,
-          label: shop.replace(/[-_]+/g, " ").replace(/\b\w/g, (m) => m.toUpperCase()),
+          label: toShopLabel(shop),
           products: 0,
           featured: 0,
           inStock: 0,
@@ -156,7 +289,8 @@ function buildTopProducts(orders) {
 
     for (const item of items) {
       const id = String(item?.id || item?.productId || item?.name || "").trim();
-      const name = String(item?.name || "Unnamed Product").trim() || "Unnamed Product";
+      const name =
+        String(item?.name || "Unnamed Product").trim() || "Unnamed Product";
 
       if (!id) continue;
 
@@ -195,7 +329,9 @@ async function deleteAllDocsInCollection(collectionName) {
 }
 
 export default function Analytics() {
-  const { isSuperAdmin, isShopAdmin, adminShop, reauthenticate } = useAuth();
+  const { isSuperAdmin, isShopAdmin, adminShop, reauthenticate, user } = useAuth();
+
+  const normalizedAdminShop = useMemo(() => normalizeShop(adminShop), [adminShop]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -225,16 +361,21 @@ export default function Analytics() {
 
       try {
         const productsPromise =
-          isShopAdmin && adminShop
-            ? getDocs(query(collection(db, PRODUCTS_COLLECTION), where("shop", "==", adminShop)))
+          isShopAdmin && normalizedAdminShop
+            ? getDocs(
+                query(
+                  collection(db, PRODUCTS_COLLECTION),
+                  where("shop", "==", normalizedAdminShop)
+                )
+              ).catch(() => getDocs(collection(db, PRODUCTS_COLLECTION)))
             : getDocs(collection(db, PRODUCTS_COLLECTION));
 
         const ordersPromise =
-          isShopAdmin && adminShop
+          isShopAdmin && normalizedAdminShop
             ? getDocs(
                 query(
                   collection(db, ORDERS_COLLECTION),
-                  where("shops", "array-contains", adminShop),
+                  where("shops", "array-contains", normalizedAdminShop),
                   orderBy("createdAt", "desc"),
                   limit(300)
                 )
@@ -242,12 +383,16 @@ export default function Analytics() {
                 getDocs(
                   query(
                     collection(db, ORDERS_COLLECTION),
-                    where("shops", "array-contains", adminShop)
+                    where("shops", "array-contains", normalizedAdminShop)
                   )
                 )
               )
             : getDocs(
-                query(collection(db, ORDERS_COLLECTION), orderBy("createdAt", "desc"), limit(300))
+                query(
+                  collection(db, ORDERS_COLLECTION),
+                  orderBy("createdAt", "desc"),
+                  limit(300)
+                )
               ).catch(() => getDocs(collection(db, ORDERS_COLLECTION)));
 
         const usersPromise = isSuperAdmin
@@ -262,12 +407,12 @@ export default function Analytics() {
 
         if (!alive) return;
 
-        const nextProducts = productsSnap.docs.map((docSnap) => ({
+        let nextProducts = productsSnap.docs.map((docSnap) => ({
           id: docSnap.id,
           ...docSnap.data(),
         }));
 
-        const nextOrders = ordersSnap.docs.map((docSnap) => ({
+        let nextOrders = ordersSnap.docs.map((docSnap) => ({
           id: docSnap.id,
           ...docSnap.data(),
         }));
@@ -276,6 +421,16 @@ export default function Analytics() {
           id: docSnap.id,
           ...docSnap.data(),
         }));
+
+        if (isShopAdmin && normalizedAdminShop) {
+          nextProducts = nextProducts.filter((product) =>
+            productBelongsToShop(product, normalizedAdminShop)
+          );
+
+          nextOrders = nextOrders.filter((order) =>
+            orderBelongsToShop(order, normalizedAdminShop)
+          );
+        }
 
         setProducts(nextProducts);
         setOrders(nextOrders);
@@ -294,15 +449,39 @@ export default function Analytics() {
     return () => {
       alive = false;
     };
-  }, [isShopAdmin, adminShop, isSuperAdmin]);
+  }, [isShopAdmin, normalizedAdminShop, isSuperAdmin]);
 
   const metrics = useMemo(() => {
-    const totalProducts = products.length;
-    const inStockProducts = products.filter((p) => p.inStock !== false).length;
-    const featuredProducts = products.filter((p) => !!p.featured).length;
-    const totalOrders = orders.length;
-    const totalRevenue = orders.reduce((sum, order) => sum + getOrderTotal(order), 0);
-    const totalUnitsSold = orders.reduce((sum, order) => sum + getOrderItemsCount(order), 0);
+    const scopedProducts =
+      isShopAdmin && normalizedAdminShop
+        ? products.filter((product) =>
+            productBelongsToShop(product, normalizedAdminShop)
+          )
+        : products;
+
+    const scopedOrders =
+      isShopAdmin && normalizedAdminShop
+        ? orders.filter((order) => orderBelongsToShop(order, normalizedAdminShop))
+        : orders;
+
+    const totalProducts = scopedProducts.length;
+    const inStockProducts = scopedProducts.filter((p) => p.inStock !== false).length;
+    const featuredProducts = scopedProducts.filter((p) => !!p.featured).length;
+    const totalOrders = scopedOrders.length;
+
+    const totalRevenue = scopedOrders.reduce((sum, order) => {
+      if (isShopAdmin && normalizedAdminShop) {
+        return sum + getRevenueForShopFromOrder(order, normalizedAdminShop);
+      }
+      return sum + getOrderTotal(order);
+    }, 0);
+
+    const totalUnitsSold = scopedOrders.reduce((sum, order) => {
+      if (isShopAdmin && normalizedAdminShop) {
+        return sum + getUnitsForShopFromOrder(order, normalizedAdminShop);
+      }
+      return sum + getOrderItemsCount(order);
+    }, 0);
 
     const activeCustomers = isSuperAdmin
       ? users.filter(
@@ -312,7 +491,7 @@ export default function Analytics() {
             )
         ).length
       : new Set(
-          orders
+          scopedOrders
             .map((order) => String(order.userId || "").trim())
             .filter(Boolean)
         ).size;
@@ -337,24 +516,47 @@ export default function Analytics() {
       featuredCoverage,
       avgOrderValue,
     };
-  }, [products, orders, users, isSuperAdmin]);
+  }, [products, orders, users, isSuperAdmin, isShopAdmin, normalizedAdminShop]);
 
-  const dailySeries = useMemo(() => buildDailySeries(orders, 7), [orders]);
-  const shopPerformance = useMemo(
-    () => buildShopPerformance(products, orders),
-    [products, orders]
-  );
-  const topProducts = useMemo(() => buildTopProducts(orders), [orders]);
+  const dailySeries = useMemo(() => {
+    return buildDailySeries(
+      orders,
+      7,
+      isShopAdmin && normalizedAdminShop ? normalizedAdminShop : null
+    );
+  }, [orders, isShopAdmin, normalizedAdminShop]);
+
+  const shopPerformance = useMemo(() => {
+    if (isShopAdmin && normalizedAdminShop) {
+      return buildShopPerformance(products, orders, {
+        activeShopOnly: normalizedAdminShop,
+      });
+    }
+
+    return buildShopPerformance(products, orders, {
+      restrictRevenueToOwnerId: user?.uid || "__none__",
+    });
+  }, [products, orders, isShopAdmin, normalizedAdminShop, user?.uid]);
+
+  const topProducts = useMemo(() => {
+    if (isShopAdmin && normalizedAdminShop) {
+      return getTopProductsForShop(orders, normalizedAdminShop);
+    }
+    return buildTopProducts(orders);
+  }, [orders, isShopAdmin, normalizedAdminShop]);
 
   const revenueMax = Math.max(...dailySeries.map((item) => item.revenue), 1);
   const orderMax = Math.max(...dailySeries.map((item) => item.orders), 1);
-  const shopRevenueMax = Math.max(...shopPerformance.map((item) => item.estimatedRevenue), 1);
+  const shopRevenueMax = Math.max(
+    ...shopPerformance.map((item) => item.estimatedRevenue),
+    1
+  );
   const topUnitsMax = Math.max(...topProducts.map((item) => item.units), 1);
 
   const pageTitle = isShopAdmin ? "Shop Analytics" : "Admin Analytics";
   const pageSub = isShopAdmin
-    ? "Performance overview for your shop only."
-    : "Performance overview across products, orders, customers, stores, and selling trends.";
+    ? `Performance overview for ${toShopLabel(normalizedAdminShop)} only.`
+    : "Marketplace overview. Product counts span all visible products, while store revenue in this view reflects only products uploaded by this super admin account.";
 
   const closeResetModal = () => {
     if (resetting) return;
@@ -409,9 +611,15 @@ export default function Analytics() {
       for (const [key] of targets) {
         if (key === "orders") await deleteAllDocsInCollection("orders");
         if (key === "products") await deleteAllDocsInCollection("Products");
-        if (key === "shopApplications") await deleteAllDocsInCollection("shopApplications");
-        if (key === "payoutRequests") await deleteAllDocsInCollection("payoutRequests");
-        if (key === "subscriptions") await deleteAllDocsInCollection("subscriptions");
+        if (key === "shopApplications") {
+          await deleteAllDocsInCollection("shopApplications");
+        }
+        if (key === "payoutRequests") {
+          await deleteAllDocsInCollection("payoutRequests");
+        }
+        if (key === "subscriptions") {
+          await deleteAllDocsInCollection("subscriptions");
+        }
       }
 
       setProducts((prev) => (resetSelections.products ? [] : prev));
@@ -473,7 +681,14 @@ export default function Analytics() {
             <p className="analytics-sub">{pageSub}</p>
           </div>
 
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
             {isSuperAdmin ? (
               <button
                 type="button"
@@ -486,7 +701,7 @@ export default function Analytics() {
             ) : null}
 
             <div className="analytics-head-pill">
-              {orders.length} orders analysed
+              {metrics.totalOrders} orders analysed
             </div>
           </div>
         </div>
@@ -520,7 +735,9 @@ export default function Analytics() {
 
           <div className="analytics-metric-card">
             <span className="analytics-metric-label">Customers</span>
-            <strong className="analytics-metric-value">{metrics.activeCustomers}</strong>
+            <strong className="analytics-metric-value">
+              {metrics.activeCustomers}
+            </strong>
             <span className="analytics-metric-note">
               Featured products: {metrics.featuredProducts}
             </span>
@@ -545,7 +762,10 @@ export default function Analytics() {
                     <div
                       className="analytics-bar-fill"
                       style={{
-                        width: `${Math.max((item.revenue / revenueMax) * 100, item.revenue > 0 ? 8 : 0)}%`,
+                        width: `${Math.max(
+                          (item.revenue / revenueMax) * 100,
+                          item.revenue > 0 ? 8 : 0
+                        )}%`,
                       }}
                     />
                   </div>
@@ -571,7 +791,10 @@ export default function Analytics() {
                     <div
                       className="analytics-bar-fill analytics-bar-fill--soft"
                       style={{
-                        width: `${Math.max((item.orders / orderMax) * 100, item.orders > 0 ? 12 : 0)}%`,
+                        width: `${Math.max(
+                          (item.orders / orderMax) * 100,
+                          item.orders > 0 ? 12 : 0
+                        )}%`,
                       }}
                     />
                   </div>
@@ -583,7 +806,11 @@ export default function Analytics() {
           <div className="analytics-panel">
             <div className="analytics-panel-head">
               <h2>{isShopAdmin ? "Shop performance" : "Store performance"}</h2>
-              <span>Revenue by storefront</span>
+              <span>
+                {isShopAdmin
+                  ? "Revenue by your storefront"
+                  : "Revenue for super admin-uploaded products"}
+              </span>
             </div>
 
             <div className="analytics-chart">
@@ -594,7 +821,8 @@ export default function Analytics() {
                       <div>
                         <strong>{shop.label}</strong>
                         <span>
-                          {shop.products} products • {shop.inStock} in stock • {shop.featured} featured
+                          {shop.products} products • {shop.inStock} in stock •{" "}
+                          {shop.featured} featured
                         </span>
                       </div>
                       <strong>{formatMoney(shop.estimatedRevenue)}</strong>
@@ -639,7 +867,10 @@ export default function Analytics() {
                       <div
                         className="analytics-bar-fill analytics-bar-fill--dark"
                         style={{
-                          width: `${Math.max((item.units / topUnitsMax) * 100, item.units > 0 ? 12 : 0)}%`,
+                          width: `${Math.max(
+                            (item.units / topUnitsMax) * 100,
+                            item.units > 0 ? 12 : 0
+                          )}%`,
                         }}
                       />
                     </div>
@@ -663,7 +894,9 @@ export default function Analytics() {
 
           <div className="analytics-summary-card">
             <span className="analytics-summary-label">Featured coverage</span>
-            <strong className="analytics-summary-value">{metrics.featuredCoverage}%</strong>
+            <strong className="analytics-summary-value">
+              {metrics.featuredCoverage}%
+            </strong>
             <p className="analytics-summary-text">
               Portion of your catalog currently highlighted for conversion.
             </p>
@@ -679,7 +912,9 @@ export default function Analytics() {
 
           <div className="analytics-summary-card">
             <span className="analytics-summary-label">Customer activity</span>
-            <strong className="analytics-summary-value">{metrics.activeCustomers}</strong>
+            <strong className="analytics-summary-value">
+              {metrics.activeCustomers}
+            </strong>
             <p className="analytics-summary-text">
               {isShopAdmin
                 ? "Unique customers who placed orders in your shop."

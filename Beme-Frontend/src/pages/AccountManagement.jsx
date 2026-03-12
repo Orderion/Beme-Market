@@ -59,6 +59,7 @@ export default function AccountManagement() {
   const accountRole = formatRoleLabel(role);
   const shopLabel = adminShop ? titleize(adminShop) : "Not assigned";
   const createdAt = formatDate(profile?.createdAt);
+  const updatedAt = formatDate(profile?.updatedAt);
 
   const capabilityList = useMemo(() => {
     if (!Array.isArray(capabilities) || !capabilities.length) return [];
@@ -69,14 +70,14 @@ export default function AccountManagement() {
     if (isSuperAdmin) {
       return {
         title: "Marketplace-wide visibility",
-        text: "You can review products, orders, analytics, payout requests, and shop applications across the marketplace, while preserving shop isolation for shop admins.",
+        text: "You can review products, orders, analytics, payout requests, and shop applications across the marketplace while keeping shop-admin access isolated by shop.",
       };
     }
 
     if (isShopAdmin) {
       return {
         title: "Shop-restricted visibility",
-        text: "Your admin access is limited to your own shop, products, orders, payouts, and analytics only.",
+        text: "Your admin access is limited to your own shop, products, orders, payouts, analytics, and account-level shop customisation details only.",
       };
     }
 
@@ -85,6 +86,87 @@ export default function AccountManagement() {
       text: "This account does not currently have admin access.",
     };
   }, [isSuperAdmin, isShopAdmin]);
+
+  const shopCustomisationSummary = useMemo(() => {
+    const shopProfile = profile?.shopProfile || {};
+    const storefront = profile?.storefront || {};
+    const branding = profile?.branding || {};
+    const preferences = profile?.preferences || {};
+
+    return [
+      {
+        label: "Shop display name",
+        value:
+          shopProfile.displayName ||
+          storefront.displayName ||
+          branding.shopName ||
+          (adminShop ? titleize(adminShop) : "Not set"),
+      },
+      {
+        label: "Shop slug / key",
+        value: adminShop || "Not set",
+      },
+      {
+        label: "Theme accent",
+        value:
+          branding.accent ||
+          branding.theme ||
+          preferences.themeAccent ||
+          "Default",
+      },
+      {
+        label: "Banner image",
+        value:
+          shopProfile.bannerUrl ||
+          storefront.bannerUrl ||
+          branding.bannerUrl ||
+          "Not set",
+      },
+      {
+        label: "Logo",
+        value:
+          shopProfile.logoUrl ||
+          storefront.logoUrl ||
+          branding.logoUrl ||
+          "Not set",
+      },
+      {
+        label: "Support contact",
+        value:
+          shopProfile.supportEmail ||
+          storefront.supportEmail ||
+          profile?.supportEmail ||
+          profile?.phone ||
+          "Not set",
+      },
+    ];
+  }, [profile, adminShop]);
+
+  const shopAdminControlList = useMemo(() => {
+    if (!isShopAdmin) return [];
+
+    return [
+      "Manage products inside your assigned shop only",
+      "View and update your own shop orders only",
+      "See analytics restricted to your own shop",
+      "Request payouts only from your own shop balance",
+      "Review your own assigned store details and customisation data",
+      "Cannot access or manage other shops",
+    ];
+  }, [isShopAdmin]);
+
+  const superAdminControlList = useMemo(() => {
+    if (!isSuperAdmin) return [];
+
+    return [
+      "See products across all shops in admin views",
+      "See marketplace orders across every shop",
+      "Review payout requests from all shop admins",
+      "Review shop applications across the marketplace",
+      "Keep shop-admin management limited to their own shops",
+      "Marketplace visibility does not automatically mean direct control over another shop admin's shop data",
+    ];
+  }, [isSuperAdmin]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -125,8 +207,8 @@ export default function AccountManagement() {
             <span className="account-eyebrow">Admin Account</span>
             <h1 className="account-title">Account Management</h1>
             <p className="account-sub">
-              Review your admin identity, account scope, assigned shop, and
-              current access status.
+              Review your admin identity, shop scope, assigned access, and shop
+              customisation details from one place.
             </p>
           </div>
 
@@ -177,6 +259,11 @@ export default function AccountManagement() {
               <div className="account-list-row">
                 <span className="account-list-label">Profile created</span>
                 <strong className="account-list-value">{createdAt}</strong>
+              </div>
+
+              <div className="account-list-row">
+                <span className="account-list-label">Last profile update</span>
+                <strong className="account-list-value">{updatedAt}</strong>
               </div>
             </div>
           </article>
@@ -232,6 +319,33 @@ export default function AccountManagement() {
             )}
           </article>
 
+          {isShopAdmin ? (
+            <article className="account-card account-card--wide">
+              <div className="account-card-head">
+                <h2>Shop Customisation</h2>
+                <span className="account-badge account-badge--soft">
+                  Shop Admin
+                </span>
+              </div>
+
+              <div className="account-summary-grid">
+                {shopCustomisationSummary.map((item) => (
+                  <div className="account-summary-block" key={item.label}>
+                    <span className="account-summary-label">{item.label}</span>
+                    <p className="account-summary-text">{item.value || "Not set"}</p>
+                  </div>
+                ))}
+              </div>
+
+              <p className="account-security-text">
+                This section is intended to surface shop-level customisation
+                details already attached to your profile data, such as branding,
+                storefront identity, contact information, and assigned shop
+                setup values.
+              </p>
+            </article>
+          ) : null}
+
           <article className="account-card account-card--wide">
             <div className="account-card-head">
               <h2>Admin Visibility Summary</h2>
@@ -260,8 +374,8 @@ export default function AccountManagement() {
                 <span className="account-summary-label">Analytics</span>
                 <p className="account-summary-text">
                   {isSuperAdmin
-                    ? "Your analytics access spans the marketplace, depending on page rules and frontend scope."
-                    : "Your analytics should stay isolated to your own shop only."}
+                    ? "You can review marketplace analytics with broad visibility, depending on page-level scope."
+                    : "Your analytics remain isolated to your own shop only."}
                 </p>
               </div>
 
@@ -275,6 +389,38 @@ export default function AccountManagement() {
               </div>
             </div>
           </article>
+
+          {isShopAdmin ? (
+            <article className="account-card account-card--wide">
+              <div className="account-card-head">
+                <h2>Shop Admin Controls</h2>
+              </div>
+
+              <div className="account-pill-wrap">
+                {shopAdminControlList.map((item) => (
+                  <span key={item} className="account-pill">
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </article>
+          ) : null}
+
+          {isSuperAdmin ? (
+            <article className="account-card account-card--wide">
+              <div className="account-card-head">
+                <h2>Super Admin Controls</h2>
+              </div>
+
+              <div className="account-pill-wrap">
+                {superAdminControlList.map((item) => (
+                  <span key={item} className="account-pill">
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </article>
+          ) : null}
 
           <article className="account-card account-card--wide">
             <div className="account-card-head">

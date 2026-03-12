@@ -96,14 +96,45 @@ function orderBelongsToShop(order, shopKey) {
 
   if (shops.includes(normalizedShopKey)) return true;
 
+  const primaryShop = normalizeShop(order?.primaryShop);
+  if (primaryShop === normalizedShopKey) return true;
+
   const items = Array.isArray(order?.items) ? order.items : [];
   return items.some((item) => normalizeShop(item?.shop) === normalizedShopKey);
+}
+
+function getShopRevenueFromOrder(order, shopKey) {
+  if (!shopKey) return 0;
+
+  const normalizedShopKey = normalizeShop(shopKey);
+  const items = Array.isArray(order?.items) ? order.items : [];
+
+  const matchingItems = items.filter(
+    (item) => normalizeShop(item?.shop) === normalizedShopKey
+  );
+
+  if (matchingItems.length) {
+    return matchingItems.reduce((sum, item) => {
+      return sum + Number(item?.price || 0) * Number(item?.qty || 0);
+    }, 0);
+  }
+
+  if (orderBelongsToShop(order, normalizedShopKey)) {
+    return getOrderTotal(order);
+  }
+
+  return 0;
 }
 
 const STATUS_OPTIONS = ["pending", "approved", "paid", "rejected"];
 
 export default function PayoutRequests() {
   const { user, loading, isSuperAdmin, isShopAdmin, adminShop } = useAuth();
+
+  const normalizedAdminShop = useMemo(
+    () => normalizeShop(adminShop),
+    [adminShop]
+  );
 
   const [requests, setRequests] = useState([]);
   const [requestsError, setRequestsError] = useState("");
@@ -128,9 +159,7 @@ export default function PayoutRequests() {
 
     async function setupRequests() {
       try {
-        if (isShopAdmin && adminShop) {
-          const normalizedAdminShop = normalizeShop(adminShop);
-
+        if (isShopAdmin && normalizedAdminShop) {
           try {
             const qRef = query(
               collection(db, "payoutRequests"),
@@ -283,10 +312,10 @@ export default function PayoutRequests() {
       cancelled = true;
       if (typeof unsub === "function") unsub();
     };
-  }, [loading, user, isSuperAdmin, isShopAdmin, adminShop]);
+  }, [loading, user, isSuperAdmin, isShopAdmin, normalizedAdminShop]);
 
   useEffect(() => {
-    if (loading || !user || !isShopAdmin || !adminShop) return;
+    if (loading || !user || !isShopAdmin || !normalizedAdminShop) return;
 
     let cancelled = false;
 
@@ -297,7 +326,7 @@ export default function PayoutRequests() {
         try {
           const qRef = query(
             collection(db, "orders"),
-            where("shops", "array-contains", normalizeShop(adminShop)),
+            where("shops", "array-contains", normalizedAdminShop),
             orderBy("createdAt", "desc")
           );
 
@@ -309,7 +338,7 @@ export default function PayoutRequests() {
               id: docSnap.id,
               ...docSnap.data(),
             }))
-          );
+          ).filter((order) => orderBelongsToShop(order, normalizedAdminShop));
 
           setOrders(rows);
           return;
@@ -319,7 +348,7 @@ export default function PayoutRequests() {
 
         const fallbackQ = query(
           collection(db, "orders"),
-          where("shops", "array-contains", normalizeShop(adminShop))
+          where("shops", "array-contains", normalizedAdminShop)
         );
 
         const fallbackSnap = await getDocs(fallbackQ);
@@ -330,7 +359,7 @@ export default function PayoutRequests() {
             id: docSnap.id,
             ...docSnap.data(),
           }))
-        ).filter((order) => orderBelongsToShop(order, adminShop));
+        ).filter((order) => orderBelongsToShop(order, normalizedAdminShop));
 
         setOrders(rows);
       } catch (error) {
@@ -346,10 +375,10 @@ export default function PayoutRequests() {
     return () => {
       cancelled = true;
     };
-  }, [loading, user, isShopAdmin, adminShop]);
+  }, [loading, user, isShopAdmin, normalizedAdminShop]);
 
   const paidRevenue = useMemo(() => {
-    if (!isShopAdmin || !adminShop) return 0;
+    if (!isShopAdmin || !normalizedAdminShop) return 0;
 
     return orders.reduce((sum, order) => {
       const paymentStatus = String(order?.paymentStatus || "")
@@ -366,27 +395,9 @@ export default function PayoutRequests() {
 
       if (!paid) return sum;
 
-      const items = Array.isArray(order?.items) ? order.items : [];
-      const shopItems = items.filter(
-        (item) => normalizeShop(item?.shop) === normalizeShop(adminShop)
-      );
-
-      if (shopItems.length) {
-        return (
-          sum +
-          shopItems.reduce((itemSum, item) => {
-            return itemSum + Number(item?.price || 0) * Number(item?.qty || 0);
-          }, 0)
-        );
-      }
-
-      if (orderBelongsToShop(order, adminShop)) {
-        return sum + getOrderTotal(order);
-      }
-
-      return sum;
+      return sum + getShopRevenueFromOrder(order, normalizedAdminShop);
     }, 0);
-  }, [orders, isShopAdmin, adminShop]);
+  }, [orders, isShopAdmin, normalizedAdminShop]);
 
   const approvedOrPaidRequestsTotal = useMemo(() => {
     return requests.reduce((sum, request) => {
@@ -416,6 +427,17 @@ export default function PayoutRequests() {
     );
   }, [isShopAdmin, paidRevenue, approvedOrPaidRequestsTotal, pendingRequestsTotal]);
 
+  const requestSummary = useMemo(() => {
+    return {
+      total: requests.length,
+      pending: requests.filter((r) => normalizeStatus(r.status) === "pending")
+        .length,
+      approved: requests.filter((r) => normalizeStatus(r.status) === "approved")
+        .length,
+      paid: requests.filter((r) => normalizeStatus(r.status) === "paid").length,
+    };
+  }, [requests]);
+
   const setField = (key) => (e) => {
     setForm((prev) => ({
       ...prev,
@@ -430,7 +452,7 @@ export default function PayoutRequests() {
 
     const amount = Number(form.amount);
 
-    if (!isShopAdmin || !user?.uid || !adminShop) {
+    if (!isShopAdmin || !user?.uid || !normalizedAdminShop) {
       setFormErr("Only a shop admin can request payout.");
       return;
     }
@@ -454,7 +476,7 @@ export default function PayoutRequests() {
 
     try {
       await addDoc(collection(db, "payoutRequests"), {
-        shop: normalizeShop(adminShop),
+        shop: normalizedAdminShop,
         shopAdminId: user.uid,
         shopAdminEmail: user.email || "",
         amount,
@@ -517,9 +539,46 @@ export default function PayoutRequests() {
           <div className="muted">
             {isSuperAdmin
               ? "Review and manage payout requests from shop owners."
-              : `Shop: ${titleize(adminShop)} • Available balance ${formatMoney(
+              : `Shop: ${titleize(normalizedAdminShop)} • Available balance ${formatMoney(
                   availableBalance
                 )}`}
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 12,
+          marginBottom: 18,
+        }}
+      >
+        <div className="order-card" style={{ padding: 16 }}>
+          <div className="muted">Requests</div>
+          <div style={{ fontSize: 26, fontWeight: 700, marginTop: 6 }}>
+            {requestSummary.total}
+          </div>
+        </div>
+
+        <div className="order-card" style={{ padding: 16 }}>
+          <div className="muted">Pending</div>
+          <div style={{ fontSize: 26, fontWeight: 700, marginTop: 6 }}>
+            {requestSummary.pending}
+          </div>
+        </div>
+
+        <div className="order-card" style={{ padding: 16 }}>
+          <div className="muted">Approved</div>
+          <div style={{ fontSize: 26, fontWeight: 700, marginTop: 6 }}>
+            {requestSummary.approved}
+          </div>
+        </div>
+
+        <div className="order-card" style={{ padding: 16 }}>
+          <div className="muted">Paid</div>
+          <div style={{ fontSize: 26, fontWeight: 700, marginTop: 6 }}>
+            {requestSummary.paid}
           </div>
         </div>
       </div>
@@ -534,7 +593,9 @@ export default function PayoutRequests() {
             <div className="pill">
               Approved / paid requests: {formatMoney(approvedOrPaidRequestsTotal)}
             </div>
-            <div className="pill">Pending requests: {formatMoney(pendingRequestsTotal)}</div>
+            <div className="pill">
+              Pending requests: {formatMoney(pendingRequestsTotal)}
+            </div>
             <div className="pill">Available: {formatMoney(availableBalance)}</div>
           </div>
 
@@ -635,6 +696,13 @@ export default function PayoutRequests() {
                   <div className="order-item">
                     <span>Reviewed</span>
                     <span className="muted">{formatDate(request.reviewedAt)}</span>
+                  </div>
+                ) : null}
+
+                {request.reviewedBy ? (
+                  <div className="order-item">
+                    <span>Reviewed by</span>
+                    <span className="muted">{request.reviewedBy}</span>
                   </div>
                 ) : null}
               </div>

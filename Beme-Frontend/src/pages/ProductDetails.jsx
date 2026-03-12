@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useCart } from "../context/CartContext";
+import { SHOPS } from "../constants/catalog";
 import "./ProductDetails.css";
 
 function normalizeCustomizations(raw) {
@@ -35,6 +36,25 @@ function normalizeImages(product) {
 
   if (list.length) return list;
   return product?.image ? [product.image] : [];
+}
+
+function normalizeShop(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function titleize(value) {
+  return String(value || "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function formatShopLabel(value) {
+  const key = normalizeShop(value);
+  const match = SHOPS.find((shop) => shop.key === key);
+  if (match?.label) return match.label;
+  return key ? titleize(key) : "Beme Market";
 }
 
 function ProductDetailsSkeleton() {
@@ -127,6 +147,9 @@ export default function ProductDetails() {
   const price = useMemo(() => Number(product?.price || 0), [product]);
   const oldPrice = useMemo(() => Number(product?.oldPrice || 0), [product]);
 
+  const shopKey = useMemo(() => normalizeShop(product?.shop), [product?.shop]);
+  const shopLabel = useMemo(() => formatShopLabel(shopKey), [shopKey]);
+
   useEffect(() => {
     const initialSelections = {};
     customizations.forEach((group) => {
@@ -175,6 +198,8 @@ export default function ProductDetails() {
       image: product.image || images[0] || "",
       images,
       qty,
+      shop: shopKey || "",
+      shopLabel,
       selectedOptions,
       selectedOptionsLabel,
       customizations,
@@ -434,6 +459,17 @@ export default function ProductDetails() {
                 <span>{images.length} product images</span>
               </div>
             ) : null}
+
+            {shopKey ? (
+              <Link
+                to={`/shop?shop=${encodeURIComponent(shopKey)}`}
+                className="pd-badge pd-badge--shop"
+                aria-label={`Browse ${shopLabel}`}
+              >
+                <span className="pd-badge-icon">🏬</span>
+                <span>{shopLabel}</span>
+              </Link>
+            ) : null}
           </div>
 
           <div className="pd-price-row">
@@ -448,6 +484,29 @@ export default function ProductDetails() {
               </div>
             )}
           </div>
+
+          {shopKey ? (
+            <div className="pd-section">
+              <h3 className="pd-section-title">Store</h3>
+              <div className="pd-store-card">
+                <div className="pd-store-copy">
+                  <span className="pd-store-label">Sold by</span>
+                  <strong className="pd-store-name">{shopLabel}</strong>
+                  <p className="pd-store-text">
+                    This product belongs to the {shopLabel} storefront on Beme
+                    Market.
+                  </p>
+                </div>
+
+                <Link
+                  to={`/shop?shop=${encodeURIComponent(shopKey)}`}
+                  className="pd-store-link"
+                >
+                  View store
+                </Link>
+              </div>
+            </div>
+          ) : null}
 
           <div className="pd-section">
             <h3 className="pd-section-title">Description</h3>

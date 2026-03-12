@@ -5,6 +5,14 @@ import { useAuth } from "../context/AuthContext";
 import { DEFAULT_KIND_BY_DEPT } from "../constants/catalog";
 import "./Sidebar.css";
 
+function titleize(value) {
+  return String(value || "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
 function IconHome() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
@@ -342,6 +350,10 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const offers = useMemo(() => [], []);
   const ownsShop = !!adminShop || !!profile?.shop || isAdmin;
+  const accountShopLabel = useMemo(
+    () => (adminShop ? titleize(adminShop) : ""),
+    [adminShop]
+  );
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
@@ -369,7 +381,7 @@ export default function Sidebar({ isOpen, onClose }) {
   };
 
   const goCategory = (cat) => {
-    go(`/shop?cat=${encodeURIComponent(cat)}`);
+    go(`/shop?q=${encodeURIComponent(cat)}`);
   };
 
   const onOffersClick = () => {
@@ -419,14 +431,22 @@ export default function Sidebar({ isOpen, onClose }) {
           </div>
 
           <div className="side-links">
-            <button className="sidebar-link" onClick={() => go("/")} type="button">
+            <button
+              className="sidebar-link"
+              onClick={() => go("/")}
+              type="button"
+            >
               <span className="side-link-content">
                 <IconHome />
                 <span>Home</span>
               </span>
             </button>
 
-            <button className="sidebar-link" onClick={() => go("/shop")} type="button">
+            <button
+              className="sidebar-link"
+              onClick={() => go("/shop")}
+              type="button"
+            >
               <span className="side-link-content">
                 <IconShop />
                 <span>Shop</span>
@@ -446,16 +466,20 @@ export default function Sidebar({ isOpen, onClose }) {
               </button>
             ) : null}
 
-            {user && (
-              <button className="sidebar-link" onClick={() => go("/orders")} type="button">
+            {user ? (
+              <button
+                className="sidebar-link"
+                onClick={() => go("/orders")}
+                type="button"
+              >
                 <span className="side-link-content">
                   <IconOrders />
                   <span>Orders</span>
                 </span>
               </button>
-            )}
+            ) : null}
 
-            {isAdmin && (
+            {isAdmin ? (
               <>
                 <div className="side-divider" />
 
@@ -467,7 +491,12 @@ export default function Sidebar({ isOpen, onClose }) {
                 >
                   <span className="side-link-content">
                     <IconShield />
-                    <span>Admin</span>
+                    <span>
+                      Admin
+                      {accountShopLabel && !isSuperAdmin
+                        ? ` • ${accountShopLabel}`
+                        : ""}
+                    </span>
                   </span>
                   <span
                     className={`side-chevron ${
@@ -484,7 +513,11 @@ export default function Sidebar({ isOpen, onClose }) {
                   }`}
                 >
                   <div className="side-submenu">
-                    <button className="side-subitem" onClick={() => go("/admin")} type="button">
+                    <button
+                      className="side-subitem"
+                      onClick={() => go("/admin")}
+                      type="button"
+                    >
                       Product manager
                     </button>
 
@@ -543,7 +576,7 @@ export default function Sidebar({ isOpen, onClose }) {
                   </span>
                 </button>
               </>
-            )}
+            ) : null}
 
             <div className="side-divider" />
 
@@ -572,10 +605,18 @@ export default function Sidebar({ isOpen, onClose }) {
               }`}
             >
               <div className="side-submenu">
-                <button className="side-subitem" onClick={() => goCategory("tech")} type="button">
+                <button
+                  className="side-subitem"
+                  onClick={() => goCategory("tech")}
+                  type="button"
+                >
                   Tech
                 </button>
-                <button className="side-subitem" onClick={() => goCategory("fashion")} type="button">
+                <button
+                  className="side-subitem"
+                  onClick={() => goCategory("fashion")}
+                  type="button"
+                >
                   Fashion
                 </button>
                 <button
@@ -613,13 +654,25 @@ export default function Sidebar({ isOpen, onClose }) {
               }`}
             >
               <div className="side-submenu">
-                <button className="side-subitem" onClick={() => goDept("men")} type="button">
+                <button
+                  className="side-subitem"
+                  onClick={() => goDept("men")}
+                  type="button"
+                >
                   Men
                 </button>
-                <button className="side-subitem" onClick={() => goDept("women")} type="button">
+                <button
+                  className="side-subitem"
+                  onClick={() => goDept("women")}
+                  type="button"
+                >
                   Women
                 </button>
-                <button className="side-subitem" onClick={() => goDept("kids")} type="button">
+                <button
+                  className="side-subitem"
+                  onClick={() => goDept("kids")}
+                  type="button"
+                >
                   Kids
                 </button>
                 <button
@@ -655,16 +708,32 @@ export default function Sidebar({ isOpen, onClose }) {
               }`}
             >
               <div className="side-submenu">
-                <button className="side-subitem" onClick={() => go("/about")} type="button">
+                <button
+                  className="side-subitem"
+                  onClick={() => go("/about")}
+                  type="button"
+                >
                   About us
                 </button>
-                <button className="side-subitem" onClick={() => go("/support")} type="button">
+                <button
+                  className="side-subitem"
+                  onClick={() => go("/support")}
+                  type="button"
+                >
                   Support us
                 </button>
-                <button className="side-subitem" onClick={() => go("/contact")} type="button">
+                <button
+                  className="side-subitem"
+                  onClick={() => go("/contact")}
+                  type="button"
+                >
                   Contact
                 </button>
-                <button className="side-subitem" onClick={() => go("/faq")} type="button">
+                <button
+                  className="side-subitem"
+                  onClick={() => go("/faq")}
+                  type="button"
+                >
                   FAQ
                 </button>
                 <button
@@ -688,14 +757,22 @@ export default function Sidebar({ isOpen, onClose }) {
 
             {!user ? (
               <>
-                <button className="sidebar-link" onClick={() => go("/login")} type="button">
+                <button
+                  className="sidebar-link"
+                  onClick={() => go("/login")}
+                  type="button"
+                >
                   <span className="side-link-content">
                     <IconLogin />
                     <span>Login</span>
                   </span>
                 </button>
 
-                <button className="sidebar-link" onClick={() => go("/signup")} type="button">
+                <button
+                  className="sidebar-link"
+                  onClick={() => go("/signup")}
+                  type="button"
+                >
                   <span className="side-link-content">
                     <IconUserPlus />
                     <span>Sign up</span>
