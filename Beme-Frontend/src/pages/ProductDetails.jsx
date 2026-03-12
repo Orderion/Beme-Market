@@ -1,3 +1,4 @@
+// src/pages/ProductDetails.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
@@ -57,6 +58,42 @@ function formatShopLabel(value) {
   return key ? titleize(key) : "Beme Market";
 }
 
+function getEmailName(email) {
+  const local = String(email || "").trim().split("@")[0] || "";
+  return titleize(local);
+}
+
+function resolveSellerName(userData, fallbackEmail = "") {
+  if (!userData || typeof userData !== "object") {
+    return getEmailName(fallbackEmail) || "Beme Seller";
+  }
+
+  const directCandidates = [
+    userData.sellerName,
+    userData.displayName,
+    userData.fullName,
+    userData.name,
+    userData.username,
+    userData.shopAdminName,
+    userData.ownerName,
+  ];
+
+  for (const candidate of directCandidates) {
+    const value = String(candidate || "").trim();
+    if (value) return value;
+  }
+
+  const firstName = String(userData.firstName || "").trim();
+  const lastName = String(userData.lastName || "").trim();
+  const joinedName = `${firstName} ${lastName}`.trim();
+  if (joinedName) return joinedName;
+
+  const emailBased = getEmailName(userData.email || fallbackEmail);
+  if (emailBased) return emailBased;
+
+  return "Beme Seller";
+}
+
 function ProductDetailsSkeleton() {
   return (
     <div className="pd-page">
@@ -97,6 +134,7 @@ export default function ProductDetails() {
   const [optionError, setOptionError] = useState("");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [addedFeedback, setAddedFeedback] = useState(false);
+  const [sellerName, setSellerName] = useState("");
 
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -114,15 +152,49 @@ export default function ProductDetails() {
 
         if (!snap.exists()) {
           setProduct(null);
+          setSellerName("");
           setLoading(false);
           return;
         }
 
         const nextProduct = { id: snap.id, ...snap.data() };
         setProduct(nextProduct);
+
+        const inlineSellerName = resolveSellerName(nextProduct, "");
+        if (
+          nextProduct?.sellerName ||
+          nextProduct?.ownerName ||
+          nextProduct?.displayName ||
+          nextProduct?.name
+        ) {
+          setSellerName(inlineSellerName);
+        } else if (nextProduct?.ownerId) {
+          try {
+            const userSnap = await getDoc(doc(db, "users", nextProduct.ownerId));
+            if (userSnap.exists()) {
+              setSellerName(
+                resolveSellerName(userSnap.data(), nextProduct?.ownerEmail || "")
+              );
+            } else {
+              setSellerName(
+                getEmailName(nextProduct?.ownerEmail || "") || "Beme Seller"
+              );
+            }
+          } catch (sellerError) {
+            console.error("Seller profile fetch error:", sellerError);
+            setSellerName(
+              getEmailName(nextProduct?.ownerEmail || "") || "Beme Seller"
+            );
+          }
+        } else {
+          setSellerName(
+            getEmailName(nextProduct?.ownerEmail || "") || "Beme Seller"
+          );
+        }
       } catch (error) {
         console.error("Product details fetch error:", error);
         setProduct(null);
+        setSellerName("");
       } finally {
         setLoading(false);
       }
@@ -485,28 +557,31 @@ export default function ProductDetails() {
             )}
           </div>
 
-          {shopKey ? (
+          {(sellerName || shopKey) && (
             <div className="pd-section">
               <h3 className="pd-section-title">Store</h3>
               <div className="pd-store-card">
                 <div className="pd-store-copy">
                   <span className="pd-store-label">Sold by</span>
-                  <strong className="pd-store-name">{shopLabel}</strong>
+                  <strong className="pd-store-name">
+                    {sellerName || "Beme Seller"}
+                  </strong>
                   <p className="pd-store-text">
-                    This product belongs to the {shopLabel} storefront on Beme
-                    Market.
+                    This product was uploaded by this seller on Beme Market.
                   </p>
                 </div>
 
-                <Link
-                  to={`/shop?shop=${encodeURIComponent(shopKey)}`}
-                  className="pd-store-link"
-                >
-                  View store
-                </Link>
+                {shopKey ? (
+                  <Link
+                    to={`/shop?shop=${encodeURIComponent(shopKey)}`}
+                    className="pd-store-link"
+                  >
+                    View store
+                  </Link>
+                ) : null}
               </div>
             </div>
-          ) : null}
+          )}
 
           <div className="pd-section">
             <h3 className="pd-section-title">Description</h3>

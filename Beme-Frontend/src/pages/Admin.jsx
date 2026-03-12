@@ -1,3 +1,4 @@
+// src/pages/Admin.jsx
 import { useEffect, useMemo, useState } from "react";
 import {
   addDoc,
@@ -106,6 +107,8 @@ function normalizeAdminProduct(snapshotDoc) {
     kind: String(d.kind || "").trim().toLowerCase(),
     shop: normalizeShopKey(d.shop || "fashion"),
     ownerId: String(d.ownerId || "").trim(),
+    ownerName: String(d.ownerName || d.sellerName || "").trim(),
+    ownerEmail: String(d.ownerEmail || "").trim(),
     featured: !!d.featured,
     inStock: !!d.inStock,
     createdAt: d.createdAt || null,
@@ -124,9 +127,54 @@ function sortByCreatedAtDesc(rows) {
   });
 }
 
+function getEmailName(email) {
+  const local = String(email || "").trim().split("@")[0] || "";
+  return titleize(local);
+}
+
+function resolveCurrentSellerName(user, profile) {
+  const directCandidates = [
+    profile?.sellerName,
+    profile?.displayName,
+    profile?.fullName,
+    profile?.name,
+    profile?.username,
+    profile?.shopAdminName,
+    profile?.ownerName,
+  ];
+
+  for (const candidate of directCandidates) {
+    const value = String(candidate || "").trim();
+    if (value) return value;
+  }
+
+  const firstName = String(profile?.firstName || "").trim();
+  const lastName = String(profile?.lastName || "").trim();
+  const joinedName = `${firstName} ${lastName}`.trim();
+  if (joinedName) return joinedName;
+
+  if (profile?.email) {
+    const emailName = getEmailName(profile.email);
+    if (emailName) return emailName;
+  }
+
+  if (user?.displayName) {
+    const displayName = String(user.displayName || "").trim();
+    if (displayName) return displayName;
+  }
+
+  if (user?.email) {
+    const emailName = getEmailName(user.email);
+    if (emailName) return emailName;
+  }
+
+  return "Beme Seller";
+}
+
 export default function Admin() {
   const {
     user,
+    profile,
     role,
     adminShop,
     isSuperAdmin,
@@ -444,6 +492,7 @@ export default function Admin() {
 
       const customizations = normalizeCustomizationGroups(form.customizations);
       const imageUrls = imagePayloads.map((item) => item.url).filter(Boolean);
+      const sellerName = resolveCurrentSellerName(user, profile);
 
       const payload = {
         name: form.name.trim(),
@@ -472,6 +521,9 @@ export default function Admin() {
         kind: form.kind,
         shop: shopValue,
         ownerId: user?.uid || "",
+        ownerEmail: String(user?.email || profile?.email || "").trim(),
+        ownerName: sellerName,
+        sellerName,
         inStock: !!form.inStock,
         featured: !!form.featured,
         customizations,
@@ -488,7 +540,10 @@ export default function Admin() {
       setMsg("✅ Product added successfully.");
       setForm({
         ...initial,
-        shop: isShopAdmin && normalizedAdminShop ? normalizedAdminShop : initial.shop,
+        shop:
+          isShopAdmin && normalizedAdminShop
+            ? normalizedAdminShop
+            : initial.shop,
       });
       resetImageState();
       await loadProducts();
@@ -696,8 +751,8 @@ export default function Admin() {
               <div>
                 <h3 className="admin-upload-title">Product images</h3>
                 <p className="admin-upload-sub">
-                  Upload multiple product images to Cloudinary. The first image becomes
-                  the cover image.
+                  Upload multiple product images to Cloudinary. The first image
+                  becomes the cover image.
                 </p>
               </div>
             </div>
@@ -715,9 +770,12 @@ export default function Admin() {
             {imagePreviews.length ? (
               <>
                 <div className="admin-image-preview-head">
-                  <span className="admin-image-preview-title">Selected images</span>
+                  <span className="admin-image-preview-title">
+                    Selected images
+                  </span>
                   <span className="admin-image-preview-count">
-                    {imagePreviews.length} image{imagePreviews.length > 1 ? "s" : ""}
+                    {imagePreviews.length} image
+                    {imagePreviews.length > 1 ? "s" : ""}
                   </span>
                 </div>
 
@@ -781,7 +839,8 @@ export default function Admin() {
                 <div className="admin-upload-success">
                   <span className="admin-upload-badge">Uploaded</span>
                   <span className="admin-upload-count">
-                    {uploadedImages.length} image{uploadedImages.length > 1 ? "s" : ""}
+                    {uploadedImages.length} image
+                    {uploadedImages.length > 1 ? "s" : ""}
                   </span>
                   <a
                     href={uploadedImages[0].url}
@@ -948,7 +1007,9 @@ export default function Admin() {
             </div>
 
             {!form.customizations.length ? (
-              <div className="admin-options-empty">No customization groups yet.</div>
+              <div className="admin-options-empty">
+                No customization groups yet.
+              </div>
             ) : (
               <div className="admin-options-list">
                 {form.customizations.map((group, index) => (
@@ -1101,7 +1162,8 @@ export default function Admin() {
                     {group.label}
                   </h3>
                   <p className="admin-sub">
-                    {group.items.length} product{group.items.length === 1 ? "" : "s"}
+                    {group.items.length} product
+                    {group.items.length === 1 ? "" : "s"}
                   </p>
                 </div>
 
@@ -1171,7 +1233,7 @@ export default function Admin() {
                                 <span>
                                   {uploadedByCurrentUser
                                     ? "Uploaded by you"
-                                    : "Uploaded by shop admin"}
+                                    : product.ownerName || "Uploaded by shop admin"}
                                 </span>
                               </div>
                             </div>

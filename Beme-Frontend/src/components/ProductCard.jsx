@@ -1,7 +1,7 @@
+// src/components/ProductCard.jsx
 import React from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { SHOPS } from "../constants/catalog";
 import "./ProductCard.css";
 
 function normalizeImages(product) {
@@ -13,25 +13,6 @@ function normalizeImages(product) {
   return product?.image ? [product.image] : [];
 }
 
-function normalizeShop(value) {
-  return String(value || "").trim().toLowerCase();
-}
-
-function titleize(value) {
-  return String(value || "")
-    .replace(/[-_]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (m) => m.toUpperCase());
-}
-
-function formatShopLabel(value) {
-  const key = normalizeShop(value);
-  const match = SHOPS.find((shop) => shop.key === key);
-  if (match?.label) return match.label;
-  return key ? titleize(key) : "Beme Market";
-}
-
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();
 
@@ -40,9 +21,6 @@ export default function ProductCard({ product }) {
   const images = normalizeImages(product);
   const image = images[0] || "";
   const imageCount = images.length;
-
-  const shopKey = normalizeShop(product?.shop);
-  const shopLabel = formatShopLabel(shopKey);
 
   const priceRaw = product?.price;
   const oldPriceRaw = product?.oldPrice;
@@ -66,11 +44,6 @@ export default function ProductCard({ product }) {
     e.preventDefault();
     e.stopPropagation();
     addToCart(product);
-  };
-
-  const handleShopClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
   };
 
   const Wrapper = id ? Link : "div";
@@ -97,13 +70,6 @@ export default function ProductCard({ product }) {
                 >
                   <span className="p-gallery-dot" />
                   <span>+{imageCount - 1}</span>
-                </div>
-              ) : null}
-
-              {shopKey ? (
-                <div className="p-shop-badge" aria-label={`Sold by ${shopLabel}`}>
-                  <span className="p-shop-badge-dot" />
-                  <span>{shopLabel}</span>
                 </div>
               ) : null}
             </>
@@ -150,19 +116,6 @@ export default function ProductCard({ product }) {
 
         <div className="p-body">
           <p className="p-name">{name}</p>
-
-          {shopKey ? (
-            <div className="p-shop-row">
-              <Link
-                to={`/shop?shop=${encodeURIComponent(shopKey)}`}
-                className="p-shop-link"
-                onClick={handleShopClick}
-                aria-label={`Browse ${shopLabel}`}
-              >
-                {shopLabel}
-              </Link>
-            </div>
-          ) : null}
 
           {price !== null ? (
             <div className="p-prices">
