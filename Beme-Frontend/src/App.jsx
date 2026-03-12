@@ -35,6 +35,16 @@ import TermsOfService from "./pages/TermsOfService";
 import RefundPolicy from "./pages/RefundPolicy";
 import CookiePolicy from "./pages/CookiePolicy";
 import AccountManagement from "./pages/AccountManagement";
+import { useAuth } from "./context/AuthContext";
+
+function SuperAdminOnly({ children }) {
+  const { loading, isSuperAdmin } = useAuth();
+
+  if (loading) return null;
+  if (!isSuperAdmin) return <Navigate to="/" replace />;
+
+  return children;
+}
 
 function AppShell() {
   const location = useLocation();
@@ -68,7 +78,15 @@ function AppShell() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/admin-login" element={<AdminLogin />} />
 
-          <Route path="/own-a-shop" element={<ShopOwnerApply />} />
+          <Route
+            path="/own-a-shop"
+            element={
+              <SuperAdminOnly>
+                <ShopOwnerApply />
+              </SuperAdminOnly>
+            }
+          />
+
           <Route
             path="/shop-payment-status"
             element={<Navigate to="/" replace />}

@@ -277,15 +277,77 @@ function IconSun() {
   );
 }
 
+function IconShield() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <path
+        d="M12 3 19 6v5c0 5-2.8 8.5-7 10-4.2-1.5-7-5-7-10V6l7-3Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconAccount() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <circle
+        cx="12"
+        cy="8"
+        r="3.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M5 19a7 7 0 0 1 14 0"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="M18.5 5.5h2M19.5 4.5v2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconTools() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <path
+        d="M14.5 6.5a4 4 0 0 0 4.9 4.9l-7.6 7.6a2 2 0 1 1-2.8-2.8l7.6-7.6a4 4 0 0 0-4.9-4.9l2.4 2.4-1.8 1.8-2.4-2.4Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
   const { darkMode, toggleTheme } = useTheme();
-  const { user, logout } = useAuth();
+  const { user, logout, isSuperAdmin, isShopAdmin, adminShop } = useAuth();
 
   const [openSection, setOpenSection] = useState(null);
   const [confirmLogout, setConfirmLogout] = useState(false);
 
   const offers = useMemo(() => [], []);
+  const shopLabel = useMemo(
+    () => (adminShop ? titleize(adminShop) : ""),
+    [adminShop]
+  );
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
@@ -339,322 +401,459 @@ export default function Sidebar({ isOpen, onClose }) {
   };
 
   return (
-    <>
-      <div
-        className={`side-shell ${isOpen ? "is-open" : ""}`}
-        aria-hidden={!isOpen}
-      >
-        <div
-          className={`overlay ${isOpen ? "is-open" : ""}`}
-          onClick={onClose}
-        />
+    <div
+      className={`side-shell ${isOpen ? "is-open" : ""}`}
+      aria-hidden={!isOpen}
+    >
+      <div className={`overlay ${isOpen ? "is-open" : ""}`} onClick={onClose} />
 
-        <div className={`side-panel ${isOpen ? "open" : ""}`}>
-          <div className="side-header">
-            <h3>Menu</h3>
-            <button
-              onClick={onClose}
-              aria-label="Close menu"
-              className="side-close"
-              type="button"
-            >
-              ×
-            </button>
-          </div>
+      <div className={`side-panel ${isOpen ? "open" : ""}`}>
+        <div className="side-header">
+          <h3>Menu</h3>
+          <button
+            onClick={onClose}
+            aria-label="Close menu"
+            className="side-close"
+            type="button"
+          >
+            ×
+          </button>
+        </div>
 
-          <div className="side-links">
+        <div className="side-links">
+          <button className="sidebar-link" onClick={() => go("/")} type="button">
+            <span className="side-link-content">
+              <IconHome />
+              <span>Home</span>
+            </span>
+          </button>
+
+          <button
+            className="sidebar-link"
+            onClick={() => go("/shop")}
+            type="button"
+          >
+            <span className="side-link-content">
+              <IconShop />
+              <span>Shop</span>
+            </span>
+          </button>
+
+          {user ? (
             <button
               className="sidebar-link"
-              onClick={() => go("/")}
+              onClick={() => go("/orders")}
               type="button"
             >
               <span className="side-link-content">
-                <IconHome />
-                <span>Home</span>
+                <IconOrders />
+                <span>Orders</span>
               </span>
             </button>
+          ) : null}
 
-            <button
-              className="sidebar-link"
-              onClick={() => go("/shop")}
-              type="button"
-            >
-              <span className="side-link-content">
-                <IconShop />
-                <span>Shop</span>
-              </span>
-            </button>
+          {isSuperAdmin ? (
+            <>
+              <div className="side-divider" />
 
-            {user ? (
               <button
                 className="sidebar-link"
-                onClick={() => go("/orders")}
+                onClick={() => go("/admin")}
+                type="button"
+              >
+                <span className="side-link-content">
+                  <IconShield />
+                  <span>Product Manager</span>
+                </span>
+              </button>
+
+              <button
+                className="sidebar-link"
+                onClick={() => go("/admin-orders")}
                 type="button"
               >
                 <span className="side-link-content">
                   <IconOrders />
-                  <span>Orders</span>
+                  <span>Marketplace Orders</span>
                 </span>
               </button>
-            ) : null}
 
-            <div className="side-divider" />
-
-            <button
-              className="sidebar-link sidebar-link--expand"
-              onClick={() => toggleSection("categories")}
-              aria-expanded={openSection === "categories"}
-              type="button"
-            >
-              <span className="side-link-content">
-                <IconGrid />
-                <span>Categories</span>
-              </span>
-              <span
-                className={`side-chevron ${
-                  openSection === "categories" ? "open" : ""
-                }`}
-              >
-                ▾
-              </span>
-            </button>
-
-            <div
-              className={`side-submenu-wrap ${
-                openSection === "categories" ? "is-open" : ""
-              }`}
-            >
-              <div className="side-submenu">
-                <button
-                  className="side-subitem"
-                  onClick={() => goCategory("tech")}
-                  type="button"
-                >
-                  Tech
-                </button>
-                <button
-                  className="side-subitem"
-                  onClick={() => goCategory("fashion")}
-                  type="button"
-                >
-                  Fashion
-                </button>
-                <button
-                  className="side-subitem"
-                  onClick={() => goCategory("accessories")}
-                  type="button"
-                >
-                  Accessories
-                </button>
-              </div>
-            </div>
-
-            <button
-              className="sidebar-link sidebar-link--expand"
-              onClick={() => toggleSection("departments")}
-              aria-expanded={openSection === "departments"}
-              type="button"
-            >
-              <span className="side-link-content">
-                <IconLayers />
-                <span>Departments</span>
-              </span>
-              <span
-                className={`side-chevron ${
-                  openSection === "departments" ? "open" : ""
-                }`}
-              >
-                ▾
-              </span>
-            </button>
-
-            <div
-              className={`side-submenu-wrap ${
-                openSection === "departments" ? "is-open" : ""
-              }`}
-            >
-              <div className="side-submenu">
-                <button
-                  className="side-subitem"
-                  onClick={() => goDept("men")}
-                  type="button"
-                >
-                  Men
-                </button>
-                <button
-                  className="side-subitem"
-                  onClick={() => goDept("women")}
-                  type="button"
-                >
-                  Women
-                </button>
-                <button
-                  className="side-subitem"
-                  onClick={() => goDept("kids")}
-                  type="button"
-                >
-                  Kids
-                </button>
-                <button
-                  className="side-subitem"
-                  onClick={() => goDept("accessories")}
-                  type="button"
-                >
-                  Accessories
-                </button>
-              </div>
-            </div>
-
-            <button
-              className="sidebar-link sidebar-link--expand"
-              onClick={() => toggleSection("more")}
-              aria-expanded={openSection === "more"}
-              type="button"
-            >
-              <span className="side-link-content">
-                <IconMore />
-                <span>More</span>
-              </span>
-              <span
-                className={`side-chevron ${openSection === "more" ? "open" : ""}`}
-              >
-                ▾
-              </span>
-            </button>
-
-            <div
-              className={`side-submenu-wrap ${
-                openSection === "more" ? "is-open" : ""
-              }`}
-            >
-              <div className="side-submenu">
-                <button
-                  className="side-subitem"
-                  onClick={() => go("/about")}
-                  type="button"
-                >
-                  About us
-                </button>
-                <button
-                  className="side-subitem"
-                  onClick={() => go("/support")}
-                  type="button"
-                >
-                  Support us
-                </button>
-                <button
-                  className="side-subitem"
-                  onClick={() => go("/contact")}
-                  type="button"
-                >
-                  Contact
-                </button>
-                <button
-                  className="side-subitem"
-                  onClick={() => go("/faq")}
-                  type="button"
-                >
-                  FAQ
-                </button>
-                <button
-                  className="side-subitem"
-                  onClick={() => go("/shipping&returns")}
-                  type="button"
-                >
-                  Shipping & Returns
-                </button>
-              </div>
-            </div>
-
-            <button className="sidebar-link" onClick={onOffersClick} type="button">
-              <span className="side-link-content">
-                <IconTag />
-                <span>Offers</span>
-              </span>
-            </button>
-
-            <div className="side-divider" />
-
-            {!user ? (
-              <>
-                <button
-                  className="sidebar-link"
-                  onClick={() => go("/login")}
-                  type="button"
-                >
-                  <span className="side-link-content">
-                    <IconLogin />
-                    <span>Login</span>
-                  </span>
-                </button>
-
-                <button
-                  className="sidebar-link"
-                  onClick={() => go("/signup")}
-                  type="button"
-                >
-                  <span className="side-link-content">
-                    <IconUserPlus />
-                    <span>Sign up</span>
-                  </span>
-                </button>
-              </>
-            ) : !confirmLogout ? (
               <button
-                className="sidebar-link sidebar-link--danger"
-                onClick={() => setConfirmLogout(true)}
+                className="sidebar-link"
+                onClick={() => go("/analytics")}
                 type="button"
               >
                 <span className="side-link-content">
-                  <IconLogout />
-                  <span>Logout</span>
+                  <IconGrid />
+                  <span>Analytics</span>
                 </span>
               </button>
-            ) : (
-              <div className="side-confirm">
-                <p className="side-confirm-text">Are you sure you want to log out?</p>
-                <div className="side-confirm-actions">
-                  <button
-                    className="side-confirm-btn"
-                    onClick={() => setConfirmLogout(false)}
-                    type="button"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="side-confirm-btn side-confirm-btn--danger"
-                    onClick={onLogout}
-                    type="button"
-                  >
-                    Log out
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="side-divider" />
-
-            <div className="sidebar-toggle-row">
-              <div className="side-link-content">
-                <IconSun />
-                <span>{darkMode ? "Light mode" : "Dark mode"}</span>
-              </div>
 
               <button
+                className="sidebar-link"
+                onClick={() => go("/payout-requests")}
                 type="button"
-                className={`theme-toggle ${darkMode ? "active" : ""}`}
-                onClick={toggleTheme}
-                aria-label="Toggle theme"
-                aria-pressed={darkMode}
               >
-                <span className="theme-toggle-track">
-                  <span className="theme-toggle-thumb" />
+                <span className="side-link-content">
+                  <IconTag />
+                  <span>Payout Requests</span>
                 </span>
+              </button>
+
+              <button
+                className="sidebar-link"
+                onClick={() => go("/shop-applications")}
+                type="button"
+              >
+                <span className="side-link-content">
+                  <IconLayers />
+                  <span>Shop Applications</span>
+                </span>
+              </button>
+
+              <button
+                className="sidebar-link"
+                onClick={() => go("/account-management")}
+                type="button"
+              >
+                <span className="side-link-content">
+                  <IconAccount />
+                  <span>Account Management</span>
+                </span>
+              </button>
+
+              <button
+                className="sidebar-link"
+                onClick={() => go("/own-a-shop")}
+                type="button"
+              >
+                <span className="side-link-content">
+                  <IconTools />
+                  <span>Own a Shop</span>
+                </span>
+              </button>
+            </>
+          ) : null}
+
+          {isShopAdmin ? (
+            <>
+              <div className="side-divider" />
+
+              <button
+                className="sidebar-link"
+                onClick={() => go("/admin")}
+                type="button"
+              >
+                <span className="side-link-content">
+                  <IconShield />
+                  <span>
+                    Product Manager{shopLabel ? ` • ${shopLabel}` : ""}
+                  </span>
+                </span>
+              </button>
+
+              <button
+                className="sidebar-link"
+                onClick={() => go("/admin-orders")}
+                type="button"
+              >
+                <span className="side-link-content">
+                  <IconOrders />
+                  <span>Shop Orders</span>
+                </span>
+              </button>
+
+              <button
+                className="sidebar-link"
+                onClick={() => go("/analytics")}
+                type="button"
+              >
+                <span className="side-link-content">
+                  <IconGrid />
+                  <span>Analytics</span>
+                </span>
+              </button>
+
+              <button
+                className="sidebar-link"
+                onClick={() => go("/payout-requests")}
+                type="button"
+              >
+                <span className="side-link-content">
+                  <IconTag />
+                  <span>Payout Requests</span>
+                </span>
+              </button>
+
+              <button
+                className="sidebar-link"
+                onClick={() => go("/account-management")}
+                type="button"
+              >
+                <span className="side-link-content">
+                  <IconAccount />
+                  <span>Account Management</span>
+                </span>
+              </button>
+            </>
+          ) : null}
+
+          <div className="side-divider" />
+
+          <button
+            className="sidebar-link sidebar-link--expand"
+            onClick={() => toggleSection("categories")}
+            aria-expanded={openSection === "categories"}
+            type="button"
+          >
+            <span className="side-link-content">
+              <IconGrid />
+              <span>Categories</span>
+            </span>
+            <span
+              className={`side-chevron ${
+                openSection === "categories" ? "open" : ""
+              }`}
+            >
+              ▾
+            </span>
+          </button>
+
+          <div
+            className={`side-submenu-wrap ${
+              openSection === "categories" ? "is-open" : ""
+            }`}
+          >
+            <div className="side-submenu">
+              <button
+                className="side-subitem"
+                onClick={() => goCategory("tech")}
+                type="button"
+              >
+                Tech
+              </button>
+              <button
+                className="side-subitem"
+                onClick={() => goCategory("fashion")}
+                type="button"
+              >
+                Fashion
+              </button>
+              <button
+                className="side-subitem"
+                onClick={() => goCategory("accessories")}
+                type="button"
+              >
+                Accessories
               </button>
             </div>
           </div>
+
+          <button
+            className="sidebar-link sidebar-link--expand"
+            onClick={() => toggleSection("departments")}
+            aria-expanded={openSection === "departments"}
+            type="button"
+          >
+            <span className="side-link-content">
+              <IconLayers />
+              <span>Departments</span>
+            </span>
+            <span
+              className={`side-chevron ${
+                openSection === "departments" ? "open" : ""
+              }`}
+            >
+              ▾
+            </span>
+          </button>
+
+          <div
+            className={`side-submenu-wrap ${
+              openSection === "departments" ? "is-open" : ""
+            }`}
+          >
+            <div className="side-submenu">
+              <button
+                className="side-subitem"
+                onClick={() => goDept("men")}
+                type="button"
+              >
+                Men
+              </button>
+              <button
+                className="side-subitem"
+                onClick={() => goDept("women")}
+                type="button"
+              >
+                Women
+              </button>
+              <button
+                className="side-subitem"
+                onClick={() => goDept("kids")}
+                type="button"
+              >
+                Kids
+              </button>
+              <button
+                className="side-subitem"
+                onClick={() => goDept("accessories")}
+                type="button"
+              >
+                Accessories
+              </button>
+            </div>
+          </div>
+
+          <button
+            className="sidebar-link sidebar-link--expand"
+            onClick={() => toggleSection("more")}
+            aria-expanded={openSection === "more"}
+            type="button"
+          >
+            <span className="side-link-content">
+              <IconMore />
+              <span>More</span>
+            </span>
+            <span
+              className={`side-chevron ${openSection === "more" ? "open" : ""}`}
+            >
+              ▾
+            </span>
+          </button>
+
+          <div
+            className={`side-submenu-wrap ${
+              openSection === "more" ? "is-open" : ""
+            }`}
+          >
+            <div className="side-submenu">
+              <button
+                className="side-subitem"
+                onClick={() => go("/about")}
+                type="button"
+              >
+                About us
+              </button>
+              <button
+                className="side-subitem"
+                onClick={() => go("/support")}
+                type="button"
+              >
+                Support us
+              </button>
+              <button
+                className="side-subitem"
+                onClick={() => go("/contact")}
+                type="button"
+              >
+                Contact
+              </button>
+              <button
+                className="side-subitem"
+                onClick={() => go("/faq")}
+                type="button"
+              >
+                FAQ
+              </button>
+              <button
+                className="side-subitem"
+                onClick={() => go("/shipping&returns")}
+                type="button"
+              >
+                Shipping & Returns
+              </button>
+            </div>
+          </div>
+
+          <button className="sidebar-link" onClick={onOffersClick} type="button">
+            <span className="side-link-content">
+              <IconTag />
+              <span>Offers</span>
+            </span>
+          </button>
+
+          <div className="side-divider" />
+
+          {!user ? (
+            <>
+              <button
+                className="sidebar-link"
+                onClick={() => go("/login")}
+                type="button"
+              >
+                <span className="side-link-content">
+                  <IconLogin />
+                  <span>Login</span>
+                </span>
+              </button>
+
+              <button
+                className="sidebar-link"
+                onClick={() => go("/signup")}
+                type="button"
+              >
+                <span className="side-link-content">
+                  <IconUserPlus />
+                  <span>Sign up</span>
+                </span>
+              </button>
+            </>
+          ) : !confirmLogout ? (
+            <button
+              className="sidebar-link sidebar-link--danger"
+              onClick={() => setConfirmLogout(true)}
+              type="button"
+            >
+              <span className="side-link-content">
+                <IconLogout />
+                <span>Logout</span>
+              </span>
+            </button>
+          ) : (
+            <div className="side-confirm">
+              <p className="side-confirm-text">Are you sure you want to log out?</p>
+              <div className="side-confirm-actions">
+                <button
+                  className="side-confirm-btn"
+                  onClick={() => setConfirmLogout(false)}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  className="side-confirm-btn side-confirm-btn--danger"
+                  onClick={onLogout}
+                  type="button"
+                >
+                  Log out
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="side-divider" />
+
+          <div className="sidebar-toggle-row">
+            <div className="side-link-content">
+              <IconSun />
+              <span>{darkMode ? "Light mode" : "Dark mode"}</span>
+            </div>
+
+            <button
+              type="button"
+              className={`theme-toggle ${darkMode ? "active" : ""}`}
+              onClick={toggleTheme}
+              aria-label="Toggle theme"
+              aria-pressed={darkMode}
+            >
+              <span className="theme-toggle-track">
+                <span className="theme-toggle-thumb" />
+              </span>
+            </button>
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
