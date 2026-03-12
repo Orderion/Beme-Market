@@ -31,7 +31,7 @@ function toMillis(value) {
 }
 
 function normalizeShop(value) {
-  return String(value || "main").trim().toLowerCase() || "main";
+  return String(value || "").trim().toLowerCase();
 }
 
 function getOrderTotal(order) {
@@ -103,7 +103,7 @@ function buildShopPerformance(products, orders) {
   const bucket = new Map();
 
   for (const product of products) {
-    const shop = normalizeShop(product.shop);
+    const shop = normalizeShop(product.shop) || "unknown";
 
     if (!bucket.has(shop)) {
       bucket.set(shop, {
@@ -125,7 +125,7 @@ function buildShopPerformance(products, orders) {
   for (const order of orders) {
     const items = Array.isArray(order.items) ? order.items : [];
     for (const item of items) {
-      const shop = normalizeShop(item?.shop);
+      const shop = normalizeShop(item?.shop) || "unknown";
 
       if (!bucket.has(shop)) {
         bucket.set(shop, {
@@ -194,16 +194,23 @@ async function deleteAllDocsInCollection(collectionName) {
   return docs.length;
 }
 
+function sortByCreatedAtDesc(rows) {
+  return [...rows].sort((a, b) => {
+    const at = toMillis(a.createdAt || a.timestamp);
+    const bt = toMillis(b.createdAt || b.timestamp);
+    return bt - at;
+  });
+}
+
 function orderMatchesShop(order, adminShop) {
   const normalizedAdminShop = normalizeShop(adminShop);
 
   const primaryShop = normalizeShop(order?.primaryShop);
-  if (primaryShop === normalizedAdminShop) return true;
+  if (primaryShop && primaryShop === normalizedAdminShop) return true;
 
   const shops = Array.isArray(order?.shops)
     ? order.shops.map((shop) => normalizeShop(shop))
     : [];
-
   if (shops.includes(normalizedAdminShop)) return true;
 
   const items = Array.isArray(order?.items) ? order.items : [];
@@ -215,12 +222,12 @@ export default function Analytics() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [productsError, setProductsError] = useState("");
+  const [ordersError, setOrdersError] = useState("");
+
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
-
-  const [productsError, setProductsError] = useState("");
-  const [ordersError, setOrdersError] = useState("");
 
   const [resetOpen, setResetOpen] = useState(false);
   const [resetPassword, setResetPassword] = useState("");
@@ -244,27 +251,29 @@ export default function Analytics() {
       setProductsError("");
       setOrdersError("");
 
+      const normalizedAdminShop = normalizeShop(adminShop);
+
       try {
-        let nextProducts = [];
-        let nextOrders = [];
-        let nextUsers = [];
+        let loadedProducts = [];
+        let loadedOrders = [];
+        let loadedUsers = [];
 
         try {
-          if (isShopAdmin && adminShop) {
+          if (isShopAdmin && normalizedAdminShop) {
             const productsSnap = await getDocs(
               query(
                 collection(db, PRODUCTS_COLLECTION),
-                where("shop", "==", normalizeShop(adminShop))
+                where("shop", "==", normalizedAdminShop)
               )
             );
 
-            nextProducts = productsSnap.docs.map((docSnap) => ({
+            loadedProducts = productsSnap.docs.map((docSnap) => ({
               id: docSnap.id,
               ...docSnap.data(),
             }));
           } else {
             const productsSnap = await getDocs(collection(db, PRODUCTS_COLLECTION));
-            nextProducts = productsSnap.docs.map((docSnap) => ({
+            loadedProducts = productsSnap.docs.map((docSnap) => ({
               id: docSnap.id,
               ...docSnap.data(),
             }));
@@ -275,46 +284,39 @@ export default function Analytics() {
         }
 
         try {
-          if (isShopAdmin && adminShop) {
-            const normalizedShop = normalizeShop(adminShop);
-
+          if (isShopAdmin && normalizedAdminShop) {
             try {
               const ordersSnap = await getDocs(
                 query(
                   collection(db, ORDERS_COLLECTION),
-                  where("shops", "array-contains", normalizedShop),
+                  where("shops", "array-contains", normalizedAdminShop),
                   orderBy("createdAt", "desc"),
                   limit(300)
                 )
               );
 
-              nextOrders = ordersSnap.docs.map((docSnap) => ({
+              loadedOrders = ordersSnap.docs.map((docSnap) => ({
                 id: docSnap.id,
                 ...docSnap.data(),
               }));
             } catch (indexedErr) {
-              console.error("Analytics orders indexed query error:", indexedErr);
+              console.error("Analytics indexed shop-order query error:", indexedErr);
 
-              try {
-                const fallbackSnap = await getDocs(
-                  query(
-                    collection(db, ORDERS_COLLECTION),
-                    where("shops", "array-contains", normalizedShop)
-                  )
-                );
+              const fallbackSnap = await getDocs(
+                query(
+                  collection(db, ORDERS_COLLECTION),
+                  where("shops", "array-contains", normalizedAdminShop)
+                )
+              );
 
-                nextOrders = fallbackSnap.docs
-                  .map((docSnap) => ({
-                    id: docSnap.id,
-                    ...docSnap.data(),
-                  }))
-                  .filter((order) => orderMatchesShop(order, normalizedShop));
-              } catch (fallbackErr) {
-                console.error("Analytics orders fallback error:", fallbackErr);
-                setOrdersError(
-                  fallbackErr?.message || "Failed to load shop orders."
-                );
-              }
+              loadedOrders = fallbackSnap.docs
+                .map((docSnap) => ({
+                  id: docSnap.id,
+                  ...docSnap.data(),
+                }))
+                .filter((order) => orderMatchesShop(order, normalizedAdminShop));
+
+              loadedOrders = sortByCreatedAtDesc(loadedOrders);
             }
           } else {
             try {
@@ -326,17 +328,19 @@ export default function Analytics() {
                 )
               );
 
-              nextOrders = ordersSnap.docs.map((docSnap) => ({
+              loadedOrders = ordersSnap.docs.map((docSnap) => ({
                 id: docSnap.id,
                 ...docSnap.data(),
               }));
             } catch (indexedErr) {
-              console.error("Analytics admin orders indexed query error:", indexedErr);
+              console.error("Analytics indexed admin-order query error:", indexedErr);
               const fallbackSnap = await getDocs(collection(db, ORDERS_COLLECTION));
-              nextOrders = fallbackSnap.docs.map((docSnap) => ({
-                id: docSnap.id,
-                ...docSnap.data(),
-              }));
+              loadedOrders = sortByCreatedAtDesc(
+                fallbackSnap.docs.map((docSnap) => ({
+                  id: docSnap.id,
+                  ...docSnap.data(),
+                }))
+              );
             }
           }
         } catch (err) {
@@ -347,7 +351,7 @@ export default function Analytics() {
         try {
           if (isSuperAdmin) {
             const usersSnap = await getDocs(collection(db, USERS_COLLECTION));
-            nextUsers = usersSnap.docs.map((docSnap) => ({
+            loadedUsers = usersSnap.docs.map((docSnap) => ({
               id: docSnap.id,
               ...docSnap.data(),
             }));
@@ -358,11 +362,11 @@ export default function Analytics() {
 
         if (!alive) return;
 
-        setProducts(nextProducts);
-        setOrders(nextOrders);
-        setUsers(nextUsers);
+        setProducts(loadedProducts);
+        setOrders(loadedOrders);
+        setUsers(loadedUsers);
 
-        if (!nextProducts.length && !nextOrders.length && (productsError || ordersError)) {
+        if (!loadedProducts.length && !loadedOrders.length && (productsError || ordersError)) {
           setError("Failed to load analytics.");
         }
       } catch (err) {
