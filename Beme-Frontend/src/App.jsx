@@ -1,7 +1,7 @@
 // src/App.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import AdminRoute from "./components/AdminRoute";
@@ -35,7 +35,6 @@ import TermsOfService from "./pages/TermsOfService";
 import RefundPolicy from "./pages/RefundPolicy";
 import CookiePolicy from "./pages/CookiePolicy";
 import AccountManagement from "./pages/AccountManagement";
-import { useAuth } from "./context/AuthContext";
 
 function SuperAdminOnly({ children }) {
   const { loading, isSuperAdmin } = useAuth();
@@ -51,6 +50,13 @@ function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
 
+  const hideHeaderRoutes = useMemo(
+    () => new Set(["/login", "/signup", "/admin-login"]),
+    []
+  );
+
+  const shouldHideHeader = hideHeaderRoutes.has(location.pathname);
+
   useEffect(() => {
     setSidebarOpen(false);
     setCartOpen(false);
@@ -59,12 +65,16 @@ function AppShell() {
 
   return (
     <>
-      <Header
-        onMenu={() => setSidebarOpen(true)}
-        onCart={() => setCartOpen(true)}
-      />
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+      {!shouldHideHeader ? (
+        <>
+          <Header
+            onMenu={() => setSidebarOpen(true)}
+            onCart={() => setCartOpen(true)}
+          />
+          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+        </>
+      ) : null}
 
       <main key={location.pathname} className="route-shell">
         <Routes location={location}>
@@ -170,7 +180,7 @@ function AppShell() {
         </Routes>
       </main>
 
-      <Footer />
+      {!shouldHideHeader ? <Footer /> : null}
     </>
   );
 }
