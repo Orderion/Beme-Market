@@ -1,4 +1,3 @@
-// Beme-Frontend/src/pages/Login.jsx
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
@@ -7,6 +6,7 @@ import { auth, db } from "../firebase";
 import "./Login.css";
 
 const RESET_COOLDOWN_MS = 45000;
+const RESET_TIMEOUT_MS = 20000;
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
@@ -23,6 +23,21 @@ function getApiBaseUrl() {
     "http://localhost:5000";
 
   return String(raw).replace(/\/+$/, "");
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = RESET_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
 
 export default function Login() {
@@ -127,15 +142,18 @@ export default function Login() {
     setResetLoading(true);
 
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/auth/forgot-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: emailTrim,
-        }),
-      });
+      const response = await fetchWithTimeout(
+        `${getApiBaseUrl()}/api/auth/forgot-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: emailTrim,
+          }),
+        }
+      );
 
       const data = await response.json().catch(() => ({}));
 
@@ -145,10 +163,17 @@ export default function Login() {
 
       setLastResetAt(Date.now());
       setMsg(
-        "If an account exists for this email, a password reset link has been sent."
+        data?.message ||
+          "If an account exists for this email, a password reset link has been sent."
       );
     } catch (e) {
-      setErr(e?.message || "Could not send reset email. Try again.");
+      if (e?.name === "AbortError") {
+        setErr(
+          "Reset request timed out. Check your backend SMTP settings or Render logs."
+        );
+      } else {
+        setErr(e?.message || "Could not send reset email. Try again.");
+      }
     } finally {
       setResetLoading(false);
     }
@@ -282,11 +307,7 @@ export default function Login() {
           {err && <div className="auth-alert auth-alert--error">{err}</div>}
           {msg && <div className="auth-alert auth-alert--ok">{msg}</div>}
 
-          <button
-            className="auth-cta"
-            type="submit"
-            disabled={loading || resetLoading}
-          >
+          <button className="auth-cta" type="submit" disabled={loading || resetLoading}>
             {loading ? "Signing in..." : "Sign In"}
           </button>
 
@@ -322,8 +343,7 @@ export default function Login() {
         <section className="auth-news">
           <h2 className="auth-news-title">Sign up and save</h2>
           <p className="auth-news-text">
-            Subscribe to get special offers, free giveaways, and once-in-a-lifetime
-            deals.
+            Subscribe to get special offers, free giveaways, and once-in-a-lifetime deals.
           </p>
 
           <div className="auth-news-input">
