@@ -1,4 +1,3 @@
-// Beme-Backend/src/routes/authRoutes.js
 import express from "express";
 import { firebaseAdmin } from "../firebaseAdmin.js";
 import { sendPasswordResetEmail } from "../services/email.js";
@@ -57,18 +56,25 @@ router.post("/forgot-password", async (req, res) => {
         .generatePasswordResetLink(email, actionCodeSettings);
 
       await withTimeout(
-        sendPasswordResetEmail({
-          email,
-          resetLink,
-        }),
+        sendPasswordResetEmail({ email, resetLink }),
         EMAIL_SEND_TIMEOUT_MS,
         "Password reset email send"
       );
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "If an account exists for this email, a password reset link has been sent.",
+      });
     } catch (innerError) {
       const code = innerError?.code || "";
       const message = innerError?.message || "";
 
-      console.error("Forgot password inner error:", innerError);
+      console.error("FORGOT_PASSWORD_EMAIL_ERROR", {
+        code,
+        message,
+        stack: innerError?.stack,
+      });
 
       if (
         code.includes("auth/user-not-found") ||
@@ -94,14 +100,11 @@ router.post("/forgot-password", async (req, res) => {
         message: "Could not send reset email. Check backend email settings.",
       });
     }
-
-    return res.status(200).json({
-      success: true,
-      message:
-        "If an account exists for this email, a password reset link has been sent.",
-    });
   } catch (error) {
-    console.error("Forgot password error:", error);
+    console.error("FORGOT_PASSWORD_ROUTE_ERROR", {
+      message: error?.message,
+      stack: error?.stack,
+    });
 
     return res.status(500).json({
       success: false,
