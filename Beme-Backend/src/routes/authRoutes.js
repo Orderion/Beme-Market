@@ -1,7 +1,6 @@
-// Beme-Backend/src/routes/authRoutes.js
 import express from "express";
 import { firebaseAdmin } from "../firebaseAdmin.js";
-import { sendPasswordResetEmailCustom } from "../services/emailService.js";
+import { sendPasswordResetEmail } from "../services/email.js";
 
 const router = express.Router();
 
@@ -44,7 +43,7 @@ router.post("/forgot-password", async (req, res) => {
         .auth()
         .generatePasswordResetLink(email, actionCodeSettings);
 
-      await sendPasswordResetEmailCustom({
+      await sendPasswordResetEmail({
         email,
         resetLink,
       });
