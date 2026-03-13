@@ -507,11 +507,19 @@ export default function Admin() {
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [productsError, setProductsError] = useState("");
+
   const [deletingId, setDeletingId] = useState("");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState("");
+
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [selectedProductIds, setSelectedProductIds] = useState([]);
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
+  const [bulkDeletePassword, setBulkDeletePassword] = useState("");
+  const [bulkDeleteError, setBulkDeleteError] = useState("");
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const [editingId, setEditingId] = useState("");
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -1226,6 +1234,165 @@ export default function Admin() {
       setBulkImportMsg(`❌ ${error.message || "Bulk import failed."}`);
     } finally {
       setBulkImporting(false);
+    }
+  };
+
+  const toggleMultiSelectMode = () => {
+    setMultiSelectMode((prev) => !prev);
+    setSelectedProductIds([]);
+    setBulkDeleteModalOpen(false);
+    setBulkDeletePassword("");
+    setBulkDeleteError("");
+  };
+
+  const isProductSelected = (productId) => selectedProductIds.includes(productId);
+
+  const toggleProductSelection = (product) => {
+    if (!canCurrentUserDeleteProduct(product)) return;
+
+    setSelectedProductIds((prev) =>
+      prev.includes(product.id)
+        ? prev.filter((id) => id !== product.id)
+        : [...prev, product.id]
+    );
+  };
+
+  const selectAllInGroup = (items) => {
+    const allowedIds = items
+      .filter((item) => canCurrentUserDeleteProduct(item))
+      .map((item) => item.id);
+
+    setSelectedProductIds((prev) => {
+      const next = new Set(prev);
+      allowedIds.forEach((id) => next.add(id));
+      return Array.from(next);
+    });
+  };
+
+  const clearAllInGroup = (items) => {
+    const ids = new Set(items.map((item) => item.id));
+    setSelectedProductIds((prev) => prev.filter((id) => !ids.has(id)));
+  };
+
+  const clearAllSelections = () => {
+    setSelectedProductIds([]);
+  };
+
+  const selectedProducts = useMemo(() => {
+    const set = new Set(selectedProductIds);
+    return products.filter((product) => set.has(product.id));
+  }, [products, selectedProductIds]);
+
+  const openBulkDeleteModal = () => {
+    if (!selectedProducts.length) {
+      setMsg("❌ Select at least one product first.");
+      return;
+    }
+
+    const unauthorized = selectedProducts.some(
+      (product) => !canCurrentUserDeleteProduct(product)
+    );
+
+    if (unauthorized) {
+      setMsg("❌ One or more selected products cannot be deleted from this account.");
+      return;
+    }
+
+    setBulkDeletePassword("");
+    setBulkDeleteError("");
+    setBulkDeleteModalOpen(true);
+  };
+
+  const closeBulkDeleteModal = () => {
+    if (bulkDeleting) return;
+    setBulkDeleteModalOpen(false);
+    setBulkDeletePassword("");
+    setBulkDeleteError("");
+  };
+
+  const handleBulkDeleteProducts = async () => {
+    if (!selectedProducts.length) {
+      setBulkDeleteError("No selected products found.");
+      return;
+    }
+
+    if (!user?.email) {
+      setBulkDeleteError("No authenticated admin session found.");
+      return;
+    }
+
+    if (!bulkDeletePassword.trim()) {
+      setBulkDeleteError("Enter your admin password to continue.");
+      return;
+    }
+
+    const unauthorized = selectedProducts.some(
+      (product) => !canCurrentUserDeleteProduct(product)
+    );
+
+    if (unauthorized) {
+      setBulkDeleteError(
+        "One or more selected products cannot be deleted from this account."
+      );
+      return;
+    }
+
+    setBulkDeleteError("");
+    setBulkDeleting(true);
+
+    try {
+      await reauthenticate(bulkDeletePassword.trim());
+
+      const chunkSize = 400;
+
+      for (let i = 0; i < selectedProducts.length; i += chunkSize) {
+        const batch = writeBatch(db);
+        const chunk = selectedProducts.slice(i, i + chunkSize);
+
+        chunk.forEach((product) => {
+          batch.delete(doc(db, COLLECTION_NAME, product.id));
+        });
+
+        await batch.commit();
+      }
+
+      const removedIds = new Set(selectedProducts.map((product) => product.id));
+
+      setProducts((prev) => prev.filter((product) => !removedIds.has(product.id)));
+      setSelectedProductIds([]);
+      setMultiSelectMode(false);
+      setBulkDeleteModalOpen(false);
+      setBulkDeletePassword("");
+      setMsg(
+        `✅ Deleted ${selectedProducts.length} product${
+          selectedProducts.length > 1 ? "s" : ""
+        } successfully.`
+      );
+      await loadProducts();
+    } catch (error) {
+      console.error("Bulk delete products error:", error);
+
+      let message = "Failed to delete selected products.";
+      const code = error?.code || "";
+
+      if (
+        code === "auth/wrong-password" ||
+        code === "auth/invalid-credential" ||
+        code === "auth/invalid-login-credentials"
+      ) {
+        message = "Incorrect password. Bulk delete cancelled.";
+      } else if (
+        code === "permission-denied" ||
+        code === "firestore/permission-denied"
+      ) {
+        message = "You do not have permission to delete one or more products.";
+      } else if (error?.message) {
+        message = error.message;
+      }
+
+      setBulkDeleteError(`❌ ${message}`);
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -2133,6 +2300,47 @@ export default function Admin() {
           </p>
         </div>
 
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            flexWrap: "wrap",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
+          <button
+            type="button"
+            className="admin-secondary-btn"
+            onClick={toggleMultiSelectMode}
+            disabled={!!editingId || !!deletingId || bulkDeleting}
+          >
+            {multiSelectMode ? "Exit multi-select" : "Multi-select"}
+          </button>
+
+          {multiSelectMode ? (
+            <>
+              <button
+                type="button"
+                className="admin-secondary-btn admin-secondary-btn--ghost"
+                onClick={clearAllSelections}
+                disabled={!selectedProductIds.length || bulkDeleting}
+              >
+                Clear selection
+              </button>
+
+              <button
+                type="button"
+                className="admin-danger-btn"
+                onClick={openBulkDeleteModal}
+                disabled={!selectedProductIds.length || bulkDeleting}
+              >
+                Delete selected ({selectedProductIds.length})
+              </button>
+            </>
+          ) : null}
+        </div>
+
         {productSummary.length ? (
           <div
             style={{
@@ -2172,178 +2380,302 @@ export default function Admin() {
           <div className="admin-products-empty">Loading products…</div>
         ) : groupedProducts.length ? (
           <div style={{ display: "grid", gap: 18 }}>
-            {groupedProducts.map((group) => (
-              <div key={group.shop} style={{ display: "grid", gap: 12 }}>
-                <div className="admin-head" style={{ marginBottom: 0 }}>
-                  <h3 className="admin-title" style={{ fontSize: "1.05rem" }}>
-                    {group.label}
-                  </h3>
-                  <p className="admin-sub">
-                    {group.items.length} product
-                    {group.items.length === 1 ? "" : "s"}
-                  </p>
-                </div>
+            {groupedProducts.map((group) => {
+              const deletableItems = group.items.filter((item) =>
+                canCurrentUserDeleteProduct(item)
+              );
+              const selectedCountInGroup = deletableItems.filter((item) =>
+                selectedProductIds.includes(item.id)
+              ).length;
 
-                <div className="admin-products-list">
-                  {group.items.map((product) => {
-                    const isDeleting = deletingId === product.id;
-                    const isEditing = editingId === product.id;
-                    const gallery = Array.isArray(product.images)
-                      ? product.images
-                      : product.image
-                      ? [product.image]
-                      : [];
-                    const canDelete = canCurrentUserDeleteProduct(product);
-                    const canEdit = canCurrentUserEditProduct(product);
-                    const uploadedByCurrentUser = product.ownerId === user?.uid;
+              return (
+                <div key={group.shop} style={{ display: "grid", gap: 12 }}>
+                  <div className="admin-head" style={{ marginBottom: 0 }}>
+                    <div>
+                      <h3 className="admin-title" style={{ fontSize: "1.05rem" }}>
+                        {group.label}
+                      </h3>
+                      <p className="admin-sub">
+                        {group.items.length} product
+                        {group.items.length === 1 ? "" : "s"}
+                        {multiSelectMode && deletableItems.length
+                          ? ` • ${selectedCountInGroup}/${deletableItems.length} selected`
+                          : ""}
+                      </p>
+                    </div>
 
-                    return (
-                      <div className="admin-product-item" key={product.id}>
-                        <div className="admin-product-media">
-                          {product.image ? (
-                            <>
-                              <div className="admin-product-cover-wrap">
-                                <img
-                                  src={product.image}
-                                  alt={product.name}
-                                  className="admin-product-image"
-                                />
-                                {gallery.length > 1 ? (
-                                  <span className="admin-product-gallery-badge">
-                                    {gallery.length} photos
-                                  </span>
-                                ) : null}
+                    {multiSelectMode && deletableItems.length ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          flexWrap: "wrap",
+                          alignItems: "center",
+                        }}
+                      >
+                        <button
+                          type="button"
+                          className="admin-secondary-btn"
+                          onClick={() => selectAllInGroup(group.items)}
+                        >
+                          Select all
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-secondary-btn admin-secondary-btn--ghost"
+                          onClick={() => clearAllInGroup(group.items)}
+                        >
+                          Clear group
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {multiSelectMode ? (
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: 10,
+                        border: "1px solid rgba(255,255,255,0.06)",
+                        borderRadius: 18,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {group.items.map((product, index) => {
+                        const canDelete = canCurrentUserDeleteProduct(product);
+                        const selected = isProductSelected(product.id);
+
+                        return (
+                          <label
+                            key={product.id}
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "auto 1fr auto",
+                              gap: 12,
+                              alignItems: "center",
+                              padding: "14px 16px",
+                              background:
+                                index % 2 === 0
+                                  ? "rgba(255,255,255,0.02)"
+                                  : "rgba(255,255,255,0.03)",
+                              opacity: canDelete ? 1 : 0.55,
+                              cursor: canDelete ? "pointer" : "not-allowed",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              disabled={!canDelete}
+                              onChange={() => toggleProductSelection(product)}
+                            />
+
+                            <div style={{ minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontWeight: 700,
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {product.name}
                               </div>
-
-                              {gallery.length > 1 ? (
-                                <div className="admin-product-gallery-strip">
-                                  {gallery.slice(0, 4).map((src, index) => (
-                                    <img
-                                      key={`${src}-${index}`}
-                                      src={src}
-                                      alt={`${product.name} ${index + 1}`}
-                                      className="admin-product-gallery-thumb"
-                                    />
-                                  ))}
-
-                                  {gallery.length > 4 ? (
-                                    <div className="admin-product-gallery-more">
-                                      +{gallery.length - 4}
-                                    </div>
-                                  ) : null}
-                                </div>
-                              ) : null}
-                            </>
-                          ) : (
-                            <div className="admin-product-image admin-product-image--empty">
-                              No image
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="admin-product-content">
-                          <div className="admin-product-top">
-                            <div>
-                              <h3 className="admin-product-name">{product.name}</h3>
-                              <div className="admin-product-meta">
+                              <div
+                                style={{
+                                  opacity: 0.75,
+                                  fontSize: 13,
+                                  display: "flex",
+                                  gap: 8,
+                                  flexWrap: "wrap",
+                                  marginTop: 4,
+                                }}
+                              >
                                 <span>{formatShopLabel(product.shop)}</span>
                                 <span>{titleize(product.kind)}</span>
                                 <span>{titleize(product.dept)}</span>
-                                {product.brand ? (
-                                  <span>Brand: {product.brand}</span>
-                                ) : null}
+                                {product.brand ? <span>Brand: {product.brand}</span> : null}
                                 <span>
-                                  {uploadedByCurrentUser
-                                    ? "Uploaded by you"
-                                    : product.ownerName || "Uploaded by shop admin"}
+                                  {product.inStock ? "In stock" : "Out of stock"}
                                 </span>
+                                {!canDelete ? <span>Read only</span> : null}
                               </div>
                             </div>
 
-                            <div className="admin-product-price">
+                            <div
+                              style={{
+                                fontWeight: 700,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
                               {formatMoney(product.price)}
                             </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="admin-products-list">
+                      {group.items.map((product) => {
+                        const isDeleting = deletingId === product.id;
+                        const isEditing = editingId === product.id;
+                        const gallery = Array.isArray(product.images)
+                          ? product.images
+                          : product.image
+                          ? [product.image]
+                          : [];
+                        const canDelete = canCurrentUserDeleteProduct(product);
+                        const canEdit = canCurrentUserEditProduct(product);
+                        const uploadedByCurrentUser = product.ownerId === user?.uid;
+
+                        return (
+                          <div className="admin-product-item" key={product.id}>
+                            <div className="admin-product-media">
+                              {product.image ? (
+                                <>
+                                  <div className="admin-product-cover-wrap">
+                                    <img
+                                      src={product.image}
+                                      alt={product.name}
+                                      className="admin-product-image"
+                                    />
+                                    {gallery.length > 1 ? (
+                                      <span className="admin-product-gallery-badge">
+                                        {gallery.length} photos
+                                      </span>
+                                    ) : null}
+                                  </div>
+
+                                  {gallery.length > 1 ? (
+                                    <div className="admin-product-gallery-strip">
+                                      {gallery.slice(0, 4).map((src, index) => (
+                                        <img
+                                          key={`${src}-${index}`}
+                                          src={src}
+                                          alt={`${product.name} ${index + 1}`}
+                                          className="admin-product-gallery-thumb"
+                                        />
+                                      ))}
+
+                                      {gallery.length > 4 ? (
+                                        <div className="admin-product-gallery-more">
+                                          +{gallery.length - 4}
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                  ) : null}
+                                </>
+                              ) : (
+                                <div className="admin-product-image admin-product-image--empty">
+                                  No image
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="admin-product-content">
+                              <div className="admin-product-top">
+                                <div>
+                                  <h3 className="admin-product-name">{product.name}</h3>
+                                  <div className="admin-product-meta">
+                                    <span>{formatShopLabel(product.shop)}</span>
+                                    <span>{titleize(product.kind)}</span>
+                                    <span>{titleize(product.dept)}</span>
+                                    {product.brand ? (
+                                      <span>Brand: {product.brand}</span>
+                                    ) : null}
+                                    <span>
+                                      {uploadedByCurrentUser
+                                        ? "Uploaded by you"
+                                        : product.ownerName || "Uploaded by shop admin"}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="admin-product-price">
+                                  {formatMoney(product.price)}
+                                </div>
+                              </div>
+
+                              <div className="admin-product-flags">
+                                <span
+                                  className={
+                                    product.inStock
+                                      ? "admin-flag admin-flag--success"
+                                      : "admin-flag"
+                                  }
+                                >
+                                  {product.inStock ? "In stock" : "Out of stock"}
+                                </span>
+
+                                {product.featured ? (
+                                  <span className="admin-flag admin-flag--featured">
+                                    Featured
+                                  </span>
+                                ) : null}
+
+                                {!canEdit ? (
+                                  <span className="admin-flag">Read only</span>
+                                ) : null}
+                              </div>
+
+                              <div
+                                className="admin-product-actions"
+                                style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
+                              >
+                                <button
+                                  type="button"
+                                  className="admin-secondary-btn"
+                                  onClick={() => openEditModal(product)}
+                                  disabled={!!editingId || !!deletingId || !canEdit}
+                                  title={
+                                    canEdit
+                                      ? "Edit product"
+                                      : "You cannot manage this product from this account"
+                                  }
+                                  style={
+                                    !canEdit
+                                      ? { opacity: 0.55, cursor: "not-allowed" }
+                                      : undefined
+                                  }
+                                >
+                                  {isEditing
+                                    ? "Saving…"
+                                    : canEdit
+                                    ? "Edit product"
+                                    : "Read only"}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="admin-danger-btn"
+                                  onClick={() => openDeleteModal(product)}
+                                  disabled={!!deletingId || !!editingId || !canDelete}
+                                  title={
+                                    canDelete
+                                      ? "Delete product"
+                                      : "You cannot manage this product from this account"
+                                  }
+                                  style={
+                                    !canDelete
+                                      ? { opacity: 0.55, cursor: "not-allowed" }
+                                      : undefined
+                                  }
+                                >
+                                  {isDeleting
+                                    ? "Deleting…"
+                                    : canDelete
+                                    ? "Delete product"
+                                    : "Read only"}
+                                </button>
+                              </div>
+                            </div>
                           </div>
-
-                          <div className="admin-product-flags">
-                            <span
-                              className={
-                                product.inStock
-                                  ? "admin-flag admin-flag--success"
-                                  : "admin-flag"
-                              }
-                            >
-                              {product.inStock ? "In stock" : "Out of stock"}
-                            </span>
-
-                            {product.featured ? (
-                              <span className="admin-flag admin-flag--featured">
-                                Featured
-                              </span>
-                            ) : null}
-
-                            {!canEdit ? (
-                              <span className="admin-flag">Read only</span>
-                            ) : null}
-                          </div>
-
-                          <div
-                            className="admin-product-actions"
-                            style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
-                          >
-                            <button
-                              type="button"
-                              className="admin-secondary-btn"
-                              onClick={() => openEditModal(product)}
-                              disabled={!!editingId || !!deletingId || !canEdit}
-                              title={
-                                canEdit
-                                  ? "Edit product"
-                                  : "You cannot manage this product from this account"
-                              }
-                              style={
-                                !canEdit
-                                  ? { opacity: 0.55, cursor: "not-allowed" }
-                                  : undefined
-                              }
-                            >
-                              {isEditing
-                                ? "Saving…"
-                                : canEdit
-                                ? "Edit product"
-                                : "Read only"}
-                            </button>
-
-                            <button
-                              type="button"
-                              className="admin-danger-btn"
-                              onClick={() => openDeleteModal(product)}
-                              disabled={!!deletingId || !!editingId || !canDelete}
-                              title={
-                                canDelete
-                                  ? "Delete product"
-                                  : "You cannot manage this product from this account"
-                              }
-                              style={
-                                !canDelete
-                                  ? { opacity: 0.55, cursor: "not-allowed" }
-                                  : undefined
-                              }
-                            >
-                              {isDeleting
-                                ? "Deleting…"
-                                : canDelete
-                                ? "Delete product"
-                                : "Read only"}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="admin-products-empty">No products found yet.</div>
@@ -2943,6 +3275,116 @@ export default function Admin() {
                 disabled={!!deletingId}
               >
                 {deletingId ? "Verifying & deleting…" : "Verify and delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {bulkDeleteModalOpen ? (
+        <div
+          className="admin-modal-backdrop"
+          onClick={closeBulkDeleteModal}
+          role="presentation"
+        >
+          <div
+            className="admin-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-bulk-delete-title"
+          >
+            <div className="admin-modal-head">
+              <h3 id="admin-bulk-delete-title" className="admin-modal-title">
+                Delete selected products
+              </h3>
+              <button
+                type="button"
+                className="admin-modal-close"
+                onClick={closeBulkDeleteModal}
+                disabled={bulkDeleting}
+                aria-label="Close bulk delete modal"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="admin-modal-text">
+              You are about to permanently delete{" "}
+              <strong>
+                {selectedProducts.length} selected product
+                {selectedProducts.length === 1 ? "" : "s"}
+              </strong>.
+            </p>
+
+            <div
+              style={{
+                maxHeight: 220,
+                overflowY: "auto",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 14,
+                padding: 10,
+                marginBottom: 12,
+                display: "grid",
+                gap: 8,
+              }}
+            >
+              {selectedProducts.map((product) => (
+                <div
+                  key={product.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 10,
+                    fontSize: 14,
+                    opacity: 0.9,
+                  }}
+                >
+                  <span style={{ minWidth: 0 }}>{product.name}</span>
+                  <span style={{ whiteSpace: "nowrap" }}>
+                    {formatMoney(product.price)}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <p className="admin-modal-text admin-modal-text--danger">
+              Enter your admin password to authorize this bulk delete action.
+            </p>
+
+            <label className="admin-field">
+              <span>Admin password</span>
+              <input
+                type="password"
+                value={bulkDeletePassword}
+                onChange={(e) => setBulkDeletePassword(e.target.value)}
+                placeholder="Enter your current password"
+                autoComplete="current-password"
+                disabled={bulkDeleting}
+              />
+            </label>
+
+            {bulkDeleteError ? <div className="admin-msg">{bulkDeleteError}</div> : null}
+
+            <div className="admin-modal-actions">
+              <button
+                type="button"
+                className="admin-secondary-btn admin-secondary-btn--ghost"
+                onClick={closeBulkDeleteModal}
+                disabled={bulkDeleting}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="admin-danger-btn"
+                onClick={handleBulkDeleteProducts}
+                disabled={bulkDeleting}
+              >
+                {bulkDeleting
+                  ? "Verifying & deleting…"
+                  : `Delete ${selectedProducts.length} selected`}
               </button>
             </div>
           </div>
