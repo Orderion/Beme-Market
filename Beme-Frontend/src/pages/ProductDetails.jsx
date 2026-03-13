@@ -1,4 +1,3 @@
-// src/pages/ProductDetails.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
@@ -40,49 +39,6 @@ function normalizeImages(product) {
 
 function normalizeShop(value) {
   return String(value || "").trim().toLowerCase();
-}
-
-function titleize(value) {
-  return String(value || "")
-    .replace(/[-_]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (m) => m.toUpperCase());
-}
-
-function getEmailName(email) {
-  const local = String(email || "").trim().split("@")[0] || "";
-  return titleize(local);
-}
-
-function resolveSellerNameFromUser(userData, fallbackEmail = "") {
-  if (!userData || typeof userData !== "object") {
-    return getEmailName(fallbackEmail) || "Beme Seller";
-  }
-
-  const directCandidates = [
-    userData.sellerName,
-    userData.ownerName,
-    userData.shopAdminName,
-    userData.displayName,
-    userData.fullName,
-    userData.username,
-  ];
-
-  for (const candidate of directCandidates) {
-    const value = String(candidate || "").trim();
-    if (value) return value;
-  }
-
-  const firstName = String(userData.firstName || "").trim();
-  const lastName = String(userData.lastName || "").trim();
-  const joinedName = `${firstName} ${lastName}`.trim();
-  if (joinedName) return joinedName;
-
-  const emailBased = getEmailName(userData.email || fallbackEmail);
-  if (emailBased) return emailBased;
-
-  return "Beme Seller";
 }
 
 function MonoStatusIcon() {
@@ -148,6 +104,50 @@ function MonoGalleryIcon() {
   );
 }
 
+function FacebookIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M13.5 21v-7.2h2.4l.36-2.8H13.5V9.2c0-.81.23-1.36 1.39-1.36H16.4V5.33c-.26-.04-1.13-.11-2.14-.11-2.12 0-3.57 1.29-3.57 3.67v2.11H8.3v2.8h2.39V21h2.81Z"
+      />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M18.9 3H21l-4.59 5.25L21.8 21h-4.22l-3.31-4.32L10.49 21H8.37l4.9-5.6L2.8 3h4.33l2.99 3.91L13.54 3h2.12l-4.58 5.24L18.9 3Zm-1.48 16h1.17L6.53 4.9H5.28L17.42 19Z"
+      />
+    </svg>
+  );
+}
+
+function InstagramIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M7.75 3h8.5A4.75 4.75 0 0 1 21 7.75v8.5A4.75 4.75 0 0 1 16.25 21h-8.5A4.75 4.75 0 0 1 3 16.25v-8.5A4.75 4.75 0 0 1 7.75 3Zm0 1.8A2.95 2.95 0 0 0 4.8 7.75v8.5a2.95 2.95 0 0 0 2.95 2.95h8.5a2.95 2.95 0 0 0 2.95-2.95v-8.5a2.95 2.95 0 0 0-2.95-2.95h-8.5Zm8.9 1.35a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2ZM12 7.2A4.8 4.8 0 1 1 7.2 12 4.81 4.81 0 0 1 12 7.2Zm0 1.8A3 3 0 1 0 15 12a3 3 0 0 0-3-3Z"
+      />
+    </svg>
+  );
+}
+
+function TikTokIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M14.6 3c.28 2.2 1.52 3.78 3.62 4.18v2.54a6.3 6.3 0 0 1-3.45-1.15v6.08A5.83 5.83 0 1 1 8.94 8.8v2.7a3.18 3.18 0 1 0 2.92 3.17V3h2.74Z"
+      />
+    </svg>
+  );
+}
+
 function ProductDetailsSkeleton() {
   return (
     <div className="pd-page">
@@ -188,7 +188,6 @@ export default function ProductDetails() {
   const [optionError, setOptionError] = useState("");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [addedFeedback, setAddedFeedback] = useState(false);
-  const [sellerName, setSellerName] = useState("");
 
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -206,50 +205,15 @@ export default function ProductDetails() {
 
         if (!snap.exists()) {
           setProduct(null);
-          setSellerName("");
           setLoading(false);
           return;
         }
 
         const nextProduct = { id: snap.id, ...snap.data() };
         setProduct(nextProduct);
-
-        const directSellerName = String(
-          nextProduct?.sellerName || nextProduct?.ownerName || ""
-        ).trim();
-
-        if (directSellerName) {
-          setSellerName(directSellerName);
-        } else if (nextProduct?.ownerId) {
-          try {
-            const userSnap = await getDoc(doc(db, "users", nextProduct.ownerId));
-            if (userSnap.exists()) {
-              setSellerName(
-                resolveSellerNameFromUser(
-                  userSnap.data(),
-                  nextProduct?.ownerEmail || ""
-                )
-              );
-            } else {
-              setSellerName(
-                getEmailName(nextProduct?.ownerEmail || "") || "Beme Seller"
-              );
-            }
-          } catch (sellerError) {
-            console.error("Seller profile fetch error:", sellerError);
-            setSellerName(
-              getEmailName(nextProduct?.ownerEmail || "") || "Beme Seller"
-            );
-          }
-        } else {
-          setSellerName(
-            getEmailName(nextProduct?.ownerEmail || "") || "Beme Seller"
-          );
-        }
       } catch (error) {
         console.error("Product details fetch error:", error);
         setProduct(null);
-        setSellerName("");
       } finally {
         setLoading(false);
       }
@@ -275,6 +239,7 @@ export default function ProductDetails() {
   const oldPrice = useMemo(() => Number(product?.oldPrice || 0), [product]);
 
   const shopKey = useMemo(() => normalizeShop(product?.shop), [product?.shop]);
+  const brand = useMemo(() => String(product?.brand || "").trim(), [product]);
 
   useEffect(() => {
     const initialSelections = {};
@@ -463,6 +428,29 @@ export default function ProductDetails() {
 
   const sliderTranslate = `calc(${-activeImageIndex * 100}% + ${dragOffset}px)`;
 
+  const socialLinks = [
+    {
+      label: "Facebook",
+      href: "#",
+      icon: <FacebookIcon />,
+    },
+    {
+      label: "X",
+      href: "#",
+      icon: <XIcon />,
+    },
+    {
+      label: "Instagram",
+      href: "#",
+      icon: <InstagramIcon />,
+    },
+    {
+      label: "TikTok",
+      href: "#",
+      icon: <TikTokIcon />,
+    },
+  ];
+
   return (
     <div className="pd-page">
       <div className="pd-container">
@@ -599,17 +587,11 @@ export default function ProductDetails() {
             )}
           </div>
 
-          {sellerName ? (
+          {brand ? (
             <div className="pd-section">
-              <h3 className="pd-section-title">Seller</h3>
-              <div className="pd-store-card">
-                <div className="pd-store-copy">
-                  <span className="pd-store-label">Sold by</span>
-                  <strong className="pd-store-name">{sellerName}</strong>
-                  <p className="pd-store-text">
-                    This product was uploaded by this seller on Beme Market.
-                  </p>
-                </div>
+              <h3 className="pd-section-title">Brand</h3>
+              <div className="pd-brand-card">
+                <strong className="pd-brand-name">{brand}</strong>
               </div>
             </div>
           ) : null}
@@ -617,6 +599,25 @@ export default function ProductDetails() {
           <div className="pd-section">
             <h3 className="pd-section-title">Description</h3>
             <p className="pd-desc">{desc}</p>
+          </div>
+
+          <div className="pd-section">
+            <h3 className="pd-section-title">Socials</h3>
+            <div className="pd-socials">
+              {socialLinks.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={item.label}
+                  className="pd-social-link"
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </a>
+              ))}
+            </div>
           </div>
 
           {customizations.length > 0 && (

@@ -307,12 +307,61 @@
   letter-spacing: -0.04em;
 }
 
+.pd-brand-card {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.pd-brand-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
 .pd-desc {
   margin: 0;
   color: var(--text);
   opacity: 0.92;
   line-height: 1.8;
   font-size: 15px;
+}
+
+.pd-socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pd-social-link {
+  min-height: 46px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  transition:
+    transform var(--motion-fast),
+    border-color var(--motion-fast),
+    background var(--motion-fast),
+    box-shadow var(--motion-smooth);
+}
+
+.pd-social-link:hover {
+  transform: translateY(-1px);
+  border-color: var(--text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .pd-options {
@@ -693,5 +742,14 @@
 
   .pd-empty-card h1 {
     font-size: 24px;
+  }
+
+  .pd-socials {
+    gap: 10px;
+  }
+
+  .pd-social-link {
+    width: calc(50% - 5px);
+    justify-content: center;
   }
 }

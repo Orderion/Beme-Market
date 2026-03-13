@@ -1,4 +1,3 @@
-// src/pages/Admin.jsx
 import { useEffect, useMemo, useState } from "react";
 import {
   addDoc,
@@ -31,6 +30,7 @@ const makeOptionGroup = () => ({
 
 const initial = {
   name: "",
+  brand: "",
   price: "",
   oldPrice: "",
   description: "",
@@ -96,6 +96,7 @@ function normalizeAdminProduct(snapshotDoc) {
   return {
     id: snapshotDoc.id,
     name: String(d.name || "").trim(),
+    brand: String(d.brand || "").trim(),
     price: Number(d.price || 0),
     oldPrice:
       d.oldPrice !== undefined && d.oldPrice !== null
@@ -496,6 +497,7 @@ export default function Admin() {
 
       const payload = {
         name: form.name.trim(),
+        brand: String(form.brand || "").trim(),
         price: Number(form.price),
         image: imageUrls[0],
         images: imageUrls,
@@ -533,6 +535,7 @@ export default function Admin() {
 
       if (form.oldPrice !== "") payload.oldPrice = Number(form.oldPrice);
       if (!payload.description) delete payload.description;
+      if (!payload.brand) delete payload.brand;
       if (!payload.customizations.length) delete payload.customizations;
 
       await addDoc(collection(db, COLLECTION_NAME), payload);
@@ -720,6 +723,16 @@ export default function Admin() {
               value={form.name}
               onChange={setField("name")}
               placeholder="e.g. Classic Hoodie"
+              autoComplete="off"
+            />
+          </label>
+
+          <label className="admin-field">
+            <span>Brand (optional)</span>
+            <input
+              value={form.brand}
+              onChange={setField("brand")}
+              placeholder="e.g. Lattafa"
               autoComplete="off"
             />
           </label>
@@ -1230,6 +1243,9 @@ export default function Admin() {
                                 <span>{formatShopLabel(product.shop)}</span>
                                 <span>{titleize(product.kind)}</span>
                                 <span>{titleize(product.dept)}</span>
+                                {product.brand ? (
+                                  <span>Brand: {product.brand}</span>
+                                ) : null}
                                 <span>
                                   {uploadedByCurrentUser
                                     ? "Uploaded by you"
