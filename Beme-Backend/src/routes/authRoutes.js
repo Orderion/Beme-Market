@@ -1,8 +1,10 @@
+// Beme-Backend/src/routes/authRoutes.js
 import express from "express";
 import { firebaseAdmin } from "../firebaseAdmin.js";
 import { sendPasswordResetEmail } from "../services/email.js";
 
 const router = express.Router();
+const EMAIL_SEND_TIMEOUT_MS = 12000;
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
@@ -16,6 +18,17 @@ function getFrontendBaseUrl() {
   return String(
     process.env.FRONTEND_URL || "http://localhost:5173"
   ).replace(/\/+$/, "");
+}
+
+function withTimeout(promise, timeoutMs, label = "Operation") {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    }),
+  ]);
 }
 
 router.get("/", (_req, res) => {
@@ -43,12 +56,19 @@ router.post("/forgot-password", async (req, res) => {
         .auth()
         .generatePasswordResetLink(email, actionCodeSettings);
 
-      await sendPasswordResetEmail({
-        email,
-        resetLink,
-      });
+      await withTimeout(
+        sendPasswordResetEmail({
+          email,
+          resetLink,
+        }),
+        EMAIL_SEND_TIMEOUT_MS,
+        "Password reset email send"
+      );
     } catch (innerError) {
       const code = innerError?.code || "";
+      const message = innerError?.message || "";
+
+      console.error("Forgot password inner error:", innerError);
 
       if (
         code.includes("auth/user-not-found") ||
@@ -61,7 +81,18 @@ router.post("/forgot-password", async (req, res) => {
         });
       }
 
-      throw innerError;
+      if (message.includes("timed out")) {
+        return res.status(504).json({
+          success: false,
+          message:
+            "Reset email service timed out. Check SMTP settings in Render.",
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: "Could not send reset email. Check backend email settings.",
+      });
     }
 
     return res.status(200).json({
