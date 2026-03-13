@@ -1,3 +1,4 @@
+// Beme-Backend/src/routes/authRoutes.js
 import express from "express";
 import { firebaseAdmin } from "../firebaseAdmin.js";
 import { sendPasswordResetEmail } from "../services/email.js";
@@ -90,8 +91,7 @@ router.post("/forgot-password", async (req, res) => {
       if (message.includes("timed out")) {
         return res.status(504).json({
           success: false,
-          message:
-            "Reset email service timed out. Check SMTP settings in Render.",
+          message: "Reset email service timed out. Check email API settings.",
         });
       }
 
