@@ -1,9 +1,7 @@
+// Beme-Frontend/src/pages/Login.jsx
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  signInWithEmailAndPassword,
-  sendPasswordResetEmail,
-} from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import "./Login.css";
@@ -16,6 +14,15 @@ function isValidEmail(value) {
 
 function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function getApiBaseUrl() {
+  const raw =
+    import.meta.env.VITE_BACKEND_URL ||
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:5000";
+
+  return String(raw).replace(/\/+$/, "");
 }
 
 export default function Login() {
@@ -44,18 +51,6 @@ export default function Login() {
     const remaining = RESET_COOLDOWN_MS - (Date.now() - lastResetAt);
     return remaining > 0 ? Math.ceil(remaining / 1000) : 0;
   }, [lastResetAt]);
-
-  const getPasswordResetSettings = () => {
-    const origin =
-      typeof window !== "undefined" && window.location?.origin
-        ? window.location.origin
-        : "http://localhost:5173";
-
-    return {
-      url: `${origin}/login?reset=1`,
-      handleCodeInApp: false,
-    };
-  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -121,34 +116,39 @@ export default function Login() {
 
     const cooldownRemaining = RESET_COOLDOWN_MS - (Date.now() - lastResetAt);
     if (cooldownRemaining > 0) {
-      setErr(`Please wait ${Math.ceil(cooldownRemaining / 1000)} seconds before trying again.`);
+      setErr(
+        `Please wait ${Math.ceil(
+          cooldownRemaining / 1000
+        )} seconds before trying again.`
+      );
       return;
     }
 
     setResetLoading(true);
 
     try {
-      await sendPasswordResetEmail(auth, emailTrim, getPasswordResetSettings());
+      const response = await fetch(`${getApiBaseUrl()}/api/auth/forgot-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: emailTrim,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Could not send reset email.");
+      }
+
       setLastResetAt(Date.now());
       setMsg(
-        "If an account exists for this email, a password reset link has been sent. Check inbox, spam, and promotions."
+        "If an account exists for this email, a password reset link has been sent."
       );
     } catch (e) {
-      const code = e?.code || "";
-
-      if (code.includes("auth/invalid-email")) {
-        setErr("Invalid email address.");
-      } else if (code.includes("auth/too-many-requests")) {
-        setErr("Too many reset attempts. Please wait and try again.");
-      } else if (code.includes("auth/missing-continue-uri")) {
-        setErr("Password reset is not configured correctly yet.");
-      } else if (code.includes("auth/unauthorized-continue-uri")) {
-        setErr("This domain is not authorized for password reset links.");
-      } else if (code.includes("auth/argument-error")) {
-        setErr("Password reset configuration is invalid.");
-      } else {
-        setErr("Could not send reset email. Try again.");
-      }
+      setErr(e?.message || "Could not send reset email. Try again.");
     } finally {
       setResetLoading(false);
     }
@@ -282,7 +282,11 @@ export default function Login() {
           {err && <div className="auth-alert auth-alert--error">{err}</div>}
           {msg && <div className="auth-alert auth-alert--ok">{msg}</div>}
 
-          <button className="auth-cta" type="submit" disabled={loading || resetLoading}>
+          <button
+            className="auth-cta"
+            type="submit"
+            disabled={loading || resetLoading}
+          >
             {loading ? "Signing in..." : "Sign In"}
           </button>
 
@@ -318,7 +322,8 @@ export default function Login() {
         <section className="auth-news">
           <h2 className="auth-news-title">Sign up and save</h2>
           <p className="auth-news-text">
-            Subscribe to get special offers, free giveaways, and once-in-a-lifetime deals.
+            Subscribe to get special offers, free giveaways, and once-in-a-lifetime
+            deals.
           </p>
 
           <div className="auth-news-input">
