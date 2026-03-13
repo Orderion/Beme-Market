@@ -1,6 +1,7 @@
 export const DEPARTMENTS = [
   { key: "men", label: "Men" },
   { key: "women", label: "Women" },
+  { key: "unisex", label: "Unisex" },
   { key: "kids", label: "Kids" },
   { key: "accessories", label: "Accessories" },
 ];
@@ -22,6 +23,7 @@ export const SHOPS = [
 export const DEFAULT_KIND_BY_DEPT = {
   men: "fashion",
   women: "fashion",
+  unisex: "fashion",
   kids: "fashion",
   accessories: "tech",
 };

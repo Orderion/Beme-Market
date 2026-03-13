@@ -1,4 +1,3 @@
-// src/components/Sidebar.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
@@ -687,6 +686,13 @@ export default function Sidebar({ isOpen, onClose }) {
                 type="button"
               >
                 Women
+              </button>
+              <button
+                className="side-subitem"
+                onClick={() => goDept("unisex")}
+                type="button"
+              >
+                Unisex
               </button>
               <button
                 className="side-subitem"

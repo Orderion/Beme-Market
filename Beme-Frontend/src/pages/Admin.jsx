@@ -8,6 +8,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { DEPARTMENTS, KINDS, SHOPS } from "../constants/catalog";
@@ -61,6 +62,20 @@ function normalizeCustomizationGroups(groups) {
     .filter((group) => group.name && group.values.length > 0);
 }
 
+function toEditableCustomizationGroups(groups) {
+  if (!Array.isArray(groups)) return [];
+
+  return groups.map((group, index) => ({
+    id: group?.id || crypto.randomUUID() || `option-${index}`,
+    name: String(group?.name || "").trim(),
+    type: group?.type === "select" ? "select" : "buttons",
+    required: group?.required !== false,
+    valuesText: Array.isArray(group?.values)
+      ? group.values.map((v) => String(v || "").trim()).filter(Boolean).join(", ")
+      : "",
+  }));
+}
+
 function formatMoney(value) {
   const amount = Number(value) || 0;
   return `GHS ${amount.toFixed(2)}`;
@@ -97,13 +112,16 @@ function normalizeAdminProduct(snapshotDoc) {
     id: snapshotDoc.id,
     name: String(d.name || "").trim(),
     brand: String(d.brand || "").trim(),
+    description: String(d.description || "").trim(),
     price: Number(d.price || 0),
     oldPrice:
-      d.oldPrice !== undefined && d.oldPrice !== null
+      d.oldPrice !== undefined && d.oldPrice !== null && d.oldPrice !== ""
         ? Number(d.oldPrice || 0)
         : null,
     image: cover,
     images: images.length ? images : cover ? [cover] : [],
+    imageMeta: d.imageMeta || null,
+    imageMetaList: Array.isArray(d.imageMetaList) ? d.imageMetaList : [],
     dept: String(d.dept || "").trim().toLowerCase(),
     kind: String(d.kind || "").trim().toLowerCase(),
     shop: normalizeShopKey(d.shop || "fashion"),
@@ -112,7 +130,9 @@ function normalizeAdminProduct(snapshotDoc) {
     ownerEmail: String(d.ownerEmail || "").trim(),
     featured: !!d.featured,
     inStock: !!d.inStock,
+    customizations: Array.isArray(d.customizations) ? d.customizations : [],
     createdAt: d.createdAt || null,
+    updatedAt: d.updatedAt || null,
   };
 }
 
@@ -201,6 +221,18 @@ export default function Admin() {
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState("");
 
+  const [editingId, setEditingId] = useState("");
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [productToEdit, setProductToEdit] = useState(null);
+  const [editForm, setEditForm] = useState(initial);
+  const [editImageFiles, setEditImageFiles] = useState([]);
+  const [editImagePreviews, setEditImagePreviews] = useState([]);
+  const [editUploadedImages, setEditUploadedImages] = useState([]);
+  const [editUploadingImage, setEditUploadingImage] = useState(false);
+  const [editPassword, setEditPassword] = useState("");
+  const [editError, setEditError] = useState("");
+  const [editMsg, setEditMsg] = useState("");
+
   const normalizedAdminShop = useMemo(
     () => normalizeShopKey(adminShop),
     [adminShop]
@@ -233,6 +265,20 @@ export default function Admin() {
     if (isSuperAdmin) {
       return product.ownerId && product.ownerId === user?.uid;
     }
+    return false;
+  };
+
+  const canCurrentUserEditProduct = (product) => {
+    if (!product) return false;
+
+    if (isShopAdmin) {
+      return !!normalizedAdminShop && product.shop === normalizedAdminShop;
+    }
+
+    if (isSuperAdmin) {
+      return product.ownerId && product.ownerId === user?.uid;
+    }
+
     return false;
   };
 
@@ -294,6 +340,16 @@ export default function Admin() {
     };
   }, [imagePreviews]);
 
+  useEffect(() => {
+    return () => {
+      editImagePreviews.forEach((item) => {
+        if (item?.preview?.startsWith("blob:")) {
+          URL.revokeObjectURL(item.preview);
+        }
+      });
+    };
+  }, [editImagePreviews]);
+
   const setField = (key) => (e) => {
     const value =
       e?.target?.type === "checkbox" ? e.target.checked : e.target.value;
@@ -303,8 +359,24 @@ export default function Admin() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const setEditField = (key) => (e) => {
+    const value =
+      e?.target?.type === "checkbox" ? e.target.checked : e.target.value;
+
+    if (key === "shop" && isShopAdmin) return;
+
+    setEditForm((prev) => ({ ...prev, [key]: value }));
+  };
+
   const addCustomizationGroup = () => {
     setForm((prev) => ({
+      ...prev,
+      customizations: [...prev.customizations, makeOptionGroup()],
+    }));
+  };
+
+  const addEditCustomizationGroup = () => {
+    setEditForm((prev) => ({
       ...prev,
       customizations: [...prev.customizations, makeOptionGroup()],
     }));
@@ -319,8 +391,24 @@ export default function Admin() {
     }));
   };
 
+  const updateEditCustomizationGroup = (id, key, value) => {
+    setEditForm((prev) => ({
+      ...prev,
+      customizations: prev.customizations.map((group) =>
+        group.id === id ? { ...group, [key]: value } : group
+      ),
+    }));
+  };
+
   const removeCustomizationGroup = (id) => {
     setForm((prev) => ({
+      ...prev,
+      customizations: prev.customizations.filter((group) => group.id !== id),
+    }));
+  };
+
+  const removeEditCustomizationGroup = (id) => {
+    setEditForm((prev) => ({
       ...prev,
       customizations: prev.customizations.filter((group) => group.id !== id),
     }));
@@ -336,6 +424,18 @@ export default function Admin() {
     setImageFiles([]);
     setImagePreviews([]);
     setUploadedImages([]);
+  };
+
+  const resetEditImageState = () => {
+    editImagePreviews.forEach((item) => {
+      if (item?.preview?.startsWith("blob:")) {
+        URL.revokeObjectURL(item.preview);
+      }
+    });
+
+    setEditImageFiles([]);
+    setEditImagePreviews([]);
+    setEditUploadedImages([]);
   };
 
   const handleImageChange = (e) => {
@@ -380,6 +480,49 @@ export default function Admin() {
     }
   };
 
+  const handleEditImageChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    setEditError("");
+    setEditMsg("");
+
+    if (!files.length) return;
+
+    try {
+      validateImageFiles(files);
+
+      setEditImageFiles((prevFiles) => {
+        const existingKeys = new Set(prevFiles.map(getFileKey));
+        const uniqueNewFiles = files.filter(
+          (file) => !existingKeys.has(getFileKey(file))
+        );
+
+        if (!uniqueNewFiles.length) return prevFiles;
+
+        setEditImagePreviews((prevPreviews) => {
+          const nextPreviews = [...prevPreviews];
+
+          uniqueNewFiles.forEach((file) => {
+            nextPreviews.push({
+              key: getFileKey(file),
+              preview: URL.createObjectURL(file),
+            });
+          });
+
+          return nextPreviews;
+        });
+
+        setEditUploadedImages([]);
+        return [...prevFiles, ...uniqueNewFiles];
+      });
+
+      e.target.value = "";
+    } catch (err) {
+      console.error("Edit image validation error:", err);
+      setEditError(`❌ ${err.message}`);
+      e.target.value = "";
+    }
+  };
+
   const removeSelectedImage = (indexToRemove) => {
     setMsg("");
 
@@ -394,6 +537,25 @@ export default function Admin() {
     });
 
     setUploadedImages([]);
+  };
+
+  const removeEditSelectedImage = (indexToRemove) => {
+    setEditError("");
+    setEditMsg("");
+
+    setEditImageFiles((prev) =>
+      prev.filter((_, index) => index !== indexToRemove)
+    );
+
+    setEditImagePreviews((prev) => {
+      const removed = prev[indexToRemove];
+      if (removed?.preview?.startsWith("blob:")) {
+        URL.revokeObjectURL(removed.preview);
+      }
+      return prev.filter((_, index) => index !== indexToRemove);
+    });
+
+    setEditUploadedImages([]);
   };
 
   const handleUploadImage = async () => {
@@ -416,6 +578,30 @@ export default function Admin() {
       return null;
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  const handleEditUploadImage = async () => {
+    if (!editImageFiles.length) {
+      setEditError("❌ Please choose product images first.");
+      return null;
+    }
+
+    setEditUploadingImage(true);
+    setEditError("");
+    setEditMsg("");
+
+    try {
+      const results = await uploadImagesToCloudinary(editImageFiles);
+      setEditUploadedImages(results);
+      setEditMsg("✅ New images uploaded successfully.");
+      return results;
+    } catch (err) {
+      console.error("Edit Cloudinary upload error:", err);
+      setEditError(`❌ ${err.message || "Image upload failed."}`);
+      return null;
+    } finally {
+      setEditUploadingImage(false);
     }
   };
 
@@ -447,6 +633,46 @@ export default function Admin() {
     }
 
     for (const group of form.customizations) {
+      const groupName = String(group.name || "").trim();
+      const values = String(group.valuesText || "")
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean);
+
+      if (!groupName && !values.length) continue;
+      if (!groupName) return "Each customization group must have a label.";
+      if (values.length < 2) {
+        return `Customization "${groupName}" must have at least 2 values.`;
+      }
+    }
+
+    return "";
+  };
+
+  const validateEdit = () => {
+    const name = String(editForm.name || "").trim();
+    if (!name) return "Name is required.";
+
+    const price = Number(editForm.price);
+    if (!Number.isFinite(price) || price < 0) {
+      return "Price must be a valid number ≥ 0.";
+    }
+
+    if (editForm.oldPrice !== "") {
+      const old = Number(editForm.oldPrice);
+      if (!Number.isFinite(old) || old < 0) {
+        return "Old price must be a valid number ≥ 0.";
+      }
+      if (old < price) return "Old price should be higher than current price.";
+    }
+
+    if (!deptOptions.includes(editForm.dept)) return "Invalid department selected.";
+    if (!kindOptions.includes(editForm.kind)) return "Invalid type selected.";
+    if (!availableShops.includes(normalizeShopKey(editForm.shop))) {
+      return "Invalid shop selected.";
+    }
+
+    for (const group of editForm.customizations) {
       const groupName = String(group.name || "").trim();
       const values = String(group.valuesText || "")
         .split(",")
@@ -560,6 +786,230 @@ export default function Admin() {
       );
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const openEditModal = (product) => {
+    if (!canCurrentUserEditProduct(product)) {
+      setMsg(
+        isSuperAdmin
+          ? "❌ Super admin can only edit products uploaded from this super admin account."
+          : "❌ You can only edit products from your own shop."
+      );
+      return;
+    }
+
+    setProductToEdit(product);
+    setEditForm({
+      name: product.name || "",
+      brand: product.brand || "",
+      price: product.price ?? "",
+      oldPrice:
+        product.oldPrice !== null && product.oldPrice !== undefined
+          ? String(product.oldPrice)
+          : "",
+      description: product.description || "",
+      dept: product.dept || "men",
+      kind: product.kind || "fashion",
+      shop:
+        isShopAdmin && normalizedAdminShop
+          ? normalizedAdminShop
+          : product.shop || "fashion",
+      inStock: !!product.inStock,
+      featured: !!product.featured,
+      customizations: toEditableCustomizationGroups(product.customizations),
+    });
+    setEditPassword("");
+    setEditError("");
+    setEditMsg("");
+    resetEditImageState();
+    setEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    if (editingId) return;
+    setEditModalOpen(false);
+    setProductToEdit(null);
+    setEditForm(initial);
+    setEditPassword("");
+    setEditError("");
+    setEditMsg("");
+    resetEditImageState();
+  };
+
+  const handleUpdateProduct = async () => {
+    if (!productToEdit?.id) return;
+
+    if (!user?.email) {
+      setEditError("No authenticated admin session found.");
+      return;
+    }
+
+    if (!editPassword.trim()) {
+      setEditError("Enter your admin password to continue.");
+      return;
+    }
+
+    if (!canCurrentUserEditProduct(productToEdit)) {
+      setEditError(
+        isSuperAdmin
+          ? "❌ You can only edit products uploaded from this super admin account."
+          : "❌ You can only edit products from your own shop."
+      );
+      return;
+    }
+
+    const error = validateEdit();
+    if (error) {
+      setEditError(`❌ ${error}`);
+      return;
+    }
+
+    setEditError("");
+    setEditMsg("");
+    setEditingId(productToEdit.id);
+
+    try {
+      await reauthenticate(editPassword.trim());
+
+      let nextImagePayloads = null;
+
+      if (editImageFiles.length) {
+        nextImagePayloads =
+          editUploadedImages.length > 0
+            ? editUploadedImages
+            : await handleEditUploadImage();
+
+        if (!nextImagePayloads?.length) {
+          throw new Error("Image upload did not complete successfully.");
+        }
+      }
+
+      const shopValue =
+        isShopAdmin && normalizedAdminShop
+          ? normalizedAdminShop
+          : normalizeShopKey(editForm.shop);
+
+      const customizations = normalizeCustomizationGroups(editForm.customizations);
+
+      const updatePayload = {
+        name: String(editForm.name || "").trim(),
+        brand: String(editForm.brand || "").trim(),
+        description: String(editForm.description || "").trim(),
+        price: Number(editForm.price),
+        dept: editForm.dept,
+        kind: editForm.kind,
+        shop: shopValue,
+        inStock: !!editForm.inStock,
+        featured: !!editForm.featured,
+        customizations,
+        updatedAt: serverTimestamp(),
+      };
+
+      if (editForm.oldPrice !== "") {
+        updatePayload.oldPrice = Number(editForm.oldPrice);
+      } else {
+        updatePayload.oldPrice = null;
+      }
+
+      if (!updatePayload.description) delete updatePayload.description;
+      if (!updatePayload.brand) delete updatePayload.brand;
+      if (!updatePayload.customizations.length) delete updatePayload.customizations;
+
+      if (nextImagePayloads?.length) {
+        const imageUrls = nextImagePayloads.map((item) => item.url).filter(Boolean);
+
+        updatePayload.image = imageUrls[0];
+        updatePayload.images = imageUrls;
+        updatePayload.imageMeta = {
+          publicId: nextImagePayloads[0]?.publicId || "",
+          width: nextImagePayloads[0]?.width || null,
+          height: nextImagePayloads[0]?.height || null,
+          format: nextImagePayloads[0]?.format || "",
+          bytes: nextImagePayloads[0]?.bytes || 0,
+          originalFilename: nextImagePayloads[0]?.originalFilename || "",
+        };
+        updatePayload.imageMetaList = nextImagePayloads.map((item) => ({
+          publicId: item.publicId || "",
+          width: item.width || null,
+          height: item.height || null,
+          format: item.format || "",
+          bytes: item.bytes || 0,
+          originalFilename: item.originalFilename || "",
+          url: item.url || "",
+        }));
+      }
+
+      await updateDoc(doc(db, COLLECTION_NAME, productToEdit.id), updatePayload);
+
+      setProducts((prev) =>
+        prev.map((product) =>
+          product.id === productToEdit.id
+            ? {
+                ...product,
+                ...updatePayload,
+                image:
+                  updatePayload.image !== undefined
+                    ? updatePayload.image
+                    : product.image,
+                images:
+                  updatePayload.images !== undefined
+                    ? updatePayload.images
+                    : product.images,
+                oldPrice:
+                  updatePayload.oldPrice !== undefined
+                    ? updatePayload.oldPrice
+                    : product.oldPrice,
+                brand:
+                  updatePayload.brand !== undefined
+                    ? updatePayload.brand || ""
+                    : product.brand,
+                description:
+                  updatePayload.description !== undefined
+                    ? updatePayload.description || ""
+                    : product.description,
+                customizations:
+                  updatePayload.customizations !== undefined
+                    ? updatePayload.customizations
+                    : product.customizations,
+              }
+            : product
+        )
+      );
+
+      setMsg(`✅ "${updatePayload.name}" updated successfully.`);
+      setEditModalOpen(false);
+      setProductToEdit(null);
+      setEditForm(initial);
+      setEditPassword("");
+      setEditError("");
+      setEditMsg("");
+      resetEditImageState();
+      await loadProducts();
+    } catch (error) {
+      console.error("Update product error:", error);
+
+      let message = "Failed to update product.";
+      const code = error?.code || "";
+
+      if (
+        code === "auth/wrong-password" ||
+        code === "auth/invalid-credential" ||
+        code === "auth/invalid-login-credentials"
+      ) {
+        message = "Incorrect password. Update cancelled.";
+      } else if (
+        code === "permission-denied" ||
+        code === "firestore/permission-denied"
+      ) {
+        message = "You do not have permission to edit this product.";
+      } else if (error?.message) {
+        message = error.message;
+      }
+
+      setEditError(`❌ ${message}`);
+    } finally {
+      setEditingId("");
     }
   };
 
@@ -1125,7 +1575,7 @@ export default function Admin() {
           <p className="admin-sub">
             {isSuperAdmin
               ? "You can review all shop products here. Products uploaded by other shop admins are visible but read-only. Products uploaded by this super admin account remain manageable."
-              : "Delete only your shop products after password verification."}
+              : "Edit or delete only your shop products after password verification."}
           </p>
         </div>
 
@@ -1183,12 +1633,14 @@ export default function Admin() {
                 <div className="admin-products-list">
                   {group.items.map((product) => {
                     const isDeleting = deletingId === product.id;
+                    const isEditing = editingId === product.id;
                     const gallery = Array.isArray(product.images)
                       ? product.images
                       : product.image
                         ? [product.image]
                         : [];
                     const canDelete = canCurrentUserDeleteProduct(product);
+                    const canEdit = canCurrentUserEditProduct(product);
                     const uploadedByCurrentUser = product.ownerId === user?.uid;
 
                     return (
@@ -1276,17 +1728,43 @@ export default function Admin() {
                               </span>
                             ) : null}
 
-                            {!canDelete ? (
+                            {!canEdit ? (
                               <span className="admin-flag">Read only</span>
                             ) : null}
                           </div>
 
-                          <div className="admin-product-actions">
+                          <div
+                            className="admin-product-actions"
+                            style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
+                          >
+                            <button
+                              type="button"
+                              className="admin-secondary-btn"
+                              onClick={() => openEditModal(product)}
+                              disabled={!!editingId || !!deletingId || !canEdit}
+                              title={
+                                canEdit
+                                  ? "Edit product"
+                                  : "You cannot manage this product from this account"
+                              }
+                              style={
+                                !canEdit
+                                  ? { opacity: 0.55, cursor: "not-allowed" }
+                                  : undefined
+                              }
+                            >
+                              {isEditing
+                                ? "Saving…"
+                                : canEdit
+                                  ? "Edit product"
+                                  : "Read only"}
+                            </button>
+
                             <button
                               type="button"
                               className="admin-danger-btn"
                               onClick={() => openDeleteModal(product)}
-                              disabled={!!deletingId || !canDelete}
+                              disabled={!!deletingId || !!editingId || !canDelete}
                               title={
                                 canDelete
                                   ? "Delete product"
@@ -1317,6 +1795,526 @@ export default function Admin() {
           <div className="admin-products-empty">No products found yet.</div>
         )}
       </div>
+
+      {editModalOpen && productToEdit ? (
+        <div
+          className="admin-modal-backdrop"
+          onClick={closeEditModal}
+          role="presentation"
+        >
+          <div
+            className="admin-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-edit-title"
+            style={{ maxWidth: 860, width: "min(96vw, 860px)", maxHeight: "90vh", overflowY: "auto" }}
+          >
+            <div className="admin-modal-head">
+              <h3 id="admin-edit-title" className="admin-modal-title">
+                Edit product
+              </h3>
+              <button
+                type="button"
+                className="admin-modal-close"
+                onClick={closeEditModal}
+                disabled={!!editingId}
+                aria-label="Close edit modal"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="admin-form" style={{ gap: 16 }}>
+              <label className="admin-field">
+                <span>Name</span>
+                <input
+                  value={editForm.name}
+                  onChange={setEditField("name")}
+                  placeholder="e.g. Classic Hoodie"
+                  autoComplete="off"
+                  disabled={!!editingId}
+                />
+              </label>
+
+              <label className="admin-field">
+                <span>Brand (optional)</span>
+                <input
+                  value={editForm.brand}
+                  onChange={setEditField("brand")}
+                  placeholder="e.g. Lattafa"
+                  autoComplete="off"
+                  disabled={!!editingId}
+                />
+              </label>
+
+              <div className="admin-row">
+                <label className="admin-field">
+                  <span>Price (GHS)</span>
+                  <input
+                    inputMode="decimal"
+                    value={editForm.price}
+                    onChange={setEditField("price")}
+                    placeholder="e.g. 180"
+                    disabled={!!editingId}
+                  />
+                </label>
+
+                <label className="admin-field">
+                  <span>Old price (optional)</span>
+                  <input
+                    inputMode="decimal"
+                    value={editForm.oldPrice}
+                    onChange={setEditField("oldPrice")}
+                    placeholder="e.g. 220"
+                    disabled={!!editingId}
+                  />
+                </label>
+              </div>
+
+              <label className="admin-field">
+                <span>Description (optional)</span>
+                <textarea
+                  value={editForm.description}
+                  onChange={setEditField("description")}
+                  placeholder="Write a short product description..."
+                  rows={5}
+                  disabled={!!editingId}
+                />
+              </label>
+
+              <div className="admin-shop-card">
+                <div className="admin-shop-head">
+                  <h3 className="admin-shop-title">Store placement</h3>
+                  <p className="admin-shop-sub">
+                    {isSuperAdmin
+                      ? "You can move only your own uploaded product between storefronts."
+                      : "Your product stays locked to your assigned shop unless your account scope changes."}
+                  </p>
+                </div>
+
+                <div className="admin-store-pills">
+                  {availableShops.map((shopKey) => {
+                    const shopMeta = SHOPS.find((shop) => shop.key === shopKey);
+                    return (
+                      <button
+                        key={shopKey}
+                        type="button"
+                        className={
+                          normalizeShopKey(editForm.shop) === shopKey
+                            ? "admin-store-pill active"
+                            : "admin-store-pill"
+                        }
+                        onClick={() =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            shop: shopKey,
+                          }))
+                        }
+                        disabled={isShopAdmin || !!editingId}
+                      >
+                        {shopMeta?.label || titleize(shopKey)}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <label className="admin-field">
+                  <span>Shop</span>
+                  <select
+                    value={editForm.shop}
+                    onChange={setEditField("shop")}
+                    disabled={isShopAdmin || !!editingId}
+                  >
+                    {availableShops.map((shopKey) => {
+                      const shopMeta = SHOPS.find((shop) => shop.key === shopKey);
+                      return (
+                        <option key={shopKey} value={shopKey}>
+                          {shopMeta?.label || titleize(shopKey)}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </label>
+              </div>
+
+              <div className="admin-row">
+                <label className="admin-field">
+                  <span>Department</span>
+                  <select
+                    value={editForm.dept}
+                    onChange={setEditField("dept")}
+                    disabled={!!editingId}
+                  >
+                    {DEPARTMENTS.map((d) => (
+                      <option key={d.key} value={d.key}>
+                        {d.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="admin-field">
+                  <span>Type</span>
+                  <select
+                    value={editForm.kind}
+                    onChange={setEditField("kind")}
+                    disabled={!!editingId}
+                  >
+                    {KINDS.map((k) => (
+                      <option key={k.key} value={k.key}>
+                        {k.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="admin-toggles">
+                <label className="admin-switch admin-switch--stock">
+                  <input
+                    type="checkbox"
+                    checked={editForm.inStock}
+                    onChange={setEditField("inStock")}
+                    disabled={!!editingId}
+                  />
+                  <span className="admin-switch-ui" />
+                  <span className="admin-switch-label">In stock</span>
+                </label>
+
+                <label className="admin-switch admin-switch--featured">
+                  <input
+                    type="checkbox"
+                    checked={editForm.featured}
+                    onChange={setEditField("featured")}
+                    disabled={!!editingId}
+                  />
+                  <span className="admin-switch-ui" />
+                  <span className="admin-switch-label">Featured</span>
+                </label>
+              </div>
+
+              <div className="admin-upload-card">
+                <div className="admin-upload-head">
+                  <div>
+                    <h3 className="admin-upload-title">Replace product images</h3>
+                    <p className="admin-upload-sub">
+                      Leave this empty if you want to keep the current product images.
+                      Uploading new images will replace the old gallery.
+                    </p>
+                  </div>
+                </div>
+
+                {Array.isArray(productToEdit.images) && productToEdit.images.length ? (
+                  <>
+                    <div className="admin-image-preview-head">
+                      <span className="admin-image-preview-title">
+                        Current product images
+                      </span>
+                      <span className="admin-image-preview-count">
+                        {productToEdit.images.length} image
+                        {productToEdit.images.length > 1 ? "s" : ""}
+                      </span>
+                    </div>
+
+                    <div className="admin-uploaded-grid">
+                      {productToEdit.images.map((src, index) => (
+                        <a
+                          key={`${src}-${index}`}
+                          href={src}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="admin-uploaded-thumb"
+                        >
+                          <img
+                            src={src}
+                            alt={`Current product ${index + 1}`}
+                            className="admin-uploaded-thumb-img"
+                          />
+                          {index === 0 ? (
+                            <span className="admin-uploaded-badge">Cover</span>
+                          ) : null}
+                        </a>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+
+                <label className="admin-field">
+                  <span>Choose new images (optional)</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    multiple
+                    onChange={handleEditImageChange}
+                    disabled={!!editingId}
+                  />
+                </label>
+
+                {editImagePreviews.length ? (
+                  <>
+                    <div className="admin-image-preview-head">
+                      <span className="admin-image-preview-title">
+                        Selected new images
+                      </span>
+                      <span className="admin-image-preview-count">
+                        {editImagePreviews.length} image
+                        {editImagePreviews.length > 1 ? "s" : ""}
+                      </span>
+                    </div>
+
+                    <div className="admin-image-preview-grid">
+                      {editImagePreviews.map((item, index) => (
+                        <div
+                          className="admin-image-preview-wrap"
+                          key={item.key || `${item.preview}-${index}`}
+                        >
+                          <img
+                            src={item.preview}
+                            alt={`Edit preview ${index + 1}`}
+                            className="admin-image-preview"
+                          />
+
+                          <div className="admin-image-preview-overlay">
+                            <span className="admin-image-index">
+                              {index === 0 ? "New cover" : `Image ${index + 1}`}
+                            </span>
+
+                            <button
+                              type="button"
+                              className="admin-image-remove-btn"
+                              onClick={() => removeEditSelectedImage(index)}
+                              disabled={editUploadingImage || !!editingId}
+                              aria-label={`Remove image ${index + 1}`}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+
+                <div className="admin-upload-actions">
+                  <button
+                    type="button"
+                    className="admin-secondary-btn"
+                    onClick={handleEditUploadImage}
+                    disabled={
+                      !editImageFiles.length || editUploadingImage || !!editingId
+                    }
+                  >
+                    {editUploadingImage ? "Uploading…" : "Upload new images"}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="admin-secondary-btn admin-secondary-btn--ghost"
+                    onClick={resetEditImageState}
+                    disabled={editUploadingImage || !!editingId}
+                  >
+                    Clear new images
+                  </button>
+                </div>
+
+                {editUploadedImages.length ? (
+                  <div className="admin-upload-success-wrap">
+                    <div className="admin-upload-success">
+                      <span className="admin-upload-badge">Uploaded</span>
+                      <span className="admin-upload-count">
+                        {editUploadedImages.length} image
+                        {editUploadedImages.length > 1 ? "s" : ""}
+                      </span>
+                      <a
+                        href={editUploadedImages[0].url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="admin-upload-link"
+                      >
+                        View new cover image
+                      </a>
+                    </div>
+
+                    <div className="admin-uploaded-grid">
+                      {editUploadedImages.map((item, index) => (
+                        <a
+                          key={`${item.url}-${index}`}
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="admin-uploaded-thumb"
+                        >
+                          <img
+                            src={item.url}
+                            alt={`Uploaded replacement ${index + 1}`}
+                            className="admin-uploaded-thumb-img"
+                          />
+                          {index === 0 ? (
+                            <span className="admin-uploaded-badge">Cover</span>
+                          ) : null}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="admin-options-card">
+                <div className="admin-options-head">
+                  <div>
+                    <h3 className="admin-options-title">Product customizations</h3>
+                    <p className="admin-options-sub">
+                      Update options like Storage, Color, Size, RAM, Material,
+                      Scent, Edition, Bundle and more.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="admin-options-add"
+                    onClick={addEditCustomizationGroup}
+                    disabled={!!editingId}
+                  >
+                    + Add option group
+                  </button>
+                </div>
+
+                {!editForm.customizations.length ? (
+                  <div className="admin-options-empty">
+                    No customization groups yet.
+                  </div>
+                ) : (
+                  <div className="admin-options-list">
+                    {editForm.customizations.map((group, index) => (
+                      <div className="admin-option-group" key={group.id}>
+                        <div className="admin-option-group-head">
+                          <strong>Option group {index + 1}</strong>
+                          <button
+                            type="button"
+                            className="admin-option-remove"
+                            onClick={() => removeEditCustomizationGroup(group.id)}
+                            disabled={!!editingId}
+                          >
+                            Remove
+                          </button>
+                        </div>
+
+                        <div className="admin-row">
+                          <label className="admin-field">
+                            <span>Label</span>
+                            <input
+                              value={group.name}
+                              onChange={(e) =>
+                                updateEditCustomizationGroup(
+                                  group.id,
+                                  "name",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="e.g. Storage"
+                              disabled={!!editingId}
+                            />
+                          </label>
+
+                          <label className="admin-field">
+                            <span>Style</span>
+                            <select
+                              value={group.type}
+                              onChange={(e) =>
+                                updateEditCustomizationGroup(
+                                  group.id,
+                                  "type",
+                                  e.target.value
+                                )
+                              }
+                              disabled={!!editingId}
+                            >
+                              <option value="buttons">Buttons</option>
+                              <option value="select">Dropdown</option>
+                            </select>
+                          </label>
+                        </div>
+
+                        <label className="admin-field">
+                          <span>Values (comma separated)</span>
+                          <input
+                            value={group.valuesText}
+                            onChange={(e) =>
+                              updateEditCustomizationGroup(
+                                group.id,
+                                "valuesText",
+                                e.target.value
+                              )
+                            }
+                            placeholder="e.g. 128GB, 256GB, 512GB"
+                            disabled={!!editingId}
+                          />
+                        </label>
+
+                        <label className="admin-checkline">
+                          <input
+                            type="checkbox"
+                            checked={group.required}
+                            onChange={(e) =>
+                              updateEditCustomizationGroup(
+                                group.id,
+                                "required",
+                                e.target.checked
+                              )
+                            }
+                            disabled={!!editingId}
+                          />
+                          <span>Required selection</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <p className="admin-modal-text admin-modal-text--danger">
+                Enter your admin password to authorize this update.
+              </p>
+
+              <label className="admin-field">
+                <span>Admin password</span>
+                <input
+                  type="password"
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  placeholder="Enter your current password"
+                  autoComplete="current-password"
+                  disabled={!!editingId}
+                />
+              </label>
+
+              {editError ? <div className="admin-msg">{editError}</div> : null}
+              {editMsg ? <div className="admin-msg">{editMsg}</div> : null}
+
+              <div className="admin-modal-actions">
+                <button
+                  type="button"
+                  className="admin-secondary-btn admin-secondary-btn--ghost"
+                  onClick={closeEditModal}
+                  disabled={!!editingId}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  className="admin-btn"
+                  onClick={handleUpdateProduct}
+                  disabled={!!editingId || editUploadingImage}
+                >
+                  {editingId ? "Verifying & saving…" : "Verify and save changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {deleteModalOpen && productToDelete ? (
         <div
