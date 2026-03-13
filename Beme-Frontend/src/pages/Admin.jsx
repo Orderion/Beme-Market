@@ -44,10 +44,10 @@ const initial = {
   customizations: [],
 };
 
-const BULK_IMPORT_SAMPLE = `title,category,brand,price,stock,description
-Apple MacBook Air M2,Laptop,Apple,11000,10,Powerful and lightweight laptop featuring the Apple M2 chip and a vibrant Retina display.
-Sony PlayStation 5 Console,Gaming,Sony,9500,15,Next-generation gaming console delivering immersive gameplay and fast loading speeds.
-Apple AirPods Pro 2,Accessory,Apple,3200,25,Premium wireless earbuds with active noise cancellation and spatial audio.`;
+const BULK_IMPORT_SAMPLE = `product_name,category,brand,price_ghs,key_features,target_customer,customization_options,short_description
+Samsung Galaxy S23,Phone,Samsung,7500,"8GB RAM, 128GB–256GB storage, AMOLED display","Smartphone users, professionals","Storage: 128GB|256GB; Color: Black|Green|Cream","Samsung Galaxy S23 offers powerful flagship performance with a bright AMOLED display and fast processing for work, entertainment, and daily use."
+Apple MacBook Air M2,Laptop,Apple,11000,"8GB–16GB RAM, 256GB–512GB SSD, Apple M2 chip","Students, professionals, creators","RAM: 8GB|16GB; Storage: 256GB|512GB; Color: Silver|Space Gray|Midnight","Apple MacBook Air M2 delivers smooth everyday performance in a slim and lightweight design."
+Apple AirPods Pro 2,Accessory,Apple,3200,"Active noise cancellation, spatial audio","Apple device users","Color: White","Apple AirPods Pro 2 combine premium sound, comfort, and wireless convenience for everyday listening."`;
 
 function normalizeCustomizationGroups(groups) {
   return groups
@@ -229,6 +229,56 @@ function parseCsvLine(line) {
   return result;
 }
 
+function normalizeImportHeader(header) {
+  const key = String(header || "").trim().toLowerCase();
+
+  const map = {
+    title: "title",
+    name: "title",
+    product_name: "title",
+    product: "title",
+
+    category: "category",
+
+    brand: "brand",
+
+    price: "price",
+    price_ghs: "price",
+    priceghs: "price",
+
+    stock: "stock",
+    quantity: "stock",
+
+    description: "description",
+    short_description: "description",
+    shortdescription: "description",
+
+    key_features: "key_features",
+    keyfeatures: "key_features",
+
+    target_customer: "target_customer",
+    targetcustomer: "target_customer",
+
+    customization_options: "customizations",
+    customizations: "customizations",
+
+    oldprice: "oldPrice",
+    old_price: "oldPrice",
+
+    image: "image",
+    imageurl: "image",
+    image_url: "image",
+
+    images: "images",
+
+    featured: "featured",
+    instock: "inStock",
+    in_stock: "inStock",
+  };
+
+  return map[key] || key;
+}
+
 function parseCsvText(text) {
   const raw = String(text || "").trim();
   if (!raw) return [];
@@ -241,7 +291,7 @@ function parseCsvText(text) {
   if (lines.length < 2) return [];
 
   const headers = parseCsvLine(lines[0]).map((header) =>
-    String(header || "").trim()
+    normalizeImportHeader(header)
   );
 
   return lines.slice(1).map((line) => {
@@ -260,8 +310,9 @@ function parseBooleanish(value, fallback = false) {
   const raw = String(value || "").trim().toLowerCase();
   if (!raw) return fallback;
   if (["true", "yes", "1", "in stock", "instock"].includes(raw)) return true;
-  if (["false", "no", "0", "out of stock", "outofstock"].includes(raw))
+  if (["false", "no", "0", "out of stock", "outofstock"].includes(raw)) {
     return false;
+  }
   return fallback;
 }
 
@@ -321,21 +372,98 @@ function parseImageList(row) {
   return images;
 }
 
+function findShopByKeyword(shops, keywords = []) {
+  return (
+    shops.find((shop) => {
+      const key = String(shop.key || "").toLowerCase();
+      const label = String(shop.label || "").toLowerCase();
+      return keywords.some(
+        (word) => key.includes(word) || label.includes(word)
+      );
+    })?.key || ""
+  );
+}
+
+function inferShopFromCategory(category, shops, fallbackShop) {
+  const raw = String(category || "").trim().toLowerCase();
+
+  if (
+    [
+      "phone",
+      "phones",
+      "laptop",
+      "laptops",
+      "gaming",
+      "accessory",
+      "accessories",
+      "tablet",
+      "tv",
+      "electronics",
+      "technology",
+    ].includes(raw)
+  ) {
+    return (
+      findShopByKeyword(shops, ["tech", "technology", "electronics"]) ||
+      fallbackShop
+    );
+  }
+
+  if (["perfume", "perfumes", "fragrance", "fragrances"].includes(raw)) {
+    return (
+      findShopByKeyword(shops, ["perfume", "fragrance"]) || fallbackShop
+    );
+  }
+
+  if (
+    ["fashion", "clothing", "dress", "shirt", "hoodie", "shoes", "bag"].includes(
+      raw
+    )
+  ) {
+    return findShopByKeyword(shops, ["fashion", "cloth"]) || fallbackShop;
+  }
+
+  return fallbackShop;
+}
+
+function buildImportDescription(row) {
+  const direct = String(row.description || "").trim();
+  if (direct) return direct;
+
+  const parts = [
+    String(row.key_features || "").trim(),
+    String(row.target_customer || "").trim(),
+  ].filter(Boolean);
+
+  return parts.join(". ");
+}
+
 function findValidKind(category, kindOptions, fallback) {
   const raw = String(category || "").trim().toLowerCase();
 
   const preferred = [
     raw,
-    raw === "laptop" ? "technology" : "",
-    raw === "gaming" ? "technology" : "",
-    raw === "accessory" ? "technology" : "",
-    raw === "accessories" ? "technology" : "",
-    raw === "perfume" ? "perfumes" : "",
-    raw === "perfumes" ? "perfumes" : "",
-    raw === "fashion" ? "fashion" : "",
-    raw === "phone" ? "technology" : "",
-    raw === "phones" ? "technology" : "",
-    raw === "electronics" ? "technology" : "",
+    [
+      "phone",
+      "phones",
+      "laptop",
+      "laptops",
+      "gaming",
+      "accessory",
+      "accessories",
+      "tablet",
+      "electronics",
+      "technology",
+    ].includes(raw)
+      ? "technology"
+      : "",
+    ["perfume", "perfumes", "fragrance", "fragrances"].includes(raw)
+      ? "perfumes"
+      : "",
+    ["fashion", "clothing", "dress", "shirt", "hoodie", "shoes", "bag"].includes(
+      raw
+    )
+      ? "fashion"
+      : "",
   ].filter(Boolean);
 
   const match = preferred.find((item) => kindOptions.includes(item));
@@ -985,7 +1113,7 @@ export default function Admin() {
       }
 
       const sellerName = resolveCurrentSellerName(user, profile);
-      const shopValue =
+      const fallbackShop =
         isShopAdmin && normalizedAdminShop
           ? normalizedAdminShop
           : normalizeShopKey(form.shop);
@@ -994,13 +1122,11 @@ export default function Admin() {
       const skipped = [];
 
       rows.forEach((row, index) => {
-        const title = String(row.title || row.name || "").trim();
+        const title = String(row.title || "").trim();
         const price = parseNumberish(row.price, NaN);
 
         if (!title || !Number.isFinite(price)) {
-          skipped.push(
-            `Row ${index + 2}: missing valid title or price`
-          );
+          skipped.push(`Row ${index + 2}: missing valid product name or price`);
           return;
         }
 
@@ -1013,15 +1139,25 @@ export default function Admin() {
         const category = String(row.category || "").trim();
         const images = parseImageList(row);
         const customizations = parseCustomizationsFromText(row.customizations);
+        const description = buildImportDescription(row);
+
+        const resolvedShop = inferShopFromCategory(
+          category,
+          SHOPS,
+          fallbackShop
+        );
+
+        const resolvedKind = findValidKind(category, kindOptions, form.kind);
+        const resolvedDept = findValidDept(category, deptOptions, form.dept);
 
         const payload = {
           name: title,
           brand: String(row.brand || "").trim(),
           price,
-          description: String(row.description || "").trim(),
-          dept: findValidDept(category, deptOptions, form.dept),
-          kind: findValidKind(category, kindOptions, form.kind),
-          shop: shopValue,
+          description,
+          dept: resolvedDept,
+          kind: resolvedKind,
+          shop: resolvedShop,
           ownerId: user?.uid || "",
           ownerEmail: String(user?.email || profile?.email || "").trim(),
           ownerName: sellerName,
@@ -1051,7 +1187,6 @@ export default function Admin() {
         if (!payload.brand) delete payload.brand;
         if (!payload.description) delete payload.description;
         if (!payload.customizations.length) delete payload.customizations;
-        if (!payload.stock && payload.stock !== 0) delete payload.stock;
 
         prepared.push(payload);
       });
@@ -1081,10 +1216,9 @@ export default function Admin() {
       setBulkImportMsg(
         `✅ Imported ${prepared.length} product${
           prepared.length > 1 ? "s" : ""
-        } successfully.${
-          skipped.length ? ` Skipped ${skipped.length} invalid row(s).` : ""
-        }`
+        } successfully.${skipped.length ? ` Skipped ${skipped.length} invalid row(s).` : ""}`
       );
+
       setBulkImportText("");
       await loadProducts();
     } catch (error) {
@@ -1478,9 +1612,11 @@ export default function Admin() {
               <h3 className="admin-upload-title">Bulk import products</h3>
               <p className="admin-upload-sub">
                 Paste CSV here and import products straight into Firestore.
-                Supported columns: title, category, brand, price, stock,
-                description, oldPrice, customizations, image, images, featured,
-                inStock.
+                Supported columns: product_name or title, category, brand,
+                price_ghs or price, stock, short_description or description,
+                key_features, target_customer, customization_options or
+                customizations, old_price or oldPrice, image, images, featured,
+                in_stock or inStock.
               </p>
             </div>
           </div>
@@ -1533,7 +1669,8 @@ export default function Admin() {
               <h3 className="admin-shop-title">Import defaults</h3>
               <p className="admin-shop-sub">
                 Imported products will use the currently selected shop, kind,
-                and department when those fields are not provided in the CSV.
+                and department when those fields are not provided or cannot be
+                inferred from the CSV.
               </p>
             </div>
 
