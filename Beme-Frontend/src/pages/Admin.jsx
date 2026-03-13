@@ -9,6 +9,7 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { DEPARTMENTS, KINDS, SHOPS } from "../constants/catalog";
@@ -43,6 +44,11 @@ const initial = {
   customizations: [],
 };
 
+const BULK_IMPORT_SAMPLE = `title,category,brand,price,stock,description
+Apple MacBook Air M2,Laptop,Apple,11000,10,Powerful and lightweight laptop featuring the Apple M2 chip and a vibrant Retina display.
+Sony PlayStation 5 Console,Gaming,Sony,9500,15,Next-generation gaming console delivering immersive gameplay and fast loading speeds.
+Apple AirPods Pro 2,Accessory,Apple,3200,25,Premium wireless earbuds with active noise cancellation and spatial audio.`;
+
 function normalizeCustomizationGroups(groups) {
   return groups
     .map((group) => {
@@ -71,7 +77,10 @@ function toEditableCustomizationGroups(groups) {
     type: group?.type === "select" ? "select" : "buttons",
     required: group?.required !== false,
     valuesText: Array.isArray(group?.values)
-      ? group.values.map((v) => String(v || "").trim()).filter(Boolean).join(", ")
+      ? group.values
+          .map((v) => String(v || "").trim())
+          .filter(Boolean)
+          .join(", ")
       : "",
   }));
 }
@@ -192,6 +201,161 @@ function resolveCurrentSellerName(user, profile) {
   return "Beme Seller";
 }
 
+function parseCsvLine(line) {
+  const result = [];
+  let current = "";
+  let insideQuotes = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    const next = line[i + 1];
+
+    if (char === '"') {
+      if (insideQuotes && next === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        insideQuotes = !insideQuotes;
+      }
+    } else if (char === "," && !insideQuotes) {
+      result.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  result.push(current.trim());
+  return result;
+}
+
+function parseCsvText(text) {
+  const raw = String(text || "").trim();
+  if (!raw) return [];
+
+  const lines = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length < 2) return [];
+
+  const headers = parseCsvLine(lines[0]).map((header) =>
+    String(header || "").trim()
+  );
+
+  return lines.slice(1).map((line) => {
+    const values = parseCsvLine(line);
+    const row = {};
+
+    headers.forEach((header, index) => {
+      row[header] = values[index] ?? "";
+    });
+
+    return row;
+  });
+}
+
+function parseBooleanish(value, fallback = false) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return fallback;
+  if (["true", "yes", "1", "in stock", "instock"].includes(raw)) return true;
+  if (["false", "no", "0", "out of stock", "outofstock"].includes(raw))
+    return false;
+  return fallback;
+}
+
+function parseNumberish(value, fallback = 0) {
+  const cleaned = String(value || "")
+    .replace(/[^\d.]/g, "")
+    .trim();
+
+  if (!cleaned) return fallback;
+
+  const num = Number(cleaned);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function parseCustomizationsFromText(input) {
+  const raw = String(input || "").trim();
+  if (!raw) return [];
+
+  return raw
+    .split(";")
+    .map((groupText, index) => {
+      const [namePart, valuesPart] = groupText.split(":");
+      const name = String(namePart || "").trim();
+      const values = String(valuesPart || "")
+        .split("|")
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+      if (!name || values.length < 2) return null;
+
+      return {
+        id: `bulk-option-${index}-${crypto.randomUUID()}`,
+        name,
+        type: "buttons",
+        required: true,
+        values,
+      };
+    })
+    .filter(Boolean);
+}
+
+function parseImageList(row) {
+  const image = String(row.image || row.imageUrl || "").trim();
+  const imagesRaw = String(row.images || "").trim();
+
+  const images = imagesRaw
+    ? imagesRaw
+        .split("|")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+
+  if (image && !images.includes(image)) {
+    images.unshift(image);
+  }
+
+  return images;
+}
+
+function findValidKind(category, kindOptions, fallback) {
+  const raw = String(category || "").trim().toLowerCase();
+
+  const preferred = [
+    raw,
+    raw === "laptop" ? "technology" : "",
+    raw === "gaming" ? "technology" : "",
+    raw === "accessory" ? "technology" : "",
+    raw === "accessories" ? "technology" : "",
+    raw === "perfume" ? "perfumes" : "",
+    raw === "perfumes" ? "perfumes" : "",
+    raw === "fashion" ? "fashion" : "",
+    raw === "phone" ? "technology" : "",
+    raw === "phones" ? "technology" : "",
+    raw === "electronics" ? "technology" : "",
+  ].filter(Boolean);
+
+  const match = preferred.find((item) => kindOptions.includes(item));
+  return match || fallback || kindOptions[0] || "fashion";
+}
+
+function findValidDept(category, deptOptions, fallback) {
+  const raw = String(category || "").trim().toLowerCase();
+
+  const preferred = [
+    raw === "men" ? "men" : "",
+    raw === "women" ? "women" : "",
+    raw === "unisex" ? "unisex" : "",
+    "unisex",
+  ].filter(Boolean);
+
+  const match = preferred.find((item) => deptOptions.includes(item));
+  return match || fallback || deptOptions[0] || "men";
+}
+
 export default function Admin() {
   const {
     user,
@@ -232,6 +396,10 @@ export default function Admin() {
   const [editPassword, setEditPassword] = useState("");
   const [editError, setEditError] = useState("");
   const [editMsg, setEditMsg] = useState("");
+
+  const [bulkImportText, setBulkImportText] = useState("");
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [bulkImportMsg, setBulkImportMsg] = useState("");
 
   const normalizedAdminShop = useMemo(
     () => normalizeShopKey(adminShop),
@@ -789,6 +957,144 @@ export default function Admin() {
     }
   };
 
+  const handleBulkImport = async () => {
+    setBulkImportMsg("");
+
+    if (!String(bulkImportText || "").trim()) {
+      setBulkImportMsg("❌ Paste your CSV first.");
+      return;
+    }
+
+    if (!user?.uid) {
+      setBulkImportMsg("❌ No authenticated admin session found.");
+      return;
+    }
+
+    if (!availableShops.length) {
+      setBulkImportMsg("❌ No valid shop available for this account.");
+      return;
+    }
+
+    setBulkImporting(true);
+
+    try {
+      const rows = parseCsvText(bulkImportText);
+
+      if (!rows.length) {
+        throw new Error("No valid CSV rows found.");
+      }
+
+      const sellerName = resolveCurrentSellerName(user, profile);
+      const shopValue =
+        isShopAdmin && normalizedAdminShop
+          ? normalizedAdminShop
+          : normalizeShopKey(form.shop);
+
+      const prepared = [];
+      const skipped = [];
+
+      rows.forEach((row, index) => {
+        const title = String(row.title || row.name || "").trim();
+        const price = parseNumberish(row.price, NaN);
+
+        if (!title || !Number.isFinite(price)) {
+          skipped.push(
+            `Row ${index + 2}: missing valid title or price`
+          );
+          return;
+        }
+
+        const stockNumber = parseNumberish(row.stock, 0);
+        const oldPrice =
+          row.oldPrice !== undefined && row.oldPrice !== null && row.oldPrice !== ""
+            ? parseNumberish(row.oldPrice, null)
+            : null;
+
+        const category = String(row.category || "").trim();
+        const images = parseImageList(row);
+        const customizations = parseCustomizationsFromText(row.customizations);
+
+        const payload = {
+          name: title,
+          brand: String(row.brand || "").trim(),
+          price,
+          description: String(row.description || "").trim(),
+          dept: findValidDept(category, deptOptions, form.dept),
+          kind: findValidKind(category, kindOptions, form.kind),
+          shop: shopValue,
+          ownerId: user?.uid || "",
+          ownerEmail: String(user?.email || profile?.email || "").trim(),
+          ownerName: sellerName,
+          sellerName,
+          inStock:
+            row.inStock !== undefined && row.inStock !== ""
+              ? parseBooleanish(row.inStock, stockNumber > 0)
+              : stockNumber > 0,
+          featured: parseBooleanish(row.featured, false),
+          customizations,
+          stock: stockNumber,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        };
+
+        if (oldPrice !== null && Number.isFinite(oldPrice) && oldPrice >= price) {
+          payload.oldPrice = oldPrice;
+        }
+
+        if (images.length) {
+          payload.image = images[0];
+          payload.images = images;
+          payload.imageMeta = null;
+          payload.imageMetaList = [];
+        }
+
+        if (!payload.brand) delete payload.brand;
+        if (!payload.description) delete payload.description;
+        if (!payload.customizations.length) delete payload.customizations;
+        if (!payload.stock && payload.stock !== 0) delete payload.stock;
+
+        prepared.push(payload);
+      });
+
+      if (!prepared.length) {
+        throw new Error(
+          skipped.length
+            ? `All rows were skipped. ${skipped[0]}`
+            : "No valid products found to import."
+        );
+      }
+
+      const chunkSize = 400;
+
+      for (let i = 0; i < prepared.length; i += chunkSize) {
+        const batch = writeBatch(db);
+        const chunk = prepared.slice(i, i + chunkSize);
+
+        chunk.forEach((payload) => {
+          const ref = doc(collection(db, COLLECTION_NAME));
+          batch.set(ref, payload);
+        });
+
+        await batch.commit();
+      }
+
+      setBulkImportMsg(
+        `✅ Imported ${prepared.length} product${
+          prepared.length > 1 ? "s" : ""
+        } successfully.${
+          skipped.length ? ` Skipped ${skipped.length} invalid row(s).` : ""
+        }`
+      );
+      setBulkImportText("");
+      await loadProducts();
+    } catch (error) {
+      console.error("Bulk import error:", error);
+      setBulkImportMsg(`❌ ${error.message || "Bulk import failed."}`);
+    } finally {
+      setBulkImporting(false);
+    }
+  };
+
   const openEditModal = (product) => {
     if (!canCurrentUserEditProduct(product)) {
       setMsg(
@@ -1164,6 +1470,117 @@ export default function Admin() {
         <div className="admin-head">
           <h2 className="admin-title">{pageTitle}</h2>
           <p className="admin-sub">{pageSub}</p>
+        </div>
+
+        <div className="admin-upload-card" style={{ marginBottom: 20 }}>
+          <div className="admin-upload-head">
+            <div>
+              <h3 className="admin-upload-title">Bulk import products</h3>
+              <p className="admin-upload-sub">
+                Paste CSV here and import products straight into Firestore.
+                Supported columns: title, category, brand, price, stock,
+                description, oldPrice, customizations, image, images, featured,
+                inStock.
+              </p>
+            </div>
+          </div>
+
+          <label className="admin-field">
+            <span>CSV data</span>
+            <textarea
+              value={bulkImportText}
+              onChange={(e) => setBulkImportText(e.target.value)}
+              placeholder={BULK_IMPORT_SAMPLE}
+              rows={10}
+              style={{ fontFamily: "monospace" }}
+            />
+          </label>
+
+          <div
+            className="admin-upload-actions"
+            style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
+          >
+            <button
+              type="button"
+              className="admin-secondary-btn"
+              onClick={() => setBulkImportText(BULK_IMPORT_SAMPLE)}
+              disabled={bulkImporting}
+            >
+              Use sample header
+            </button>
+
+            <button
+              type="button"
+              className="admin-secondary-btn admin-secondary-btn--ghost"
+              onClick={() => setBulkImportText("")}
+              disabled={bulkImporting}
+            >
+              Clear CSV
+            </button>
+
+            <button
+              type="button"
+              className="admin-btn"
+              onClick={handleBulkImport}
+              disabled={bulkImporting}
+            >
+              {bulkImporting ? "Importing…" : "Import products"}
+            </button>
+          </div>
+
+          <div className="admin-shop-card" style={{ marginTop: 14 }}>
+            <div className="admin-shop-head">
+              <h3 className="admin-shop-title">Import defaults</h3>
+              <p className="admin-shop-sub">
+                Imported products will use the currently selected shop, kind,
+                and department when those fields are not provided in the CSV.
+              </p>
+            </div>
+
+            <div className="admin-row">
+              <label className="admin-field">
+                <span>Default shop</span>
+                <select
+                  value={form.shop}
+                  onChange={setField("shop")}
+                  disabled={isShopAdmin}
+                >
+                  {availableShops.map((shopKey) => {
+                    const shopMeta = SHOPS.find((shop) => shop.key === shopKey);
+                    return (
+                      <option key={shopKey} value={shopKey}>
+                        {shopMeta?.label || titleize(shopKey)}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+
+              <label className="admin-field">
+                <span>Default type</span>
+                <select value={form.kind} onChange={setField("kind")}>
+                  {KINDS.map((k) => (
+                    <option key={k.key} value={k.key}>
+                      {k.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="admin-field">
+                <span>Default department</span>
+                <select value={form.dept} onChange={setField("dept")}>
+                  {DEPARTMENTS.map((d) => (
+                    <option key={d.key} value={d.key}>
+                      {d.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </div>
+
+          {bulkImportMsg ? <div className="admin-msg">{bulkImportMsg}</div> : null}
         </div>
 
         <form className="admin-form" onSubmit={onSubmit}>
@@ -1637,8 +2054,8 @@ export default function Admin() {
                     const gallery = Array.isArray(product.images)
                       ? product.images
                       : product.image
-                        ? [product.image]
-                        : [];
+                      ? [product.image]
+                      : [];
                     const canDelete = canCurrentUserDeleteProduct(product);
                     const canEdit = canCurrentUserEditProduct(product);
                     const uploadedByCurrentUser = product.ownerId === user?.uid;
@@ -1756,8 +2173,8 @@ export default function Admin() {
                               {isEditing
                                 ? "Saving…"
                                 : canEdit
-                                  ? "Edit product"
-                                  : "Read only"}
+                                ? "Edit product"
+                                : "Read only"}
                             </button>
 
                             <button
@@ -1779,8 +2196,8 @@ export default function Admin() {
                               {isDeleting
                                 ? "Deleting…"
                                 : canDelete
-                                  ? "Delete product"
-                                  : "Read only"}
+                                ? "Delete product"
+                                : "Read only"}
                             </button>
                           </div>
                         </div>
@@ -1808,7 +2225,12 @@ export default function Admin() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="admin-edit-title"
-            style={{ maxWidth: 860, width: "min(96vw, 860px)", maxHeight: "90vh", overflowY: "auto" }}
+            style={{
+              maxWidth: 860,
+              width: "min(96vw, 860px)",
+              maxHeight: "90vh",
+              overflowY: "auto",
+            }}
           >
             <div className="admin-modal-head">
               <h3 id="admin-edit-title" className="admin-modal-title">
