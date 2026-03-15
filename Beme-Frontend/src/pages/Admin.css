@@ -45,6 +45,10 @@
   gap: 12px;
 }
 
+.admin-form--modal {
+  gap: 16px;
+}
+
 .admin-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -736,6 +740,12 @@ body.dark .admin-danger-btn {
   backdrop-filter: blur(8px);
 }
 
+.admin-modal-backdrop--fullscreen {
+  padding: 0;
+  z-index: 1200;
+  background: rgba(10, 10, 10, 0.78);
+}
+
 .admin-modal {
   width: min(100%, 480px);
   background: var(--card);
@@ -755,17 +765,26 @@ body.dark .admin-danger-btn {
   padding: 0;
   display: flex;
   flex-direction: column;
-  background: var(--card);
+  background: var(--bg);
+  box-shadow: none;
   overflow: hidden;
 }
 
-.admin-modal--fullscreen .admin-modal-head {
+.admin-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-modal-head--fullscreen {
   position: sticky;
   top: 0;
-  z-index: 3;
-  background: var(--card);
+  z-index: 5;
   padding: 18px 22px;
+  background: var(--card);
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .admin-modal-scroll {
@@ -780,22 +799,6 @@ body.dark .admin-danger-btn {
   max-width: 980px;
   margin: 0 auto;
   padding-bottom: 40px;
-}
-
-.admin-modal-actions--sticky {
-  position: sticky;
-  bottom: 0;
-  background: var(--card);
-  padding-top: 12px;
-  padding-bottom: 4px;
-  z-index: 2;
-}
-
-.admin-modal-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
 }
 
 .admin-modal-title {
@@ -838,6 +841,27 @@ body.dark .admin-modal-text--danger {
   margin-top: 16px;
 }
 
+.admin-modal-actions--sticky {
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(
+    to top,
+    var(--bg) 75%,
+    rgba(255, 255, 255, 0)
+  );
+  padding-top: 16px;
+  padding-bottom: 8px;
+  z-index: 4;
+}
+
+body.dark .admin-modal-actions--sticky {
+  background: linear-gradient(
+    to top,
+    var(--bg) 75%,
+    rgba(0, 0, 0, 0)
+  );
+}
+
 @media (max-width: 720px) {
   .admin-product-item {
     grid-template-columns: 1fr;
@@ -853,6 +877,18 @@ body.dark .admin-modal-text--danger {
 
   .admin-danger-btn {
     width: 100%;
+  }
+
+  .admin-modal-scroll {
+    padding: 14px;
+  }
+
+  .admin-modal-head--fullscreen {
+    padding: 14px 16px;
+  }
+
+  .admin-modal-inner {
+    max-width: 100%;
   }
 }
 
@@ -890,7 +926,8 @@ body.dark .admin-modal-text--danger {
   }
 
   .admin-modal-actions .admin-secondary-btn,
-  .admin-modal-actions .admin-danger-btn {
+  .admin-modal-actions .admin-danger-btn,
+  .admin-modal-actions .admin-btn {
     width: 100%;
   }
 }
