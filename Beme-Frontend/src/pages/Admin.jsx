@@ -561,23 +561,6 @@ export default function Admin() {
     }
   }, [isShopAdmin, normalizedAdminShop]);
 
-  useEffect(() => {
-    const anyModalOpen = editModalOpen || deleteModalOpen || bulkDeleteModalOpen;
-
-    if (!anyModalOpen) return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
-
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.documentElement.style.overflow = previousHtmlOverflow;
-    };
-  }, [editModalOpen, deleteModalOpen, bulkDeleteModalOpen]);
-
   const canCurrentUserDeleteProduct = (product) => {
     if (!product) return false;
     if (isShopAdmin) {
@@ -2704,19 +2687,6 @@ export default function Admin() {
           className="admin-modal-backdrop"
           onClick={closeEditModal}
           role="presentation"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 9999,
-            background: "rgba(5,5,5,0.82)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            display: "flex",
-            alignItems: "stretch",
-            justifyContent: "center",
-            padding: "0",
-            overflow: "hidden",
-          }}
         >
           <div
             className="admin-modal"
@@ -2725,34 +2695,13 @@ export default function Admin() {
             aria-modal="true"
             aria-labelledby="admin-edit-title"
             style={{
-              width: "100vw",
-              height: "100vh",
-              maxWidth: "100vw",
-              maxHeight: "100vh",
-              margin: 0,
-              borderRadius: 0,
-              overflow: "hidden",
-              display: "flex",
-              flexDirection: "column",
-              background: "var(--admin-card-bg, #0f0f10)",
-              border: "none",
+              maxWidth: 860,
+              width: "min(96vw, 860px)",
+              maxHeight: "90vh",
+              overflowY: "auto",
             }}
           >
-            <div
-              className="admin-modal-head"
-              style={{
-                position: "sticky",
-                top: 0,
-                zIndex: 3,
-                background: "inherit",
-                padding: "18px 22px",
-                borderBottom: "1px solid rgba(255,255,255,0.08)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexShrink: 0,
-              }}
-            >
+            <div className="admin-modal-head">
               <h3 id="admin-edit-title" className="admin-modal-title">
                 Edit product
               </h3>
@@ -2767,519 +2716,491 @@ export default function Admin() {
               </button>
             </div>
 
-            <div
-              style={{
-                flex: 1,
-                overflowY: "auto",
-                overflowX: "hidden",
-                padding: "20px",
-              }}
-            >
-              <div
-                className="admin-form"
-                style={{
-                  gap: 16,
-                  width: "100%",
-                  maxWidth: 980,
-                  margin: "0 auto",
-                  paddingBottom: 40,
-                }}
-              >
+            <div className="admin-form" style={{ gap: 16 }}>
+              <label className="admin-field">
+                <span>Name</span>
+                <input
+                  value={editForm.name}
+                  onChange={setEditField("name")}
+                  placeholder="e.g. Classic Hoodie"
+                  autoComplete="off"
+                  disabled={!!editingId}
+                />
+              </label>
+
+              <label className="admin-field">
+                <span>Brand (optional)</span>
+                <input
+                  value={editForm.brand}
+                  onChange={setEditField("brand")}
+                  placeholder="e.g. Lattafa"
+                  autoComplete="off"
+                  disabled={!!editingId}
+                />
+              </label>
+
+              <div className="admin-row">
                 <label className="admin-field">
-                  <span>Name</span>
+                  <span>Price (GHS)</span>
                   <input
-                    value={editForm.name}
-                    onChange={setEditField("name")}
-                    placeholder="e.g. Classic Hoodie"
-                    autoComplete="off"
+                    inputMode="decimal"
+                    value={editForm.price}
+                    onChange={setEditField("price")}
+                    placeholder="e.g. 180"
                     disabled={!!editingId}
                   />
                 </label>
 
                 <label className="admin-field">
-                  <span>Brand (optional)</span>
+                  <span>Old price (optional)</span>
                   <input
-                    value={editForm.brand}
-                    onChange={setEditField("brand")}
-                    placeholder="e.g. Lattafa"
-                    autoComplete="off"
+                    inputMode="decimal"
+                    value={editForm.oldPrice}
+                    onChange={setEditField("oldPrice")}
+                    placeholder="e.g. 220"
                     disabled={!!editingId}
                   />
                 </label>
+              </div>
 
-                <div className="admin-row">
-                  <label className="admin-field">
-                    <span>Price (GHS)</span>
-                    <input
-                      inputMode="decimal"
-                      value={editForm.price}
-                      onChange={setEditField("price")}
-                      placeholder="e.g. 180"
-                      disabled={!!editingId}
-                    />
-                  </label>
+              <label className="admin-field">
+                <span>Description (optional)</span>
+                <textarea
+                  value={editForm.description}
+                  onChange={setEditField("description")}
+                  placeholder="Write a short product description..."
+                  rows={5}
+                  disabled={!!editingId}
+                />
+              </label>
 
-                  <label className="admin-field">
-                    <span>Old price (optional)</span>
-                    <input
-                      inputMode="decimal"
-                      value={editForm.oldPrice}
-                      onChange={setEditField("oldPrice")}
-                      placeholder="e.g. 220"
-                      disabled={!!editingId}
-                    />
-                  </label>
+              <div className="admin-shop-card">
+                <div className="admin-shop-head">
+                  <h3 className="admin-shop-title">Store placement</h3>
+                  <p className="admin-shop-sub">
+                    {isSuperAdmin
+                      ? "You can move only your own uploaded product between storefronts."
+                      : "Your product stays locked to your assigned shop unless your account scope changes."}
+                  </p>
+                </div>
+
+                <div className="admin-store-pills">
+                  {availableShops.map((shopKey) => {
+                    const shopMeta = SHOPS.find((shop) => shop.key === shopKey);
+                    return (
+                      <button
+                        key={shopKey}
+                        type="button"
+                        className={
+                          normalizeShopKey(editForm.shop) === shopKey
+                            ? "admin-store-pill active"
+                            : "admin-store-pill"
+                        }
+                        onClick={() =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            shop: shopKey,
+                          }))
+                        }
+                        disabled={isShopAdmin || !!editingId}
+                      >
+                        {shopMeta?.label || titleize(shopKey)}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <label className="admin-field">
-                  <span>Description (optional)</span>
-                  <textarea
-                    value={editForm.description}
-                    onChange={setEditField("description")}
-                    placeholder="Write a short product description..."
-                    rows={5}
-                    disabled={!!editingId}
-                  />
-                </label>
-
-                <div className="admin-shop-card">
-                  <div className="admin-shop-head">
-                    <h3 className="admin-shop-title">Store placement</h3>
-                    <p className="admin-shop-sub">
-                      {isSuperAdmin
-                        ? "You can move only your own uploaded product between storefronts."
-                        : "Your product stays locked to your assigned shop unless your account scope changes."}
-                    </p>
-                  </div>
-
-                  <div className="admin-store-pills">
+                  <span>Shop</span>
+                  <select
+                    value={editForm.shop}
+                    onChange={setEditField("shop")}
+                    disabled={isShopAdmin || !!editingId}
+                  >
                     {availableShops.map((shopKey) => {
                       const shopMeta = SHOPS.find((shop) => shop.key === shopKey);
                       return (
-                        <button
-                          key={shopKey}
-                          type="button"
-                          className={
-                            normalizeShopKey(editForm.shop) === shopKey
-                              ? "admin-store-pill active"
-                              : "admin-store-pill"
-                          }
-                          onClick={() =>
-                            setEditForm((prev) => ({
-                              ...prev,
-                              shop: shopKey,
-                            }))
-                          }
-                          disabled={isShopAdmin || !!editingId}
-                        >
+                        <option key={shopKey} value={shopKey}>
                           {shopMeta?.label || titleize(shopKey)}
-                        </button>
+                        </option>
                       );
                     })}
-                  </div>
+                  </select>
+                </label>
+              </div>
 
-                  <label className="admin-field">
-                    <span>Shop</span>
-                    <select
-                      value={editForm.shop}
-                      onChange={setEditField("shop")}
-                      disabled={isShopAdmin || !!editingId}
-                    >
-                      {availableShops.map((shopKey) => {
-                        const shopMeta = SHOPS.find((shop) => shop.key === shopKey);
-                        return (
-                          <option key={shopKey} value={shopKey}>
-                            {shopMeta?.label || titleize(shopKey)}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </label>
-                </div>
-
-                <div className="admin-row">
-                  <label className="admin-field">
-                    <span>Department</span>
-                    <select
-                      value={editForm.dept}
-                      onChange={setEditField("dept")}
-                      disabled={!!editingId}
-                    >
-                      {DEPARTMENTS.map((d) => (
-                        <option key={d.key} value={d.key}>
-                          {d.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className="admin-field">
-                    <span>Type</span>
-                    <select
-                      value={editForm.kind}
-                      onChange={setEditField("kind")}
-                      disabled={!!editingId}
-                    >
-                      {KINDS.map((k) => (
-                        <option key={k.key} value={k.key}>
-                          {k.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-
-                <div className="admin-toggles">
-                  <label className="admin-switch admin-switch--stock">
-                    <input
-                      type="checkbox"
-                      checked={editForm.inStock}
-                      onChange={setEditField("inStock")}
-                      disabled={!!editingId}
-                    />
-                    <span className="admin-switch-ui" />
-                    <span className="admin-switch-label">In stock</span>
-                  </label>
-
-                  <label className="admin-switch admin-switch--featured">
-                    <input
-                      type="checkbox"
-                      checked={editForm.featured}
-                      onChange={setEditField("featured")}
-                      disabled={!!editingId}
-                    />
-                    <span className="admin-switch-ui" />
-                    <span className="admin-switch-label">Featured</span>
-                  </label>
-                </div>
-
-                <div className="admin-upload-card">
-                  <div className="admin-upload-head">
-                    <div>
-                      <h3 className="admin-upload-title">Replace product images</h3>
-                      <p className="admin-upload-sub">
-                        Leave this empty if you want to keep the current product images.
-                        Uploading new images will replace the old gallery.
-                      </p>
-                    </div>
-                  </div>
-
-                  {Array.isArray(productToEdit.images) && productToEdit.images.length ? (
-                    <>
-                      <div className="admin-image-preview-head">
-                        <span className="admin-image-preview-title">
-                          Current product images
-                        </span>
-                        <span className="admin-image-preview-count">
-                          {productToEdit.images.length} image
-                          {productToEdit.images.length > 1 ? "s" : ""}
-                        </span>
-                      </div>
-
-                      <div className="admin-uploaded-grid">
-                        {productToEdit.images.map((src, index) => (
-                          <a
-                            key={`${src}-${index}`}
-                            href={src}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="admin-uploaded-thumb"
-                          >
-                            <img
-                              src={src}
-                              alt={`Current product ${index + 1}`}
-                              className="admin-uploaded-thumb-img"
-                            />
-                            {index === 0 ? (
-                              <span className="admin-uploaded-badge">Cover</span>
-                            ) : null}
-                          </a>
-                        ))}
-                      </div>
-                    </>
-                  ) : null}
-
-                  <label className="admin-field">
-                    <span>Choose new images (optional)</span>
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      multiple
-                      onChange={handleEditImageChange}
-                      disabled={!!editingId}
-                    />
-                  </label>
-
-                  {editImagePreviews.length ? (
-                    <>
-                      <div className="admin-image-preview-head">
-                        <span className="admin-image-preview-title">
-                          Selected new images
-                        </span>
-                        <span className="admin-image-preview-count">
-                          {editImagePreviews.length} image
-                          {editImagePreviews.length > 1 ? "s" : ""}
-                        </span>
-                      </div>
-
-                      <div className="admin-image-preview-grid">
-                        {editImagePreviews.map((item, index) => (
-                          <div
-                            className="admin-image-preview-wrap"
-                            key={item.key || `${item.preview}-${index}`}
-                          >
-                            <img
-                              src={item.preview}
-                              alt={`Edit preview ${index + 1}`}
-                              className="admin-image-preview"
-                            />
-
-                            <div className="admin-image-preview-overlay">
-                              <span className="admin-image-index">
-                                {index === 0 ? "New cover" : `Image ${index + 1}`}
-                              </span>
-
-                              <button
-                                type="button"
-                                className="admin-image-remove-btn"
-                                onClick={() => removeEditSelectedImage(index)}
-                                disabled={editUploadingImage || !!editingId}
-                                aria-label={`Remove image ${index + 1}`}
-                              >
-                                ×
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : null}
-
-                  <div className="admin-upload-actions">
-                    <button
-                      type="button"
-                      className="admin-secondary-btn"
-                      onClick={handleEditUploadImage}
-                      disabled={
-                        !editImageFiles.length || editUploadingImage || !!editingId
-                      }
-                    >
-                      {editUploadingImage ? "Uploading…" : "Upload new images"}
-                    </button>
-
-                    <button
-                      type="button"
-                      className="admin-secondary-btn admin-secondary-btn--ghost"
-                      onClick={resetEditImageState}
-                      disabled={editUploadingImage || !!editingId}
-                    >
-                      Clear new images
-                    </button>
-                  </div>
-
-                  {editUploadedImages.length ? (
-                    <div className="admin-upload-success-wrap">
-                      <div className="admin-upload-success">
-                        <span className="admin-upload-badge">Uploaded</span>
-                        <span className="admin-upload-count">
-                          {editUploadedImages.length} image
-                          {editUploadedImages.length > 1 ? "s" : ""}
-                        </span>
-                        <a
-                          href={editUploadedImages[0].url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="admin-upload-link"
-                        >
-                          View new cover image
-                        </a>
-                      </div>
-
-                      <div className="admin-uploaded-grid">
-                        {editUploadedImages.map((item, index) => (
-                          <a
-                            key={`${item.url}-${index}`}
-                            href={item.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="admin-uploaded-thumb"
-                          >
-                            <img
-                              src={item.url}
-                              alt={`Uploaded replacement ${index + 1}`}
-                              className="admin-uploaded-thumb-img"
-                            />
-                            {index === 0 ? (
-                              <span className="admin-uploaded-badge">Cover</span>
-                            ) : null}
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="admin-options-card">
-                  <div className="admin-options-head">
-                    <div>
-                      <h3 className="admin-options-title">Product customizations</h3>
-                      <p className="admin-options-sub">
-                        Update options like Storage, Color, Size, RAM, Material,
-                        Scent, Edition, Bundle and more.
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      className="admin-options-add"
-                      onClick={addEditCustomizationGroup}
-                      disabled={!!editingId}
-                    >
-                      + Add option group
-                    </button>
-                  </div>
-
-                  {!editForm.customizations.length ? (
-                    <div className="admin-options-empty">
-                      No customization groups yet.
-                    </div>
-                  ) : (
-                    <div className="admin-options-list">
-                      {editForm.customizations.map((group, index) => (
-                        <div className="admin-option-group" key={group.id}>
-                          <div className="admin-option-group-head">
-                            <strong>Option group {index + 1}</strong>
-                            <button
-                              type="button"
-                              className="admin-option-remove"
-                              onClick={() => removeEditCustomizationGroup(group.id)}
-                              disabled={!!editingId}
-                            >
-                              Remove
-                            </button>
-                          </div>
-
-                          <div className="admin-row">
-                            <label className="admin-field">
-                              <span>Label</span>
-                              <input
-                                value={group.name}
-                                onChange={(e) =>
-                                  updateEditCustomizationGroup(
-                                    group.id,
-                                    "name",
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="e.g. Storage"
-                                disabled={!!editingId}
-                              />
-                            </label>
-
-                            <label className="admin-field">
-                              <span>Style</span>
-                              <select
-                                value={group.type}
-                                onChange={(e) =>
-                                  updateEditCustomizationGroup(
-                                    group.id,
-                                    "type",
-                                    e.target.value
-                                  )
-                                }
-                                disabled={!!editingId}
-                              >
-                                <option value="buttons">Buttons</option>
-                                <option value="select">Dropdown</option>
-                              </select>
-                            </label>
-                          </div>
-
-                          <label className="admin-field">
-                            <span>Values (comma separated)</span>
-                            <input
-                              value={group.valuesText}
-                              onChange={(e) =>
-                                updateEditCustomizationGroup(
-                                  group.id,
-                                  "valuesText",
-                                  e.target.value
-                                )
-                              }
-                              placeholder="e.g. 128GB, 256GB, 512GB"
-                              disabled={!!editingId}
-                            />
-                          </label>
-
-                          <label className="admin-checkline">
-                            <input
-                              type="checkbox"
-                              checked={group.required}
-                              onChange={(e) =>
-                                updateEditCustomizationGroup(
-                                  group.id,
-                                  "required",
-                                  e.target.checked
-                                )
-                              }
-                              disabled={!!editingId}
-                            />
-                            <span>Required selection</span>
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <p className="admin-modal-text admin-modal-text--danger">
-                  Enter your admin password to authorize this update.
-                </p>
+              <div className="admin-row">
+                <label className="admin-field">
+                  <span>Department</span>
+                  <select
+                    value={editForm.dept}
+                    onChange={setEditField("dept")}
+                    disabled={!!editingId}
+                  >
+                    {DEPARTMENTS.map((d) => (
+                      <option key={d.key} value={d.key}>
+                        {d.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
                 <label className="admin-field">
-                  <span>Admin password</span>
+                  <span>Type</span>
+                  <select
+                    value={editForm.kind}
+                    onChange={setEditField("kind")}
+                    disabled={!!editingId}
+                  >
+                    {KINDS.map((k) => (
+                      <option key={k.key} value={k.key}>
+                        {k.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="admin-toggles">
+                <label className="admin-switch admin-switch--stock">
                   <input
-                    type="password"
-                    value={editPassword}
-                    onChange={(e) => setEditPassword(e.target.value)}
-                    placeholder="Enter your current password"
-                    autoComplete="current-password"
+                    type="checkbox"
+                    checked={editForm.inStock}
+                    onChange={setEditField("inStock")}
+                    disabled={!!editingId}
+                  />
+                  <span className="admin-switch-ui" />
+                  <span className="admin-switch-label">In stock</span>
+                </label>
+
+                <label className="admin-switch admin-switch--featured">
+                  <input
+                    type="checkbox"
+                    checked={editForm.featured}
+                    onChange={setEditField("featured")}
+                    disabled={!!editingId}
+                  />
+                  <span className="admin-switch-ui" />
+                  <span className="admin-switch-label">Featured</span>
+                </label>
+              </div>
+
+              <div className="admin-upload-card">
+                <div className="admin-upload-head">
+                  <div>
+                    <h3 className="admin-upload-title">Replace product images</h3>
+                    <p className="admin-upload-sub">
+                      Leave this empty if you want to keep the current product images.
+                      Uploading new images will replace the old gallery.
+                    </p>
+                  </div>
+                </div>
+
+                {Array.isArray(productToEdit.images) && productToEdit.images.length ? (
+                  <>
+                    <div className="admin-image-preview-head">
+                      <span className="admin-image-preview-title">
+                        Current product images
+                      </span>
+                      <span className="admin-image-preview-count">
+                        {productToEdit.images.length} image
+                        {productToEdit.images.length > 1 ? "s" : ""}
+                      </span>
+                    </div>
+
+                    <div className="admin-uploaded-grid">
+                      {productToEdit.images.map((src, index) => (
+                        <a
+                          key={`${src}-${index}`}
+                          href={src}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="admin-uploaded-thumb"
+                        >
+                          <img
+                            src={src}
+                            alt={`Current product ${index + 1}`}
+                            className="admin-uploaded-thumb-img"
+                          />
+                          {index === 0 ? (
+                            <span className="admin-uploaded-badge">Cover</span>
+                          ) : null}
+                        </a>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+
+                <label className="admin-field">
+                  <span>Choose new images (optional)</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    multiple
+                    onChange={handleEditImageChange}
                     disabled={!!editingId}
                   />
                 </label>
 
-                {editError ? <div className="admin-msg">{editError}</div> : null}
-                {editMsg ? <div className="admin-msg">{editMsg}</div> : null}
+                {editImagePreviews.length ? (
+                  <>
+                    <div className="admin-image-preview-head">
+                      <span className="admin-image-preview-title">
+                        Selected new images
+                      </span>
+                      <span className="admin-image-preview-count">
+                        {editImagePreviews.length} image
+                        {editImagePreviews.length > 1 ? "s" : ""}
+                      </span>
+                    </div>
 
-                <div
-                  className="admin-modal-actions"
-                  style={{
-                    position: "sticky",
-                    bottom: 0,
-                    background: "inherit",
-                    paddingTop: 12,
-                    paddingBottom: 4,
-                    zIndex: 2,
-                  }}
-                >
+                    <div className="admin-image-preview-grid">
+                      {editImagePreviews.map((item, index) => (
+                        <div
+                          className="admin-image-preview-wrap"
+                          key={item.key || `${item.preview}-${index}`}
+                        >
+                          <img
+                            src={item.preview}
+                            alt={`Edit preview ${index + 1}`}
+                            className="admin-image-preview"
+                          />
+
+                          <div className="admin-image-preview-overlay">
+                            <span className="admin-image-index">
+                              {index === 0 ? "New cover" : `Image ${index + 1}`}
+                            </span>
+
+                            <button
+                              type="button"
+                              className="admin-image-remove-btn"
+                              onClick={() => removeEditSelectedImage(index)}
+                              disabled={editUploadingImage || !!editingId}
+                              aria-label={`Remove image ${index + 1}`}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+
+                <div className="admin-upload-actions">
+                  <button
+                    type="button"
+                    className="admin-secondary-btn"
+                    onClick={handleEditUploadImage}
+                    disabled={
+                      !editImageFiles.length || editUploadingImage || !!editingId
+                    }
+                  >
+                    {editUploadingImage ? "Uploading…" : "Upload new images"}
+                  </button>
+
                   <button
                     type="button"
                     className="admin-secondary-btn admin-secondary-btn--ghost"
-                    onClick={closeEditModal}
-                    disabled={!!editingId}
+                    onClick={resetEditImageState}
+                    disabled={editUploadingImage || !!editingId}
                   >
-                    Cancel
+                    Clear new images
                   </button>
+                </div>
+
+                {editUploadedImages.length ? (
+                  <div className="admin-upload-success-wrap">
+                    <div className="admin-upload-success">
+                      <span className="admin-upload-badge">Uploaded</span>
+                      <span className="admin-upload-count">
+                        {editUploadedImages.length} image
+                        {editUploadedImages.length > 1 ? "s" : ""}
+                      </span>
+                      <a
+                        href={editUploadedImages[0].url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="admin-upload-link"
+                      >
+                        View new cover image
+                      </a>
+                    </div>
+
+                    <div className="admin-uploaded-grid">
+                      {editUploadedImages.map((item, index) => (
+                        <a
+                          key={`${item.url}-${index}`}
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="admin-uploaded-thumb"
+                        >
+                          <img
+                            src={item.url}
+                            alt={`Uploaded replacement ${index + 1}`}
+                            className="admin-uploaded-thumb-img"
+                          />
+                          {index === 0 ? (
+                            <span className="admin-uploaded-badge">Cover</span>
+                          ) : null}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="admin-options-card">
+                <div className="admin-options-head">
+                  <div>
+                    <h3 className="admin-options-title">Product customizations</h3>
+                    <p className="admin-options-sub">
+                      Update options like Storage, Color, Size, RAM, Material,
+                      Scent, Edition, Bundle and more.
+                    </p>
+                  </div>
 
                   <button
                     type="button"
-                    className="admin-btn"
-                    onClick={handleUpdateProduct}
-                    disabled={!!editingId || editUploadingImage}
+                    className="admin-options-add"
+                    onClick={addEditCustomizationGroup}
+                    disabled={!!editingId}
                   >
-                    {editingId ? "Verifying & saving…" : "Verify and save changes"}
+                    + Add option group
                   </button>
                 </div>
+
+                {!editForm.customizations.length ? (
+                  <div className="admin-options-empty">
+                    No customization groups yet.
+                  </div>
+                ) : (
+                  <div className="admin-options-list">
+                    {editForm.customizations.map((group, index) => (
+                      <div className="admin-option-group" key={group.id}>
+                        <div className="admin-option-group-head">
+                          <strong>Option group {index + 1}</strong>
+                          <button
+                            type="button"
+                            className="admin-option-remove"
+                            onClick={() => removeEditCustomizationGroup(group.id)}
+                            disabled={!!editingId}
+                          >
+                            Remove
+                          </button>
+                        </div>
+
+                        <div className="admin-row">
+                          <label className="admin-field">
+                            <span>Label</span>
+                            <input
+                              value={group.name}
+                              onChange={(e) =>
+                                updateEditCustomizationGroup(
+                                  group.id,
+                                  "name",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="e.g. Storage"
+                              disabled={!!editingId}
+                            />
+                          </label>
+
+                          <label className="admin-field">
+                            <span>Style</span>
+                            <select
+                              value={group.type}
+                              onChange={(e) =>
+                                updateEditCustomizationGroup(
+                                  group.id,
+                                  "type",
+                                  e.target.value
+                                )
+                              }
+                              disabled={!!editingId}
+                            >
+                              <option value="buttons">Buttons</option>
+                              <option value="select">Dropdown</option>
+                            </select>
+                          </label>
+                        </div>
+
+                        <label className="admin-field">
+                          <span>Values (comma separated)</span>
+                          <input
+                            value={group.valuesText}
+                            onChange={(e) =>
+                              updateEditCustomizationGroup(
+                                group.id,
+                                "valuesText",
+                                e.target.value
+                              )
+                            }
+                            placeholder="e.g. 128GB, 256GB, 512GB"
+                            disabled={!!editingId}
+                          />
+                        </label>
+
+                        <label className="admin-checkline">
+                          <input
+                            type="checkbox"
+                            checked={group.required}
+                            onChange={(e) =>
+                              updateEditCustomizationGroup(
+                                group.id,
+                                "required",
+                                e.target.checked
+                              )
+                            }
+                            disabled={!!editingId}
+                          />
+                          <span>Required selection</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <p className="admin-modal-text admin-modal-text--danger">
+                Enter your admin password to authorize this update.
+              </p>
+
+              <label className="admin-field">
+                <span>Admin password</span>
+                <input
+                  type="password"
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  placeholder="Enter your current password"
+                  autoComplete="current-password"
+                  disabled={!!editingId}
+                />
+              </label>
+
+              {editError ? <div className="admin-msg">{editError}</div> : null}
+              {editMsg ? <div className="admin-msg">{editMsg}</div> : null}
+
+              <div className="admin-modal-actions">
+                <button
+                  type="button"
+                  className="admin-secondary-btn admin-secondary-btn--ghost"
+                  onClick={closeEditModal}
+                  disabled={!!editingId}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  className="admin-btn"
+                  onClick={handleUpdateProduct}
+                  disabled={!!editingId || editUploadingImage}
+                >
+                  {editingId ? "Verifying & saving…" : "Verify and save changes"}
+                </button>
               </div>
             </div>
           </div>
@@ -3291,18 +3212,6 @@ export default function Admin() {
           className="admin-modal-backdrop"
           onClick={closeDeleteModal}
           role="presentation"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 9999,
-            background: "rgba(5,5,5,0.78)",
-            backdropFilter: "blur(6px)",
-            WebkitBackdropFilter: "blur(6px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "20px",
-          }}
         >
           <div
             className="admin-modal"
@@ -3310,11 +3219,6 @@ export default function Admin() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="admin-delete-title"
-            style={{
-              width: "min(92vw, 560px)",
-              maxHeight: "calc(100vh - 40px)",
-              overflowY: "auto",
-            }}
           >
             <div className="admin-modal-head">
               <h3 id="admin-delete-title" className="admin-modal-title">
@@ -3382,18 +3286,6 @@ export default function Admin() {
           className="admin-modal-backdrop"
           onClick={closeBulkDeleteModal}
           role="presentation"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 9999,
-            background: "rgba(5,5,5,0.78)",
-            backdropFilter: "blur(6px)",
-            WebkitBackdropFilter: "blur(6px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "20px",
-          }}
         >
           <div
             className="admin-modal"
@@ -3401,11 +3293,6 @@ export default function Admin() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="admin-bulk-delete-title"
-            style={{
-              width: "min(92vw, 620px)",
-              maxHeight: "calc(100vh - 40px)",
-              overflowY: "auto",
-            }}
           >
             <div className="admin-modal-head">
               <h3 id="admin-bulk-delete-title" className="admin-modal-title">
