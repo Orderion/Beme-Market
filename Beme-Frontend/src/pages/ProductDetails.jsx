@@ -299,6 +299,14 @@ export default function ProductDetails() {
     [shippingSource]
   );
 
+  const shipsFromAbroad = useMemo(
+    () =>
+      shippingSource === "abroad" ||
+      product?.shipFromAbroad === true ||
+      product?.shipsFromAbroad === true,
+    [shippingSource, product]
+  );
+
   useEffect(() => {
     const initialSelections = {};
     customizations.forEach((group) => {
@@ -352,6 +360,7 @@ export default function ProductDetails() {
       selectedOptionsLabel,
       customizations,
       shippingSource,
+      shipsFromAbroad,
     };
   };
 
