@@ -115,33 +115,7 @@ function normalizeShop(value) {
 }
 
 function normalizeStock(product) {
-  if (
-    product?.inStock !== undefined ||
-    product?.in_stock !== undefined ||
-    product?.stockStatus !== undefined ||
-    product?.stock_status !== undefined
-  ) {
-    return (
-      parseBooleanish(product?.inStock, false) ||
-      parseBooleanish(product?.in_stock, false) ||
-      parseBooleanish(product?.stockStatus, false) ||
-      parseBooleanish(product?.stock_status, false)
-    );
-  }
-
-  const stockQty =
-    product?.stock ??
-    product?.quantity ??
-    product?.qty ??
-    product?.inventory ??
-    product?.inventoryCount;
-
-  if (stockQty !== undefined && stockQty !== null && stockQty !== "") {
-    const qty = Number(stockQty);
-    if (Number.isFinite(qty)) return qty > 0;
-  }
-
-  return true;
+  return parseBooleanish(product?.inStock, true);
 }
 
 export default function ProductCard({ product }) {
@@ -218,7 +192,7 @@ export default function ProductCard({ product }) {
           : [],
         shippingSource,
         shipsFromAbroad,
-        inStock: true,
+        inStock,
         stock:
           product?.stock !== undefined && product?.stock !== null
             ? Number(product.stock) || 0
