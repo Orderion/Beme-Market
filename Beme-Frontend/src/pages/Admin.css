@@ -45,6 +45,10 @@
   gap: 12px;
 }
 
+.admin-form--compact {
+  gap: 16px;
+}
+
 .admin-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -101,6 +105,10 @@ body.dark .admin-field textarea:focus {
   color: var(--text);
   outline: none;
   resize: vertical;
+}
+
+.admin-search-wrap {
+  margin-bottom: 14px;
 }
 
 .admin-upload-card,
@@ -340,6 +348,10 @@ body.dark .admin-field textarea:focus {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
+}
+
+.admin-uploaded-grid--compact {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .admin-uploaded-thumb {
@@ -777,7 +789,7 @@ body.dark .admin-danger-btn {
 
 .admin-modal-inner {
   width: 100%;
-  max-width: 980px;
+  max-width: 1400px;
   margin: 0 auto;
   padding-bottom: 40px;
 }
@@ -838,6 +850,58 @@ body.dark .admin-modal-text--danger {
   margin-top: 16px;
 }
 
+.admin-edit-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.95fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.admin-edit-main,
+.admin-edit-side {
+  min-width: 0;
+}
+
+.admin-edit-side {
+  position: sticky;
+  top: 0;
+  align-self: start;
+}
+
+.admin-edit-side-card,
+.admin-edit-section {
+  border: 1px solid var(--border);
+  background: var(--soft);
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.admin-edit-section-title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.admin-edit-main {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-edit-side-card {
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 1100px) {
+  .admin-edit-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-edit-side {
+    position: static;
+  }
+}
+
 @media (max-width: 720px) {
   .admin-product-item {
     grid-template-columns: 1fr;
@@ -853,6 +917,18 @@ body.dark .admin-modal-text--danger {
 
   .admin-danger-btn {
     width: 100%;
+  }
+
+  .admin-modal--fullscreen .admin-modal-head {
+    padding: 14px 16px;
+  }
+
+  .admin-modal-scroll {
+    padding: 14px;
+  }
+
+  .admin-modal-inner {
+    padding-bottom: 20px;
   }
 }
 
@@ -890,7 +966,13 @@ body.dark .admin-modal-text--danger {
   }
 
   .admin-modal-actions .admin-secondary-btn,
-  .admin-modal-actions .admin-danger-btn {
+  .admin-modal-actions .admin-danger-btn,
+  .admin-modal-actions .admin-btn {
     width: 100%;
+  }
+
+  .admin-edit-side-card,
+  .admin-edit-section {
+    padding: 12px;
   }
 }
