@@ -41,6 +41,54 @@ function normalizeShop(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function normalizeShippingSource(product) {
+  const candidates = [
+    product?.shippingSource,
+    product?.shippingType,
+    product?.shipFrom,
+    product?.ship_from,
+    product?.fulfillmentType,
+    product?.originType,
+  ];
+
+  for (const candidate of candidates) {
+    const value = String(candidate || "").trim().toLowerCase();
+    if (!value) continue;
+
+    if (
+      [
+        "abroad",
+        "ship from abroad",
+        "ships from abroad",
+        "international",
+        "imported",
+      ].includes(value)
+    ) {
+      return "abroad";
+    }
+
+    if (["uni", "unisex", "universal"].includes(value)) {
+      return "uni";
+    }
+
+    if (["local", "ghana", "domestic"].includes(value)) {
+      return "local";
+    }
+  }
+
+  if (product?.shipFromAbroad === true || product?.shipsFromAbroad === true) {
+    return "abroad";
+  }
+
+  return "";
+}
+
+function getShippingBadgeLabel(source) {
+  if (source === "abroad") return "Ships from abroad";
+  if (source === "uni") return "Uni";
+  return "";
+}
+
 function MonoStatusIcon() {
   return (
     <svg
@@ -241,6 +289,16 @@ export default function ProductDetails() {
   const shopKey = useMemo(() => normalizeShop(product?.shop), [product?.shop]);
   const brand = useMemo(() => String(product?.brand || "").trim(), [product]);
 
+  const shippingSource = useMemo(
+    () => normalizeShippingSource(product),
+    [product]
+  );
+
+  const shippingBadgeLabel = useMemo(
+    () => getShippingBadgeLabel(shippingSource),
+    [shippingSource]
+  );
+
   useEffect(() => {
     const initialSelections = {};
     customizations.forEach((group) => {
@@ -293,6 +351,7 @@ export default function ProductDetails() {
       selectedOptions,
       selectedOptionsLabel,
       customizations,
+      shippingSource,
     };
   };
 
@@ -480,6 +539,17 @@ export default function ProductDetails() {
                   ))}
                 </div>
 
+                {shippingBadgeLabel ? (
+                  <div
+                    className={`pd-ship-badge ${
+                      shippingSource === "uni" ? "pd-ship-badge--uni" : ""
+                    }`}
+                    aria-label={shippingBadgeLabel}
+                  >
+                    {shippingBadgeLabel}
+                  </div>
+                ) : null}
+
                 {images.length > 1 ? (
                   <>
                     <div className="pd-gallery-topbar">
@@ -565,6 +635,16 @@ export default function ProductDetails() {
               <MonoStatusIcon />
               <span>{isOutOfStock ? "Out of stock" : "In stock"}</span>
             </div>
+
+            {shippingBadgeLabel ? (
+              <div
+                className={`pd-badge ${
+                  shippingSource === "uni" ? "pd-badge--uni" : "pd-badge--ship"
+                }`}
+              >
+                <span>{shippingBadgeLabel}</span>
+              </div>
+            ) : null}
 
             {images.length > 1 ? (
               <div className="pd-badge">
