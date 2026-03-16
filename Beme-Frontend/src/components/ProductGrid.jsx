@@ -17,6 +17,56 @@ const COLLECTION_NAME = "Products";
 const PAGE_SIZE = 24;
 const MAX_PAGES = 8;
 
+function parseBooleanish(value, fallback = false) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value > 0;
+
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return fallback;
+
+  if (
+    [
+      "true",
+      "yes",
+      "1",
+      "in stock",
+      "instock",
+      "available",
+      "active",
+      "featured",
+      "abroad",
+      "imported",
+      "international",
+      "overseas",
+    ].includes(raw)
+  ) {
+    return true;
+  }
+
+  if (
+    [
+      "false",
+      "no",
+      "0",
+      "out of stock",
+      "outofstock",
+      "unavailable",
+      "inactive",
+      "local",
+    ].includes(raw)
+  ) {
+    return false;
+  }
+
+  return fallback;
+}
+
+function getNumericStock(value) {
+  if (value === "" || value === null || value === undefined) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function normalizeFilter(filter) {
   if (!filter) {
     return {
@@ -65,28 +115,104 @@ function normalizeFilter(filter) {
   };
 }
 
+function normalizeImages(data) {
+  const list = Array.isArray(data?.images)
+    ? data.images.map((item) => String(item || "").trim()).filter(Boolean)
+    : [];
+
+  if (list.length) return list;
+
+  const single = String(data?.image || "").trim();
+  return single ? [single] : [];
+}
+
+function normalizeShippingSource(data) {
+  const candidates = [
+    data?.shippingSource,
+    data?.shippingType,
+    data?.shipFrom,
+    data?.ship_from,
+    data?.fulfillmentType,
+    data?.originType,
+    data?.shipping_origin,
+    data?.shipping_origin_type,
+  ];
+
+  for (const candidate of candidates) {
+    const value = String(candidate || "").trim().toLowerCase();
+    if (!value) continue;
+
+    if (
+      [
+        "abroad",
+        "ship from abroad",
+        "ships from abroad",
+        "international",
+        "imported",
+        "overseas",
+      ].includes(value)
+    ) {
+      return "abroad";
+    }
+
+    if (["uni", "unisex", "universal"].includes(value)) {
+      return "uni";
+    }
+
+    if (["local", "ghana", "domestic"].includes(value)) {
+      return "local";
+    }
+  }
+
+  if (
+    parseBooleanish(data?.shipFromAbroad, false) ||
+    parseBooleanish(data?.shipsFromAbroad, false)
+  ) {
+    return "abroad";
+  }
+
+  return "";
+}
+
 function normalizeDoc(docSnap) {
   const d = docSnap.data() || {};
+
   const price = Number(d.price ?? d.Price ?? 0) || 0;
-  const oldPrice = d.oldPrice ?? d.oldprice ?? null;
+  const rawOldPrice = d.oldPrice ?? d.oldprice ?? null;
 
   const dept = d.dept ?? d.Dept ?? null;
   const kind = d.kind ?? d.Kind ?? null;
   const shop = d.shop ?? d.Shop ?? "main";
 
-  const inStock = Boolean(d.inStock ?? d.stock ?? d.in_stock ?? false);
-  const featured = Boolean(d.featured ?? d.Featured ?? false);
+  const stock = getNumericStock(d.stock ?? d.Stock ?? d.quantity ?? d.qty);
+  const inStock = parseBooleanish(d.inStock ?? d.in_stock, true);
+  const featured = parseBooleanish(d.featured ?? d.Featured, false);
+
+  const images = normalizeImages(d);
+  const shippingSource = normalizeShippingSource(d);
+  const shipsFromAbroad =
+    shippingSource === "abroad" ||
+    parseBooleanish(d.shipFromAbroad, false) ||
+    parseBooleanish(d.shipsFromAbroad, false);
 
   return {
     id: docSnap.id,
     ...d,
     price,
-    oldPrice: oldPrice != null ? Number(oldPrice) || oldPrice : null,
+    oldPrice:
+      rawOldPrice !== null && rawOldPrice !== undefined && rawOldPrice !== ""
+        ? Number(rawOldPrice) || rawOldPrice
+        : null,
     dept: typeof dept === "string" ? dept.toLowerCase() : dept,
     kind: typeof kind === "string" ? kind.toLowerCase() : kind,
     shop: typeof shop === "string" ? shop.toLowerCase() : shop,
+    stock,
     inStock,
     featured,
+    image: images[0] || "",
+    images,
+    shippingSource,
+    shipsFromAbroad,
     createdAt: d.createdAt ?? null,
   };
 }
@@ -130,10 +256,13 @@ function matchesSearch(product, term) {
 
   const haystack = [
     product.name,
+    product.brand,
     product.description,
     product.dept,
     product.kind,
     product.shop,
+    product.shipsFromAbroad ? "ships from abroad imported international" : "local",
+    product.inStock ? "in stock" : "out of stock",
   ]
     .filter(Boolean)
     .join(" ")
