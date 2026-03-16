@@ -134,10 +134,6 @@ function getNumericStock(item) {
 function isItemOutOfStock(item) {
   if (!item) return true;
   if (item.inStock === false) return true;
-
-  const stock = getNumericStock(item);
-  if (stock !== null && stock <= 0) return true;
-
   return false;
 }
 
@@ -160,6 +156,12 @@ function getUnavailableReason(item) {
   }
 
   return "";
+}
+
+function getItemAbroadDeliveryFee(item) {
+  if (!item?.shipsFromAbroad) return 0;
+  const parsed = Number(item?.abroadDeliveryFee);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
 function PaymentIcon({ type, disabled = false }) {
@@ -342,12 +344,25 @@ export default function Checkout() {
     }, 0);
   }, [cartItems]);
 
-  const deliveryFeeUI = useMemo(() => {
+  const regionalDeliveryFeeUI = useMemo(() => {
     if (!form.region) return 0;
     return FREE_DELIVERY_REGIONS.has(form.region)
       ? 0
       : OUTSIDE_ACCRA_DELIVERY_FEE;
   }, [form.region]);
+
+  const abroadDeliveryFeeUI = useMemo(() => {
+    return cartItems.reduce((sum, item) => {
+      const qty = Number(item.qty) || 0;
+      const fee = getItemAbroadDeliveryFee(item);
+      return sum + fee * qty;
+    }, 0);
+  }, [cartItems]);
+
+  const deliveryFeeUI = useMemo(
+    () => regionalDeliveryFeeUI + abroadDeliveryFeeUI,
+    [regionalDeliveryFeeUI, abroadDeliveryFeeUI]
+  );
 
   const totalUI = useMemo(
     () => subtotalUI + deliveryFeeUI,
@@ -564,12 +579,18 @@ export default function Checkout() {
       id: item.id || "",
       name: item.name || "",
       price: Number(item.price) || 0,
+      basePrice: Number(item.basePrice ?? item.price ?? 0) || 0,
+      optionPriceTotal: Number(item.optionPriceTotal || 0) || 0,
       qty: Number(item.qty) || 1,
       image: item.image || "",
       shop: normalizeShop(item.shop),
       selectedOptions: item.selectedOptions || {},
       selectedOptionsLabel: item.selectedOptionsLabel || "",
+      selectedOptionDetails: Array.isArray(item.selectedOptionDetails)
+        ? item.selectedOptionDetails
+        : [],
       shipsFromAbroad: item.shipsFromAbroad === true,
+      abroadDeliveryFee: getItemAbroadDeliveryFee(item),
       inStock: item.inStock !== false,
       stock: getNumericStock(item),
     }));
@@ -598,6 +619,8 @@ export default function Checkout() {
       primaryShop: shops[0] || "main",
       pricing: {
         subtotal: subtotalUI,
+        regionalDeliveryFee: regionalDeliveryFeeUI,
+        abroadDeliveryFee: abroadDeliveryFeeUI,
         deliveryFee: deliveryFeeUI,
         total: totalUI,
         currency: "GHS",
@@ -669,6 +692,12 @@ export default function Checkout() {
         cartItems: cartItems.map((item) => ({
           ...item,
           shop: normalizeShop(item.shop),
+          abroadDeliveryFee: getItemAbroadDeliveryFee(item),
+          selectedOptionDetails: Array.isArray(item.selectedOptionDetails)
+            ? item.selectedOptionDetails
+            : [],
+          basePrice: Number(item.basePrice ?? item.price ?? 0) || 0,
+          optionPriceTotal: Number(item.optionPriceTotal || 0) || 0,
         })),
         customer: {
           ...form,
@@ -676,6 +705,8 @@ export default function Checkout() {
           phone: normalizedPhone,
           network,
           deliveryFee: deliveryFeeUI,
+          regionalDeliveryFee: regionalDeliveryFeeUI,
+          abroadDeliveryFee: abroadDeliveryFeeUI,
           userId: user.uid,
         },
       });
@@ -1059,6 +1090,7 @@ export default function Checkout() {
 
               {cartItems.map((item, index) => {
                 const unavailableReason = getUnavailableReason(item);
+                const itemAbroadFee = getItemAbroadDeliveryFee(item);
 
                 return (
                   <div
@@ -1086,6 +1118,9 @@ export default function Checkout() {
                         {item.shipsFromAbroad ? (
                           <small className="summary-item-options summary-item-options--abroad">
                             Ships from abroad
+                            {itemAbroadFee > 0
+                              ? ` • Fee: GHS ${itemAbroadFee.toFixed(2)} each`
+                              : ""}
                           </small>
                         ) : null}
                         {unavailableReason ? (
@@ -1109,7 +1144,7 @@ export default function Checkout() {
 
               <div className="summary-line">
                 <span>
-                  Delivery
+                  Regional delivery
                   {form.region ? (
                     <small className="summary-line-sub">
                       {FREE_DELIVERY_REGIONS.has(form.region)
@@ -1121,6 +1156,28 @@ export default function Checkout() {
                       Select region to calculate
                     </small>
                   )}
+                </span>
+                <span>GHS {regionalDeliveryFeeUI.toFixed(2)}</span>
+              </div>
+
+              <div className="summary-line">
+                <span>
+                  Abroad delivery
+                  <small className="summary-line-sub">
+                    {abroadDeliveryFeeUI > 0
+                      ? "Charged from shipped abroad items"
+                      : "No abroad delivery fee"}
+                  </small>
+                </span>
+                <span>GHS {abroadDeliveryFeeUI.toFixed(2)}</span>
+              </div>
+
+              <div className="summary-line">
+                <span>
+                  Total delivery
+                  <small className="summary-line-sub">
+                    Regional + abroad delivery
+                  </small>
                 </span>
                 <span>GHS {deliveryFeeUI.toFixed(2)}</span>
               </div>
