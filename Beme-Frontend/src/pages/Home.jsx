@@ -131,6 +131,7 @@ function BannerLinkCard({
   subtitle,
   align = "left",
   tone = "",
+  size = "square",
   onClick,
   ariaLabel,
 }) {
@@ -138,14 +139,21 @@ function BannerLinkCard({
     "shop-banner",
     align === "center" ? "shop-banner--center" : "shop-banner--left",
     tone ? `shop-banner--${tone}` : "",
+    size ? `shop-banner--${size}` : "",
   ]
     .join(" ")
     .trim();
 
-  const overlayClassName =
+  const overlayClassName = [
+    "shop-banner-overlay",
     align === "center"
-      ? "shop-banner-overlay shop-banner-overlay--center"
-      : "shop-banner-overlay shop-banner-overlay--left";
+      ? "shop-banner-overlay--center"
+      : "shop-banner-overlay--left",
+    size === "featured" ? "shop-banner-overlay--featured" : "",
+    size === "square" ? "shop-banner-overlay--square" : "",
+  ]
+    .join(" ")
+    .trim();
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -169,6 +177,7 @@ function BannerLinkCard({
         <span className="shop-banner-chip">{chip}</span>
         <h2>{title}</h2>
         {subtitle ? <p className="shop-banner-copy">{subtitle}</p> : null}
+        <span className="shop-banner-cta">Open shop</span>
       </div>
     </div>
   );
@@ -227,6 +236,72 @@ export default function Home() {
         title: "Latest gadgets for modern living",
         subtitle: "Smart devices, clean design, everyday performance.",
         action: () => navigate("/shop?shop=tech"),
+      },
+    ],
+    [navigate]
+  );
+
+  const storeCards = useMemo(
+    () => [
+      {
+        id: "fashion",
+        image: fashionBanner,
+        chip: "Fashion Shop",
+        title: "Modern fashion essentials",
+        subtitle: "Clean everyday style and curated wardrobe picks.",
+        align: "left",
+        tone: "fashion",
+        size: "featured",
+        onClick: () => navigate("/shop?shop=fashion"),
+        ariaLabel: "Open Fashion Shop",
+      },
+      {
+        id: "main",
+        image: banner,
+        chip: "Main Store",
+        title: "Everyday bestsellers",
+        subtitle: "Mixed essentials, popular picks, and store highlights.",
+        align: "left",
+        tone: "main",
+        size: "square",
+        onClick: () => navigate("/shop?shop=main"),
+        ariaLabel: "Open Main Store",
+      },
+      {
+        id: "kente",
+        image: kenteBanner,
+        chip: "Ghana Made",
+        title: "Mintah's Kente",
+        subtitle: "Premium woven styles with heritage appeal.",
+        align: "center",
+        tone: "kente",
+        size: "square",
+        onClick: () => navigate("/shop?shop=kente"),
+        ariaLabel: "Open Mintah's Kente collection",
+      },
+      {
+        id: "perfume",
+        image: perfumeBanner,
+        chip: "Perfume Shop",
+        title: "Luxury scents",
+        subtitle: "Refined fragrances for daily wear and gifting.",
+        align: "left",
+        tone: "perfume",
+        size: "square",
+        onClick: () => navigate("/shop?shop=perfume"),
+        ariaLabel: "Open Perfume Shop",
+      },
+      {
+        id: "tech",
+        image: techBanner,
+        chip: "Tech Shop",
+        title: "Latest gadgets",
+        subtitle: "Smart devices and modern electronics for daily life.",
+        align: "left",
+        tone: "tech",
+        size: "square",
+        onClick: () => navigate("/shop?shop=tech"),
+        ariaLabel: "Open Tech Shop",
       },
     ],
     [navigate]
@@ -299,11 +374,6 @@ export default function Home() {
   const currentSlide = heroSlides[heroIndex];
 
   const goToShop = () => navigate("/shop");
-  const goToFashionShop = () => navigate("/shop?shop=fashion");
-  const goToMainStore = () => navigate("/shop?shop=main");
-  const goToPerfumeShop = () => navigate("/shop?shop=perfume");
-  const goToKenteCollection = () => navigate("/shop?shop=kente");
-  const goToTechShop = () => navigate("/shop?shop=tech");
 
   const goToSearch = (value) => {
     const q = String(value || "").trim();
@@ -372,6 +442,9 @@ export default function Home() {
   const activateHeroSlide = () => {
     currentSlide.action?.();
   };
+
+  const featuredStore = storeCards[0];
+  const secondaryStores = storeCards.slice(1);
 
   return (
     <div className="home">
@@ -490,65 +563,46 @@ export default function Home() {
       </section>
 
       <section className="section">
-        <div className="section-header">
-          <h3>Shop by store</h3>
+        <div className="section-header section-header--stores">
+          <div>
+            <h3>Shop by store</h3>
+            <p className="section-subtitle">
+              Explore each shop through a cleaner featured-plus-grid layout.
+            </p>
+          </div>
         </div>
 
-        <div className="shop-banner-grid">
-          <BannerLinkCard
-            image={fashionBanner}
-            chip="Fashion Shop"
-            title="Modern fashion essentials"
-            subtitle="Clean everyday style, curated for confident dressing."
-            align="left"
-            tone="fashion"
-            onClick={goToFashionShop}
-            ariaLabel="Open Fashion Shop"
-          />
+        <div className="shop-storefront">
+          <div className="shop-storefront-featured">
+            <BannerLinkCard
+              image={featuredStore.image}
+              chip={featuredStore.chip}
+              title={featuredStore.title}
+              subtitle={featuredStore.subtitle}
+              align={featuredStore.align}
+              tone={featuredStore.tone}
+              size={featuredStore.size}
+              onClick={featuredStore.onClick}
+              ariaLabel={featuredStore.ariaLabel}
+            />
+          </div>
 
-          <BannerLinkCard
-            image={banner}
-            chip="Main Store"
-            title="Everyday bestsellers"
-            subtitle="Browse mixed essentials, standout finds, and store highlights."
-            align="left"
-            tone="main"
-            onClick={goToMainStore}
-            ariaLabel="Open Main Store"
-          />
-
-          <BannerLinkCard
-            image={kenteBanner}
-            chip="Ghana Made"
-            title="Mintah's Kente"
-            subtitle="Signature woven styles with premium presentation."
-            align="center"
-            tone="kente"
-            onClick={goToKenteCollection}
-            ariaLabel="Open Mintah's Kente collection"
-          />
-
-          <BannerLinkCard
-            image={perfumeBanner}
-            chip="Perfume Shop"
-            title="Luxury scents for every mood"
-            subtitle="Discover refined fragrances for daily wear and gifting."
-            align="left"
-            tone="perfume"
-            onClick={goToPerfumeShop}
-            ariaLabel="Open Perfume Shop"
-          />
-
-          <BannerLinkCard
-            image={techBanner}
-            chip="Tech Shop"
-            title="Latest gadgets. Endless innovation."
-            subtitle="Smart devices and modern electronics for everyday life."
-            align="left"
-            tone="tech"
-            onClick={goToTechShop}
-            ariaLabel="Open Tech Shop"
-          />
+          <div className="shop-storefront-grid">
+            {secondaryStores.map((store) => (
+              <BannerLinkCard
+                key={store.id}
+                image={store.image}
+                chip={store.chip}
+                title={store.title}
+                subtitle={store.subtitle}
+                align={store.align}
+                tone={store.tone}
+                size={store.size}
+                onClick={store.onClick}
+                ariaLabel={store.ariaLabel}
+              />
+            ))}
+          </div>
         </div>
       </section>
 
