@@ -367,11 +367,8 @@ export default function ProductDetails() {
   const stock = useMemo(() => getNumericStock(product), [product]);
 
   const isOutOfStock = useMemo(() => {
-    return (
-      parseBooleanish(product?.inStock, true) === false ||
-      (stock !== null && stock <= 0)
-    );
-  }, [product, stock]);
+    return parseBooleanish(product?.inStock, true) === false;
+  }, [product]);
 
   useEffect(() => {
     const initialSelections = {};
