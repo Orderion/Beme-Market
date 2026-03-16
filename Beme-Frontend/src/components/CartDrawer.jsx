@@ -39,6 +39,7 @@ export default function CartDrawer({ isOpen, onClose }) {
     updateQty,
     subtotal,
     itemCount,
+    cartPopup,
     hideCartPopup,
     hasUnavailableItems,
   } = useCart();
@@ -58,6 +59,16 @@ export default function CartDrawer({ isOpen, onClose }) {
   const unavailableCount = useMemo(() => {
     return cartItems.filter((item) => getUnavailableReason(item)).length;
   }, [cartItems]);
+
+  const popupItem = cartPopup?.item || null;
+  const popupImage =
+    popupItem?.image ||
+    (Array.isArray(popupItem?.images) ? popupItem.images[0] : "") ||
+    "";
+  const popupTitle = cartPopup?.title || "Added to cart";
+  const popupMessage =
+    cartPopup?.message ||
+    "Thank you for shopping with us. Your item has been added to cart.";
 
   const goCheckout = () => {
     if (cartItems.length === 0 || hasUnavailableItems) {
@@ -112,6 +123,69 @@ export default function CartDrawer({ isOpen, onClose }) {
         </div>
 
         <div className="cd-body">
+          {cartPopup?.visible && popupItem ? (
+            <div
+              className={`cd-success-card ${
+                cartPopup?.firstAdd ? "cd-success-card--first" : ""
+              }`}
+              role="status"
+              aria-live="polite"
+            >
+              <div className="cd-success-top">
+                <button
+                  type="button"
+                  className="cd-success-dismiss"
+                  onClick={hideCartPopup}
+                  aria-label="Dismiss added to cart message"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="cd-success-content">
+                <div className="cd-success-media">
+                  {popupImage ? (
+                    <img src={popupImage} alt={popupItem.name || "Added product"} />
+                  ) : (
+                    <div className="cd-success-media-placeholder">No image</div>
+                  )}
+                </div>
+
+                <div className="cd-success-info">
+                  <p className="cd-success-kicker">Thank you</p>
+                  <h4 className="cd-success-title">{popupTitle}</h4>
+                  <p className="cd-success-message">{popupMessage}</p>
+
+                  <div className="cd-success-product">
+                    <strong>{popupItem.name || "Product"}</strong>
+                    <span>
+                      GHS {Number(popupItem.price || 0).toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="cd-success-actions">
+                    <button
+                      type="button"
+                      className="cd-ghost"
+                      onClick={handleContinueShopping}
+                    >
+                      Continue shopping
+                    </button>
+
+                    <button
+                      type="button"
+                      className="cd-checkout cd-checkout--inline"
+                      onClick={goCheckout}
+                      disabled={cartItems.length === 0 || hasUnavailableItems}
+                    >
+                      {hasUnavailableItems ? "Resolve cart issues" : "Checkout"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           {cartMessage ? (
             <div className="cd-cart-alert" role="status" aria-live="polite">
               {cartMessage}
@@ -148,7 +222,8 @@ export default function CartDrawer({ isOpen, onClose }) {
               const stock = getNumericStock(item);
               const unavailableReason = getUnavailableReason(item);
               const itemBlocked = Boolean(unavailableReason);
-              const canIncrease = !isOutOfStock(item) && (stock === null || qty < stock);
+              const canIncrease =
+                !isOutOfStock(item) && (stock === null || qty < stock);
 
               return (
                 <div key={item.lineId || item.id} className="cd-item">
@@ -178,7 +253,9 @@ export default function CartDrawer({ isOpen, onClose }) {
 
                     {item.shipsFromAbroad ? (
                       <div className="cd-item-options">
-                        <span className="cd-option-pill">Ships from abroad</span>
+                        <span className="cd-option-pill cd-option-pill--abroad">
+                          Ships from abroad
+                        </span>
                       </div>
                     ) : null}
 
