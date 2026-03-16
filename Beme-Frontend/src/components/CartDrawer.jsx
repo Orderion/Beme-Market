@@ -1,7 +1,35 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import "./CartDrawer.css";
+
+function getNumericStock(item) {
+  const parsed = Number(item?.stock);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isOutOfStock(item) {
+  if (!item) return true;
+  if (item.inStock === false) return true;
+
+  const stock = getNumericStock(item);
+  if (stock !== null && stock <= 0) return true;
+
+  return false;
+}
+
+function getUnavailableReason(item) {
+  if (isOutOfStock(item)) return "Out of stock";
+
+  const stock = getNumericStock(item);
+  const qty = Number(item?.qty || 0);
+
+  if (stock !== null && qty > stock) {
+    return `Only ${stock} left in stock`;
+  }
+
+  return "";
+}
 
 export default function CartDrawer({ isOpen, onClose }) {
   const navigate = useNavigate();
@@ -12,9 +40,35 @@ export default function CartDrawer({ isOpen, onClose }) {
     subtotal,
     itemCount,
     hideCartPopup,
+    hasUnavailableItems,
   } = useCart();
 
+  const [cartMessage, setCartMessage] = useState("");
+
+  useEffect(() => {
+    if (!cartMessage) return;
+
+    const timer = window.setTimeout(() => {
+      setCartMessage("");
+    }, 2200);
+
+    return () => window.clearTimeout(timer);
+  }, [cartMessage]);
+
+  const unavailableCount = useMemo(() => {
+    return cartItems.filter((item) => getUnavailableReason(item)).length;
+  }, [cartItems]);
+
   const goCheckout = () => {
+    if (cartItems.length === 0 || hasUnavailableItems) {
+      if (hasUnavailableItems) {
+        setCartMessage(
+          "Some items in your cart are unavailable. Remove them or reduce quantity before checkout."
+        );
+      }
+      return;
+    }
+
     hideCartPopup?.();
     onClose?.();
     navigate("/checkout");
@@ -23,6 +77,20 @@ export default function CartDrawer({ isOpen, onClose }) {
   const handleContinueShopping = () => {
     hideCartPopup?.();
     onClose?.();
+  };
+
+  const handleDecrease = (item, qty) => {
+    const result = updateQty(item.lineId || item.id, Math.max(1, qty - 1));
+    if (result?.ok === false) {
+      setCartMessage(result.message || "Unable to update quantity.");
+    }
+  };
+
+  const handleIncrease = (item, qty) => {
+    const result = updateQty(item.lineId || item.id, qty + 1);
+    if (result?.ok === false) {
+      setCartMessage(result.message || "Unable to update quantity.");
+    }
   };
 
   return (
@@ -44,6 +112,19 @@ export default function CartDrawer({ isOpen, onClose }) {
         </div>
 
         <div className="cd-body">
+          {cartMessage ? (
+            <div className="cd-cart-alert" role="status" aria-live="polite">
+              {cartMessage}
+            </div>
+          ) : null}
+
+          {hasUnavailableItems ? (
+            <div className="cd-cart-alert cd-cart-alert--warning">
+              {unavailableCount} cart item{unavailableCount !== 1 ? "s are" : " is"}{" "}
+              unavailable. Remove them or reduce quantity before checkout.
+            </div>
+          ) : null}
+
           {cartItems.length === 0 ? (
             <div className="cd-empty">
               <p>Your cart is empty.</p>
@@ -64,6 +145,10 @@ export default function CartDrawer({ isOpen, onClose }) {
               const name = item.name || "Untitled";
               const price = Number(item.price || 0);
               const qty = Number(item.qty || 1);
+              const stock = getNumericStock(item);
+              const unavailableReason = getUnavailableReason(item);
+              const itemBlocked = Boolean(unavailableReason);
+              const canIncrease = !isOutOfStock(item) && (stock === null || qty < stock);
 
               return (
                 <div key={item.lineId || item.id} className="cd-item">
@@ -97,24 +182,43 @@ export default function CartDrawer({ isOpen, onClose }) {
                       </div>
                     ) : null}
 
+                    {stock !== null && !isOutOfStock(item) ? (
+                      <div className="cd-item-options">
+                        <span className="cd-option-pill">Stock: {stock}</span>
+                      </div>
+                    ) : null}
+
+                    {unavailableReason ? (
+                      <div className="cd-item-options">
+                        <span className="cd-option-pill cd-option-pill--danger">
+                          {unavailableReason}
+                        </span>
+                      </div>
+                    ) : null}
+
                     <p className="cd-item-price">GHS {price.toFixed(2)}</p>
 
                     <div className="cd-item-actions">
                       <div className="cd-qty">
                         <button
                           type="button"
-                          onClick={() =>
-                            updateQty(item.lineId || item.id, Math.max(1, qty - 1))
-                          }
+                          onClick={() => handleDecrease(item, qty)}
                           aria-label="Decrease quantity"
+                          disabled={itemBlocked || qty <= 1}
                         >
                           −
                         </button>
                         <span>{qty}</span>
                         <button
                           type="button"
-                          onClick={() => updateQty(item.lineId || item.id, qty + 1)}
+                          onClick={() => handleIncrease(item, qty)}
                           aria-label="Increase quantity"
+                          disabled={!canIncrease}
+                          title={
+                            !canIncrease && stock !== null && !isOutOfStock(item)
+                              ? `Only ${stock} available`
+                              : undefined
+                          }
                         >
                           +
                         </button>
@@ -137,7 +241,11 @@ export default function CartDrawer({ isOpen, onClose }) {
         </div>
 
         <div className="cd-footer">
-          <div className="cd-note">Shipping fee is calculated at checkout.</div>
+          <div className="cd-note">
+            {hasUnavailableItems
+              ? "Resolve unavailable items before checkout."
+              : "Shipping fee is calculated at checkout."}
+          </div>
 
           <div className="cd-total">
             <span>Total</span>
@@ -147,10 +255,10 @@ export default function CartDrawer({ isOpen, onClose }) {
           <button
             className="cd-checkout"
             onClick={goCheckout}
-            disabled={cartItems.length === 0}
+            disabled={cartItems.length === 0 || hasUnavailableItems}
             type="button"
           >
-            Checkout
+            {hasUnavailableItems ? "Resolve cart issues" : "Checkout"}
           </button>
         </div>
       </aside>
