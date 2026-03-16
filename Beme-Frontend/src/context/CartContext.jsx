@@ -3,11 +3,13 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
 const CartContext = createContext(null);
 const CART_STORAGE_KEY = "beme_market_cart";
+const CART_POPUP_STORAGE_KEY = "beme_market_cart_popup_state";
 
 function normalizeSelectedOptions(selectedOptions) {
   if (!selectedOptions || typeof selectedOptions !== "object") return {};
@@ -52,6 +54,7 @@ function normalizeCartItem(product) {
     customizations: Array.isArray(product?.customizations)
       ? product.customizations
       : [],
+    shipsFromAbroad: product?.shipsFromAbroad === true,
   };
 
   if (!normalized.selectedOptionsLabel) {
@@ -83,8 +86,46 @@ function safeReadStoredCart() {
   }
 }
 
+function safeReadPopupState() {
+  if (typeof window === "undefined") {
+    return {
+      visible: false,
+      item: null,
+      hasShownSinceEmpty: false,
+    };
+  }
+
+  try {
+    const raw = window.localStorage.getItem(CART_POPUP_STORAGE_KEY);
+    if (!raw) {
+      return {
+        visible: false,
+        item: null,
+        hasShownSinceEmpty: false,
+      };
+    }
+
+    const parsed = JSON.parse(raw);
+
+    return {
+      visible: Boolean(parsed?.visible),
+      item: parsed?.item ? normalizeCartItem(parsed.item) : null,
+      hasShownSinceEmpty: Boolean(parsed?.hasShownSinceEmpty),
+    };
+  } catch (error) {
+    console.error("Failed to read cart popup state from localStorage:", error);
+    return {
+      visible: false,
+      item: null,
+      hasShownSinceEmpty: false,
+    };
+  }
+}
+
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState(() => safeReadStoredCart());
+  const [cartPopup, setCartPopup] = useState(() => safeReadPopupState());
+  const autoHideTimerRef = useRef(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -96,9 +137,71 @@ export const CartProvider = ({ children }) => {
     }
   }, [cartItems]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      window.localStorage.setItem(
+        CART_POPUP_STORAGE_KEY,
+        JSON.stringify(cartPopup)
+      );
+    } catch (error) {
+      console.error("Failed to save cart popup state to localStorage:", error);
+    }
+  }, [cartPopup]);
+
+  useEffect(() => {
+    return () => {
+      if (autoHideTimerRef.current) {
+        window.clearTimeout(autoHideTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (cartItems.length === 0 && cartPopup.hasShownSinceEmpty) {
+      setCartPopup((prev) => ({
+        ...prev,
+        visible: false,
+        item: null,
+        hasShownSinceEmpty: false,
+      }));
+    }
+  }, [cartItems.length, cartPopup.hasShownSinceEmpty]);
+
+  const hideCartPopup = () => {
+    setCartPopup((prev) => ({
+      ...prev,
+      visible: false,
+    }));
+  };
+
+  const showCartPopup = (item) => {
+    if (typeof window !== "undefined" && autoHideTimerRef.current) {
+      window.clearTimeout(autoHideTimerRef.current);
+    }
+
+    setCartPopup({
+      visible: true,
+      item,
+      hasShownSinceEmpty: true,
+    });
+
+    if (typeof window !== "undefined") {
+      autoHideTimerRef.current = window.setTimeout(() => {
+        setCartPopup((prev) => ({
+          ...prev,
+          visible: false,
+        }));
+      }, 4500);
+    }
+  };
+
   const addToCart = (product) => {
     const nextItem = normalizeCartItem(product);
     const lineId = nextItem.lineId;
+
+    let shouldShowFirstAddPopup = false;
 
     setCartItems((prev) => {
       const existing = prev.find((item) => item.lineId === lineId);
@@ -117,8 +220,16 @@ export const CartProvider = ({ children }) => {
         );
       }
 
+      if (prev.length === 0 && !cartPopup.hasShownSinceEmpty) {
+        shouldShowFirstAddPopup = true;
+      }
+
       return [...prev, nextItem];
     });
+
+    if (shouldShowFirstAddPopup) {
+      showCartPopup(nextItem);
+    }
   };
 
   const removeFromCart = (lineId) => {
@@ -137,6 +248,15 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     setCartItems([]);
+    setCartPopup({
+      visible: false,
+      item: null,
+      hasShownSinceEmpty: false,
+    });
+
+    if (typeof window !== "undefined" && autoHideTimerRef.current) {
+      window.clearTimeout(autoHideTimerRef.current);
+    }
   };
 
   const itemCount = useMemo(() => {
@@ -159,6 +279,9 @@ export const CartProvider = ({ children }) => {
     clearCart,
     subtotal,
     itemCount,
+    cartPopup,
+    hideCartPopup,
+    showCartPopup,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
