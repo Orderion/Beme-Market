@@ -45,10 +45,10 @@ const initial = {
   customizations: [],
 };
 
-const BULK_IMPORT_SAMPLE = `product_name,category,brand,price_ghs,key_features,target_customer,customization_options,short_description,ships_from_abroad
-Samsung Galaxy S23,Phone,Samsung,7500,"8GB RAM, 128GB–256GB storage, AMOLED display","Smartphone users, professionals","Storage: 128GB|256GB; Color: Black|Green|Cream","Samsung Galaxy S23 offers powerful flagship performance with a bright AMOLED display and fast processing for work, entertainment, and daily use.",yes
-Apple MacBook Air M2,Laptop,Apple,11000,"8GB–16GB RAM, 256GB–512GB SSD, Apple M2 chip","Students, professionals, creators","RAM: 8GB|16GB; Storage: 256GB|512GB; Color: Silver|Space Gray|Midnight","Apple MacBook Air M2 delivers smooth everyday performance in a slim and lightweight design.",no
-Apple AirPods Pro 2,Accessory,Apple,3200,"Active noise cancellation, spatial audio","Apple device users","Color: White","Apple AirPods Pro 2 combine premium sound, comfort, and wireless convenience for everyday listening.",no`;
+const BULK_IMPORT_SAMPLE = `product_name,category,brand,price_ghs,key_features,target_customer,customization_options,short_description,ships_from_abroad,in_stock,featured
+Samsung Galaxy S23,Phone,Samsung,7500,"8GB RAM, 128GB–256GB storage, AMOLED display","Smartphone users, professionals","Storage: 128GB|256GB; Color: Black|Green|Cream","Samsung Galaxy S23 offers powerful flagship performance with a bright AMOLED display and fast processing for work, entertainment, and daily use.",yes,yes,no
+Apple MacBook Air M2,Laptop,Apple,11000,"8GB–16GB RAM, 256GB–512GB SSD, Apple M2 chip","Students, professionals, creators","RAM: 8GB|16GB; Storage: 256GB|512GB; Color: Silver|Space Gray|Midnight","Apple MacBook Air M2 delivers smooth everyday performance in a slim and lightweight design.",no,yes,yes
+Apple AirPods Pro 2,Accessory,Apple,3200,"Active noise cancellation, spatial audio","Apple device users","Color: White","Apple AirPods Pro 2 combine premium sound, comfort, and wireless convenience for everyday listening.",no,yes,no`;
 
 function normalizeCustomizationGroups(groups) {
   return groups
@@ -141,6 +141,10 @@ function normalizeAdminProduct(snapshotDoc) {
     featured: !!d.featured,
     inStock: !!d.inStock,
     shipsFromAbroad: !!d.shipsFromAbroad,
+    stock:
+      d.stock !== undefined && d.stock !== null && d.stock !== ""
+        ? Number(d.stock || 0)
+        : 0,
     customizations: Array.isArray(d.customizations) ? d.customizations : [],
     createdAt: d.createdAt || null,
     updatedAt: d.updatedAt || null,
@@ -357,6 +361,7 @@ function parseCustomizationsFromText(input) {
     })
     .filter(Boolean);
 }
+
 function parseImageList(row) {
   const image = String(row.image || row.imageUrl || "").trim();
   const imagesRaw = String(row.images || "").trim();
@@ -529,6 +534,68 @@ function importRowMatchesSearch(row, term) {
     .toLowerCase();
 
   return haystack.includes(q);
+}
+
+function StatusFlags({ inStock, featured, shipsFromAbroad }) {
+  return (
+    <div className="admin-product-flags">
+      <span
+        className={`admin-flag ${
+          inStock ? "admin-flag--success" : "admin-flag--danger"
+        }`}
+      >
+        {inStock ? "In stock" : "Out of stock"}
+      </span>
+
+      {featured ? (
+        <span className="admin-flag admin-flag--featured">Featured</span>
+      ) : null}
+
+      {shipsFromAbroad ? (
+        <span className="admin-flag admin-flag--imported">
+          Ships from abroad
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function ProductImagePreview({
+  image,
+  images,
+  name,
+  emptyLabel = "No image",
+  compact = false,
+}) {
+  const safeImages = Array.isArray(images)
+    ? images.map((item) => String(item || "").trim()).filter(Boolean)
+    : [];
+  const cover = String(image || safeImages[0] || "").trim();
+
+  if (!cover) {
+    return (
+      <div
+        className={`admin-product-image admin-product-image--empty${
+          compact ? " admin-product-image--compact" : ""
+        }`}
+      >
+        {emptyLabel}
+      </div>
+    );
+  }
+
+  const galleryCount = safeImages.length;
+
+  return (
+    <div className="admin-product-cover-wrap">
+      <img src={cover} alt={name} className="admin-product-image" />
+      {galleryCount > 1 ? (
+        <span className="admin-product-gallery-badge">
+          +{galleryCount - 1} more
+        </span>
+      ) : null}
+    </div>
+  );
 }
 
 export default function Admin() {
@@ -771,7 +838,8 @@ export default function Admin() {
       customizations: [...prev.customizations, makeOptionGroup()],
     }));
   };
-    const updateCustomizationGroup = (id, key, value) => {
+
+  const updateCustomizationGroup = (id, key, value) => {
     setForm((prev) => ({
       ...prev,
       customizations: prev.customizations.map((group) =>
@@ -1156,7 +1224,8 @@ export default function Admin() {
       if (old < price) return "Old price should be higher than current price.";
     }
 
-    if (!deptOptions.includes(editForm.dept)) return "Invalid department selected.";
+    if (!deptOptions.includes(editForm.dept))
+      return "Invalid department selected.";
     if (!kindOptions.includes(editForm.kind)) return "Invalid type selected.";
     if (!availableShops.includes(normalizeShopKey(editForm.shop))) {
       return "Invalid shop selected.";
@@ -1222,7 +1291,8 @@ export default function Admin() {
 
     return "";
   };
-    const cancelEditProduct = () => {
+
+  const cancelEditProduct = () => {
     if (editingId) return;
     setProductToEdit(null);
     setEditForm(initial);
@@ -2035,22 +2105,34 @@ export default function Admin() {
               <div className="admin-form admin-form--compact">
                 <label className="admin-field">
                   <span>Name</span>
-                  <input value={previewEditForm.name} onChange={setPreviewEditField("name")} />
+                  <input
+                    value={previewEditForm.name}
+                    onChange={setPreviewEditField("name")}
+                  />
                 </label>
 
                 <label className="admin-field">
                   <span>Brand</span>
-                  <input value={previewEditForm.brand} onChange={setPreviewEditField("brand")} />
+                  <input
+                    value={previewEditForm.brand}
+                    onChange={setPreviewEditField("brand")}
+                  />
                 </label>
 
                 <div className="admin-row">
                   <label className="admin-field">
                     <span>Price</span>
-                    <input value={previewEditForm.price} onChange={setPreviewEditField("price")} />
+                    <input
+                      value={previewEditForm.price}
+                      onChange={setPreviewEditField("price")}
+                    />
                   </label>
                   <label className="admin-field">
                     <span>Old price</span>
-                    <input value={previewEditForm.oldPrice} onChange={setPreviewEditField("oldPrice")} />
+                    <input
+                      value={previewEditForm.oldPrice}
+                      onChange={setPreviewEditField("oldPrice")}
+                    />
                   </label>
                 </div>
 
@@ -2066,7 +2148,10 @@ export default function Admin() {
                 <div className="admin-row">
                   <label className="admin-field">
                     <span>Department</span>
-                    <select value={previewEditForm.dept} onChange={setPreviewEditField("dept")}>
+                    <select
+                      value={previewEditForm.dept}
+                      onChange={setPreviewEditField("dept")}
+                    >
                       {DEPARTMENTS.map((d) => (
                         <option key={d.key} value={d.key}>
                           {d.label}
@@ -2077,7 +2162,10 @@ export default function Admin() {
 
                   <label className="admin-field">
                     <span>Type</span>
-                    <select value={previewEditForm.kind} onChange={setPreviewEditField("kind")}>
+                    <select
+                      value={previewEditForm.kind}
+                      onChange={setPreviewEditField("kind")}
+                    >
                       {KINDS.map((k) => (
                         <option key={k.key} value={k.key}>
                           {k.label}
@@ -2089,7 +2177,11 @@ export default function Admin() {
 
                 <label className="admin-field">
                   <span>Shop</span>
-                  <select value={previewEditForm.shop} onChange={setPreviewEditField("shop")} disabled={isShopAdmin}>
+                  <select
+                    value={previewEditForm.shop}
+                    onChange={setPreviewEditField("shop")}
+                    disabled={isShopAdmin}
+                  >
                     {availableShops.map((shopKey) => (
                       <option key={shopKey} value={shopKey}>
                         {formatShopLabel(shopKey)}
@@ -2099,33 +2191,47 @@ export default function Admin() {
                 </label>
 
                 <div className="admin-toggles">
-                  <label className="admin-switch">
-                    <input type="checkbox" checked={previewEditForm.inStock} onChange={setPreviewEditField("inStock")} />
+                  <label className="admin-switch admin-switch--stock">
+                    <input
+                      type="checkbox"
+                      checked={previewEditForm.inStock}
+                      onChange={setPreviewEditField("inStock")}
+                    />
                     <span className="admin-switch-ui" />
                     <span className="admin-switch-label">In stock</span>
                   </label>
 
-                  <label className="admin-switch">
-                    <input type="checkbox" checked={previewEditForm.featured} onChange={setPreviewEditField("featured")} />
+                  <label className="admin-switch admin-switch--featured">
+                    <input
+                      type="checkbox"
+                      checked={previewEditForm.featured}
+                      onChange={setPreviewEditField("featured")}
+                    />
                     <span className="admin-switch-ui" />
                     <span className="admin-switch-label">Featured</span>
                   </label>
 
-                  <label className="admin-switch">
+                  <label className="admin-switch admin-switch--abroad">
                     <input
                       type="checkbox"
                       checked={previewEditForm.shipsFromAbroad}
                       onChange={setPreviewEditField("shipsFromAbroad")}
                     />
                     <span className="admin-switch-ui" />
-                    <span className="admin-switch-label">Ships from abroad</span>
+                    <span className="admin-switch-label">
+                      Ships from abroad
+                    </span>
                   </label>
                 </div>
 
                 <div className="admin-options-card">
                   <div className="admin-options-head">
                     <h3 className="admin-options-title">Customizations</h3>
-                    <button type="button" className="admin-options-add" onClick={addPreviewEditCustomizationGroup}>
+                    <button
+                      type="button"
+                      className="admin-options-add"
+                      onClick={addPreviewEditCustomizationGroup}
+                    >
                       + Add option group
                     </button>
                   </div>
@@ -2134,7 +2240,13 @@ export default function Admin() {
                     <div className="admin-option-group" key={group.id}>
                       <div className="admin-option-group-head">
                         <strong>Option group {index + 1}</strong>
-                        <button type="button" className="admin-option-remove" onClick={() => removePreviewEditCustomizationGroup(group.id)}>
+                        <button
+                          type="button"
+                          className="admin-option-remove"
+                          onClick={() =>
+                            removePreviewEditCustomizationGroup(group.id)
+                          }
+                        >
                           Remove
                         </button>
                       </div>
@@ -2145,7 +2257,11 @@ export default function Admin() {
                           <input
                             value={group.name}
                             onChange={(e) =>
-                              updatePreviewEditCustomizationGroup(group.id, "name", e.target.value)
+                              updatePreviewEditCustomizationGroup(
+                                group.id,
+                                "name",
+                                e.target.value
+                              )
                             }
                           />
                         </label>
@@ -2155,7 +2271,11 @@ export default function Admin() {
                           <select
                             value={group.type}
                             onChange={(e) =>
-                              updatePreviewEditCustomizationGroup(group.id, "type", e.target.value)
+                              updatePreviewEditCustomizationGroup(
+                                group.id,
+                                "type",
+                                e.target.value
+                              )
                             }
                           >
                             <option value="buttons">Buttons</option>
@@ -2169,7 +2289,11 @@ export default function Admin() {
                         <input
                           value={group.valuesText}
                           onChange={(e) =>
-                            updatePreviewEditCustomizationGroup(group.id, "valuesText", e.target.value)
+                            updatePreviewEditCustomizationGroup(
+                              group.id,
+                              "valuesText",
+                              e.target.value
+                            )
                           }
                         />
                       </label>
@@ -2177,14 +2301,26 @@ export default function Admin() {
                   ))}
                 </div>
 
-                {previewEditError ? <div className="admin-msg">{previewEditError}</div> : null}
-                {previewEditMsg ? <div className="admin-msg">{previewEditMsg}</div> : null}
+                {previewEditError ? (
+                  <div className="admin-msg">{previewEditError}</div>
+                ) : null}
+                {previewEditMsg ? (
+                  <div className="admin-msg">{previewEditMsg}</div>
+                ) : null}
 
                 <div className="admin-upload-actions">
-                  <button type="button" className="admin-secondary-btn admin-secondary-btn--ghost" onClick={cancelPreviewEdit}>
+                  <button
+                    type="button"
+                    className="admin-secondary-btn admin-secondary-btn--ghost"
+                    onClick={cancelPreviewEdit}
+                  >
                     Back
                   </button>
-                  <button type="button" className="admin-btn" onClick={handleSavePreviewEdit}>
+                  <button
+                    type="button"
+                    className="admin-btn"
+                    onClick={handleSavePreviewEdit}
+                  >
                     {editingPreviewId ? "Saving…" : "Save preview row"}
                   </button>
                 </div>
@@ -2195,14 +2331,33 @@ export default function Admin() {
               <div className="admin-edit-side-card">
                 <h4 className="admin-edit-section-title">Images</h4>
 
+                {previewRowToEdit?.image || previewRowToEdit?.images?.length ? (
+                  <ProductImagePreview
+                    image={previewRowToEdit.image}
+                    images={previewRowToEdit.images}
+                    name={previewRowToEdit.name}
+                  />
+                ) : null}
+
                 <label className="admin-field">
                   <span>Choose new images</span>
-                  <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={handlePreviewEditImageChange} />
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    multiple
+                    onChange={handlePreviewEditImageChange}
+                  />
                 </label>
 
                 <div className="admin-upload-actions">
-                  <button type="button" className="admin-secondary-btn" onClick={handlePreviewEditUploadImage}>
-                    {previewEditUploadingImage ? "Uploading…" : "Upload new images"}
+                  <button
+                    type="button"
+                    className="admin-secondary-btn"
+                    onClick={handlePreviewEditUploadImage}
+                  >
+                    {previewEditUploadingImage
+                      ? "Uploading…"
+                      : "Upload new images"}
                   </button>
                 </div>
               </div>
@@ -2240,24 +2395,37 @@ export default function Admin() {
                 <div className="admin-row">
                   <label className="admin-field">
                     <span>Price</span>
-                    <input value={editForm.price} onChange={setEditField("price")} />
+                    <input
+                      value={editForm.price}
+                      onChange={setEditField("price")}
+                    />
                   </label>
 
                   <label className="admin-field">
                     <span>Old price</span>
-                    <input value={editForm.oldPrice} onChange={setEditField("oldPrice")} />
+                    <input
+                      value={editForm.oldPrice}
+                      onChange={setEditField("oldPrice")}
+                    />
                   </label>
                 </div>
 
                 <label className="admin-field">
                   <span>Description</span>
-                  <textarea rows={4} value={editForm.description} onChange={setEditField("description")} />
+                  <textarea
+                    rows={4}
+                    value={editForm.description}
+                    onChange={setEditField("description")}
+                  />
                 </label>
 
                 <div className="admin-row">
                   <label className="admin-field">
                     <span>Department</span>
-                    <select value={editForm.dept} onChange={setEditField("dept")}>
+                    <select
+                      value={editForm.dept}
+                      onChange={setEditField("dept")}
+                    >
                       {DEPARTMENTS.map((d) => (
                         <option key={d.key} value={d.key}>
                           {d.label}
@@ -2268,7 +2436,10 @@ export default function Admin() {
 
                   <label className="admin-field">
                     <span>Type</span>
-                    <select value={editForm.kind} onChange={setEditField("kind")}>
+                    <select
+                      value={editForm.kind}
+                      onChange={setEditField("kind")}
+                    >
                       {KINDS.map((k) => (
                         <option key={k.key} value={k.key}>
                           {k.label}
@@ -2280,7 +2451,11 @@ export default function Admin() {
 
                 <label className="admin-field">
                   <span>Shop</span>
-                  <select value={editForm.shop} onChange={setEditField("shop")} disabled={isShopAdmin}>
+                  <select
+                    value={editForm.shop}
+                    onChange={setEditField("shop")}
+                    disabled={isShopAdmin}
+                  >
                     {availableShops.map((shopKey) => (
                       <option key={shopKey} value={shopKey}>
                         {formatShopLabel(shopKey)}
@@ -2290,33 +2465,47 @@ export default function Admin() {
                 </label>
 
                 <div className="admin-toggles">
-                  <label className="admin-switch">
-                    <input type="checkbox" checked={editForm.inStock} onChange={setEditField("inStock")} />
+                  <label className="admin-switch admin-switch--stock">
+                    <input
+                      type="checkbox"
+                      checked={editForm.inStock}
+                      onChange={setEditField("inStock")}
+                    />
                     <span className="admin-switch-ui" />
                     <span className="admin-switch-label">In stock</span>
                   </label>
 
-                  <label className="admin-switch">
-                    <input type="checkbox" checked={editForm.featured} onChange={setEditField("featured")} />
+                  <label className="admin-switch admin-switch--featured">
+                    <input
+                      type="checkbox"
+                      checked={editForm.featured}
+                      onChange={setEditField("featured")}
+                    />
                     <span className="admin-switch-ui" />
                     <span className="admin-switch-label">Featured</span>
                   </label>
 
-                  <label className="admin-switch">
+                  <label className="admin-switch admin-switch--abroad">
                     <input
                       type="checkbox"
                       checked={editForm.shipsFromAbroad}
                       onChange={setEditField("shipsFromAbroad")}
                     />
                     <span className="admin-switch-ui" />
-                    <span className="admin-switch-label">Ships from abroad</span>
+                    <span className="admin-switch-label">
+                      Ships from abroad
+                    </span>
                   </label>
                 </div>
 
                 <div className="admin-options-card">
                   <div className="admin-options-head">
                     <h3 className="admin-options-title">Customizations</h3>
-                    <button type="button" className="admin-options-add" onClick={addEditCustomizationGroup}>
+                    <button
+                      type="button"
+                      className="admin-options-add"
+                      onClick={addEditCustomizationGroup}
+                    >
                       + Add option group
                     </button>
                   </div>
@@ -2325,7 +2514,11 @@ export default function Admin() {
                     <div className="admin-option-group" key={group.id}>
                       <div className="admin-option-group-head">
                         <strong>Option group {index + 1}</strong>
-                        <button type="button" className="admin-option-remove" onClick={() => removeEditCustomizationGroup(group.id)}>
+                        <button
+                          type="button"
+                          className="admin-option-remove"
+                          onClick={() => removeEditCustomizationGroup(group.id)}
+                        >
                           Remove
                         </button>
                       </div>
@@ -2336,7 +2529,11 @@ export default function Admin() {
                           <input
                             value={group.name}
                             onChange={(e) =>
-                              updateEditCustomizationGroup(group.id, "name", e.target.value)
+                              updateEditCustomizationGroup(
+                                group.id,
+                                "name",
+                                e.target.value
+                              )
                             }
                           />
                         </label>
@@ -2346,7 +2543,11 @@ export default function Admin() {
                           <select
                             value={group.type}
                             onChange={(e) =>
-                              updateEditCustomizationGroup(group.id, "type", e.target.value)
+                              updateEditCustomizationGroup(
+                                group.id,
+                                "type",
+                                e.target.value
+                              )
                             }
                           >
                             <option value="buttons">Buttons</option>
@@ -2360,7 +2561,11 @@ export default function Admin() {
                         <input
                           value={group.valuesText}
                           onChange={(e) =>
-                            updateEditCustomizationGroup(group.id, "valuesText", e.target.value)
+                            updateEditCustomizationGroup(
+                              group.id,
+                              "valuesText",
+                              e.target.value
+                            )
                           }
                         />
                       </label>
@@ -2382,11 +2587,21 @@ export default function Admin() {
                 {editMsg ? <div className="admin-msg">{editMsg}</div> : null}
 
                 <div className="admin-upload-actions">
-                  <button type="button" className="admin-secondary-btn admin-secondary-btn--ghost" onClick={cancelEditProduct}>
+                  <button
+                    type="button"
+                    className="admin-secondary-btn admin-secondary-btn--ghost"
+                    onClick={cancelEditProduct}
+                  >
                     Back to products
                   </button>
-                  <button type="button" className="admin-btn" onClick={handleUpdateProduct}>
-                    {editingId ? "Verifying & saving…" : "Verify and save changes"}
+                  <button
+                    type="button"
+                    className="admin-btn"
+                    onClick={handleUpdateProduct}
+                  >
+                    {editingId
+                      ? "Verifying & saving…"
+                      : "Verify and save changes"}
                   </button>
                 </div>
               </div>
@@ -2396,16 +2611,37 @@ export default function Admin() {
               <div className="admin-edit-side-card">
                 <h4 className="admin-edit-section-title">Images</h4>
 
+                {productToEdit?.image || productToEdit?.images?.length ? (
+                  <ProductImagePreview
+                    image={productToEdit.image}
+                    images={productToEdit.images}
+                    name={productToEdit.name}
+                  />
+                ) : null}
+
                 <label className="admin-field">
                   <span>Choose new images</span>
-                  <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={handleEditImageChange} />
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    multiple
+                    onChange={handleEditImageChange}
+                  />
                 </label>
 
                 <div className="admin-upload-actions">
-                  <button type="button" className="admin-secondary-btn" onClick={handleEditUploadImage}>
+                  <button
+                    type="button"
+                    className="admin-secondary-btn"
+                    onClick={handleEditUploadImage}
+                  >
                     {editUploadingImage ? "Uploading…" : "Upload new images"}
                   </button>
-                  <button type="button" className="admin-secondary-btn admin-secondary-btn--ghost" onClick={resetEditImageState}>
+                  <button
+                    type="button"
+                    className="admin-secondary-btn admin-secondary-btn--ghost"
+                    onClick={resetEditImageState}
+                  >
                     Clear new images
                   </button>
                 </div>
@@ -2460,7 +2696,11 @@ export default function Admin() {
               >
                 Cancel
               </button>
-              <button type="button" className="admin-danger-btn" onClick={handleDeleteProduct}>
+              <button
+                type="button"
+                className="admin-danger-btn"
+                onClick={handleDeleteProduct}
+              >
                 {deletingId ? "Verifying & deleting…" : "Verify and delete"}
               </button>
             </div>
@@ -2489,7 +2729,9 @@ export default function Admin() {
               />
             </label>
 
-            {bulkDeleteError ? <div className="admin-msg">{bulkDeleteError}</div> : null}
+            {bulkDeleteError ? (
+              <div className="admin-msg">{bulkDeleteError}</div>
+            ) : null}
 
             <div className="admin-upload-actions">
               <button
@@ -2503,8 +2745,14 @@ export default function Admin() {
               >
                 Cancel
               </button>
-              <button type="button" className="admin-danger-btn" onClick={handleBulkDeleteProducts}>
-                {bulkDeleting ? "Verifying & deleting…" : `Delete ${selectedProducts.length} selected`}
+              <button
+                type="button"
+                className="admin-danger-btn"
+                onClick={handleBulkDeleteProducts}
+              >
+                {bulkDeleting
+                  ? "Verifying & deleting…"
+                  : `Delete ${selectedProducts.length} selected`}
               </button>
             </div>
           </div>
@@ -2515,8 +2763,8 @@ export default function Admin() {
             <div>
               <h3 className="admin-upload-title">Bulk import products</h3>
               <p className="admin-upload-sub">
-                Paste CSV here, preview the imported rows, edit anything you want,
-                then import reviewed products into Firestore.
+                Paste CSV here, preview the imported rows, edit anything you
+                want, then import reviewed products into Firestore.
               </p>
             </div>
           </div>
@@ -2532,78 +2780,192 @@ export default function Admin() {
             />
           </label>
 
-          <div className="admin-upload-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button type="button" className="admin-secondary-btn" onClick={() => setBulkImportText(BULK_IMPORT_SAMPLE)}>
+          <div
+            className="admin-upload-actions"
+            style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
+          >
+            <button
+              type="button"
+              className="admin-secondary-btn"
+              onClick={() => setBulkImportText(BULK_IMPORT_SAMPLE)}
+            >
               Use sample header
             </button>
-            <button type="button" className="admin-secondary-btn admin-secondary-btn--ghost" onClick={() => setBulkImportText("")}>
+            <button
+              type="button"
+              className="admin-secondary-btn admin-secondary-btn--ghost"
+              onClick={() => setBulkImportText("")}
+            >
               Clear CSV
             </button>
-            <button type="button" className="admin-secondary-btn" onClick={handlePreviewImport}>
+            <button
+              type="button"
+              className="admin-secondary-btn"
+              onClick={handlePreviewImport}
+            >
               Preview import
             </button>
-            <button type="button" className="admin-btn" onClick={handleBulkImport} disabled={!importPreviewRows.length || bulkImporting}>
+            <button
+              type="button"
+              className="admin-btn"
+              onClick={handleBulkImport}
+              disabled={!importPreviewRows.length || bulkImporting}
+            >
               {bulkImporting ? "Importing…" : "Import reviewed products"}
             </button>
           </div>
 
           {bulkImportMsg ? <div className="admin-msg">{bulkImportMsg}</div> : null}
-          {importPreviewMsg ? <div className="admin-msg">{importPreviewMsg}</div> : null}
+          {importPreviewMsg ? (
+            <div className="admin-msg">{importPreviewMsg}</div>
+          ) : null}
 
-          {filteredImportPreviewRows.map((row) => (
-            <div className="admin-product-item" key={row.id}>
-              <div className="admin-product-content">
-                <div className="admin-product-top">
-                  <div>
-                    <h3 className="admin-product-name">{row.name}</h3>
-                    <div className="admin-product-meta">
-                      <span>{formatShopLabel(row.shop)}</span>
-                      <span>{titleize(row.kind)}</span>
-                      <span>{titleize(row.dept)}</span>
-                    </div>
-                  </div>
-                  <div className="admin-product-price">{formatMoney(row.price)}</div>
+          {importPreviewRows.length ? (
+            <div className="admin-import-preview-card">
+              <div className="admin-import-preview-head">
+                <div>
+                  <h3 className="admin-import-preview-title">
+                    Import preview list
+                  </h3>
+                  <p className="admin-import-preview-sub">
+                    Review status, image coverage, and product details before
+                    import.
+                  </p>
                 </div>
 
-                <div className="admin-product-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button type="button" className="admin-secondary-btn" onClick={() => startPreviewEdit(row)}>
-                    Edit row
-                  </button>
-                  <button type="button" className="admin-danger-btn" onClick={() => handleDeletePreviewRow(row.id)}>
-                    Remove row
-                  </button>
+                <div className="admin-import-preview-tools">
+                  <label className="admin-field admin-field--compact">
+                    <span>Search preview rows</span>
+                    <input
+                      value={importSearchTerm}
+                      onChange={(e) => setImportSearchTerm(e.target.value)}
+                      placeholder="Search preview rows..."
+                    />
+                  </label>
                 </div>
               </div>
+
+              <div className="admin-import-preview-list">
+                {filteredImportPreviewRows.length ? (
+                  filteredImportPreviewRows.map((row) => (
+                    <div className="admin-import-row" key={row.id}>
+                      <div className="admin-import-row-media">
+                        {row.image ? (
+                          <img
+                            src={row.image}
+                            alt={row.name}
+                            className="admin-import-row-image"
+                          />
+                        ) : (
+                          <div className="admin-import-row-image admin-import-row-image--empty">
+                            No image
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="admin-import-row-content">
+                        <div className="admin-import-row-top">
+                          <div>
+                            <h3 className="admin-import-row-name">{row.name}</h3>
+                            <div className="admin-import-row-meta">
+                              <span>{formatShopLabel(row.shop)}</span>
+                              <span>{titleize(row.kind)}</span>
+                              <span>{titleize(row.dept)}</span>
+                              {row.brand ? <span>{row.brand}</span> : null}
+                            </div>
+                          </div>
+                          <div className="admin-product-price">
+                            {formatMoney(row.price)}
+                          </div>
+                        </div>
+
+                        <StatusFlags
+                          inStock={row.inStock}
+                          featured={row.featured}
+                          shipsFromAbroad={row.shipsFromAbroad}
+                        />
+
+                        {row.description ? (
+                          <p className="admin-import-row-desc">
+                            {row.description}
+                          </p>
+                        ) : null}
+
+                        <div className="admin-import-row-actions">
+                          <button
+                            type="button"
+                            className="admin-secondary-btn"
+                            onClick={() => startPreviewEdit(row)}
+                          >
+                            Edit row
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-danger-btn"
+                            onClick={() => handleDeletePreviewRow(row.id)}
+                          >
+                            Remove row
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="admin-products-empty">
+                    No preview rows match your search.
+                  </div>
+                )}
+              </div>
             </div>
-          ))}
+          ) : null}
         </div>
 
         <form className="admin-form" onSubmit={onSubmit}>
           <label className="admin-field">
             <span>Name</span>
-            <input value={form.name} onChange={setField("name")} autoComplete="off" />
+            <input
+              value={form.name}
+              onChange={setField("name")}
+              autoComplete="off"
+            />
           </label>
 
           <label className="admin-field">
             <span>Brand (optional)</span>
-            <input value={form.brand} onChange={setField("brand")} autoComplete="off" />
+            <input
+              value={form.brand}
+              onChange={setField("brand")}
+              autoComplete="off"
+            />
           </label>
 
           <div className="admin-row">
             <label className="admin-field">
               <span>Price (GHS)</span>
-              <input value={form.price} onChange={setField("price")} inputMode="decimal" />
+              <input
+                value={form.price}
+                onChange={setField("price")}
+                inputMode="decimal"
+              />
             </label>
 
             <label className="admin-field">
               <span>Old price (optional)</span>
-              <input value={form.oldPrice} onChange={setField("oldPrice")} inputMode="decimal" />
+              <input
+                value={form.oldPrice}
+                onChange={setField("oldPrice")}
+                inputMode="decimal"
+              />
             </label>
           </div>
 
           <label className="admin-field">
             <span>Description</span>
-            <textarea value={form.description} onChange={setField("description")} rows={5} />
+            <textarea
+              value={form.description}
+              onChange={setField("description")}
+              rows={5}
+            />
           </label>
 
           <div className="admin-row">
@@ -2632,7 +2994,11 @@ export default function Admin() {
 
           <label className="admin-field">
             <span>Shop</span>
-            <select value={form.shop} onChange={setField("shop")} disabled={isShopAdmin}>
+            <select
+              value={form.shop}
+              onChange={setField("shop")}
+              disabled={isShopAdmin}
+            >
               {availableShops.map((shopKey) => (
                 <option key={shopKey} value={shopKey}>
                   {formatShopLabel(shopKey)}
@@ -2641,29 +3007,219 @@ export default function Admin() {
             </select>
           </label>
 
+          <div className="admin-upload-card">
+            <div className="admin-upload-head">
+              <div>
+                <h3 className="admin-upload-title">Product images</h3>
+                <p className="admin-upload-sub">
+                  Upload at least one image before saving the product.
+                </p>
+              </div>
+            </div>
+
+            <label className="admin-field">
+              <span>Select images</span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                multiple
+                onChange={handleImageChange}
+              />
+            </label>
+
+            <div className="admin-upload-actions">
+              <button
+                type="button"
+                className="admin-secondary-btn"
+                onClick={handleUploadImage}
+                disabled={!imageFiles.length || uploadingImage}
+              >
+                {uploadingImage ? "Uploading…" : "Upload images"}
+              </button>
+              <button
+                type="button"
+                className="admin-secondary-btn admin-secondary-btn--ghost"
+                onClick={resetImageState}
+                disabled={!imageFiles.length && !uploadedImages.length}
+              >
+                Clear images
+              </button>
+            </div>
+
+            {imagePreviews.length ? (
+              <div className="admin-image-preview-grid">
+                {imagePreviews.map((item, index) => (
+                  <div className="admin-image-preview-wrap" key={item.key}>
+                    <img
+                      src={item.preview}
+                      alt={`Selected ${index + 1}`}
+                      className="admin-image-preview"
+                    />
+                    <div className="admin-image-preview-overlay">
+                      <span className="admin-image-index">{index + 1}</span>
+                      <button
+                        type="button"
+                        className="admin-image-remove-btn"
+                        onClick={() => removeSelectedImage(index)}
+                        aria-label={`Remove image ${index + 1}`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {uploadedImages.length ? (
+              <div className="admin-upload-success-wrap">
+                <div className="admin-upload-success">
+                  <span className="admin-upload-badge">Uploaded</span>
+                  <span className="admin-upload-count">
+                    {uploadedImages.length} image
+                    {uploadedImages.length === 1 ? "" : "s"} ready
+                  </span>
+                </div>
+
+                <div className="admin-uploaded-grid">
+                  {uploadedImages.map((item, index) => (
+                    <div className="admin-uploaded-thumb" key={item.publicId || item.url || index}>
+                      <img
+                        src={item.url}
+                        alt={`Uploaded ${index + 1}`}
+                        className="admin-uploaded-thumb-img"
+                      />
+                      <span className="admin-uploaded-badge">
+                        {index === 0 ? "Cover" : `Image ${index + 1}`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
           <div className="admin-toggles">
-            <label className="admin-switch">
-              <input type="checkbox" checked={form.inStock} onChange={setField("inStock")} />
+            <label className="admin-switch admin-switch--stock">
+              <input
+                type="checkbox"
+                checked={form.inStock}
+                onChange={setField("inStock")}
+              />
               <span className="admin-switch-ui" />
               <span className="admin-switch-label">In stock</span>
             </label>
 
-            <label className="admin-switch">
-              <input type="checkbox" checked={form.featured} onChange={setField("featured")} />
+            <label className="admin-switch admin-switch--featured">
+              <input
+                type="checkbox"
+                checked={form.featured}
+                onChange={setField("featured")}
+              />
               <span className="admin-switch-ui" />
               <span className="admin-switch-label">Featured</span>
             </label>
 
-            <label className="admin-switch">
-              <input type="checkbox" checked={form.shipsFromAbroad} onChange={setField("shipsFromAbroad")} />
+            <label className="admin-switch admin-switch--abroad">
+              <input
+                type="checkbox"
+                checked={form.shipsFromAbroad}
+                onChange={setField("shipsFromAbroad")}
+              />
               <span className="admin-switch-ui" />
               <span className="admin-switch-label">Ships from abroad</span>
             </label>
           </div>
 
+          <div className="admin-options-card">
+            <div className="admin-options-head">
+              <h3 className="admin-options-title">Customizations</h3>
+              <button
+                type="button"
+                className="admin-options-add"
+                onClick={addCustomizationGroup}
+              >
+                + Add option group
+              </button>
+            </div>
+
+            {form.customizations.length ? (
+              form.customizations.map((group, index) => (
+                <div className="admin-option-group" key={group.id}>
+                  <div className="admin-option-group-head">
+                    <strong>Option group {index + 1}</strong>
+                    <button
+                      type="button"
+                      className="admin-option-remove"
+                      onClick={() => removeCustomizationGroup(group.id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+
+                  <div className="admin-row">
+                    <label className="admin-field">
+                      <span>Label</span>
+                      <input
+                        value={group.name}
+                        onChange={(e) =>
+                          updateCustomizationGroup(
+                            group.id,
+                            "name",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </label>
+
+                    <label className="admin-field">
+                      <span>Style</span>
+                      <select
+                        value={group.type}
+                        onChange={(e) =>
+                          updateCustomizationGroup(
+                            group.id,
+                            "type",
+                            e.target.value
+                          )
+                        }
+                      >
+                        <option value="buttons">Buttons</option>
+                        <option value="select">Dropdown</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <label className="admin-field">
+                    <span>Values</span>
+                    <input
+                      value={group.valuesText}
+                      onChange={(e) =>
+                        updateCustomizationGroup(
+                          group.id,
+                          "valuesText",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Red, Black, White"
+                    />
+                  </label>
+                </div>
+              ))
+            ) : (
+              <div className="admin-options-empty">
+                No customization groups added yet.
+              </div>
+            )}
+          </div>
+
           {msg ? <div className="admin-msg">{msg}</div> : null}
 
-          <button className="admin-btn" type="submit" disabled={submitting || uploadingImage}>
+          <button
+            className="admin-btn"
+            type="submit"
+            disabled={submitting || uploadingImage}
+          >
             {submitting ? "Adding…" : "Add product"}
           </button>
         </form>
@@ -2688,17 +3244,37 @@ export default function Admin() {
           </label>
         </div>
 
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
-          <button type="button" className="admin-secondary-btn" onClick={toggleMultiSelectMode}>
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            flexWrap: "wrap",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
+          <button
+            type="button"
+            className="admin-secondary-btn"
+            onClick={toggleMultiSelectMode}
+          >
             {multiSelectMode ? "Exit multi-select" : "Multi-select"}
           </button>
 
           {multiSelectMode ? (
             <>
-              <button type="button" className="admin-secondary-btn admin-secondary-btn--ghost" onClick={clearAllSelections}>
+              <button
+                type="button"
+                className="admin-secondary-btn admin-secondary-btn--ghost"
+                onClick={clearAllSelections}
+              >
                 Clear selection
               </button>
-              <button type="button" className="admin-danger-btn" onClick={startBulkDelete}>
+              <button
+                type="button"
+                className="admin-danger-btn"
+                onClick={startBulkDelete}
+              >
                 Delete selected ({selectedProductIds.length})
               </button>
             </>
@@ -2707,6 +3283,8 @@ export default function Admin() {
 
         {loadingProducts ? (
           <div className="admin-products-empty">Loading products…</div>
+        ) : productsError ? (
+          <div className="admin-msg">{productsError}</div>
         ) : groupedProducts.length ? (
           <div style={{ display: "grid", gap: 18 }}>
             {groupedProducts.map((group) => (
@@ -2717,16 +3295,25 @@ export default function Admin() {
                       {group.label}
                     </h3>
                     <p className="admin-sub">
-                      {group.items.length} product{group.items.length === 1 ? "" : "s"}
+                      {group.items.length} product
+                      {group.items.length === 1 ? "" : "s"}
                     </p>
                   </div>
 
                   {multiSelectMode ? (
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <button type="button" className="admin-secondary-btn" onClick={() => selectAllInGroup(group.items)}>
+                      <button
+                        type="button"
+                        className="admin-secondary-btn"
+                        onClick={() => selectAllInGroup(group.items)}
+                      >
                         Select all
                       </button>
-                      <button type="button" className="admin-secondary-btn admin-secondary-btn--ghost" onClick={() => clearAllInGroup(group.items)}>
+                      <button
+                        type="button"
+                        className="admin-secondary-btn admin-secondary-btn--ghost"
+                        onClick={() => clearAllInGroup(group.items)}
+                      >
                         Clear group
                       </button>
                     </div>
@@ -2736,7 +3323,18 @@ export default function Admin() {
                 {multiSelectMode ? (
                   <div style={{ display: "grid", gap: 10 }}>
                     {group.items.map((product) => (
-                      <label key={product.id} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center", padding: "14px 16px", border: "1px solid var(--border)", borderRadius: 14 }}>
+                      <label
+                        key={product.id}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "auto 1fr auto",
+                          gap: 12,
+                          alignItems: "center",
+                          padding: "14px 16px",
+                          border: "1px solid var(--border)",
+                          borderRadius: 14,
+                        }}
+                      >
                         <input
                           type="checkbox"
                           checked={isProductSelected(product.id)}
@@ -2745,9 +3343,13 @@ export default function Admin() {
                         />
                         <div>
                           <div style={{ fontWeight: 700 }}>{product.name}</div>
-                          <div style={{ opacity: 0.72, fontSize: 13 }}>{formatShopLabel(product.shop)}</div>
+                          <div style={{ opacity: 0.72, fontSize: 13 }}>
+                            {formatShopLabel(product.shop)}
+                          </div>
                         </div>
-                        <div style={{ fontWeight: 700 }}>{formatMoney(product.price)}</div>
+                        <div style={{ fontWeight: 700 }}>
+                          {formatMoney(product.price)}
+                        </div>
                       </label>
                     ))}
                   </div>
@@ -2760,28 +3362,50 @@ export default function Admin() {
                       return (
                         <div className="admin-product-item" key={product.id}>
                           <div className="admin-product-media">
-                            {product.image ? (
-                              <img src={product.image} alt={product.name} className="admin-product-image" />
-                            ) : (
-                              <div className="admin-product-image admin-product-image--empty">No image</div>
-                            )}
+                            <ProductImagePreview
+                              image={product.image}
+                              images={product.images}
+                              name={product.name}
+                            />
                           </div>
 
                           <div className="admin-product-content">
                             <div className="admin-product-top">
                               <div>
-                                <h3 className="admin-product-name">{product.name}</h3>
+                                <h3 className="admin-product-name">
+                                  {product.name}
+                                </h3>
                                 <div className="admin-product-meta">
                                   <span>{formatShopLabel(product.shop)}</span>
                                   <span>{titleize(product.kind)}</span>
                                   <span>{titleize(product.dept)}</span>
+                                  {product.brand ? (
+                                    <span>{product.brand}</span>
+                                  ) : null}
                                 </div>
                               </div>
 
-                              <div className="admin-product-price">{formatMoney(product.price)}</div>
+                              <div className="admin-product-price">
+                                {formatMoney(product.price)}
+                              </div>
                             </div>
 
-                            <div className="admin-product-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            <StatusFlags
+                              inStock={product.inStock}
+                              featured={product.featured}
+                              shipsFromAbroad={product.shipsFromAbroad}
+                            />
+
+                            {product.description ? (
+                              <p className="admin-import-row-desc">
+                                {product.description}
+                              </p>
+                            ) : null}
+
+                            <div
+                              className="admin-product-actions"
+                              style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
+                            >
                               <button
                                 type="button"
                                 className="admin-secondary-btn"
@@ -2811,7 +3435,9 @@ export default function Admin() {
           </div>
         ) : (
           <div className="admin-products-empty">
-            {searchTerm.trim() ? "No products match your search." : "No products found yet."}
+            {searchTerm.trim()
+              ? "No products match your search."
+              : "No products found yet."}
           </div>
         )}
       </div>
