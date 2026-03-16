@@ -79,12 +79,7 @@ function getNumericStock(product) {
 
 function isOutOfStock(product) {
   if (!product) return true;
-  if (parseBooleanish(product?.inStock, true) === false) return true;
-
-  const stock = getNumericStock(product);
-  if (stock !== null && stock <= 0) return true;
-
-  return false;
+  return parseBooleanish(product?.inStock, true) === false;
 }
 
 function clampQtyToStock(qty, stock) {
