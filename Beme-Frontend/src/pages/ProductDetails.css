@@ -111,6 +111,31 @@
   letter-spacing: 0.02em;
 }
 
+/* NEW SHIPPING BADGE ON IMAGE */
+.pd-ship-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.84);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 24px rgba(17, 17, 17, 0.16);
+}
+
+.pd-ship-badge--uni {
+  background: rgba(212, 175, 55, 0.95);
+  color: #111;
+}
+
 .pd-carousel-btn {
   position: absolute;
   top: 50%;
@@ -255,6 +280,22 @@
   font-size: 14px;
   border: 1px solid var(--border);
   animation: fadeUpSoft 0.5s ease;
+}
+
+/* NEW SHIPPING BADGE IN META */
+.pd-badge--ship {
+  background: rgba(17, 17, 17, 0.06);
+  border-color: rgba(17, 17, 17, 0.12);
+}
+
+body.dark .pd-badge--ship {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.pd-badge--uni {
+  background: rgba(212, 175, 55, 0.16);
+  border-color: rgba(212, 175, 55, 0.35);
 }
 
 .pd-price-row {
@@ -734,6 +775,14 @@
     top: 12px;
     left: 12px;
     right: 12px;
+  }
+
+  .pd-ship-badge {
+    top: 12px;
+    left: 12px;
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 11px;
   }
 
   .pd-empty-card {
