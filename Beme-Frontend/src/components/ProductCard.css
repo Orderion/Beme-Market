@@ -55,6 +55,31 @@ body.dark .p-card:hover {
   opacity: 0.6;
 }
 
+/* NEW SHIPPING BADGE */
+
+.p-ship-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  background: #111;
+  color: #fff;
+  z-index: 3;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.18);
+}
+
+.p-ship-badge--uni {
+  background: #d4af37;
+  color: #111;
+}
+
+/* CART BUTTON */
+
 .p-cart-btn {
   position: absolute;
   right: 14px;
@@ -89,6 +114,8 @@ body.dark .p-card:hover {
   height: 20px;
   color: var(--text);
 }
+
+/* GALLERY BADGE */
 
 .p-gallery-badge {
   position: absolute;
