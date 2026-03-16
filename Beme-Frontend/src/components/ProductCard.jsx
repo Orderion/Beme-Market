@@ -60,6 +60,10 @@ function getShippingBadgeLabel(source) {
   return "";
 }
 
+function normalizeShop(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();
 
@@ -70,6 +74,10 @@ export default function ProductCard({ product }) {
   const imageCount = images.length;
   const shippingSource = normalizeShippingSource(product);
   const shippingBadgeLabel = getShippingBadgeLabel(shippingSource);
+  const shipsFromAbroad =
+    shippingSource === "abroad" ||
+    product?.shipFromAbroad === true ||
+    product?.shipsFromAbroad === true;
 
   const priceRaw = product?.price;
   const oldPriceRaw = product?.oldPrice;
@@ -92,7 +100,23 @@ export default function ProductCard({ product }) {
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    addToCart(product);
+
+    addToCart({
+      id,
+      name,
+      price: price ?? 0,
+      image,
+      images,
+      qty: 1,
+      shop: normalizeShop(product?.shop),
+      selectedOptions: {},
+      selectedOptionsLabel: "",
+      customizations: Array.isArray(product?.customizations)
+        ? product.customizations
+        : [],
+      shippingSource,
+      shipsFromAbroad,
+    });
   };
 
   const Wrapper = id ? Link : "div";
