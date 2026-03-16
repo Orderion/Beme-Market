@@ -125,6 +125,43 @@ function normalizeShop(value) {
   return String(value || "main").trim().toLowerCase() || "main";
 }
 
+function getNumericStock(item) {
+  const raw = item?.stock;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isItemOutOfStock(item) {
+  if (!item) return true;
+  if (item.inStock === false) return true;
+
+  const stock = getNumericStock(item);
+  if (stock !== null && stock <= 0) return true;
+
+  return false;
+}
+
+function hasQuantityIssue(item) {
+  const stock = getNumericStock(item);
+  const qty = Number(item?.qty) || 0;
+
+  if (stock === null) return false;
+  return qty > stock;
+}
+
+function getUnavailableReason(item) {
+  if (isItemOutOfStock(item)) {
+    return "Out of stock";
+  }
+
+  if (hasQuantityIssue(item)) {
+    const stock = getNumericStock(item);
+    return `Only ${stock} left in stock`;
+  }
+
+  return "";
+}
+
 function PaymentIcon({ type, disabled = false }) {
   if (type === "cod") {
     return (
@@ -134,23 +171,33 @@ function PaymentIcon({ type, disabled = false }) {
         aria-hidden="true"
       >
         <path
-          d="M4 7.5C4 6.12 5.12 5 6.5 5h11C18.88 5 20 6.12 20 7.5v9c0 1.38-1.12 2.5-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Z"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.7"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M4 9h16"
+          d="M3.5 6.75h11.25c1.24 0 2.25 1.01 2.25 2.25v4.25h1.34c.68 0 1.31.32 1.71.87l1.16 1.57c.29.39.45.86.45 1.35v1.21c0 .62-.5 1.12-1.12 1.12h-.76a2.87 2.87 0 0 1-5.56 0H9.78a2.87 2.87 0 0 1-5.56 0H3.5c-.62 0-1.12-.5-1.12-1.12V7.87c0-.62.5-1.12 1.12-1.12Z"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.7"
           strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M17 10.5h2.02c.44 0 .86.21 1.12.57l.86 1.18c.2.27.3.6.3.94V13.25H17V10.5Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
         <circle
-          cx="15.5"
-          cy="14"
-          r="2.2"
+          cx="7"
+          cy="18.25"
+          r="1.75"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+        />
+        <circle
+          cx="17"
+          cy="18.25"
+          r="1.75"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.7"
@@ -332,9 +379,23 @@ export default function Checkout() {
     return cartItems.some((item) => item?.shipsFromAbroad === true);
   }, [cartItems]);
 
+  const unavailableCartItems = useMemo(() => {
+    return cartItems
+      .map((item) => ({
+        ...item,
+        unavailableReason: getUnavailableReason(item),
+      }))
+      .filter((item) => item.unavailableReason);
+  }, [cartItems]);
+
+  const hasUnavailableCartItems = unavailableCartItems.length > 0;
+
   const isFirstTimeCheckout = !checkingOrderHistory && !hasPreviousOrders;
 
   const codDisabledReason = useMemo(() => {
+    if (hasUnavailableCartItems) {
+      return "Pay on Delivery is unavailable because your cart contains unavailable items. Remove or update them first.";
+    }
     if (hasShippedFromAbroadItem) {
       return "Pay on Delivery is unavailable because your cart contains a shipped from abroad item.";
     }
@@ -342,7 +403,7 @@ export default function Checkout() {
       return "Pay on Delivery is unavailable for your first checkout. Please complete your first order with Paystack.";
     }
     return "";
-  }, [hasShippedFromAbroadItem, isFirstTimeCheckout]);
+  }, [hasShippedFromAbroadItem, isFirstTimeCheckout, hasUnavailableCartItems]);
 
   const isCODBlocked = !!codDisabledReason;
   const isFinalMinute = timeLeft <= 60 && !sessionExpired;
@@ -428,7 +489,12 @@ export default function Checkout() {
     else if (!network)
       next.phone = "Phone must be MTN, Telecel, or AirtelTigo.";
 
-    if (!cartItems.length) next.cart = "Your cart is empty.";
+    if (!cartItems.length) {
+      next.cart = "Your cart is empty.";
+    } else if (hasUnavailableCartItems) {
+      next.cart =
+        "Some items in your cart are out of stock or exceed available stock. Update your cart before checkout.";
+    }
 
     return next;
   };
@@ -446,7 +512,10 @@ export default function Checkout() {
     form.region,
     form.city,
     form.area,
-    cartItems.length,
+    cartItems,
+    hasUnavailableCartItems,
+    normalizedPhone,
+    network,
   ]);
 
   const showError = (key) => touched[key] && errors[key];
@@ -501,6 +570,8 @@ export default function Checkout() {
       selectedOptions: item.selectedOptions || {},
       selectedOptionsLabel: item.selectedOptionsLabel || "",
       shipsFromAbroad: item.shipsFromAbroad === true,
+      inStock: item.inStock !== false,
+      stock: getNumericStock(item),
     }));
 
     const shops = Array.from(new Set(items.map((item) => item.shop))).filter(
@@ -541,7 +612,15 @@ export default function Checkout() {
   };
 
   const placeCOD = async () => {
-    if (loading || sessionExpired || isCODBlocked || checkingOrderHistory) return;
+    if (
+      loading ||
+      sessionExpired ||
+      isCODBlocked ||
+      checkingOrderHistory ||
+      hasUnavailableCartItems
+    ) {
+      return;
+    }
 
     const err = validateRequired();
     if (err) return;
@@ -567,7 +646,14 @@ export default function Checkout() {
   };
 
   const payWithPaystack = async () => {
-    if (loading || sessionExpired || checkingOrderHistory) return;
+    if (
+      loading ||
+      sessionExpired ||
+      checkingOrderHistory ||
+      hasUnavailableCartItems
+    ) {
+      return;
+    }
 
     const err = validateRequired();
     if (err) return;
@@ -576,7 +662,7 @@ export default function Checkout() {
     setLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 450));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       await startPaystackCheckout({
         email: form.email.trim(),
@@ -600,21 +686,6 @@ export default function Checkout() {
       setLoadingMode("");
     }
   };
-
-  if (loading) {
-    const isPaystack = loadingMode === "paystack";
-
-    return (
-      <LoaderOverlay
-        label={isPaystack ? "Redirecting to Paystack" : "Placing your order"}
-        subtext={
-          isPaystack
-            ? "Please wait while we secure your payment..."
-            : "Please wait while we confirm your order..."
-        }
-      />
-    );
-  }
 
   return (
     <div className="checkout">
@@ -684,6 +755,12 @@ export default function Checkout() {
               {!!errors.auth && (
                 <div className="field-error" style={{ marginBottom: 14 }}>
                   {errors.auth}
+                </div>
+              )}
+
+              {!!errors.cart && (
+                <div className="field-error" style={{ marginBottom: 14 }}>
+                  {errors.cart}
                 </div>
               )}
 
@@ -904,7 +981,11 @@ export default function Checkout() {
                     .trim()}
                   onClick={payWithPaystack}
                   disabled={
-                    inputsDisabled || !!errors.cart || !user || checkingOrderHistory
+                    inputsDisabled ||
+                    !!errors.cart ||
+                    !user ||
+                    checkingOrderHistory ||
+                    hasUnavailableCartItems
                   }
                   type="button"
                 >
@@ -915,7 +996,9 @@ export default function Checkout() {
                         Pay with Paystack
                       </span>
                       <span className="payment-btn__sub">
-                        Secure online payment
+                        {hasUnavailableCartItems
+                          ? "Resolve unavailable cart items first"
+                          : "Secure online payment"}
                       </span>
                     </span>
                   </span>
@@ -937,7 +1020,8 @@ export default function Checkout() {
                     !!errors.cart ||
                     !user ||
                     checkingOrderHistory ||
-                    isCODBlocked
+                    isCODBlocked ||
+                    hasUnavailableCartItems
                   }
                   type="button"
                 >
@@ -966,39 +1050,57 @@ export default function Checkout() {
                 </span>
               </div>
 
-              {cartItems.map((item, index) => (
-                <div
-                  key={item.lineId || `${item.id}-${index}`}
-                  className="summary-item"
-                >
-                  <div className="summary-item-left">
-                    <div className="summary-item-thumb">
-                      {item.image ? (
-                        <img src={item.image} alt={item.name || "Product"} />
-                      ) : (
-                        <div className="summary-item-thumb--empty">No image</div>
-                      )}
-                    </div>
-
-                    <div>
-                      <p>{item.name}</p>
-                      {item.selectedOptionsLabel ? (
-                        <small className="summary-item-options">
-                          {item.selectedOptionsLabel}
-                        </small>
-                      ) : null}
-                      {item.shipsFromAbroad ? (
-                        <small className="summary-item-options summary-item-options--abroad">
-                          Ships from abroad
-                        </small>
-                      ) : null}
-                      <small>x{item.qty}</small>
-                    </div>
-                  </div>
-
-                  <p>GHS {(Number(item.price) * Number(item.qty)).toFixed(2)}</p>
+              {hasUnavailableCartItems ? (
+                <div className="field-error" style={{ marginBottom: 14 }}>
+                  Some cart items are unavailable. Remove them or reduce quantity
+                  before checkout.
                 </div>
-              ))}
+              ) : null}
+
+              {cartItems.map((item, index) => {
+                const unavailableReason = getUnavailableReason(item);
+
+                return (
+                  <div
+                    key={item.lineId || `${item.id}-${index}`}
+                    className="summary-item"
+                  >
+                    <div className="summary-item-left">
+                      <div className="summary-item-thumb">
+                        {item.image ? (
+                          <img src={item.image} alt={item.name || "Product"} />
+                        ) : (
+                          <div className="summary-item-thumb--empty">
+                            No image
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <p>{item.name}</p>
+                        {item.selectedOptionsLabel ? (
+                          <small className="summary-item-options">
+                            {item.selectedOptionsLabel}
+                          </small>
+                        ) : null}
+                        {item.shipsFromAbroad ? (
+                          <small className="summary-item-options summary-item-options--abroad">
+                            Ships from abroad
+                          </small>
+                        ) : null}
+                        {unavailableReason ? (
+                          <small className="summary-item-options summary-item-options--abroad">
+                            {unavailableReason}
+                          </small>
+                        ) : null}
+                        <small>x{item.qty}</small>
+                      </div>
+                    </div>
+
+                    <p>GHS {(Number(item.price) * Number(item.qty)).toFixed(2)}</p>
+                  </div>
+                );
+              })}
 
               <div className="summary-line">
                 <span>Subtotal</span>
@@ -1041,6 +1143,21 @@ export default function Checkout() {
           </div>
         )}
       </div>
+
+      {loading ? (
+        <LoaderOverlay
+          label={
+            loadingMode === "paystack"
+              ? "Redirecting to Paystack"
+              : "Placing your order"
+          }
+          subtext={
+            loadingMode === "paystack"
+              ? "Please wait while we secure your payment..."
+              : "Please wait while we confirm your order..."
+          }
+        />
+      ) : null}
     </div>
   );
 }
