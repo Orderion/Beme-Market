@@ -3,6 +3,32 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import "./CartDrawer.css";
 
+function parseBooleanish(value, fallback = false) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value > 0;
+
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return fallback;
+
+  if (
+    ["true", "yes", "1", "in stock", "instock", "available", "active"].includes(
+      raw
+    )
+  ) {
+    return true;
+  }
+
+  if (
+    ["false", "no", "0", "out of stock", "outofstock", "unavailable", "inactive"].includes(
+      raw
+    )
+  ) {
+    return false;
+  }
+
+  return fallback;
+}
+
 function getNumericStock(item) {
   const parsed = Number(item?.stock);
   return Number.isFinite(parsed) ? parsed : null;
@@ -10,12 +36,7 @@ function getNumericStock(item) {
 
 function isOutOfStock(item) {
   if (!item) return true;
-  if (item.inStock === false) return true;
-
-  const stock = getNumericStock(item);
-  if (stock !== null && stock <= 0) return true;
-
-  return false;
+  return parseBooleanish(item?.inStock, true) === false;
 }
 
 function getUnavailableReason(item) {
