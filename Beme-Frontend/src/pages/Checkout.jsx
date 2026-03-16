@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  limit,
+  query,
+  serverTimestamp,
+  where,
+} from "firebase/firestore";
 import LoaderOverlay from "../components/LoaderOverlay";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
@@ -9,7 +17,7 @@ import { startPaystackCheckout } from "../lib/checkout";
 import "./Checkout.css";
 
 const FREE_DELIVERY_REGIONS = new Set(["Greater Accra"]);
-const GH_REGIONS = ["Greater Accra", "Eastern Region"];
+const GH_REGIONS = ["Greater Accra"];
 
 const CITY_MAP = {
   "Greater Accra": [
@@ -37,14 +45,6 @@ const CITY_MAP = {
     "Tesano",
     "Abelemkpe",
     "Kokomlemle",
-  ],
-  "Eastern Region": [
-    "Koforidua",
-    "Nkawkaw",
-    "Akosombo",
-    "Somanya",
-    "Aburi",
-    "Akwatia",
   ],
 };
 
@@ -125,6 +125,90 @@ function normalizeShop(value) {
   return String(value || "main").trim().toLowerCase() || "main";
 }
 
+function PaymentIcon({ type, disabled = false }) {
+  if (type === "cod") {
+    return (
+      <svg
+        className={`payment-btn__icon ${disabled ? "is-disabled" : ""}`}
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path
+          d="M4 7.5C4 6.12 5.12 5 6.5 5h11C18.88 5 20 6.12 20 7.5v9c0 1.38-1.12 2.5-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M4 9h16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+        />
+        <circle
+          cx="15.5"
+          cy="14"
+          r="2.2"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className="payment-btn__icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M4 7.5C4 6.12 5.12 5 6.5 5h11C18.88 5 20 6.12 20 7.5v9c0 1.38-1.12 2.5-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4 10.5h16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="M8 15.5h3.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="cod-info-icon">
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M12 10.2v5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <circle cx="12" cy="7.2" r="1.1" fill="currentColor" />
+    </svg>
+  );
+}
+
 export default function Checkout() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -139,6 +223,9 @@ export default function Checkout() {
   const [errors, setErrors] = useState({});
   const [timeLeft, setTimeLeft] = useState(CHECKOUT_DURATION_SECONDS);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [showCODInfo, setShowCODInfo] = useState(false);
+  const [checkingOrderHistory, setCheckingOrderHistory] = useState(true);
+  const [hasPreviousOrders, setHasPreviousOrders] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -156,6 +243,48 @@ export default function Checkout() {
         email: prev.email || user.email,
       }));
     }
+  }, [user]);
+
+  useEffect(() => {
+    let active = true;
+
+    const checkPreviousOrders = async () => {
+      if (!user?.uid) {
+        if (active) {
+          setHasPreviousOrders(false);
+          setCheckingOrderHistory(false);
+        }
+        return;
+      }
+
+      setCheckingOrderHistory(true);
+
+      try {
+        const q = query(
+          collection(db, "orders"),
+          where("userId", "==", user.uid),
+          limit(1)
+        );
+        const snap = await getDocs(q);
+
+        if (!active) return;
+        setHasPreviousOrders(!snap.empty);
+      } catch (error) {
+        console.error("Failed to check order history:", error);
+        if (!active) return;
+        setHasPreviousOrders(false);
+      } finally {
+        if (active) {
+          setCheckingOrderHistory(false);
+        }
+      }
+    };
+
+    checkPreviousOrders();
+
+    return () => {
+      active = false;
+    };
   }, [user]);
 
   const subtotalUI = useMemo(() => {
@@ -199,9 +328,32 @@ export default function Checkout() {
     ).filter(Boolean);
   }, [cartItems]);
 
+  const hasShippedFromAbroadItem = useMemo(() => {
+    return cartItems.some((item) => item?.shipsFromAbroad === true);
+  }, [cartItems]);
+
+  const isFirstTimeCheckout = !checkingOrderHistory && !hasPreviousOrders;
+
+  const codDisabledReason = useMemo(() => {
+    if (hasShippedFromAbroadItem) {
+      return "Pay on Delivery is unavailable because your cart contains a shipped from abroad item.";
+    }
+    if (isFirstTimeCheckout) {
+      return "Pay on Delivery is unavailable for your first checkout. Please complete your first order with Paystack.";
+    }
+    return "";
+  }, [hasShippedFromAbroadItem, isFirstTimeCheckout]);
+
+  const isCODBlocked = !!codDisabledReason;
   const isFinalMinute = timeLeft <= 60 && !sessionExpired;
   const inputsDisabled = loading || sessionExpired;
   const formattedTimeLeft = formatTime(timeLeft);
+
+  useEffect(() => {
+    if (isCODBlocked && method === "cod") {
+      setMethod("paystack");
+    }
+  }, [isCODBlocked, method]);
 
   useEffect(() => {
     if (sessionExpired) return;
@@ -262,7 +414,8 @@ export default function Checkout() {
     else if (!isValidName(v.lastName)) next.lastName = "Use letters only.";
 
     if (!v.address.trim()) next.address = "Address is required.";
-    else if (!isValidGhanaAddress(v.address)) next.address = "Enter a valid address.";
+    else if (!isValidGhanaAddress(v.address))
+      next.address = "Enter a valid address.";
 
     if (!v.region) next.region = "Select a region.";
     if (!v.city) next.city = "Select a city.";
@@ -272,7 +425,8 @@ export default function Checkout() {
 
     if (!v.phone.trim()) next.phone = "Phone is required.";
     else if (!normalizedPhone) next.phone = "Use 0XXXXXXXXX or +233XXXXXXXXX.";
-    else if (!network) next.phone = "Phone must be MTN, Telecel, or AirtelTigo.";
+    else if (!network)
+      next.phone = "Phone must be MTN, Telecel, or AirtelTigo.";
 
     if (!cartItems.length) next.cart = "Your cart is empty.";
 
@@ -332,6 +486,7 @@ export default function Checkout() {
     setLoadingMode("");
     setSessionExpired(false);
     setTimeLeft(CHECKOUT_DURATION_SECONDS);
+    setShowCODInfo(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -345,9 +500,12 @@ export default function Checkout() {
       shop: normalizeShop(item.shop),
       selectedOptions: item.selectedOptions || {},
       selectedOptionsLabel: item.selectedOptionsLabel || "",
+      shipsFromAbroad: item.shipsFromAbroad === true,
     }));
 
-    const shops = Array.from(new Set(items.map((item) => item.shop))).filter(Boolean);
+    const shops = Array.from(new Set(items.map((item) => item.shop))).filter(
+      Boolean
+    );
 
     return {
       userId: user.uid,
@@ -383,7 +541,7 @@ export default function Checkout() {
   };
 
   const placeCOD = async () => {
-    if (loading || sessionExpired) return;
+    if (loading || sessionExpired || isCODBlocked || checkingOrderHistory) return;
 
     const err = validateRequired();
     if (err) return;
@@ -409,7 +567,7 @@ export default function Checkout() {
   };
 
   const payWithPaystack = async () => {
-    if (loading || sessionExpired) return;
+    if (loading || sessionExpired || checkingOrderHistory) return;
 
     const err = validateRequired();
     if (err) return;
@@ -479,7 +637,8 @@ export default function Checkout() {
             {sessionExpired ? (
               <>
                 <p className="checkout-timer__message">
-                  Your checkout session has expired. Please restart checkout to continue.
+                  Your checkout session has expired. Please restart checkout to
+                  continue.
                 </p>
                 <button
                   type="button"
@@ -510,7 +669,10 @@ export default function Checkout() {
                 <Link to="/shop" className="checkout-link-btn">
                   Go to shop
                 </Link>
-                <Link to="/" className="checkout-link-btn checkout-link-btn--ghost">
+                <Link
+                  to="/"
+                  className="checkout-link-btn checkout-link-btn--ghost"
+                >
                   Back home
                 </Link>
               </div>
@@ -533,7 +695,9 @@ export default function Checkout() {
                 onChange={setField("email")}
                 disabled={inputsDisabled}
               />
-              {showError("email") ? <div className="field-error">{errors.email}</div> : null}
+              {showError("email") ? (
+                <div className="field-error">{errors.email}</div>
+              ) : null}
 
               <h3>Shipping address</h3>
 
@@ -576,7 +740,9 @@ export default function Checkout() {
                 onChange={setField("address")}
                 disabled={inputsDisabled}
               />
-              {showError("address") ? <div className="field-error">{errors.address}</div> : null}
+              {showError("address") ? (
+                <div className="field-error">{errors.address}</div>
+              ) : null}
 
               <div className="row-2">
                 <div>
@@ -593,7 +759,9 @@ export default function Checkout() {
                       </option>
                     ))}
                   </select>
-                  {showError("region") ? <div className="field-error">{errors.region}</div> : null}
+                  {showError("region") ? (
+                    <div className="field-error">{errors.region}</div>
+                  ) : null}
                 </div>
 
                 <div>
@@ -612,7 +780,9 @@ export default function Checkout() {
                       </option>
                     ))}
                   </select>
-                  {showError("city") ? <div className="field-error">{errors.city}</div> : null}
+                  {showError("city") ? (
+                    <div className="field-error">{errors.city}</div>
+                  ) : null}
                 </div>
               </div>
 
@@ -623,7 +793,9 @@ export default function Checkout() {
                 onChange={setField("area")}
                 disabled={inputsDisabled}
               />
-              {showError("area") ? <div className="field-error">{errors.area}</div> : null}
+              {showError("area") ? (
+                <div className="field-error">{errors.area}</div>
+              ) : null}
 
               <input
                 placeholder="Phone (0XXXXXXXXX or +233XXXXXXXXX)"
@@ -632,7 +804,9 @@ export default function Checkout() {
                 onChange={setField("phone")}
                 disabled={inputsDisabled}
               />
-              {showError("phone") ? <div className="field-error">{errors.phone}</div> : null}
+              {showError("phone") ? (
+                <div className="field-error">{errors.phone}</div>
+              ) : null}
 
               {normalizedPhone && network ? (
                 <div className="field-hint">
@@ -649,43 +823,137 @@ export default function Checkout() {
 
               <h3>Payment method</h3>
 
-              <div className="payment-options">
+              <div className="payment-options payment-options--enhanced">
                 <button
                   type="button"
                   className={method === "paystack" ? "chip active" : "chip"}
                   onClick={() => setMethod("paystack")}
-                  disabled={inputsDisabled}
+                  disabled={inputsDisabled || checkingOrderHistory}
                 >
                   Paystack
                 </button>
 
-                <button
-                  type="button"
-                  className={method === "cod" ? "chip active" : "chip"}
-                  onClick={() => setMethod("cod")}
-                  disabled={inputsDisabled}
-                >
-                  Pay on Delivery
-                </button>
+                <div className="payment-method-inline">
+                  <button
+                    type="button"
+                    className={[
+                      method === "cod" ? "chip active" : "chip",
+                      isCODBlocked ? "chip-disabled" : "",
+                    ]
+                      .join(" ")
+                      .trim()}
+                    onClick={() => {
+                      if (isCODBlocked) {
+                        setShowCODInfo((prev) => !prev);
+                        return;
+                      }
+                      setMethod("cod");
+                    }}
+                    disabled={inputsDisabled || checkingOrderHistory}
+                    aria-disabled={isCODBlocked}
+                    title={
+                      isCODBlocked
+                        ? "Pay on Delivery is currently unavailable"
+                        : "Pay on Delivery"
+                    }
+                  >
+                    Pay on Delivery
+                  </button>
+
+                  <button
+                    type="button"
+                    className="cod-info-trigger"
+                    onClick={() => setShowCODInfo((prev) => !prev)}
+                    aria-label="Why Pay on Delivery is unavailable"
+                  >
+                    <InfoIcon />
+                  </button>
+                </div>
               </div>
 
-              <div className="checkout-actions">
+              {checkingOrderHistory ? (
+                <div className="payment-note">
+                  Checking your checkout eligibility…
+                </div>
+              ) : null}
+
+              {showCODInfo ? (
+                <div className="payment-info-panel">
+                  <div className="payment-info-panel__icon">
+                    <InfoIcon />
+                  </div>
+                  <div className="payment-info-panel__content">
+                    <strong>Pay on Delivery notice</strong>
+                    <p>
+                      {codDisabledReason ||
+                        "Pay on Delivery is available once your cart and account qualify for it."}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="checkout-actions checkout-actions--enhanced">
                 <button
-                  className={`primary-btn ${method === "paystack" ? "" : "primary-btn--secondary"}`}
+                  className={[
+                    "primary-btn",
+                    "payment-btn",
+                    "payment-btn--paystack",
+                    method === "paystack" ? "is-selected" : "",
+                  ]
+                    .join(" ")
+                    .trim()}
                   onClick={payWithPaystack}
-                  disabled={inputsDisabled || !!errors.cart || !user}
+                  disabled={
+                    inputsDisabled || !!errors.cart || !user || checkingOrderHistory
+                  }
                   type="button"
                 >
-                  Pay with Paystack
+                  <span className="payment-btn__inner">
+                    <PaymentIcon type="paystack" />
+                    <span className="payment-btn__text">
+                      <span className="payment-btn__title">
+                        Pay with Paystack
+                      </span>
+                      <span className="payment-btn__sub">
+                        Secure online payment
+                      </span>
+                    </span>
+                  </span>
                 </button>
 
                 <button
-                  className={`primary-btn ${method === "cod" ? "" : "primary-btn--secondary"}`}
+                  className={[
+                    "primary-btn",
+                    "payment-btn",
+                    "payment-btn--cod",
+                    method === "cod" ? "is-selected" : "",
+                    isCODBlocked ? "is-disabled" : "",
+                  ]
+                    .join(" ")
+                    .trim()}
                   onClick={placeCOD}
-                  disabled={inputsDisabled || !!errors.cart || !user}
+                  disabled={
+                    inputsDisabled ||
+                    !!errors.cart ||
+                    !user ||
+                    checkingOrderHistory ||
+                    isCODBlocked
+                  }
                   type="button"
                 >
-                  Place Order
+                  <span className="payment-btn__inner">
+                    <PaymentIcon type="cod" disabled={isCODBlocked} />
+                    <span className="payment-btn__text">
+                      <span className="payment-btn__title">
+                        Pay on Delivery
+                      </span>
+                      <span className="payment-btn__sub">
+                        {isCODBlocked
+                          ? "Currently unavailable"
+                          : "Pay when your order arrives"}
+                      </span>
+                    </span>
+                  </span>
                 </button>
               </div>
             </div>
@@ -699,7 +967,10 @@ export default function Checkout() {
               </div>
 
               {cartItems.map((item, index) => (
-                <div key={item.lineId || `${item.id}-${index}`} className="summary-item">
+                <div
+                  key={item.lineId || `${item.id}-${index}`}
+                  className="summary-item"
+                >
                   <div className="summary-item-left">
                     <div className="summary-item-thumb">
                       {item.image ? (
@@ -714,6 +985,11 @@ export default function Checkout() {
                       {item.selectedOptionsLabel ? (
                         <small className="summary-item-options">
                           {item.selectedOptionsLabel}
+                        </small>
+                      ) : null}
+                      {item.shipsFromAbroad ? (
+                        <small className="summary-item-options summary-item-options--abroad">
+                          Ships from abroad
                         </small>
                       ) : null}
                       <small>x{item.qty}</small>
@@ -736,10 +1012,12 @@ export default function Checkout() {
                     <small className="summary-line-sub">
                       {FREE_DELIVERY_REGIONS.has(form.region)
                         ? "Greater Accra delivery"
-                        : "Eastern Region delivery (+50)"}
+                        : "Outside Accra delivery (+50)"}
                     </small>
                   ) : (
-                    <small className="summary-line-sub">Select region to calculate</small>
+                    <small className="summary-line-sub">
+                      Select region to calculate
+                    </small>
                   )}
                 </span>
                 <span>GHS {deliveryFeeUI.toFixed(2)}</span>
