@@ -29,6 +29,28 @@ function makeLineId(product) {
   return `${baseId}__${JSON.stringify(selectedOptions)}`;
 }
 
+function getNumericStock(product) {
+  const parsed = Number(product?.stock);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isOutOfStock(product) {
+  if (!product) return true;
+  if (product.inStock === false) return true;
+
+  const stock = getNumericStock(product);
+  if (stock !== null && stock <= 0) return true;
+
+  return false;
+}
+
+function clampQtyToStock(qty, stock) {
+  const safeQty = Math.max(1, Number(qty) || 1);
+
+  if (stock === null) return safeQty;
+  return Math.max(1, Math.min(safeQty, stock));
+}
+
 function normalizeCartItem(product) {
   const safeSelectedOptions = normalizeSelectedOptions(product?.selectedOptions);
 
@@ -37,8 +59,8 @@ function normalizeCartItem(product) {
     : [];
 
   const image = String(product?.image || images[0] || "").trim();
-
-  const qty = Math.max(1, Number(product?.qty) || 1);
+  const stock = getNumericStock(product);
+  const qty = clampQtyToStock(product?.qty, stock);
   const price = Number(product?.price) || 0;
 
   const normalized = {
@@ -49,6 +71,8 @@ function normalizeCartItem(product) {
     image,
     images: images.length ? images : image ? [image] : [],
     qty,
+    stock,
+    inStock: product?.inStock !== false,
     selectedOptions: safeSelectedOptions,
     selectedOptionsLabel: String(product?.selectedOptionsLabel || "").trim(),
     customizations: Array.isArray(product?.customizations)
@@ -67,6 +91,19 @@ function normalizeCartItem(product) {
   return normalized;
 }
 
+function sanitizeStoredCartItems(items) {
+  return items
+    .map((item) => normalizeCartItem(item))
+    .filter((item) => item.id && item.lineId && !isOutOfStock(item))
+    .map((item) => {
+      if (item.stock !== null && item.qty > item.stock) {
+        return { ...item, qty: item.stock };
+      }
+      return item;
+    })
+    .filter((item) => item.qty >= 1);
+}
+
 function safeReadStoredCart() {
   if (typeof window === "undefined") return [];
 
@@ -77,9 +114,7 @@ function safeReadStoredCart() {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
 
-    return parsed
-      .map((item) => normalizeCartItem(item))
-      .filter((item) => item.id && item.lineId);
+    return sanitizeStoredCartItems(parsed);
   } catch (error) {
     console.error("Failed to read cart from localStorage:", error);
     return [];
@@ -131,7 +166,10 @@ export const CartProvider = ({ children }) => {
     if (typeof window === "undefined") return;
 
     try {
-      window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+      window.localStorage.setItem(
+        CART_STORAGE_KEY,
+        JSON.stringify(sanitizeStoredCartItems(cartItems))
+      );
     } catch (error) {
       console.error("Failed to save cart to localStorage:", error);
     }
@@ -149,6 +187,26 @@ export const CartProvider = ({ children }) => {
       console.error("Failed to save cart popup state to localStorage:", error);
     }
   }, [cartPopup]);
+
+  useEffect(() => {
+    setCartItems((prev) => {
+      const sanitized = sanitizeStoredCartItems(prev);
+      const changed =
+        sanitized.length !== prev.length ||
+        sanitized.some((item, index) => {
+          const prevItem = prev[index];
+          return (
+            !prevItem ||
+            prevItem.lineId !== item.lineId ||
+            Number(prevItem.qty) !== Number(item.qty) ||
+            Number(prevItem.stock) !== Number(item.stock) ||
+            prevItem.inStock !== item.inStock
+          );
+        });
+
+      return changed ? sanitized : prev;
+    });
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -199,22 +257,52 @@ export const CartProvider = ({ children }) => {
 
   const addToCart = (product) => {
     const nextItem = normalizeCartItem(product);
-    const lineId = nextItem.lineId;
 
+    if (!nextItem.id || !nextItem.lineId) {
+      return {
+        ok: false,
+        message: "Invalid product data.",
+      };
+    }
+
+    if (isOutOfStock(nextItem)) {
+      return {
+        ok: false,
+        message: "This product is out of stock.",
+      };
+    }
+
+    const lineId = nextItem.lineId;
     let shouldShowFirstAddPopup = false;
+    let result = {
+      ok: true,
+      message: "Added to cart.",
+    };
 
     setCartItems((prev) => {
       const existing = prev.find((item) => item.lineId === lineId);
 
       if (existing) {
+        const stock = getNumericStock(existing);
+        const requestedQty =
+          Math.max(1, Number(existing.qty || 1)) +
+          Math.max(1, Number(nextItem.qty || 1));
+
+        if (stock !== null && requestedQty > stock) {
+          result = {
+            ok: false,
+            message: `Only ${stock} item${stock === 1 ? "" : "s"} available in stock.`,
+          };
+          return prev;
+        }
+
         return prev.map((item) =>
           item.lineId === lineId
             ? {
                 ...item,
-                qty: Math.max(
-                  1,
-                  Number(item.qty || 1) + Number(nextItem.qty || 1)
-                ),
+                qty: requestedQty,
+                stock: stock,
+                inStock: item.inStock !== false,
               }
             : item
         );
@@ -227,9 +315,11 @@ export const CartProvider = ({ children }) => {
       return [...prev, nextItem];
     });
 
-    if (shouldShowFirstAddPopup) {
+    if (result.ok && shouldShowFirstAddPopup) {
       showCartPopup(nextItem);
     }
+
+    return result;
   };
 
   const removeFromCart = (lineId) => {
@@ -238,12 +328,43 @@ export const CartProvider = ({ children }) => {
 
   const updateQty = (lineId, qty) => {
     const safeQty = Math.max(1, Number(qty) || 1);
+    let result = {
+      ok: true,
+      message: "Quantity updated.",
+    };
 
     setCartItems((prev) =>
-      prev.map((item) =>
-        item.lineId === lineId ? { ...item, qty: safeQty } : item
-      )
+      prev.map((item) => {
+        if (item.lineId !== lineId) return item;
+
+        if (isOutOfStock(item)) {
+          result = {
+            ok: false,
+            message: "This product is out of stock.",
+          };
+          return item;
+        }
+
+        const stock = getNumericStock(item);
+        if (stock !== null && safeQty > stock) {
+          result = {
+            ok: false,
+            message: `Only ${stock} item${stock === 1 ? "" : "s"} available in stock.`,
+          };
+          return {
+            ...item,
+            qty: stock,
+          };
+        }
+
+        return {
+          ...item,
+          qty: safeQty,
+        };
+      })
     );
+
+    return result;
   };
 
   const clearCart = () => {
@@ -271,6 +392,14 @@ export const CartProvider = ({ children }) => {
     }, 0);
   }, [cartItems]);
 
+  const hasUnavailableItems = useMemo(() => {
+    return cartItems.some((item) => {
+      if (isOutOfStock(item)) return true;
+      if (item.stock !== null && Number(item.qty) > item.stock) return true;
+      return false;
+    });
+  }, [cartItems]);
+
   const value = {
     cartItems,
     addToCart,
@@ -282,6 +411,7 @@ export const CartProvider = ({ children }) => {
     cartPopup,
     hideCartPopup,
     showCartPopup,
+    hasUnavailableItems,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
