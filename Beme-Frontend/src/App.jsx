@@ -1,8 +1,8 @@
 // src/App.jsx
 import { useEffect, useMemo, useState } from "react";
-import { Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { CartProvider } from "./context/CartContext";
+import { CartProvider, useCart } from "./context/CartContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import AdminRoute from "./components/AdminRoute";
 import RequireAdmin from "./components/auth/RequireAdmin";
@@ -45,8 +45,70 @@ function SuperAdminOnly({ children }) {
   return children;
 }
 
+function CartAddedPopup({ onContinueShopping, onCheckout }) {
+  const { cartPopup, hideCartPopup } = useCart();
+
+  if (!cartPopup?.visible || !cartPopup?.item) return null;
+
+  const item = cartPopup.item;
+
+  return (
+    <div className="cart-added-popup" role="status" aria-live="polite">
+      <button
+        type="button"
+        className="cart-added-popup__close"
+        onClick={hideCartPopup}
+        aria-label="Close cart popup"
+      >
+        ×
+      </button>
+
+      <div className="cart-added-popup__content">
+        <div className="cart-added-popup__media">
+          {item.image ? (
+            <img src={item.image} alt={item.name || "Product"} />
+          ) : (
+            <div className="cart-added-popup__media-empty">No image</div>
+          )}
+        </div>
+
+        <div className="cart-added-popup__text">
+          <span className="cart-added-popup__eyebrow">Added to cart</span>
+          <h4>Thank you for shopping with us</h4>
+          <p>
+            <strong>{item.name}</strong> has been added to your cart.
+          </p>
+          {item.selectedOptionsLabel ? (
+            <small>{item.selectedOptionsLabel}</small>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="cart-added-popup__actions">
+        <button
+          type="button"
+          className="cart-added-popup__btn cart-added-popup__btn--ghost"
+          onClick={onContinueShopping}
+        >
+          Continue Shopping
+        </button>
+
+        <button
+          type="button"
+          className="cart-added-popup__btn cart-added-popup__btn--primary"
+          onClick={onCheckout}
+        >
+          Checkout
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AppShell() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { hideCartPopup } = useCart();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
 
@@ -63,6 +125,15 @@ function AppShell() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [location.pathname]);
 
+  const handleContinueShopping = () => {
+    hideCartPopup();
+  };
+
+  const handleCheckoutFromPopup = () => {
+    hideCartPopup();
+    navigate("/checkout");
+  };
+
   return (
     <>
       {!shouldHideHeader ? (
@@ -73,6 +144,10 @@ function AppShell() {
           />
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
           <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+          <CartAddedPopup
+            onContinueShopping={handleContinueShopping}
+            onCheckout={handleCheckoutFromPopup}
+          />
         </>
       ) : null}
 
