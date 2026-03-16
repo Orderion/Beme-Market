@@ -52,6 +52,12 @@ function getUnavailableReason(item) {
   return "";
 }
 
+function getItemAbroadDeliveryFee(item) {
+  if (!item?.shipsFromAbroad) return 0;
+  const parsed = Number(item?.abroadDeliveryFee);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
 export default function CartDrawer({ isOpen, onClose }) {
   const navigate = useNavigate();
   const {
@@ -239,12 +245,15 @@ export default function CartDrawer({ isOpen, onClose }) {
               const img = item.image || "";
               const name = item.name || "Untitled";
               const price = Number(item.price || 0);
+              const basePrice = Number(item.basePrice ?? item.price ?? 0);
+              const optionPriceTotal = Number(item.optionPriceTotal || 0);
               const qty = Number(item.qty || 1);
               const stock = getNumericStock(item);
               const unavailableReason = getUnavailableReason(item);
               const itemBlocked = Boolean(unavailableReason);
               const canIncrease =
                 !isOutOfStock(item) && (stock === null || qty < stock);
+              const abroadDeliveryFee = getItemAbroadDeliveryFee(item);
 
               return (
                 <div key={item.lineId || item.id} className="cd-item">
@@ -272,10 +281,24 @@ export default function CartDrawer({ isOpen, onClose }) {
                       </div>
                     ) : null}
 
+                    {optionPriceTotal > 0 ? (
+                      <div className="cd-item-options">
+                        <span className="cd-option-pill">
+                          Base: GHS {basePrice.toFixed(2)}
+                        </span>
+                        <span className="cd-option-pill">
+                          Options: +GHS {optionPriceTotal.toFixed(2)}
+                        </span>
+                      </div>
+                    ) : null}
+
                     {item.shipsFromAbroad ? (
                       <div className="cd-item-options">
                         <span className="cd-option-pill cd-option-pill--abroad">
                           Ships from abroad
+                          {abroadDeliveryFee > 0
+                            ? ` • Fee: GHS ${abroadDeliveryFee.toFixed(2)} each`
+                            : ""}
                         </span>
                       </div>
                     ) : null}
