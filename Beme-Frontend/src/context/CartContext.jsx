@@ -8,8 +8,51 @@ import React, {
 } from "react";
 
 const CartContext = createContext(null);
+
 const CART_STORAGE_KEY = "beme_market_cart";
 const CART_POPUP_STORAGE_KEY = "beme_market_cart_popup_state";
+
+function parseBooleanish(value, fallback = false) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value > 0;
+
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return fallback;
+
+  if (
+    [
+      "true",
+      "yes",
+      "1",
+      "in stock",
+      "instock",
+      "available",
+      "active",
+      "abroad",
+      "imported",
+      "international",
+    ].includes(raw)
+  ) {
+    return true;
+  }
+
+  if (
+    [
+      "false",
+      "no",
+      "0",
+      "out of stock",
+      "outofstock",
+      "unavailable",
+      "inactive",
+      "local",
+    ].includes(raw)
+  ) {
+    return false;
+  }
+
+  return fallback;
+}
 
 function normalizeSelectedOptions(selectedOptions) {
   if (!selectedOptions || typeof selectedOptions !== "object") return {};
@@ -36,7 +79,7 @@ function getNumericStock(product) {
 
 function isOutOfStock(product) {
   if (!product) return true;
-  if (product.inStock === false) return true;
+  if (parseBooleanish(product?.inStock, true) === false) return true;
 
   const stock = getNumericStock(product);
   if (stock !== null && stock <= 0) return true;
@@ -62,23 +105,35 @@ function normalizeCartItem(product) {
   const stock = getNumericStock(product);
   const qty = clampQtyToStock(product?.qty, stock);
   const price = Number(product?.price) || 0;
+  const oldPrice =
+    product?.oldPrice !== undefined &&
+    product?.oldPrice !== null &&
+    product?.oldPrice !== ""
+      ? Number(product.oldPrice) || 0
+      : null;
 
   const normalized = {
     id: String(product?.id || "").trim(),
     lineId: String(product?.lineId || makeLineId(product)).trim(),
     name: String(product?.name || "Untitled").trim(),
     price,
+    oldPrice,
     image,
     images: images.length ? images : image ? [image] : [],
     qty,
     stock,
-    inStock: product?.inStock !== false,
+    inStock: parseBooleanish(product?.inStock, true),
     selectedOptions: safeSelectedOptions,
     selectedOptionsLabel: String(product?.selectedOptionsLabel || "").trim(),
     customizations: Array.isArray(product?.customizations)
       ? product.customizations
       : [],
-    shipsFromAbroad: product?.shipsFromAbroad === true,
+    shipsFromAbroad:
+      parseBooleanish(product?.shipsFromAbroad, false) ||
+      parseBooleanish(product?.shipFromAbroad, false),
+    shippingSource: String(product?.shippingSource || "").trim(),
+    shop: String(product?.shop || "").trim(),
+    productId: String(product?.productId || product?.id || "").trim(),
   };
 
   if (!normalized.selectedOptionsLabel) {
@@ -104,6 +159,22 @@ function sanitizeStoredCartItems(items) {
     .filter((item) => item.qty >= 1);
 }
 
+function makeDefaultPopupState() {
+  return {
+    visible: false,
+    item: null,
+    hasShownSinceEmpty: false,
+    mode: "added",
+    title: "",
+    message: "",
+    canCheckout: true,
+    canContinueShopping: true,
+    showConfetti: false,
+    firstAdd: false,
+    eventId: "",
+  };
+}
+
 function safeReadStoredCart() {
   if (typeof window === "undefined") return [];
 
@@ -123,37 +194,33 @@ function safeReadStoredCart() {
 
 function safeReadPopupState() {
   if (typeof window === "undefined") {
-    return {
-      visible: false,
-      item: null,
-      hasShownSinceEmpty: false,
-    };
+    return makeDefaultPopupState();
   }
 
   try {
     const raw = window.localStorage.getItem(CART_POPUP_STORAGE_KEY);
-    if (!raw) {
-      return {
-        visible: false,
-        item: null,
-        hasShownSinceEmpty: false,
-      };
-    }
+    if (!raw) return makeDefaultPopupState();
 
     const parsed = JSON.parse(raw);
 
     return {
+      ...makeDefaultPopupState(),
+      ...parsed,
       visible: Boolean(parsed?.visible),
       item: parsed?.item ? normalizeCartItem(parsed.item) : null,
       hasShownSinceEmpty: Boolean(parsed?.hasShownSinceEmpty),
+      canCheckout: parsed?.canCheckout !== false,
+      canContinueShopping: parsed?.canContinueShopping !== false,
+      showConfetti: Boolean(parsed?.showConfetti),
+      firstAdd: Boolean(parsed?.firstAdd),
+      eventId: String(parsed?.eventId || ""),
+      title: String(parsed?.title || ""),
+      message: String(parsed?.message || ""),
+      mode: String(parsed?.mode || "added"),
     };
   } catch (error) {
     console.error("Failed to read cart popup state from localStorage:", error);
-    return {
-      visible: false,
-      item: null,
-      hasShownSinceEmpty: false,
-    };
+    return makeDefaultPopupState();
   }
 }
 
@@ -210,7 +277,7 @@ export const CartProvider = ({ children }) => {
 
   useEffect(() => {
     return () => {
-      if (autoHideTimerRef.current) {
+      if (typeof window !== "undefined" && autoHideTimerRef.current) {
         window.clearTimeout(autoHideTimerRef.current);
       }
     };
@@ -218,41 +285,60 @@ export const CartProvider = ({ children }) => {
 
   useEffect(() => {
     if (cartItems.length === 0 && cartPopup.hasShownSinceEmpty) {
-      setCartPopup((prev) => ({
-        ...prev,
-        visible: false,
-        item: null,
-        hasShownSinceEmpty: false,
-      }));
+      setCartPopup(makeDefaultPopupState());
     }
   }, [cartItems.length, cartPopup.hasShownSinceEmpty]);
 
+  const clearAutoHideTimer = () => {
+    if (typeof window !== "undefined" && autoHideTimerRef.current) {
+      window.clearTimeout(autoHideTimerRef.current);
+      autoHideTimerRef.current = null;
+    }
+  };
+
   const hideCartPopup = () => {
+    clearAutoHideTimer();
     setCartPopup((prev) => ({
       ...prev,
       visible: false,
+      showConfetti: false,
     }));
   };
 
-  const showCartPopup = (item) => {
-    if (typeof window !== "undefined" && autoHideTimerRef.current) {
-      window.clearTimeout(autoHideTimerRef.current);
-    }
+  const consumeCartPopupConfetti = () => {
+    setCartPopup((prev) => ({
+      ...prev,
+      showConfetti: false,
+    }));
+  };
 
-    setCartPopup({
+  const showCartPopup = (item, options = {}) => {
+    clearAutoHideTimer();
+
+    const firstAdd = Boolean(options?.firstAdd);
+    const popupState = {
       visible: true,
-      item,
+      item: item ? normalizeCartItem(item) : null,
       hasShownSinceEmpty: true,
-    });
+      mode: String(options?.mode || "added"),
+      title: String(
+        options?.title ||
+          (firstAdd ? "Added to cart" : "Cart updated")
+      ),
+      message: String(
+        options?.message ||
+          (firstAdd
+            ? "Thank you for shopping with us. Your item has been added to cart."
+            : "Your item has been added to cart.")
+      ),
+      canCheckout: options?.canCheckout !== false,
+      canContinueShopping: options?.canContinueShopping !== false,
+      showConfetti: Boolean(options?.showConfetti),
+      firstAdd,
+      eventId: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    };
 
-    if (typeof window !== "undefined") {
-      autoHideTimerRef.current = window.setTimeout(() => {
-        setCartPopup((prev) => ({
-          ...prev,
-          visible: false,
-        }));
-      }, 4500);
-    }
+    setCartPopup(popupState);
   };
 
   const addToCart = (product) => {
@@ -262,6 +348,7 @@ export const CartProvider = ({ children }) => {
       return {
         ok: false,
         message: "Invalid product data.",
+        reason: "invalid_product",
       };
     }
 
@@ -269,14 +356,18 @@ export const CartProvider = ({ children }) => {
       return {
         ok: false,
         message: "This product is out of stock.",
+        reason: "out_of_stock",
       };
     }
 
     const lineId = nextItem.lineId;
     let shouldShowFirstAddPopup = false;
+    let addedItemForPopup = nextItem;
+
     let result = {
       ok: true,
       message: "Added to cart.",
+      reason: "added",
     };
 
     setCartItems((prev) => {
@@ -292,19 +383,20 @@ export const CartProvider = ({ children }) => {
           result = {
             ok: false,
             message: `Only ${stock} item${stock === 1 ? "" : "s"} available in stock.`,
+            reason: "stock_limit",
           };
           return prev;
         }
 
+        addedItemForPopup = {
+          ...existing,
+          qty: requestedQty,
+          stock,
+          inStock: existing.inStock !== false,
+        };
+
         return prev.map((item) =>
-          item.lineId === lineId
-            ? {
-                ...item,
-                qty: requestedQty,
-                stock: stock,
-                inStock: item.inStock !== false,
-              }
-            : item
+          item.lineId === lineId ? addedItemForPopup : item
         );
       }
 
@@ -315,8 +407,18 @@ export const CartProvider = ({ children }) => {
       return [...prev, nextItem];
     });
 
-    if (result.ok && shouldShowFirstAddPopup) {
-      showCartPopup(nextItem);
+    if (result.ok) {
+      showCartPopup(addedItemForPopup, {
+        firstAdd: shouldShowFirstAddPopup,
+        showConfetti: shouldShowFirstAddPopup,
+        mode: "added",
+        title: shouldShowFirstAddPopup ? "Added to cart" : "Added to cart",
+        message: shouldShowFirstAddPopup
+          ? "Thank you for shopping with us. Your first item has been added to cart."
+          : "Your item has been added to cart.",
+        canCheckout: true,
+        canContinueShopping: true,
+      });
     }
 
     return result;
@@ -331,6 +433,7 @@ export const CartProvider = ({ children }) => {
     let result = {
       ok: true,
       message: "Quantity updated.",
+      reason: "updated",
     };
 
     setCartItems((prev) =>
@@ -341,6 +444,7 @@ export const CartProvider = ({ children }) => {
           result = {
             ok: false,
             message: "This product is out of stock.",
+            reason: "out_of_stock",
           };
           return item;
         }
@@ -350,6 +454,7 @@ export const CartProvider = ({ children }) => {
           result = {
             ok: false,
             message: `Only ${stock} item${stock === 1 ? "" : "s"} available in stock.`,
+            reason: "stock_limit",
           };
           return {
             ...item,
@@ -369,15 +474,8 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     setCartItems([]);
-    setCartPopup({
-      visible: false,
-      item: null,
-      hasShownSinceEmpty: false,
-    });
-
-    if (typeof window !== "undefined" && autoHideTimerRef.current) {
-      window.clearTimeout(autoHideTimerRef.current);
-    }
+    clearAutoHideTimer();
+    setCartPopup(makeDefaultPopupState());
   };
 
   const itemCount = useMemo(() => {
@@ -411,6 +509,7 @@ export const CartProvider = ({ children }) => {
     cartPopup,
     hideCartPopup,
     showCartPopup,
+    consumeCartPopupConfetti,
     hasUnavailableItems,
   };
 
