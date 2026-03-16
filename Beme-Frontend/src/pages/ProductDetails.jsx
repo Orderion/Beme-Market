@@ -89,6 +89,11 @@ function getShippingBadgeLabel(source) {
   return "";
 }
 
+function getNumericStock(product) {
+  const parsed = Number(product?.stock);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function MonoStatusIcon() {
   return (
     <svg
@@ -236,6 +241,7 @@ export default function ProductDetails() {
   const [optionError, setOptionError] = useState("");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [addedFeedback, setAddedFeedback] = useState(false);
+  const [cartFeedback, setCartFeedback] = useState("");
 
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -307,6 +313,8 @@ export default function ProductDetails() {
     [shippingSource, product]
   );
 
+  const stock = useMemo(() => getNumericStock(product), [product]);
+
   useEffect(() => {
     const initialSelections = {};
     customizations.forEach((group) => {
@@ -314,15 +322,23 @@ export default function ProductDetails() {
     });
     setSelectedOptions(initialSelections);
     setOptionError("");
+    setCartFeedback("");
   }, [customizations, product?.id]);
 
   useEffect(() => {
     setActiveImageIndex(0);
     setQty(1);
     setAddedFeedback(false);
+    setCartFeedback("");
     setDragOffset(0);
     setIsDragging(false);
   }, [product?.id]);
+
+  useEffect(() => {
+    if (stock !== null) {
+      setQty((prev) => Math.max(1, Math.min(prev, Math.max(stock, 1))));
+    }
+  }, [stock]);
 
   const formatMoney = (n) => `GHS ${Number(n || 0).toFixed(2)}`;
 
@@ -332,6 +348,7 @@ export default function ProductDetails() {
       [groupName]: value,
     }));
     setOptionError("");
+    setCartFeedback("");
   };
 
   const validateSelections = () => {
@@ -355,6 +372,8 @@ export default function ProductDetails() {
       image: product.image || images[0] || "",
       images,
       qty,
+      stock,
+      inStock: product?.inStock !== false,
       shop: shopKey || "",
       selectedOptions,
       selectedOptionsLabel,
@@ -364,8 +383,9 @@ export default function ProductDetails() {
     };
   };
 
-  const triggerAddedFeedback = () => {
+  const triggerAddedFeedback = (message = "Added to cart successfully.") => {
     setAddedFeedback(true);
+    setCartFeedback(message);
 
     if (feedbackTimerRef.current) {
       window.clearTimeout(feedbackTimerRef.current);
@@ -373,12 +393,25 @@ export default function ProductDetails() {
 
     feedbackTimerRef.current = window.setTimeout(() => {
       setAddedFeedback(false);
+      setCartFeedback("");
     }, 1800);
   };
 
+  const triggerErrorFeedback = (message) => {
+    setAddedFeedback(false);
+    setCartFeedback(message);
+
+    if (feedbackTimerRef.current) {
+      window.clearTimeout(feedbackTimerRef.current);
+    }
+
+    feedbackTimerRef.current = window.setTimeout(() => {
+      setCartFeedback("");
+    }, 2200);
+  };
+
   const handleAdd = () => {
-    if (!product) return;
-    if (product?.inStock === false) return;
+    if (!product || isOutOfStock) return;
 
     const selectionError = validateSelections();
     if (selectionError) {
@@ -389,13 +422,18 @@ export default function ProductDetails() {
     const item = buildCartItem();
     if (!item) return;
 
-    addToCart(item);
-    triggerAddedFeedback();
+    const result = addToCart(item);
+
+    if (result?.ok === false) {
+      triggerErrorFeedback(result.message || "Unable to add this item.");
+      return;
+    }
+
+    triggerAddedFeedback(result?.message || "Added to cart successfully.");
   };
 
   const handleBuyNow = () => {
-    if (!product) return;
-    if (product?.inStock === false) return;
+    if (!product || isOutOfStock) return;
 
     const selectionError = validateSelections();
     if (selectionError) {
@@ -406,7 +444,13 @@ export default function ProductDetails() {
     const item = buildCartItem();
     if (!item) return;
 
-    addToCart(item);
+    const result = addToCart(item);
+
+    if (result?.ok === false) {
+      triggerErrorFeedback(result.message || "Unable to add this item.");
+      return;
+    }
+
     navigate("/checkout");
   };
 
@@ -492,8 +536,9 @@ export default function ProductDetails() {
   const desc =
     product?.description ??
     "This is a premium product from Beme Market. Add a description in Firestore to show details here.";
-  const isOutOfStock = product?.inStock === false;
-
+  const isOutOfStock =
+    product?.inStock === false || (stock !== null && stock <= 0);
+  const qtyLimitReached = stock !== null && qty >= stock;
   const sliderTranslate = `calc(${-activeImageIndex * 100}% + ${dragOffset}px)`;
 
   const socialLinks = [
@@ -768,7 +813,12 @@ export default function ProductDetails() {
           )}
 
           <div className="pd-qty-row">
-            <div className="pd-qty-label">Quantity</div>
+            <div className="pd-qty-label">
+              Quantity
+              {stock !== null && !isOutOfStock ? (
+                <span className="pd-qty-stock-note"> • {stock} available</span>
+              ) : null}
+            </div>
 
             <div className="pd-qty">
               <button
@@ -783,18 +833,33 @@ export default function ProductDetails() {
               <div className="pd-qty-num">{qty}</div>
               <button
                 className="pd-qty-btn"
-                onClick={() => setQty((q) => q + 1)}
+                onClick={() =>
+                  setQty((q) => {
+                    if (stock !== null) {
+                      return Math.min(stock, q + 1);
+                    }
+                    return q + 1;
+                  })
+                }
                 type="button"
                 aria-label="Increase"
-                disabled={isOutOfStock}
+                disabled={isOutOfStock || qtyLimitReached}
               >
                 +
               </button>
             </div>
           </div>
 
-          {addedFeedback ? (
-            <div className="pd-added-feedback">Added to cart successfully.</div>
+          {stock !== null && !isOutOfStock && qtyLimitReached ? (
+            <div className="pd-option-error">
+              You have reached the maximum available quantity for this product.
+            </div>
+          ) : null}
+
+          {cartFeedback ? (
+            <div className={addedFeedback ? "pd-added-feedback" : "pd-option-error"}>
+              {cartFeedback}
+            </div>
           ) : null}
 
           <div className="pd-actions">
