@@ -58,7 +58,33 @@ function normalizeCustomizations(raw) {
       type: group?.type === "select" ? "select" : "buttons",
       required: group?.required !== false,
       values: Array.isArray(group?.values)
-        ? group.values.map((v) => String(v).trim()).filter(Boolean)
+        ? group.values
+            .map((value, valueIndex) => {
+              if (value && typeof value === "object") {
+                const label = String(
+                  value.label ?? value.value ?? value.name ?? ""
+                ).trim();
+                if (!label) return null;
+
+                return {
+                  id:
+                    value.id ||
+                    `${group?.name || "option"}-${index}-value-${valueIndex}`,
+                  label,
+                  priceBump: Number(value.priceBump || 0) || 0,
+                };
+              }
+
+              const label = String(value || "").trim();
+              if (!label) return null;
+
+              return {
+                id: `${group?.name || "option"}-${index}-value-${valueIndex}`,
+                label,
+                priceBump: 0,
+              };
+            })
+            .filter(Boolean)
         : [],
     }))
     .filter((group) => group.name && group.values.length > 0);
@@ -143,6 +169,11 @@ function getShippingBadgeLabel(source) {
 function getNumericStock(product) {
   const parsed = Number(product?.stock);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getAbroadDeliveryFee(product) {
+  const parsed = Number(product?.abroadDeliveryFee);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
 function MonoStatusIcon() {
@@ -340,7 +371,7 @@ export default function ProductDetails() {
 
   const images = useMemo(() => normalizeImages(product), [product]);
 
-  const price = useMemo(() => Number(product?.price || 0), [product]);
+  const basePrice = useMemo(() => Number(product?.price || 0), [product]);
   const oldPrice = useMemo(() => Number(product?.oldPrice || 0), [product]);
 
   const shopKey = useMemo(() => normalizeShop(product?.shop), [product?.shop]);
@@ -365,6 +396,10 @@ export default function ProductDetails() {
   );
 
   const stock = useMemo(() => getNumericStock(product), [product]);
+  const abroadDeliveryFee = useMemo(
+    () => getAbroadDeliveryFee(product),
+    [product]
+  );
 
   const isOutOfStock = useMemo(() => {
     return parseBooleanish(product?.inStock, true) === false;
@@ -397,6 +432,39 @@ export default function ProductDetails() {
 
   const formatMoney = (n) => `GHS ${Number(n || 0).toFixed(2)}`;
 
+  const selectedOptionDetails = useMemo(() => {
+    const details = [];
+
+    customizations.forEach((group) => {
+      const selectedLabel = selectedOptions[group.name];
+      if (!selectedLabel) return;
+
+      const matchedValue = group.values.find(
+        (value) => value.label === selectedLabel
+      );
+      if (!matchedValue) return;
+
+      details.push({
+        groupName: group.name,
+        label: matchedValue.label,
+        priceBump: Number(matchedValue.priceBump || 0) || 0,
+      });
+    });
+
+    return details;
+  }, [customizations, selectedOptions]);
+
+  const optionPriceTotal = useMemo(() => {
+    return selectedOptionDetails.reduce(
+      (sum, item) => sum + (Number(item.priceBump || 0) || 0),
+      0
+    );
+  }, [selectedOptionDetails]);
+
+  const finalUnitPrice = useMemo(() => {
+    return basePrice + optionPriceTotal;
+  }, [basePrice, optionPriceTotal]);
+
   const setOptionValue = (groupName, value) => {
     setSelectedOptions((prev) => ({
       ...prev,
@@ -423,7 +491,9 @@ export default function ProductDetails() {
     return {
       id: product.id,
       name: product.name,
-      price: Number(product.price || 0),
+      price: Number(finalUnitPrice || 0),
+      basePrice: Number(basePrice || 0),
+      optionPriceTotal: Number(optionPriceTotal || 0),
       oldPrice:
         product?.oldPrice !== undefined &&
         product?.oldPrice !== null &&
@@ -438,9 +508,11 @@ export default function ProductDetails() {
       shop: shopKey || "",
       selectedOptions,
       selectedOptionsLabel,
+      selectedOptionDetails,
       customizations,
       shippingSource,
       shipsFromAbroad,
+      abroadDeliveryFee,
       productId: product.id,
     };
   };
@@ -785,13 +857,21 @@ export default function ProductDetails() {
           </div>
 
           <div className="pd-price-row">
-            <div className="pd-price">{formatMoney(price)}</div>
+            <div className="pd-price">{formatMoney(finalUnitPrice)}</div>
 
-            {oldPrice > price ? (
+            {optionPriceTotal > 0 ? (
+              <div className="pd-old">
+                <span className="pd-save">
+                  Includes options: +{formatMoney(optionPriceTotal)}
+                </span>
+              </div>
+            ) : null}
+
+            {oldPrice > finalUnitPrice ? (
               <div className="pd-old">
                 <span className="pd-old-strike">{formatMoney(oldPrice)}</span>
                 <span className="pd-save">
-                  Save {formatMoney(oldPrice - price)}
+                  Save {formatMoney(oldPrice - finalUnitPrice)}
                 </span>
               </div>
             ) : null}
@@ -856,23 +936,34 @@ export default function ProductDetails() {
                           Select {group.name.toLowerCase()}
                         </option>
                         {group.values.map((value) => (
-                          <option key={value} value={value}>
-                            {value}
+                          <option key={value.id} value={value.label}>
+                            {value.label}
+                            {value.priceBump > 0
+                              ? ` (+${formatMoney(value.priceBump)})`
+                              : ""}
                           </option>
                         ))}
                       </select>
                     ) : (
                       <div className="pd-option-buttons">
                         {group.values.map((value) => {
-                          const active = selectedOptions[group.name] === value;
+                          const active =
+                            selectedOptions[group.name] === value.label;
                           return (
                             <button
-                              key={value}
+                              key={value.id}
                               type="button"
                               className={`pd-option-btn ${active ? "active" : ""}`}
-                              onClick={() => setOptionValue(group.name, value)}
+                              onClick={() =>
+                                setOptionValue(group.name, value.label)
+                              }
                             >
-                              {value}
+                              {value.label}
+                              {value.priceBump > 0 ? (
+                                <span style={{ marginLeft: 6 }}>
+                                  +{formatMoney(value.priceBump)}
+                                </span>
+                              ) : null}
                             </button>
                           );
                         })}
@@ -881,6 +972,19 @@ export default function ProductDetails() {
                   </div>
                 ))}
               </div>
+
+              {selectedOptionDetails.length > 0 ? (
+                <div className="pd-option-error">
+                  {selectedOptionDetails.map((item) => (
+                    <div key={`${item.groupName}-${item.label}`}>
+                      {item.groupName}: {item.label}
+                      {item.priceBump > 0
+                        ? ` (+${formatMoney(item.priceBump)})`
+                        : ""}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
 
               {optionError ? (
                 <div className="pd-option-error">{optionError}</div>
@@ -929,6 +1033,12 @@ export default function ProductDetails() {
           {stock !== null && !isOutOfStock && qtyLimitReached ? (
             <div className="pd-option-error">
               You have reached the maximum available quantity for this product.
+            </div>
+          ) : null}
+
+          {shipsFromAbroad && abroadDeliveryFee > 0 ? (
+            <div className="pd-option-error">
+              Abroad delivery fee: {formatMoney(abroadDeliveryFee)}
             </div>
           ) : null}
 
