@@ -5,12 +5,24 @@ import "./CartDrawer.css";
 
 export default function CartDrawer({ isOpen, onClose }) {
   const navigate = useNavigate();
-  const { cartItems, removeFromCart, updateQty, subtotal, itemCount } =
-    useCart();
+  const {
+    cartItems,
+    removeFromCart,
+    updateQty,
+    subtotal,
+    itemCount,
+    hideCartPopup,
+  } = useCart();
 
   const goCheckout = () => {
+    hideCartPopup?.();
     onClose?.();
     navigate("/checkout");
+  };
+
+  const handleContinueShopping = () => {
+    hideCartPopup?.();
+    onClose?.();
   };
 
   return (
@@ -38,7 +50,11 @@ export default function CartDrawer({ isOpen, onClose }) {
               <span className="cd-empty-sub">
                 Add something you love and come back here to checkout.
               </span>
-              <button className="cd-ghost" onClick={onClose} type="button">
+              <button
+                className="cd-ghost"
+                onClick={handleContinueShopping}
+                type="button"
+              >
                 Continue shopping
               </button>
             </div>
@@ -72,6 +88,12 @@ export default function CartDrawer({ isOpen, onClose }) {
                             </span>
                           ) : null
                         )}
+                      </div>
+                    ) : null}
+
+                    {item.shipsFromAbroad ? (
+                      <div className="cd-item-options">
+                        <span className="cd-option-pill">Ships from abroad</span>
                       </div>
                     ) : null}
 
