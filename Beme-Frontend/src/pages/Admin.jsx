@@ -139,12 +139,12 @@ function normalizeAdminProduct(snapshotDoc) {
     ownerName: String(d.ownerName || d.sellerName || "").trim(),
     ownerEmail: String(d.ownerEmail || "").trim(),
     featured: !!d.featured,
-    inStock: !!d.inStock,
+    inStock: d.inStock !== false,
     shipsFromAbroad: !!d.shipsFromAbroad,
     stock:
       d.stock !== undefined && d.stock !== null && d.stock !== ""
-        ? Number(d.stock || 0)
-        : 0,
+        ? Number(d.stock)
+        : null,
     customizations: Array.isArray(d.customizations) ? d.customizations : [],
     createdAt: d.createdAt || null,
     updatedAt: d.updatedAt || null,
@@ -334,7 +334,6 @@ function parseNumberish(value, fallback = 0) {
   const num = Number(cleaned);
   return Number.isFinite(num) ? num : fallback;
 }
-
 function parseCustomizationsFromText(input) {
   const raw = String(input || "").trim();
   if (!raw) return [];
@@ -790,8 +789,7 @@ export default function Admin() {
       });
     };
   }, [previewEditImagePreviews]);
-
-  const setField = (key) => (e) => {
+    const setField = (key) => (e) => {
     const value =
       e?.target?.type === "checkbox" ? e.target.checked : e.target.value;
 
@@ -958,8 +956,7 @@ export default function Admin() {
       e.target.value = "";
     }
   };
-
-  const handleEditImageChange = (e) => {
+    const handleEditImageChange = (e) => {
     const files = Array.from(e.target.files || []);
     setEditError("");
     setEditMsg("");
@@ -1162,8 +1159,7 @@ export default function Admin() {
       setPreviewEditUploadingImage(false);
     }
   };
-
-  const validate = () => {
+    const validate = () => {
     const name = form.name.trim();
     if (!name) return "Name is required.";
 
@@ -1374,7 +1370,7 @@ export default function Admin() {
         ownerEmail: String(user?.email || profile?.email || "").trim(),
         ownerName: sellerName,
         sellerName,
-        inStock: !!form.inStock,
+        inStock: form.inStock !== false,
         featured: !!form.featured,
         shipsFromAbroad: !!form.shipsFromAbroad,
         customizations,
@@ -1411,8 +1407,7 @@ export default function Admin() {
       setSubmitting(false);
     }
   };
-
-  const buildPreviewRowsFromCsv = (rows) => {
+    const buildPreviewRowsFromCsv = (rows) => {
     const sellerName = resolveCurrentSellerName(user, profile);
     const fallbackShop =
       isShopAdmin && normalizedAdminShop
@@ -1431,9 +1426,17 @@ export default function Admin() {
         return;
       }
 
-      const stockNumber = parseNumberish(row.stock, 0);
+      const stockNumber =
+        row.stock !== undefined &&
+        row.stock !== null &&
+        String(row.stock).trim() !== ""
+          ? parseNumberish(row.stock, 0)
+          : null;
+
       const oldPrice =
-        row.oldPrice !== undefined && row.oldPrice !== null && row.oldPrice !== ""
+        row.oldPrice !== undefined &&
+        row.oldPrice !== null &&
+        row.oldPrice !== ""
           ? parseNumberish(row.oldPrice, null)
           : null;
 
@@ -1465,7 +1468,12 @@ export default function Admin() {
         sellerName,
         inStock:
           row.inStock !== undefined && row.inStock !== ""
-            ? parseBooleanish(row.inStock, stockNumber > 0)
+            ? parseBooleanish(
+                row.inStock,
+                stockNumber === null ? true : stockNumber > 0
+              )
+            : stockNumber === null
+            ? true
             : stockNumber > 0,
         featured: parseBooleanish(row.featured, false),
         shipsFromAbroad: parseBooleanish(row.shipsFromAbroad, false),
@@ -1570,10 +1578,18 @@ export default function Admin() {
           customizations: Array.isArray(row.customizations)
             ? row.customizations
             : [],
-          stock: Number(row.stock || 0),
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         };
+
+        if (
+          row.stock !== null &&
+          row.stock !== undefined &&
+          row.stock !== "" &&
+          Number.isFinite(Number(row.stock))
+        ) {
+          payload.stock = Number(row.stock);
+        }
 
         if (
           row.oldPrice !== "" &&
@@ -1638,8 +1654,7 @@ export default function Admin() {
       setBulkImporting(false);
     }
   };
-
-  const startPreviewEdit = (row) => {
+    const startPreviewEdit = (row) => {
     setPreviewRowToEdit(row);
     setPreviewEditForm({
       name: row.name || "",
@@ -1868,8 +1883,7 @@ export default function Admin() {
       setBulkDeleting(false);
     }
   };
-
-  const startEditProduct = (product) => {
+    const startEditProduct = (product) => {
     if (!canCurrentUserEditProduct(product)) {
       setMsg(
         isSuperAdmin
@@ -2223,8 +2237,7 @@ export default function Admin() {
                     </span>
                   </label>
                 </div>
-
-                <div className="admin-options-card">
+                                <div className="admin-options-card">
                   <div className="admin-options-head">
                     <h3 className="admin-options-title">Customizations</h3>
                     <button
@@ -2606,8 +2619,7 @@ export default function Admin() {
                 </div>
               </div>
             </div>
-
-            <aside className="admin-edit-side">
+                        <aside className="admin-edit-side">
               <div className="admin-edit-side-card">
                 <h4 className="admin-edit-section-title">Images</h4>
 
@@ -3083,7 +3095,10 @@ export default function Admin() {
 
                 <div className="admin-uploaded-grid">
                   {uploadedImages.map((item, index) => (
-                    <div className="admin-uploaded-thumb" key={item.publicId || item.url || index}>
+                    <div
+                      className="admin-uploaded-thumb"
+                      key={item.publicId || item.url || index}
+                    >
                       <img
                         src={item.url}
                         alt={`Uploaded ${index + 1}`}
