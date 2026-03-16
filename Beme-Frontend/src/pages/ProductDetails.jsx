@@ -5,6 +5,49 @@ import { db } from "../firebase";
 import { useCart } from "../context/CartContext";
 import "./ProductDetails.css";
 
+function parseBooleanish(value, fallback = false) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value > 0;
+
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return fallback;
+
+  if (
+    [
+      "true",
+      "yes",
+      "1",
+      "in stock",
+      "instock",
+      "available",
+      "active",
+      "abroad",
+      "imported",
+      "international",
+      "overseas",
+    ].includes(raw)
+  ) {
+    return true;
+  }
+
+  if (
+    [
+      "false",
+      "no",
+      "0",
+      "out of stock",
+      "outofstock",
+      "unavailable",
+      "inactive",
+      "local",
+    ].includes(raw)
+  ) {
+    return false;
+  }
+
+  return fallback;
+}
+
 function normalizeCustomizations(raw) {
   if (!Array.isArray(raw)) return [];
 
@@ -34,7 +77,9 @@ function normalizeImages(product) {
     : [];
 
   if (list.length) return list;
-  return product?.image ? [product.image] : [];
+
+  const single = String(product?.image || "").trim();
+  return single ? [single] : [];
 }
 
 function normalizeShop(value) {
@@ -49,6 +94,8 @@ function normalizeShippingSource(product) {
     product?.ship_from,
     product?.fulfillmentType,
     product?.originType,
+    product?.shipping_origin,
+    product?.shipping_origin_type,
   ];
 
   for (const candidate of candidates) {
@@ -62,6 +109,7 @@ function normalizeShippingSource(product) {
         "ships from abroad",
         "international",
         "imported",
+        "overseas",
       ].includes(value)
     ) {
       return "abroad";
@@ -76,7 +124,10 @@ function normalizeShippingSource(product) {
     }
   }
 
-  if (product?.shipFromAbroad === true || product?.shipsFromAbroad === true) {
+  if (
+    parseBooleanish(product?.shipFromAbroad, false) ||
+    parseBooleanish(product?.shipsFromAbroad, false)
+  ) {
     return "abroad";
   }
 
@@ -308,12 +359,19 @@ export default function ProductDetails() {
   const shipsFromAbroad = useMemo(
     () =>
       shippingSource === "abroad" ||
-      product?.shipFromAbroad === true ||
-      product?.shipsFromAbroad === true,
+      parseBooleanish(product?.shipFromAbroad, false) ||
+      parseBooleanish(product?.shipsFromAbroad, false),
     [shippingSource, product]
   );
 
   const stock = useMemo(() => getNumericStock(product), [product]);
+
+  const isOutOfStock = useMemo(() => {
+    return (
+      parseBooleanish(product?.inStock, true) === false ||
+      (stock !== null && stock <= 0)
+    );
+  }, [product, stock]);
 
   useEffect(() => {
     const initialSelections = {};
@@ -369,17 +427,24 @@ export default function ProductDetails() {
       id: product.id,
       name: product.name,
       price: Number(product.price || 0),
-      image: product.image || images[0] || "",
+      oldPrice:
+        product?.oldPrice !== undefined &&
+        product?.oldPrice !== null &&
+        product?.oldPrice !== ""
+          ? Number(product.oldPrice || 0)
+          : null,
+      image: String(product.image || images[0] || "").trim(),
       images,
       qty,
       stock,
-      inStock: product?.inStock !== false,
+      inStock: parseBooleanish(product?.inStock, true),
       shop: shopKey || "",
       selectedOptions,
       selectedOptionsLabel,
       customizations,
       shippingSource,
       shipsFromAbroad,
+      productId: product.id,
     };
   };
 
@@ -411,7 +476,12 @@ export default function ProductDetails() {
   };
 
   const handleAdd = () => {
-    if (!product || isOutOfStock) return;
+    if (!product) return;
+
+    if (isOutOfStock) {
+      triggerErrorFeedback("Sorry, this item is currently out of stock.");
+      return;
+    }
 
     const selectionError = validateSelections();
     if (selectionError) {
@@ -433,7 +503,12 @@ export default function ProductDetails() {
   };
 
   const handleBuyNow = () => {
-    if (!product || isOutOfStock) return;
+    if (!product) return;
+
+    if (isOutOfStock) {
+      triggerErrorFeedback("Sorry, this item is currently out of stock.");
+      return;
+    }
 
     const selectionError = validateSelections();
     if (selectionError) {
@@ -536,8 +611,6 @@ export default function ProductDetails() {
   const desc =
     product?.description ??
     "This is a premium product from Beme Market. Add a description in Firestore to show details here.";
-  const isOutOfStock =
-    product?.inStock === false || (stock !== null && stock <= 0);
   const qtyLimitReached = stock !== null && qty >= stock;
   const sliderTranslate = `calc(${-activeImageIndex * 100}% + ${dragOffset}px)`;
 
@@ -597,10 +670,16 @@ export default function ProductDetails() {
                   <div
                     className={`pd-ship-badge ${
                       shippingSource === "uni" ? "pd-ship-badge--uni" : ""
-                    }`}
+                    } ${shipsFromAbroad ? "pd-ship-badge--abroad" : ""}`}
                     aria-label={shippingBadgeLabel}
                   >
                     {shippingBadgeLabel}
+                  </div>
+                ) : null}
+
+                {isOutOfStock ? (
+                  <div className="pd-stock-badge pd-stock-badge--out">
+                    Out of stock
                   </div>
                 ) : null}
 
@@ -694,7 +773,7 @@ export default function ProductDetails() {
               <div
                 className={`pd-badge ${
                   shippingSource === "uni" ? "pd-badge--uni" : "pd-badge--ship"
-                }`}
+                } ${shipsFromAbroad ? "pd-badge--ship-abroad" : ""}`}
               >
                 <span>{shippingBadgeLabel}</span>
               </div>
@@ -711,14 +790,14 @@ export default function ProductDetails() {
           <div className="pd-price-row">
             <div className="pd-price">{formatMoney(price)}</div>
 
-            {oldPrice > price && (
+            {oldPrice > price ? (
               <div className="pd-old">
                 <span className="pd-old-strike">{formatMoney(oldPrice)}</span>
                 <span className="pd-save">
                   Save {formatMoney(oldPrice - price)}
                 </span>
               </div>
-            )}
+            ) : null}
           </div>
 
           {brand ? (
@@ -754,7 +833,7 @@ export default function ProductDetails() {
             </div>
           </div>
 
-          {customizations.length > 0 && (
+          {customizations.length > 0 ? (
             <div className="pd-section">
               <h3 className="pd-section-title">Options</h3>
 
@@ -810,7 +889,7 @@ export default function ProductDetails() {
                 <div className="pd-option-error">{optionError}</div>
               ) : null}
             </div>
-          )}
+          ) : null}
 
           <div className="pd-qty-row">
             <div className="pd-qty-label">
@@ -856,6 +935,12 @@ export default function ProductDetails() {
             </div>
           ) : null}
 
+          {isOutOfStock ? (
+            <div className="pd-option-error">
+              Sorry, this product is currently unavailable.
+            </div>
+          ) : null}
+
           {cartFeedback ? (
             <div className={addedFeedback ? "pd-added-feedback" : "pd-option-error"}>
               {cartFeedback}
@@ -867,6 +952,7 @@ export default function ProductDetails() {
               className="pd-btn pd-btn-outline"
               onClick={handleAdd}
               disabled={isOutOfStock}
+              type="button"
             >
               {isOutOfStock ? "Unavailable" : "Add to cart"}
             </button>
@@ -875,6 +961,7 @@ export default function ProductDetails() {
               className="pd-btn pd-btn-black"
               onClick={handleBuyNow}
               disabled={isOutOfStock}
+              type="button"
             >
               {isOutOfStock ? "Out of stock" : "Buy now"}
             </button>

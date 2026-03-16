@@ -1,6 +1,12 @@
 // src/App.jsx
 import { useEffect, useMemo, useState } from "react";
-import { Routes, Route, useLocation, Navigate, useNavigate } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  useLocation,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { CartProvider, useCart } from "./context/CartContext";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -51,55 +57,71 @@ function CartAddedPopup({ onContinueShopping, onCheckout }) {
   if (!cartPopup?.visible || !cartPopup?.item) return null;
 
   const item = cartPopup.item;
+  const title = cartPopup?.title || "Added to cart";
+  const message =
+    cartPopup?.message ||
+    "Thank you for shopping with us. Your item has been added to cart.";
+  const image =
+    item?.image ||
+    (Array.isArray(item?.images) ? item.images[0] : "") ||
+    "";
 
   return (
-    <div className="cart-added-popup" role="status" aria-live="polite">
-      <button
-        type="button"
-        className="cart-added-popup__close"
-        onClick={hideCartPopup}
-        aria-label="Close cart popup"
-      >
-        ×
-      </button>
-
-      <div className="cart-added-popup__content">
-        <div className="cart-added-popup__media">
-          {item.image ? (
-            <img src={item.image} alt={item.name || "Product"} />
-          ) : (
-            <div className="cart-added-popup__media-empty">No image</div>
-          )}
-        </div>
-
-        <div className="cart-added-popup__text">
-          <span className="cart-added-popup__eyebrow">Added to cart</span>
-          <h4>Thank you for shopping with us</h4>
-          <p>
-            <strong>{item.name}</strong> has been added to your cart.
-          </p>
-          {item.selectedOptionsLabel ? (
-            <small>{item.selectedOptionsLabel}</small>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="cart-added-popup__actions">
+    <div className="cart-added-popup-backdrop" role="presentation">
+      <div className="cart-added-popup" role="dialog" aria-modal="true" aria-label={title}>
         <button
           type="button"
-          className="cart-added-popup__btn cart-added-popup__btn--ghost"
-          onClick={onContinueShopping}
+          className="cart-added-popup__close"
+          onClick={hideCartPopup}
+          aria-label="Close cart popup"
         >
-          Continue Shopping
+          ×
         </button>
 
-        <button
-          type="button"
-          className="cart-added-popup__btn cart-added-popup__btn--primary"
-          onClick={onCheckout}
-        >
-          Checkout
-        </button>
+        <div className="cart-added-popup__content">
+          <div className="cart-added-popup__media">
+            {image ? (
+              <img src={image} alt={item.name || "Product"} />
+            ) : (
+              <div className="cart-added-popup__media-empty">No image</div>
+            )}
+          </div>
+
+          <div className="cart-added-popup__text">
+            <span className="cart-added-popup__eyebrow">
+              {cartPopup?.firstAdd ? "First item added" : "Added to cart"}
+            </span>
+            <h4>{title}</h4>
+            <p>{message}</p>
+
+            <div className="cart-added-popup__product-meta">
+              <strong>{item.name}</strong>
+              <span>GHS {Number(item.price || 0).toFixed(2)}</span>
+            </div>
+
+            {item.selectedOptionsLabel ? (
+              <small>{item.selectedOptionsLabel}</small>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="cart-added-popup__actions">
+          <button
+            type="button"
+            className="cart-added-popup__btn cart-added-popup__btn--ghost"
+            onClick={onContinueShopping}
+          >
+            Continue Shopping
+          </button>
+
+          <button
+            type="button"
+            className="cart-added-popup__btn cart-added-popup__btn--primary"
+            onClick={onCheckout}
+          >
+            Checkout
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -109,6 +131,7 @@ function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const { hideCartPopup } = useCart();
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
 
@@ -131,6 +154,7 @@ function AppShell() {
 
   const handleCheckoutFromPopup = () => {
     hideCartPopup();
+    setCartOpen(true);
     navigate("/checkout");
   };
 
@@ -142,8 +166,17 @@ function AppShell() {
             onMenu={() => setSidebarOpen(true)}
             onCart={() => setCartOpen(true)}
           />
-          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-          <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+
+          <Sidebar
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+          />
+
+          <CartDrawer
+            isOpen={cartOpen}
+            onClose={() => setCartOpen(false)}
+          />
+
           <CartAddedPopup
             onContinueShopping={handleContinueShopping}
             onCheckout={handleCheckoutFromPopup}

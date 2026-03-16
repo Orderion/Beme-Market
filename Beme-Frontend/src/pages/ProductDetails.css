@@ -111,7 +111,6 @@
   letter-spacing: 0.02em;
 }
 
-/* NEW SHIPPING BADGE ON IMAGE */
 .pd-ship-badge {
   position: absolute;
   top: 14px;
@@ -129,11 +128,43 @@
   letter-spacing: 0.01em;
   backdrop-filter: blur(8px);
   box-shadow: 0 10px 24px rgba(17, 17, 17, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  max-width: calc(100% - 28px);
+}
+
+.pd-ship-badge--abroad {
+  background: linear-gradient(180deg, #22c55e, #15803d);
+  color: #fff;
+  border-color: rgba(21, 128, 61, 0.4);
+  box-shadow: 0 10px 24px rgba(21, 128, 61, 0.22);
 }
 
 .pd-ship-badge--uni {
   background: rgba(212, 175, 55, 0.95);
   color: #111;
+}
+
+.pd-stock-badge {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 24px rgba(17, 17, 17, 0.16);
+}
+
+.pd-stock-badge--out {
+  background: rgba(153, 27, 27, 0.94);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .pd-carousel-btn {
@@ -282,7 +313,6 @@
   animation: fadeUpSoft 0.5s ease;
 }
 
-/* NEW SHIPPING BADGE IN META */
 .pd-badge--ship {
   background: rgba(17, 17, 17, 0.06);
   border-color: rgba(17, 17, 17, 0.12);
@@ -291,6 +321,18 @@
 body.dark .pd-badge--ship {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(255, 255, 255, 0.12);
+}
+
+.pd-badge--ship-abroad {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(21, 128, 61, 0.3);
+  color: #166534;
+}
+
+body.dark .pd-badge--ship-abroad {
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.28);
+  color: #bbf7d0;
 }
 
 .pd-badge--uni {
@@ -780,6 +822,15 @@ body.dark .pd-badge--ship {
   .pd-ship-badge {
     top: 12px;
     left: 12px;
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 11px;
+    max-width: calc(100% - 24px);
+  }
+
+  .pd-stock-badge {
+    left: 12px;
+    bottom: 12px;
     min-height: 32px;
     padding: 0 10px;
     font-size: 11px;
