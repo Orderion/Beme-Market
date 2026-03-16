@@ -12,6 +12,54 @@ function normalizeImages(product) {
   return product?.image ? [product.image] : [];
 }
 
+function normalizeShippingSource(product) {
+  const candidates = [
+    product?.shippingSource,
+    product?.shippingType,
+    product?.shipFrom,
+    product?.ship_from,
+    product?.fulfillmentType,
+    product?.originType,
+  ];
+
+  for (const candidate of candidates) {
+    const value = String(candidate || "").trim().toLowerCase();
+    if (!value) continue;
+
+    if (
+      [
+        "abroad",
+        "ship from abroad",
+        "ships from abroad",
+        "international",
+        "imported",
+      ].includes(value)
+    ) {
+      return "abroad";
+    }
+
+    if (["uni", "unisex", "universal"].includes(value)) {
+      return "uni";
+    }
+
+    if (["local", "ghana", "domestic"].includes(value)) {
+      return "local";
+    }
+  }
+
+  if (product?.shipFromAbroad === true || product?.shipsFromAbroad === true) {
+    return "abroad";
+  }
+
+  return "";
+}
+
+function getShippingBadgeLabel(source) {
+  if (source === "abroad") return "Ships from abroad";
+  if (source === "uni") return "Uni";
+  return "";
+}
+
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();
 
@@ -20,6 +68,8 @@ export default function ProductCard({ product }) {
   const images = normalizeImages(product);
   const image = images[0] || "";
   const imageCount = images.length;
+  const shippingSource = normalizeShippingSource(product);
+  const shippingBadgeLabel = getShippingBadgeLabel(shippingSource);
 
   const priceRaw = product?.price;
   const oldPriceRaw = product?.oldPrice;
@@ -61,6 +111,17 @@ export default function ProductCard({ product }) {
           {image ? (
             <>
               <img className="p-img" src={image} alt={name} loading="lazy" />
+
+              {shippingBadgeLabel ? (
+                <div
+                  className={`p-ship-badge ${
+                    shippingSource === "uni" ? "p-ship-badge--uni" : ""
+                  }`}
+                  aria-label={shippingBadgeLabel}
+                >
+                  {shippingBadgeLabel}
+                </div>
+              ) : null}
 
               {imageCount > 1 ? (
                 <div
