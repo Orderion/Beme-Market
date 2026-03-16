@@ -66,6 +66,21 @@ function normalizeSelectedOptions(selectedOptions) {
     }, {});
 }
 
+function normalizeSelectedOptionDetails(selectedOptionDetails) {
+  if (!Array.isArray(selectedOptionDetails)) return [];
+
+  return selectedOptionDetails
+    .map((item, index) => ({
+      id:
+        String(item?.id || "").trim() ||
+        `selected-option-${index}-${String(item?.groupName || "group").trim()}`,
+      groupName: String(item?.groupName || "").trim(),
+      label: String(item?.label || "").trim(),
+      priceBump: Number(item?.priceBump || 0) || 0,
+    }))
+    .filter((item) => item.groupName && item.label);
+}
+
 function makeLineId(product) {
   const baseId = String(product?.id || "").trim();
   const selectedOptions = normalizeSelectedOptions(product?.selectedOptions);
@@ -75,6 +90,11 @@ function makeLineId(product) {
 function getNumericStock(product) {
   const parsed = Number(product?.stock);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getAbroadDeliveryFee(product) {
+  const parsed = Number(product?.abroadDeliveryFee);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
 function isOutOfStock(product) {
@@ -89,8 +109,18 @@ function clampQtyToStock(qty, stock) {
   return Math.max(1, Math.min(safeQty, stock));
 }
 
+function buildSelectedOptionsLabelFromMap(selectedOptions) {
+  return Object.entries(selectedOptions)
+    .filter(([, value]) => value)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join(" • ");
+}
+
 function normalizeCartItem(product) {
   const safeSelectedOptions = normalizeSelectedOptions(product?.selectedOptions);
+  const safeSelectedOptionDetails = normalizeSelectedOptionDetails(
+    product?.selectedOptionDetails
+  );
 
   const images = Array.isArray(product?.images)
     ? product.images.map((img) => String(img || "").trim()).filter(Boolean)
@@ -100,6 +130,22 @@ function normalizeCartItem(product) {
   const stock = getNumericStock(product);
   const qty = clampQtyToStock(product?.qty, stock);
   const price = Number(product?.price) || 0;
+  const basePrice =
+    product?.basePrice !== undefined &&
+    product?.basePrice !== null &&
+    product?.basePrice !== ""
+      ? Number(product.basePrice) || 0
+      : price;
+  const optionPriceTotal =
+    product?.optionPriceTotal !== undefined &&
+    product?.optionPriceTotal !== null &&
+    product?.optionPriceTotal !== ""
+      ? Number(product.optionPriceTotal) || 0
+      : safeSelectedOptionDetails.reduce(
+          (sum, item) => sum + (Number(item.priceBump || 0) || 0),
+          0
+        );
+
   const oldPrice =
     product?.oldPrice !== undefined &&
     product?.oldPrice !== null &&
@@ -112,6 +158,8 @@ function normalizeCartItem(product) {
     lineId: String(product?.lineId || makeLineId(product)).trim(),
     name: String(product?.name || "Untitled").trim(),
     price,
+    basePrice,
+    optionPriceTotal,
     oldPrice,
     image,
     images: images.length ? images : image ? [image] : [],
@@ -120,6 +168,7 @@ function normalizeCartItem(product) {
     inStock: parseBooleanish(product?.inStock, true),
     selectedOptions: safeSelectedOptions,
     selectedOptionsLabel: String(product?.selectedOptionsLabel || "").trim(),
+    selectedOptionDetails: safeSelectedOptionDetails,
     customizations: Array.isArray(product?.customizations)
       ? product.customizations
       : [],
@@ -127,15 +176,14 @@ function normalizeCartItem(product) {
       parseBooleanish(product?.shipsFromAbroad, false) ||
       parseBooleanish(product?.shipFromAbroad, false),
     shippingSource: String(product?.shippingSource || "").trim(),
+    abroadDeliveryFee: getAbroadDeliveryFee(product),
     shop: String(product?.shop || "").trim(),
     productId: String(product?.productId || product?.id || "").trim(),
   };
 
   if (!normalized.selectedOptionsLabel) {
-    normalized.selectedOptionsLabel = Object.entries(safeSelectedOptions)
-      .filter(([, value]) => value)
-      .map(([key, value]) => `${key}: ${value}`)
-      .join(" • ");
+    normalized.selectedOptionsLabel =
+      buildSelectedOptionsLabelFromMap(safeSelectedOptions);
   }
 
   return normalized;
@@ -262,7 +310,13 @@ export const CartProvider = ({ children }) => {
             prevItem.lineId !== item.lineId ||
             Number(prevItem.qty) !== Number(item.qty) ||
             Number(prevItem.stock) !== Number(item.stock) ||
-            prevItem.inStock !== item.inStock
+            prevItem.inStock !== item.inStock ||
+            Number(prevItem.price) !== Number(item.price) ||
+            Number(prevItem.basePrice) !== Number(item.basePrice) ||
+            Number(prevItem.optionPriceTotal) !==
+              Number(item.optionPriceTotal) ||
+            Number(prevItem.abroadDeliveryFee) !==
+              Number(item.abroadDeliveryFee)
           );
         });
 
@@ -316,10 +370,7 @@ export const CartProvider = ({ children }) => {
       item: item ? normalizeCartItem(item) : null,
       hasShownSinceEmpty: true,
       mode: String(options?.mode || "added"),
-      title: String(
-        options?.title ||
-          (firstAdd ? "Added to cart" : "Cart updated")
-      ),
+      title: String(options?.title || (firstAdd ? "Added to cart" : "Cart updated")),
       message: String(
         options?.message ||
           (firstAdd
@@ -407,7 +458,7 @@ export const CartProvider = ({ children }) => {
         firstAdd: shouldShowFirstAddPopup,
         showConfetti: shouldShowFirstAddPopup,
         mode: "added",
-        title: shouldShowFirstAddPopup ? "Added to cart" : "Added to cart",
+        title: "Added to cart",
         message: shouldShowFirstAddPopup
           ? "Thank you for shopping with us. Your first item has been added to cart."
           : "Your item has been added to cart.",
