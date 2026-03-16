@@ -283,9 +283,19 @@
   transform: scale(1.08);
 }
 
-/* ===== SHOP BANNERS ===== */
+/* ===== SHOP STOREFRONT ===== */
 
-.shop-banner-grid {
+.shop-storefront {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.shop-storefront-featured {
+  width: 100%;
+}
+
+.shop-storefront-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
@@ -294,7 +304,7 @@
 .shop-banner {
   position: relative;
   width: 100%;
-  border-radius: 22px;
+  border-radius: 24px;
   overflow: hidden;
   box-shadow: var(--shadow);
   animation: fadeUpSoft 0.68s ease;
@@ -305,6 +315,7 @@
     transform 0.22s ease,
     box-shadow 0.22s ease,
     border-color 0.22s ease;
+  isolation: isolate;
 }
 
 .shop-banner:hover {
@@ -317,9 +328,18 @@
   outline-offset: 2px;
 }
 
+.shop-banner--featured {
+  min-height: 320px;
+}
+
+.shop-banner--square {
+  aspect-ratio: 1 / 1;
+  min-height: 240px;
+}
+
 .shop-banner-image {
   width: 100%;
-  height: 270px;
+  height: 100%;
   object-fit: cover;
   display: block;
   transform: scale(1.01);
@@ -337,6 +357,15 @@
   gap: 12px;
   padding: 24px;
   color: #fff;
+  z-index: 1;
+}
+
+.shop-banner-overlay--featured {
+  padding: 24px;
+}
+
+.shop-banner-overlay--square {
+  padding: 18px;
 }
 
 .shop-banner-overlay--center {
@@ -346,8 +375,8 @@
   text-align: center;
   background: linear-gradient(
     to top,
-    rgba(0, 0, 0, 0.54),
-    rgba(0, 0, 0, 0.18)
+    rgba(0, 0, 0, 0.56),
+    rgba(0, 0, 0, 0.2)
   );
 }
 
@@ -359,7 +388,7 @@
   background: linear-gradient(
     180deg,
     rgba(0, 0, 0, 0.08),
-    rgba(0, 0, 0, 0.64)
+    rgba(0, 0, 0, 0.68)
   );
 }
 
@@ -385,19 +414,51 @@
   text-wrap: balance;
 }
 
+.shop-banner--featured .shop-banner-overlay h2 {
+  font-size: 34px;
+  max-width: 520px;
+}
+
+.shop-banner--square .shop-banner-overlay h2 {
+  font-size: 22px;
+  max-width: 220px;
+}
+
 .shop-banner-copy {
   margin: 0;
-  max-width: 380px;
+  max-width: 420px;
   color: rgba(255, 255, 255, 0.88);
   font-size: 14px;
   line-height: 1.65;
+}
+
+.shop-banner--square .shop-banner-copy {
+  max-width: 240px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.shop-banner-cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  margin-top: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
 }
 
 .shop-banner--tech .shop-banner-overlay--left {
   background: linear-gradient(
     180deg,
     rgba(7, 15, 28, 0.1),
-    rgba(7, 15, 28, 0.76)
+    rgba(7, 15, 28, 0.78)
   );
 }
 
@@ -405,7 +466,7 @@
   background: linear-gradient(
     180deg,
     rgba(17, 17, 17, 0.08),
-    rgba(17, 17, 17, 0.66)
+    rgba(17, 17, 17, 0.68)
   );
 }
 
@@ -413,7 +474,15 @@
   background: linear-gradient(
     180deg,
     rgba(20, 20, 20, 0.08),
-    rgba(20, 20, 20, 0.6)
+    rgba(20, 20, 20, 0.64)
+  );
+}
+
+.shop-banner--perfume .shop-banner-overlay--left {
+  background: linear-gradient(
+    180deg,
+    rgba(28, 20, 24, 0.08),
+    rgba(28, 20, 24, 0.7)
   );
 }
 
@@ -432,11 +501,22 @@
   margin-bottom: 14px;
 }
 
+.section-header--stores {
+  align-items: flex-end;
+}
+
 .section-header h3 {
   margin: 0;
   font-family: var(--font-display);
   font-size: 1.18rem;
   letter-spacing: -0.04em;
+}
+
+.section-subtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
 }
 
 .see-all-btn {
@@ -487,11 +567,24 @@
   }
 }
 
-/* ===== MOBILE ===== */
+/* ===== TABLET ===== */
 
 @media (max-width: 900px) {
-  .shop-banner-grid {
-    grid-template-columns: 1fr;
+  .shop-storefront-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .shop-banner--featured {
+    min-height: 290px;
+  }
+
+  .shop-banner--featured .shop-banner-overlay h2 {
+    font-size: 30px;
+  }
+
+  .shop-banner--square {
+    min-height: 220px;
   }
 }
 
@@ -505,13 +598,38 @@
     max-width: 300px;
   }
 
-  .shop-banner-image {
-    height: 230px;
+  .shop-banner--featured {
+    min-height: 260px;
   }
 
-  .shop-banner-overlay h2 {
-    font-size: 21px;
-    max-width: 260px;
+  .shop-banner--featured .shop-banner-overlay h2 {
+    font-size: 28px;
+    max-width: 360px;
+  }
+
+  .shop-banner--square .shop-banner-overlay h2 {
+    font-size: 18px;
+    max-width: 170px;
+  }
+
+  .shop-banner--square .shop-banner-copy {
+    font-size: 12px;
+    max-width: 190px;
+  }
+
+  .shop-banner-overlay--square {
+    padding: 16px;
+  }
+
+  .shop-banner-chip {
+    padding: 6px 11px;
+    font-size: 10px;
+  }
+
+  .shop-banner-cta {
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 11px;
   }
 }
 
@@ -541,26 +659,77 @@
     max-width: 280px;
   }
 
-  .shop-banner-image {
-    height: 220px;
+  .shop-storefront {
+    gap: 14px;
   }
 
-  .shop-banner-overlay {
+  .shop-storefront-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .shop-banner {
+    border-radius: 20px;
+  }
+
+  .shop-banner--featured {
+    min-height: 230px;
+  }
+
+  .shop-banner--featured .shop-banner-overlay {
     padding: 18px;
   }
 
-  .shop-banner-overlay h2 {
-    font-size: 19px;
-    max-width: 220px;
+  .shop-banner--featured .shop-banner-overlay h2 {
+    font-size: 24px;
+    max-width: 260px;
   }
 
-  .shop-banner-copy {
+  .shop-banner--featured .shop-banner-copy {
     font-size: 13px;
-    max-width: 240px;
+    max-width: 260px;
+  }
+
+  .shop-banner--square {
+    aspect-ratio: 1 / 1.08;
+    min-height: 180px;
+  }
+
+  .shop-banner-overlay--square {
+    padding: 14px;
+    gap: 8px;
+  }
+
+  .shop-banner--square .shop-banner-overlay h2 {
+    font-size: 16px;
+    max-width: 130px;
+  }
+
+  .shop-banner--square .shop-banner-copy {
+    display: none;
+  }
+
+  .shop-banner--square .shop-banner-chip {
+    padding: 5px 10px;
+    font-size: 9px;
+  }
+
+  .shop-banner--square .shop-banner-cta {
+    min-height: 28px;
+    padding: 0 10px;
+    font-size: 10px;
   }
 
   .section-header {
     align-items: center;
+  }
+
+  .section-header--stores {
+    align-items: flex-start;
+  }
+
+  .section-subtitle {
+    font-size: 12px;
   }
 
   .search-submit {
@@ -588,5 +757,24 @@
   .hero-dots {
     right: 12px;
     bottom: 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .shop-storefront-grid {
+    gap: 10px;
+  }
+
+  .shop-banner--square {
+    min-height: 168px;
+  }
+
+  .shop-banner--square .shop-banner-overlay h2 {
+    font-size: 15px;
+    max-width: 118px;
+  }
+
+  .shop-banner--featured .shop-banner-overlay h2 {
+    font-size: 22px;
   }
 }
