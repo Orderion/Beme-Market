@@ -114,8 +114,68 @@ function normalizeShop(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function getNumericStock(product) {
+  const parsed = Number(product?.stock);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function normalizeStock(product) {
   return parseBooleanish(product?.inStock, true);
+}
+
+function normalizeCustomizations(raw) {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((group, groupIndex) => ({
+      id: group?.id || `${group?.name || "option"}-${groupIndex}`,
+      name: String(group?.name || "").trim(),
+      type: group?.type === "select" ? "select" : "buttons",
+      required: group?.required !== false,
+      values: Array.isArray(group?.values)
+        ? group.values
+            .map((value, valueIndex) => {
+              if (value && typeof value === "object") {
+                const label = String(
+                  value.label ?? value.value ?? value.name ?? ""
+                ).trim();
+
+                if (!label) return null;
+
+                return {
+                  id:
+                    value.id ||
+                    `${group?.name || "option"}-${groupIndex}-${valueIndex}`,
+                  label,
+                  priceBump: Number(value.priceBump || 0) || 0,
+                };
+              }
+
+              const label = String(value || "").trim();
+              if (!label) return null;
+
+              return {
+                id: `${group?.name || "option"}-${groupIndex}-${valueIndex}`,
+                label,
+                priceBump: 0,
+              };
+            })
+            .filter(Boolean)
+        : [],
+    }))
+    .filter((group) => group.name && group.values.length > 0);
+}
+
+function getItemAbroadDeliveryFee(product) {
+  if (
+    !parseBooleanish(product?.shipsFromAbroad, false) &&
+    !parseBooleanish(product?.shipFromAbroad, false)
+  ) {
+    return 0;
+  }
+
+  const parsed = Number(product?.abroadDeliveryFee);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
 export default function ProductCard({ product }) {
@@ -129,7 +189,10 @@ export default function ProductCard({ product }) {
   const image = images[0] || "";
   const imageCount = images.length;
 
-  const shippingSource = useMemo(() => normalizeShippingSource(product), [product]);
+  const shippingSource = useMemo(
+    () => normalizeShippingSource(product),
+    [product]
+  );
   const shippingBadgeLabel = getShippingBadgeLabel(shippingSource);
 
   const shipsFromAbroad =
@@ -137,7 +200,13 @@ export default function ProductCard({ product }) {
     parseBooleanish(product?.shipFromAbroad, false) ||
     parseBooleanish(product?.shipsFromAbroad, false);
 
+  const abroadDeliveryFee = useMemo(
+    () => getItemAbroadDeliveryFee(product),
+    [product]
+  );
+
   const inStock = useMemo(() => normalizeStock(product), [product]);
+  const stock = useMemo(() => getNumericStock(product), [product]);
 
   const priceRaw = product?.price;
   const oldPriceRaw = product?.oldPrice;
@@ -151,6 +220,11 @@ export default function ProductCard({ product }) {
     oldPriceRaw !== undefined && oldPriceRaw !== null && oldPriceRaw !== ""
       ? Number(oldPriceRaw)
       : null;
+
+  const customizations = useMemo(
+    () => normalizeCustomizations(product?.customizations),
+    [product]
+  );
 
   const formatMoney = (n) => {
     if (n === null || Number.isNaN(n)) return "";
@@ -179,6 +253,8 @@ export default function ProductCard({ product }) {
         id,
         name,
         price: price ?? 0,
+        basePrice: price ?? 0,
+        optionPriceTotal: 0,
         oldPrice:
           oldPrice !== null && Number.isFinite(oldPrice) ? oldPrice : null,
         image,
@@ -187,16 +263,13 @@ export default function ProductCard({ product }) {
         shop: normalizeShop(product?.shop),
         selectedOptions: {},
         selectedOptionsLabel: "",
-        customizations: Array.isArray(product?.customizations)
-          ? product.customizations
-          : [],
+        selectedOptionDetails: [],
+        customizations,
         shippingSource,
         shipsFromAbroad,
+        abroadDeliveryFee,
         inStock,
-        stock:
-          product?.stock !== undefined && product?.stock !== null
-            ? Number(product.stock) || 0
-            : undefined,
+        stock,
         productId: id,
       });
 
@@ -228,9 +301,7 @@ export default function ProductCard({ product }) {
                 <div
                   className={`p-ship-badge ${
                     shippingSource === "uni" ? "p-ship-badge--uni" : ""
-                  } ${
-                    shipsFromAbroad ? "p-ship-badge--abroad" : ""
-                  }`}
+                  } ${shipsFromAbroad ? "p-ship-badge--abroad" : ""}`}
                   aria-label={shippingBadgeLabel}
                 >
                   {shippingBadgeLabel}
