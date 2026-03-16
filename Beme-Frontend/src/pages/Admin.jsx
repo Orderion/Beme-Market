@@ -22,12 +22,18 @@ import "./Admin.css";
 
 const COLLECTION_NAME = "Products";
 
+const makeOptionValue = () => ({
+  id: crypto.randomUUID(),
+  label: "",
+  priceBump: "",
+});
+
 const makeOptionGroup = () => ({
   id: crypto.randomUUID(),
   name: "",
   type: "buttons",
   required: true,
-  valuesText: "",
+  values: [makeOptionValue(), makeOptionValue()],
 });
 
 const initial = {
@@ -42,28 +48,81 @@ const initial = {
   inStock: true,
   featured: false,
   shipsFromAbroad: false,
+  stock: "",
+  abroadDeliveryFee: "",
   customizations: [],
 };
 
-const BULK_IMPORT_SAMPLE = `product_name,category,brand,price_ghs,key_features,target_customer,customization_options,short_description,ships_from_abroad,in_stock,featured
-Samsung Galaxy S23,Phone,Samsung,7500,"8GB RAM, 128GB–256GB storage, AMOLED display","Smartphone users, professionals","Storage: 128GB|256GB; Color: Black|Green|Cream","Samsung Galaxy S23 offers powerful flagship performance with a bright AMOLED display and fast processing for work, entertainment, and daily use.",yes,yes,no
-Apple MacBook Air M2,Laptop,Apple,11000,"8GB–16GB RAM, 256GB–512GB SSD, Apple M2 chip","Students, professionals, creators","RAM: 8GB|16GB; Storage: 256GB|512GB; Color: Silver|Space Gray|Midnight","Apple MacBook Air M2 delivers smooth everyday performance in a slim and lightweight design.",no,yes,yes
-Apple AirPods Pro 2,Accessory,Apple,3200,"Active noise cancellation, spatial audio","Apple device users","Color: White","Apple AirPods Pro 2 combine premium sound, comfort, and wireless convenience for everyday listening.",no,yes,no`;
+const BULK_IMPORT_SAMPLE = `product_name,category,brand,price_ghs,stock,abroad_delivery_fee,key_features,target_customer,customization_options,short_description,ships_from_abroad,in_stock,featured
+Samsung Galaxy S23,Phone,Samsung,7500,12,45,"8GB RAM, 128GB–256GB storage, AMOLED display","Smartphone users, professionals","Storage: 128GB(+0)|256GB(+600); Color: Black(+0)|Green(+0)|Cream(+0)","Samsung Galaxy S23 offers powerful flagship performance with a bright AMOLED display and fast processing for work, entertainment, and daily use.",yes,yes,no
+Apple MacBook Air M2,Laptop,Apple,11000,8,0,"8GB–16GB RAM, 256GB–512GB SSD, Apple M2 chip","Students, professionals, creators","RAM: 8GB(+0)|16GB(+1200); Storage: 256GB(+0)|512GB(+1800); Color: Silver(+0)|Space Gray(+0)|Midnight(+0)","Apple MacBook Air M2 delivers smooth everyday performance in a slim and lightweight design.",no,yes,yes
+Apple AirPods Pro 2,Accessory,Apple,3200,20,0,"Active noise cancellation, spatial audio","Apple device users","Color: White(+0)","Apple AirPods Pro 2 combine premium sound, comfort, and wireless convenience for everyday listening.",no,yes,no`;
+
+function makeEditableValuesFromLegacy(values) {
+  const safeValues = Array.isArray(values) ? values : [];
+  const mapped = safeValues
+    .map((value) => {
+      if (value && typeof value === "object") {
+        return {
+          id: value.id || crypto.randomUUID(),
+          label: String(value.label || value.value || "").trim(),
+          priceBump:
+            value.priceBump !== undefined &&
+            value.priceBump !== null &&
+            value.priceBump !== ""
+              ? String(Number(value.priceBump) || 0)
+              : "",
+        };
+      }
+
+      const label = String(value || "").trim();
+      if (!label) return null;
+
+      return {
+        id: crypto.randomUUID(),
+        label,
+        priceBump: "",
+      };
+    })
+    .filter(Boolean);
+
+  if (mapped.length >= 2) return mapped;
+  if (mapped.length === 1) return [...mapped, makeOptionValue()];
+  return [makeOptionValue(), makeOptionValue()];
+}
 
 function normalizeCustomizationGroups(groups) {
   return groups
     .map((group) => {
-      const values = String(group.valuesText || "")
-        .split(",")
-        .map((v) => v.trim())
-        .filter(Boolean);
+      const normalizedValues = Array.isArray(group.values)
+        ? group.values
+            .map((value) => {
+              const label = String(value?.label || "").trim();
+              const rawBump = String(value?.priceBump ?? "").trim();
+              const priceBump =
+                rawBump === ""
+                  ? 0
+                  : Number.isFinite(Number(rawBump))
+                  ? Number(rawBump)
+                  : 0;
+
+              if (!label) return null;
+
+              return {
+                id: value?.id || crypto.randomUUID(),
+                label,
+                priceBump,
+              };
+            })
+            .filter(Boolean)
+        : [];
 
       return {
         id: group.id,
         name: String(group.name || "").trim(),
         type: group.type === "select" ? "select" : "buttons",
         required: !!group.required,
-        values,
+        values: normalizedValues,
       };
     })
     .filter((group) => group.name && group.values.length > 0);
@@ -77,12 +136,7 @@ function toEditableCustomizationGroups(groups) {
     name: String(group?.name || "").trim(),
     type: group?.type === "select" ? "select" : "buttons",
     required: group?.required !== false,
-    valuesText: Array.isArray(group?.values)
-      ? group.values
-          .map((v) => String(v || "").trim())
-          .filter(Boolean)
-          .join(", ")
-      : "",
+    values: makeEditableValuesFromLegacy(group?.values),
   }));
 }
 
@@ -145,6 +199,12 @@ function normalizeAdminProduct(snapshotDoc) {
       d.stock !== undefined && d.stock !== null && d.stock !== ""
         ? Number(d.stock)
         : null,
+    abroadDeliveryFee:
+      d.abroadDeliveryFee !== undefined &&
+      d.abroadDeliveryFee !== null &&
+      d.abroadDeliveryFee !== ""
+        ? Number(d.abroadDeliveryFee)
+        : 0,
     customizations: Array.isArray(d.customizations) ? d.customizations : [],
     createdAt: d.createdAt || null,
     updatedAt: d.updatedAt || null,
@@ -250,6 +310,9 @@ function normalizeImportHeader(header) {
     priceghs: "price",
     stock: "stock",
     quantity: "stock",
+    abroad_delivery_fee: "abroadDeliveryFee",
+    abroaddeliveryfee: "abroadDeliveryFee",
+    delivery_fee_abroad: "abroadDeliveryFee",
     description: "description",
     short_description: "description",
     shortdescription: "description",
@@ -326,7 +389,7 @@ function parseBooleanish(value, fallback = false) {
 
 function parseNumberish(value, fallback = 0) {
   const cleaned = String(value || "")
-    .replace(/[^\d.]/g, "")
+    .replace(/[^\d.-]/g, "")
     .trim();
 
   if (!cleaned) return fallback;
@@ -334,6 +397,36 @@ function parseNumberish(value, fallback = 0) {
   const num = Number(cleaned);
   return Number.isFinite(num) ? num : fallback;
 }
+
+function parseOptionValueToken(token, fallbackIndex = 0) {
+  const raw = String(token || "").trim();
+  if (!raw) return null;
+
+  const match = raw.match(/^(.*?)\s*\(\s*([+-]?\d+(?:\.\d+)?)\s*\)\s*$/);
+  if (match) {
+    return {
+      id: `bulk-option-value-${fallbackIndex}-${crypto.randomUUID()}`,
+      label: String(match[1] || "").trim(),
+      priceBump: Number(match[2] || 0),
+    };
+  }
+
+  const plusMatch = raw.match(/^(.*?)\s*\(\s*\+?\s*([+-]?\d+(?:\.\d+)?)\s*\)\s*$/);
+  if (plusMatch) {
+    return {
+      id: `bulk-option-value-${fallbackIndex}-${crypto.randomUUID()}`,
+      label: String(plusMatch[1] || "").trim(),
+      priceBump: Number(plusMatch[2] || 0),
+    };
+  }
+
+  return {
+    id: `bulk-option-value-${fallbackIndex}-${crypto.randomUUID()}`,
+    label: raw,
+    priceBump: 0,
+  };
+}
+
 function parseCustomizationsFromText(input) {
   const raw = String(input || "").trim();
   if (!raw) return [];
@@ -345,10 +438,12 @@ function parseCustomizationsFromText(input) {
       const name = String(namePart || "").trim();
       const values = String(valuesPart || "")
         .split("|")
-        .map((value) => value.trim())
+        .map((value, valueIndex) =>
+          parseOptionValueToken(value, index * 100 + valueIndex)
+        )
         .filter(Boolean);
 
-      if (!name || values.length < 2) return null;
+      if (!name || values.length < 1) return null;
 
       return {
         id: `bulk-option-${index}-${crypto.randomUUID()}`,
@@ -597,6 +692,58 @@ function ProductImagePreview({
   );
 }
 
+function OptionValuesEditor({
+  values,
+  onChange,
+  onAdd,
+  onRemove,
+  compact = false,
+}) {
+  return (
+    <div className={`admin-option-values${compact ? " admin-option-values--compact" : ""}`}>
+      {values.map((value, index) => (
+        <div className="admin-option-value-row" key={value.id}>
+          <label className="admin-field">
+            <span>Option value {index + 1}</span>
+            <input
+              value={value.label}
+              onChange={(e) => onChange(value.id, "label", e.target.value)}
+              placeholder="e.g. 256GB"
+            />
+          </label>
+
+          <label className="admin-field">
+            <span>Price bump (GHS)</span>
+            <input
+              value={value.priceBump}
+              onChange={(e) => onChange(value.id, "priceBump", e.target.value)}
+              inputMode="decimal"
+              placeholder="0"
+            />
+          </label>
+
+          <button
+            type="button"
+            className="admin-secondary-btn admin-secondary-btn--ghost"
+            onClick={() => onRemove(value.id)}
+            disabled={values.length <= 1}
+          >
+            Remove
+          </button>
+        </div>
+      ))}
+
+      <button
+        type="button"
+        className="admin-secondary-btn"
+        onClick={onAdd}
+      >
+        + Add value
+      </button>
+    </div>
+  );
+}
+
 export default function Admin() {
   const {
     user,
@@ -789,7 +936,8 @@ export default function Admin() {
       });
     };
   }, [previewEditImagePreviews]);
-    const setField = (key) => (e) => {
+
+  const setField = (key) => (e) => {
     const value =
       e?.target?.type === "checkbox" ? e.target.checked : e.target.value;
 
@@ -861,6 +1009,73 @@ export default function Admin() {
       customizations: prev.customizations.map((group) =>
         group.id === id ? { ...group, [key]: value } : group
       ),
+    }));
+  };
+
+  const addOptionValueToGroup = (groupId, scope = "create") => {
+    const setter =
+      scope === "edit"
+        ? setEditForm
+        : scope === "preview"
+        ? setPreviewEditForm
+        : setForm;
+
+    setter((prev) => ({
+      ...prev,
+      customizations: prev.customizations.map((group) =>
+        group.id === groupId
+          ? {
+              ...group,
+              values: [...(Array.isArray(group.values) ? group.values : []), makeOptionValue()],
+            }
+          : group
+      ),
+    }));
+  };
+
+  const updateOptionValueInGroup = (groupId, valueId, key, value, scope = "create") => {
+    const setter =
+      scope === "edit"
+        ? setEditForm
+        : scope === "preview"
+        ? setPreviewEditForm
+        : setForm;
+
+    setter((prev) => ({
+      ...prev,
+      customizations: prev.customizations.map((group) =>
+        group.id === groupId
+          ? {
+              ...group,
+              values: (Array.isArray(group.values) ? group.values : []).map((item) =>
+                item.id === valueId ? { ...item, [key]: value } : item
+              ),
+            }
+          : group
+      ),
+    }));
+  };
+
+  const removeOptionValueFromGroup = (groupId, valueId, scope = "create") => {
+    const setter =
+      scope === "edit"
+        ? setEditForm
+        : scope === "preview"
+        ? setPreviewEditForm
+        : setForm;
+
+    setter((prev) => ({
+      ...prev,
+      customizations: prev.customizations.map((group) => {
+        if (group.id !== groupId) return group;
+        const nextValues = (Array.isArray(group.values) ? group.values : []).filter(
+          (item) => item.id !== valueId
+        );
+        return {
+          ...group,
+          values: nextValues.length ? nextValues : [makeOptionValue()],
+        };
+      }),
     }));
   };
 
@@ -956,7 +1171,8 @@ export default function Admin() {
       e.target.value = "";
     }
   };
-    const handleEditImageChange = (e) => {
+
+  const handleEditImageChange = (e) => {
     const files = Array.from(e.target.files || []);
     setEditError("");
     setEditMsg("");
@@ -1159,7 +1375,39 @@ export default function Admin() {
       setPreviewEditUploadingImage(false);
     }
   };
-    const validate = () => {
+
+  const validateCustomizationEditor = (groups) => {
+    for (const group of groups) {
+      const groupName = String(group.name || "").trim();
+      const values = Array.isArray(group.values) ? group.values : [];
+
+      const nonEmptyValues = values
+        .map((value) => ({
+          label: String(value?.label || "").trim(),
+          priceBump: String(value?.priceBump ?? "").trim(),
+        }))
+        .filter((value) => value.label);
+
+      if (!groupName && !nonEmptyValues.length) continue;
+      if (!groupName) return "Each customization group must have a label.";
+      if (nonEmptyValues.length < 1) {
+        return `Customization "${groupName}" must have at least 1 value.`;
+      }
+
+      for (const value of nonEmptyValues) {
+        if (
+          value.priceBump !== "" &&
+          !Number.isFinite(Number(value.priceBump))
+        ) {
+          return `Customization "${groupName}" has an invalid price bump.`;
+        }
+      }
+    }
+
+    return "";
+  };
+
+  const validate = () => {
     const name = form.name.trim();
     if (!name) return "Name is required.";
 
@@ -1176,6 +1424,20 @@ export default function Admin() {
       if (old < price) return "Old price should be higher than current price.";
     }
 
+    if (form.stock !== "") {
+      const stock = Number(form.stock);
+      if (!Number.isFinite(stock) || stock < 0) {
+        return "Stock must be a valid number ≥ 0.";
+      }
+    }
+
+    if (form.abroadDeliveryFee !== "") {
+      const fee = Number(form.abroadDeliveryFee);
+      if (!Number.isFinite(fee) || fee < 0) {
+        return "Abroad delivery fee must be a valid number ≥ 0.";
+      }
+    }
+
     if (!imageFiles.length && !uploadedImages.length) {
       return "At least one product image is required.";
     }
@@ -1186,21 +1448,7 @@ export default function Admin() {
       return "Invalid shop selected.";
     }
 
-    for (const group of form.customizations) {
-      const groupName = String(group.name || "").trim();
-      const values = String(group.valuesText || "")
-        .split(",")
-        .map((v) => v.trim())
-        .filter(Boolean);
-
-      if (!groupName && !values.length) continue;
-      if (!groupName) return "Each customization group must have a label.";
-      if (values.length < 2) {
-        return `Customization "${groupName}" must have at least 2 values.`;
-      }
-    }
-
-    return "";
+    return validateCustomizationEditor(form.customizations);
   };
 
   const validateEdit = () => {
@@ -1220,6 +1468,20 @@ export default function Admin() {
       if (old < price) return "Old price should be higher than current price.";
     }
 
+    if (editForm.stock !== "") {
+      const stock = Number(editForm.stock);
+      if (!Number.isFinite(stock) || stock < 0) {
+        return "Stock must be a valid number ≥ 0.";
+      }
+    }
+
+    if (editForm.abroadDeliveryFee !== "") {
+      const fee = Number(editForm.abroadDeliveryFee);
+      if (!Number.isFinite(fee) || fee < 0) {
+        return "Abroad delivery fee must be a valid number ≥ 0.";
+      }
+    }
+
     if (!deptOptions.includes(editForm.dept))
       return "Invalid department selected.";
     if (!kindOptions.includes(editForm.kind)) return "Invalid type selected.";
@@ -1227,21 +1489,7 @@ export default function Admin() {
       return "Invalid shop selected.";
     }
 
-    for (const group of editForm.customizations) {
-      const groupName = String(group.name || "").trim();
-      const values = String(group.valuesText || "")
-        .split(",")
-        .map((v) => v.trim())
-        .filter(Boolean);
-
-      if (!groupName && !values.length) continue;
-      if (!groupName) return "Each customization group must have a label.";
-      if (values.length < 2) {
-        return `Customization "${groupName}" must have at least 2 values.`;
-      }
-    }
-
-    return "";
+    return validateCustomizationEditor(editForm.customizations);
   };
 
   const validatePreviewEdit = () => {
@@ -1261,6 +1509,20 @@ export default function Admin() {
       if (old < price) return "Old price should be higher than current price.";
     }
 
+    if (previewEditForm.stock !== "") {
+      const stock = Number(previewEditForm.stock);
+      if (!Number.isFinite(stock) || stock < 0) {
+        return "Stock must be a valid number ≥ 0.";
+      }
+    }
+
+    if (previewEditForm.abroadDeliveryFee !== "") {
+      const fee = Number(previewEditForm.abroadDeliveryFee);
+      if (!Number.isFinite(fee) || fee < 0) {
+        return "Abroad delivery fee must be a valid number ≥ 0.";
+      }
+    }
+
     if (!deptOptions.includes(previewEditForm.dept)) {
       return "Invalid department selected.";
     }
@@ -1271,21 +1533,7 @@ export default function Admin() {
       return "Invalid shop selected.";
     }
 
-    for (const group of previewEditForm.customizations) {
-      const groupName = String(group.name || "").trim();
-      const values = String(group.valuesText || "")
-        .split(",")
-        .map((v) => v.trim())
-        .filter(Boolean);
-
-      if (!groupName && !values.length) continue;
-      if (!groupName) return "Each customization group must have a label.";
-      if (values.length < 2) {
-        return `Customization "${groupName}" must have at least 2 values.`;
-      }
-    }
-
-    return "";
+    return validateCustomizationEditor(previewEditForm.customizations);
   };
 
   const cancelEditProduct = () => {
@@ -1338,6 +1586,12 @@ export default function Admin() {
       const customizations = normalizeCustomizationGroups(form.customizations);
       const imageUrls = imagePayloads.map((item) => item.url).filter(Boolean);
       const sellerName = resolveCurrentSellerName(user, profile);
+      const stockValue =
+        form.stock !== "" && Number.isFinite(Number(form.stock))
+          ? Number(form.stock)
+          : null;
+      const normalizedInStock =
+        stockValue !== null ? stockValue > 0 && form.inStock !== false : form.inStock !== false;
 
       const payload = {
         name: form.name.trim(),
@@ -1370,7 +1624,7 @@ export default function Admin() {
         ownerEmail: String(user?.email || profile?.email || "").trim(),
         ownerName: sellerName,
         sellerName,
-        inStock: form.inStock !== false,
+        inStock: normalizedInStock,
         featured: !!form.featured,
         shipsFromAbroad: !!form.shipsFromAbroad,
         customizations,
@@ -1379,6 +1633,16 @@ export default function Admin() {
       };
 
       if (form.oldPrice !== "") payload.oldPrice = Number(form.oldPrice);
+      if (stockValue !== null) payload.stock = stockValue;
+      if (
+        form.abroadDeliveryFee !== "" &&
+        Number.isFinite(Number(form.abroadDeliveryFee))
+      ) {
+        payload.abroadDeliveryFee = Number(form.abroadDeliveryFee);
+      } else {
+        payload.abroadDeliveryFee = 0;
+      }
+
       if (!payload.description) delete payload.description;
       if (!payload.brand) delete payload.brand;
       if (!payload.customizations.length) delete payload.customizations;
@@ -1407,7 +1671,8 @@ export default function Admin() {
       setSubmitting(false);
     }
   };
-    const buildPreviewRowsFromCsv = (rows) => {
+
+  const buildPreviewRowsFromCsv = (rows) => {
     const sellerName = resolveCurrentSellerName(user, profile);
     const fallbackShop =
       isShopAdmin && normalizedAdminShop
@@ -1479,6 +1744,12 @@ export default function Admin() {
         shipsFromAbroad: parseBooleanish(row.shipsFromAbroad, false),
         customizations,
         stock: stockNumber,
+        abroadDeliveryFee:
+          row.abroadDeliveryFee !== undefined &&
+          row.abroadDeliveryFee !== null &&
+          String(row.abroadDeliveryFee).trim() !== ""
+            ? parseNumberish(row.abroadDeliveryFee, 0)
+            : 0,
         image: images[0] || "",
         images,
         imageMeta: null,
@@ -1578,6 +1849,12 @@ export default function Admin() {
           customizations: Array.isArray(row.customizations)
             ? row.customizations
             : [],
+          abroadDeliveryFee:
+            row.abroadDeliveryFee !== null &&
+            row.abroadDeliveryFee !== undefined &&
+            row.abroadDeliveryFee !== ""
+              ? Number(row.abroadDeliveryFee) || 0
+              : 0,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         };
@@ -1589,6 +1866,7 @@ export default function Admin() {
           Number.isFinite(Number(row.stock))
         ) {
           payload.stock = Number(row.stock);
+          payload.inStock = payload.inStock && Number(row.stock) > 0;
         }
 
         if (
@@ -1654,7 +1932,8 @@ export default function Admin() {
       setBulkImporting(false);
     }
   };
-    const startPreviewEdit = (row) => {
+
+  const startPreviewEdit = (row) => {
     setPreviewRowToEdit(row);
     setPreviewEditForm({
       name: row.name || "",
@@ -1674,6 +1953,16 @@ export default function Admin() {
       inStock: !!row.inStock,
       featured: !!row.featured,
       shipsFromAbroad: !!row.shipsFromAbroad,
+      stock:
+        row.stock !== null && row.stock !== undefined && row.stock !== ""
+          ? String(row.stock)
+          : "",
+      abroadDeliveryFee:
+        row.abroadDeliveryFee !== null &&
+        row.abroadDeliveryFee !== undefined &&
+        row.abroadDeliveryFee !== ""
+          ? String(row.abroadDeliveryFee)
+          : "",
       customizations: toEditableCustomizationGroups(row.customizations),
     });
     setPreviewEditError("");
@@ -1718,6 +2007,12 @@ export default function Admin() {
         previewEditForm.customizations
       );
 
+      const nextStock =
+        previewEditForm.stock !== "" &&
+        Number.isFinite(Number(previewEditForm.stock))
+          ? Number(previewEditForm.stock)
+          : null;
+
       const nextRow = {
         ...previewRowToEdit,
         name: String(previewEditForm.name || "").trim(),
@@ -1731,9 +2026,18 @@ export default function Admin() {
         dept: previewEditForm.dept,
         kind: previewEditForm.kind,
         shop: shopValue,
-        inStock: !!previewEditForm.inStock,
+        inStock:
+          nextStock !== null
+            ? nextStock > 0 && !!previewEditForm.inStock
+            : !!previewEditForm.inStock,
         featured: !!previewEditForm.featured,
         shipsFromAbroad: !!previewEditForm.shipsFromAbroad,
+        stock: nextStock,
+        abroadDeliveryFee:
+          previewEditForm.abroadDeliveryFee !== "" &&
+          Number.isFinite(Number(previewEditForm.abroadDeliveryFee))
+            ? Number(previewEditForm.abroadDeliveryFee)
+            : 0,
         customizations,
       };
 
@@ -1883,7 +2187,8 @@ export default function Admin() {
       setBulkDeleting(false);
     }
   };
-    const startEditProduct = (product) => {
+
+  const startEditProduct = (product) => {
     if (!canCurrentUserEditProduct(product)) {
       setMsg(
         isSuperAdmin
@@ -1912,6 +2217,16 @@ export default function Admin() {
       inStock: !!product.inStock,
       featured: !!product.featured,
       shipsFromAbroad: !!product.shipsFromAbroad,
+      stock:
+        product.stock !== null && product.stock !== undefined && product.stock !== ""
+          ? String(product.stock)
+          : "",
+      abroadDeliveryFee:
+        product.abroadDeliveryFee !== null &&
+        product.abroadDeliveryFee !== undefined &&
+        product.abroadDeliveryFee !== ""
+          ? String(product.abroadDeliveryFee)
+          : "",
       customizations: toEditableCustomizationGroups(product.customizations),
     });
     setEditPassword("");
@@ -1966,6 +2281,10 @@ export default function Admin() {
           : normalizeShopKey(editForm.shop);
 
       const customizations = normalizeCustomizationGroups(editForm.customizations);
+      const nextStock =
+        editForm.stock !== "" && Number.isFinite(Number(editForm.stock))
+          ? Number(editForm.stock)
+          : null;
 
       const updatePayload = {
         name: String(editForm.name || "").trim(),
@@ -1975,12 +2294,26 @@ export default function Admin() {
         dept: editForm.dept,
         kind: editForm.kind,
         shop: shopValue,
-        inStock: !!editForm.inStock,
+        inStock:
+          nextStock !== null
+            ? nextStock > 0 && !!editForm.inStock
+            : !!editForm.inStock,
         featured: !!editForm.featured,
         shipsFromAbroad: !!editForm.shipsFromAbroad,
+        abroadDeliveryFee:
+          editForm.abroadDeliveryFee !== "" &&
+          Number.isFinite(Number(editForm.abroadDeliveryFee))
+            ? Number(editForm.abroadDeliveryFee)
+            : 0,
         customizations,
         updatedAt: serverTimestamp(),
       };
+
+      if (nextStock !== null) {
+        updatePayload.stock = nextStock;
+      } else {
+        updatePayload.stock = null;
+      }
 
       if (editForm.oldPrice !== "") {
         updatePayload.oldPrice = Number(editForm.oldPrice);
@@ -2135,7 +2468,7 @@ export default function Admin() {
 
                 <div className="admin-row">
                   <label className="admin-field">
-                    <span>Price</span>
+                    <span>Base price</span>
                     <input
                       value={previewEditForm.price}
                       onChange={setPreviewEditField("price")}
@@ -2146,6 +2479,28 @@ export default function Admin() {
                     <input
                       value={previewEditForm.oldPrice}
                       onChange={setPreviewEditField("oldPrice")}
+                    />
+                  </label>
+                </div>
+
+                <div className="admin-row">
+                  <label className="admin-field">
+                    <span>Stock quantity</span>
+                    <input
+                      value={previewEditForm.stock}
+                      onChange={setPreviewEditField("stock")}
+                      inputMode="numeric"
+                      placeholder="e.g. 12"
+                    />
+                  </label>
+
+                  <label className="admin-field">
+                    <span>Abroad delivery fee (GHS)</span>
+                    <input
+                      value={previewEditForm.abroadDeliveryFee}
+                      onChange={setPreviewEditField("abroadDeliveryFee")}
+                      inputMode="decimal"
+                      placeholder="0"
                     />
                   </label>
                 </div>
@@ -2237,7 +2592,8 @@ export default function Admin() {
                     </span>
                   </label>
                 </div>
-                                <div className="admin-options-card">
+
+                <div className="admin-options-card">
                   <div className="admin-options-head">
                     <h3 className="admin-options-title">Customizations</h3>
                     <button
@@ -2297,19 +2653,27 @@ export default function Admin() {
                         </label>
                       </div>
 
-                      <label className="admin-field">
-                        <span>Values</span>
-                        <input
-                          value={group.valuesText}
-                          onChange={(e) =>
-                            updatePreviewEditCustomizationGroup(
-                              group.id,
-                              "valuesText",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </label>
+                      <OptionValuesEditor
+                        values={group.values}
+                        onChange={(valueId, key, value) =>
+                          updateOptionValueInGroup(
+                            group.id,
+                            valueId,
+                            key,
+                            value,
+                            "preview"
+                          )
+                        }
+                        onAdd={() => addOptionValueToGroup(group.id, "preview")}
+                        onRemove={(valueId) =>
+                          removeOptionValueFromGroup(
+                            group.id,
+                            valueId,
+                            "preview"
+                          )
+                        }
+                        compact
+                      />
                     </div>
                   ))}
                 </div>
@@ -2407,7 +2771,7 @@ export default function Admin() {
 
                 <div className="admin-row">
                   <label className="admin-field">
-                    <span>Price</span>
+                    <span>Base price</span>
                     <input
                       value={editForm.price}
                       onChange={setEditField("price")}
@@ -2419,6 +2783,28 @@ export default function Admin() {
                     <input
                       value={editForm.oldPrice}
                       onChange={setEditField("oldPrice")}
+                    />
+                  </label>
+                </div>
+
+                <div className="admin-row">
+                  <label className="admin-field">
+                    <span>Stock quantity</span>
+                    <input
+                      value={editForm.stock}
+                      onChange={setEditField("stock")}
+                      inputMode="numeric"
+                      placeholder="e.g. 12"
+                    />
+                  </label>
+
+                  <label className="admin-field">
+                    <span>Abroad delivery fee (GHS)</span>
+                    <input
+                      value={editForm.abroadDeliveryFee}
+                      onChange={setEditField("abroadDeliveryFee")}
+                      inputMode="decimal"
+                      placeholder="0"
                     />
                   </label>
                 </div>
@@ -2569,19 +2955,22 @@ export default function Admin() {
                         </label>
                       </div>
 
-                      <label className="admin-field">
-                        <span>Values</span>
-                        <input
-                          value={group.valuesText}
-                          onChange={(e) =>
-                            updateEditCustomizationGroup(
-                              group.id,
-                              "valuesText",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </label>
+                      <OptionValuesEditor
+                        values={group.values}
+                        onChange={(valueId, key, value) =>
+                          updateOptionValueInGroup(
+                            group.id,
+                            valueId,
+                            key,
+                            value,
+                            "edit"
+                          )
+                        }
+                        onAdd={() => addOptionValueToGroup(group.id, "edit")}
+                        onRemove={(valueId) =>
+                          removeOptionValueFromGroup(group.id, valueId, "edit")
+                        }
+                      />
                     </div>
                   ))}
                 </div>
@@ -2619,7 +3008,8 @@ export default function Admin() {
                 </div>
               </div>
             </div>
-                        <aside className="admin-edit-side">
+
+            <aside className="admin-edit-side">
               <div className="admin-edit-side-card">
                 <h4 className="admin-edit-section-title">Images</h4>
 
@@ -2884,6 +3274,9 @@ export default function Admin() {
                               <span>{titleize(row.kind)}</span>
                               <span>{titleize(row.dept)}</span>
                               {row.brand ? <span>{row.brand}</span> : null}
+                              {row.stock !== null ? (
+                                <span>Stock: {row.stock}</span>
+                              ) : null}
                             </div>
                           </div>
                           <div className="admin-product-price">
@@ -2953,7 +3346,7 @@ export default function Admin() {
 
           <div className="admin-row">
             <label className="admin-field">
-              <span>Price (GHS)</span>
+              <span>Base price (GHS)</span>
               <input
                 value={form.price}
                 onChange={setField("price")}
@@ -2967,6 +3360,28 @@ export default function Admin() {
                 value={form.oldPrice}
                 onChange={setField("oldPrice")}
                 inputMode="decimal"
+              />
+            </label>
+          </div>
+
+          <div className="admin-row">
+            <label className="admin-field">
+              <span>Stock quantity</span>
+              <input
+                value={form.stock}
+                onChange={setField("stock")}
+                inputMode="numeric"
+                placeholder="e.g. 12"
+              />
+            </label>
+
+            <label className="admin-field">
+              <span>Abroad delivery fee (GHS)</span>
+              <input
+                value={form.abroadDeliveryFee}
+                onChange={setField("abroadDeliveryFee")}
+                inputMode="decimal"
+                placeholder="0"
               />
             </label>
           </div>
@@ -3205,20 +3620,22 @@ export default function Admin() {
                     </label>
                   </div>
 
-                  <label className="admin-field">
-                    <span>Values</span>
-                    <input
-                      value={group.valuesText}
-                      onChange={(e) =>
-                        updateCustomizationGroup(
-                          group.id,
-                          "valuesText",
-                          e.target.value
-                        )
-                      }
-                      placeholder="Red, Black, White"
-                    />
-                  </label>
+                  <OptionValuesEditor
+                    values={group.values}
+                    onChange={(valueId, key, value) =>
+                      updateOptionValueInGroup(
+                        group.id,
+                        valueId,
+                        key,
+                        value,
+                        "create"
+                      )
+                    }
+                    onAdd={() => addOptionValueToGroup(group.id, "create")}
+                    onRemove={(valueId) =>
+                      removeOptionValueFromGroup(group.id, valueId, "create")
+                    }
+                  />
                 </div>
               ))
             ) : (
@@ -3396,6 +3813,9 @@ export default function Admin() {
                                   <span>{titleize(product.dept)}</span>
                                   {product.brand ? (
                                     <span>{product.brand}</span>
+                                  ) : null}
+                                  {product.stock !== null ? (
+                                    <span>Stock: {product.stock}</span>
                                   ) : null}
                                 </div>
                               </div>
