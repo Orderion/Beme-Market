@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { paystackVerify } from "../services/api";
-import { useCart } from "../context/CartContext";
+import { useCart, clearCartStorage } from "../context/CartContext";
 import "./OrderSuccess.css";
 
 function formatDateGH(date) {
@@ -44,6 +44,7 @@ export default function OrderSuccess() {
 
   const [status, setStatus] = useState("verifying");
   const [orderId, setOrderId] = useState(null);
+  const hasClearedCartRef = useRef(false);
 
   const etaText = useMemo(() => {
     const now = new Date();
@@ -52,13 +53,30 @@ export default function OrderSuccess() {
     return `${formatDateGH(from)} – ${formatDateGH(to)}`;
   }, []);
 
+  const clearCartEverywhere = () => {
+    if (hasClearedCartRef.current) return;
+    hasClearedCartRef.current = true;
+
+    try {
+      clearCartStorage();
+    } catch (error) {
+      console.error("Failed to clear cart storage:", error);
+    }
+
+    try {
+      clearCart();
+    } catch (error) {
+      console.error("Failed to clear cart context:", error);
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
 
     async function run() {
       if (!reference) {
         if (!cancelled) {
-          clearCart();
+          clearCartEverywhere();
           setStatus("cod");
         }
         return;
@@ -66,7 +84,7 @@ export default function OrderSuccess() {
 
       if (urlStatus === "success") {
         if (!cancelled) {
-          clearCart();
+          clearCartEverywhere();
           setStatus("paid");
           const derivedId = reference.startsWith("BM_")
             ? reference.replace("BM_", "")
@@ -77,7 +95,26 @@ export default function OrderSuccess() {
       }
 
       if (urlStatus && urlStatus !== "success") {
-        if (!cancelled) setStatus("failed");
+        try {
+          const data = await paystackVerify(reference);
+
+          if (cancelled) return;
+
+          if (data?.ok && data?.status === "success") {
+            clearCartEverywhere();
+            setStatus("paid");
+            setOrderId(
+              data?.orderId ||
+                (reference.startsWith("BM_") ? reference.replace("BM_", "") : null)
+            );
+          } else {
+            setStatus("failed");
+            setOrderId(data?.orderId || null);
+          }
+        } catch (e) {
+          console.error("Verification error:", e);
+          if (!cancelled) setStatus("failed");
+        }
         return;
       }
 
@@ -87,7 +124,7 @@ export default function OrderSuccess() {
         if (cancelled) return;
 
         if (data?.ok && data?.status === "success") {
-          clearCart();
+          clearCartEverywhere();
           setStatus("paid");
           setOrderId(
             data?.orderId ||
