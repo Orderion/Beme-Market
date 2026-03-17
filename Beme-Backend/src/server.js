@@ -13,8 +13,12 @@ const allowedOrigins = [
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(null, false);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -26,12 +30,29 @@ app.options("*", cors(corsOptions));
 
 app.use("/api/paystack", paystackRoutes);
 
-app.get("/health", (_req, res) => res.json({ ok: true }));
+app.get("/health", (_req, res) => {
+  res.json({ ok: true });
+});
+
+app.use((req, res) => {
+  res.status(404).json({
+    error: `Route not found: ${req.method} ${req.originalUrl}`,
+  });
+});
 
 app.use((err, _req, res, _next) => {
   console.error("❌ API Error:", err?.message || err);
-  res.status(500).json({ error: err?.message || "Internal Server Error" });
+
+  if (err?.message === "Not allowed by CORS") {
+    return res.status(403).json({ error: "CORS blocked this origin" });
+  }
+
+  res.status(500).json({
+    error: err?.message || "Internal Server Error",
+  });
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
