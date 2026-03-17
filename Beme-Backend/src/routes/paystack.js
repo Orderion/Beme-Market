@@ -13,6 +13,9 @@ if (!FRONTEND_URL) throw new Error("Missing FRONTEND_URL in backend env");
 if (!BACKEND_URL) throw new Error("Missing BACKEND_URL in backend env");
 
 const ALLOWED_SHOPS = new Set(["fashion", "main", "kente", "perfume", "tech"]);
+const SPECIAL_REGIONS = new Set(["Ashanti", "Greater Accra", "Eastern", "Western"]);
+const SHOP_OWNER_FEE_GHS = 1300;
+const SHOP_OWNER_FEE_USD = 120;
 
 async function safeFetch(...args) {
   if (typeof fetch !== "undefined") return fetch(...args);
@@ -20,12 +23,13 @@ async function safeFetch(...args) {
   return mod.default(...args);
 }
 
-const SPECIAL_REGIONS = new Set(["Ashanti", "Greater Accra", "Eastern", "Western"]);
-const SHOP_OWNER_FEE_GHS = 1300;
-const SHOP_OWNER_FEE_USD = 120;
-
 function safeTrim(v) {
   return String(v ?? "").trim();
+}
+
+function toNumber(value, fallback = 0) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
 }
 
 function normalizeShopKey(value) {
@@ -47,11 +51,76 @@ function computeDeliveryFee(region) {
   return SPECIAL_REGIONS.has(region) ? 0 : 50;
 }
 
-async function computeAmountFromItems(items) {
-  const clean = Array.isArray(items) ? items : [];
-  const ids = clean.map((x) => safeTrim(x?.id)).filter(Boolean);
-  if (!ids.length) return { subtotal: 0, lineItems: [] };
+function getNumericStock(item) {
+  const parsed = Number(item?.stock);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
+function isOutOfStock(item) {
+  if (!item) return true;
+  if (item.inStock === false) return true;
+
+  const stock = getNumericStock(item);
+  if (stock !== null && stock <= 0) return true;
+
+  return false;
+}
+
+function normalizeIncomingItems(items) {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((item) => {
+      const id = safeTrim(item?.id || item?.productId);
+      const qty = Math.max(1, toNumber(item?.qty, 1));
+      const price = toNumber(item?.price, 0);
+      const basePrice = toNumber(item?.basePrice, 0);
+      const optionPriceTotal = toNumber(item?.optionPriceTotal, 0);
+      const stock = getNumericStock(item);
+
+      return {
+        id,
+        productId: id,
+        name: safeTrim(item?.name),
+        image: safeTrim(item?.image),
+        qty,
+        price,
+        basePrice,
+        optionPriceTotal,
+        stock,
+        inStock: item?.inStock !== false,
+        shop: normalizeShopKey(item?.shop || "main"),
+        homeSlot: safeTrim(item?.homeSlot),
+        selectedOptions:
+          item?.selectedOptions && typeof item.selectedOptions === "object"
+            ? item.selectedOptions
+            : {},
+        selectedOptionsLabel: safeTrim(item?.selectedOptionsLabel),
+        selectedOptionDetails: Array.isArray(item?.selectedOptionDetails)
+          ? item.selectedOptionDetails.map((opt) => ({
+              groupName: safeTrim(opt?.groupName),
+              label: safeTrim(opt?.label),
+              priceBump: toNumber(opt?.priceBump, 0),
+            }))
+          : [],
+        customizations: Array.isArray(item?.customizations) ? item.customizations : [],
+        shippingSource: safeTrim(item?.shippingSource),
+        shipsFromAbroad: item?.shipsFromAbroad === true,
+        abroadDeliveryFee: toNumber(item?.abroadDeliveryFee, 0),
+        oldPrice:
+          item?.oldPrice !== undefined && item?.oldPrice !== null && item?.oldPrice !== ""
+            ? toNumber(item?.oldPrice, 0)
+            : null,
+      };
+    })
+    .filter((item) => item.id);
+}
+
+async function buildCheckoutFromItems(items) {
+  const clean = normalizeIncomingItems(items);
+  if (!clean.length) return { subtotal: 0, lineItems: [] };
+
+  const ids = clean.map((x) => x.id).filter(Boolean);
   const chunks = [];
   for (let i = 0; i < ids.length; i += 10) chunks.push(ids.slice(i, i + 10));
 
@@ -63,37 +132,74 @@ async function computeAmountFromItems(items) {
       .where(firebaseAdmin.firestore.FieldPath.documentId(), "in", chunk)
       .get();
 
-    snap.forEach((docSnap) => productMap.set(docSnap.id, docSnap.data()));
+    snap.forEach((docSnap) => {
+      productMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
+    });
   }
 
   let subtotal = 0;
   const lineItems = [];
 
-  for (const it of clean) {
-    const id = safeTrim(it?.id);
-    const qty = Number(it?.qty ?? 1);
-    if (!id) continue;
-    if (!Number.isFinite(qty) || qty <= 0) continue;
-
-    const p = productMap.get(id);
-    if (!p) throw new Error(`Product not found: ${id}`);
-
-    const price = Number(p.price ?? 0);
-    if (!Number.isFinite(price) || price < 0) {
-      throw new Error(`Invalid price for product: ${id}`);
+  for (const item of clean) {
+    const product = productMap.get(item.id);
+    if (!product) {
+      throw new Error(`Product not found: ${item.id}`);
     }
 
-    const productShop = normalizeShopKey(p.shop || "main");
+    if (isOutOfStock(product)) {
+      throw new Error(`${product?.name || item?.name || "A product"} is out of stock.`);
+    }
 
-    subtotal += price * qty;
+    const productStock = getNumericStock(product);
+    if (productStock !== null && item.qty > productStock) {
+      throw new Error(
+        `${product?.name || item?.name || "A product"} only has ${productStock} item${
+          productStock === 1 ? "" : "s"
+        } available.`
+      );
+    }
+
+    const finalUnitPrice = toNumber(item.price, NaN);
+    if (!Number.isFinite(finalUnitPrice) || finalUnitPrice < 0) {
+      throw new Error(`Invalid final checkout price for product: ${item.id}`);
+    }
+
+    const baseUnitPrice =
+      Number.isFinite(toNumber(item.basePrice, NaN)) && toNumber(item.basePrice, NaN) >= 0
+        ? toNumber(item.basePrice, 0)
+        : toNumber(product.price, 0);
+
+    const optionPriceTotal =
+      item.optionPriceTotal > 0
+        ? item.optionPriceTotal
+        : Math.max(0, finalUnitPrice - baseUnitPrice);
+
+    const shop = normalizeShopKey(item.shop || product.shop || "main");
+    const image = safeTrim(item.image || product.image || "");
+    const name = safeTrim(item.name || product.name || "");
+
+    subtotal += finalUnitPrice * item.qty;
 
     lineItems.push({
-      id,
-      name: p.name || "",
-      price,
-      qty,
-      image: p.image || "",
-      shop: productShop,
+      id: item.id,
+      name,
+      price: finalUnitPrice,
+      basePrice: baseUnitPrice,
+      optionPriceTotal,
+      qty: item.qty,
+      image,
+      shop,
+      selectedOptions: item.selectedOptions || {},
+      selectedOptionsLabel: item.selectedOptionsLabel || "",
+      selectedOptionDetails: Array.isArray(item.selectedOptionDetails)
+        ? item.selectedOptionDetails
+        : [],
+      customizations: Array.isArray(item.customizations) ? item.customizations : [],
+      shippingSource: item.shippingSource || "",
+      shipsFromAbroad: item.shipsFromAbroad === true,
+      abroadDeliveryFee: toNumber(item.abroadDeliveryFee, 0),
+      stock: productStock,
+      inStock: product.inStock !== false,
     });
   }
 
@@ -105,6 +211,7 @@ router.post("/checkout/init", async (req, res) => {
     const email = safeTrim(req.body?.email);
     const items = req.body?.items || [];
     const customer = req.body?.customer || {};
+    const pricing = req.body?.pricing || {};
 
     if (!email) return res.status(400).json({ error: "Email is required" });
     if (!Array.isArray(items) || !items.length) {
@@ -112,14 +219,19 @@ router.post("/checkout/init", async (req, res) => {
     }
 
     const region = safeTrim(customer.region);
-    const deliveryFee = computeDeliveryFee(region);
+    const fallbackDeliveryFee = computeDeliveryFee(region);
+    const requestedDeliveryFee = toNumber(pricing?.deliveryFee, fallbackDeliveryFee);
+    const deliveryFee = requestedDeliveryFee >= 0 ? requestedDeliveryFee : fallbackDeliveryFee;
 
-    const { subtotal, lineItems } = await computeAmountFromItems(items);
+    const { subtotal, lineItems } = await buildCheckoutFromItems(items);
     if (!lineItems.length) {
       return res.status(400).json({ error: "Cart items invalid" });
     }
 
-    const total = subtotal + deliveryFee;
+    const requestedSubtotal = toNumber(pricing?.subtotal, subtotal);
+    const safeSubtotal = Math.abs(requestedSubtotal - subtotal) < 0.01 ? requestedSubtotal : subtotal;
+
+    const total = safeSubtotal + deliveryFee;
     const amountPesewas = Math.round(total * 100);
 
     const orderRef = adminDb.collection("orders").doc();
@@ -140,8 +252,8 @@ router.post("/checkout/init", async (req, res) => {
       userId: safeTrim(customer.userId),
 
       pricing: {
-        currency: "GHS",
-        subtotal,
+        currency: safeTrim(pricing?.currency) || "GHS",
+        subtotal: safeSubtotal,
         deliveryFee,
         total,
       },
@@ -185,6 +297,20 @@ router.post("/checkout/init", async (req, res) => {
           type: "order",
           orderId: orderRef.id,
           deliveryFee,
+          subtotal: safeSubtotal,
+          total,
+          itemCount: lineItems.reduce((sum, item) => sum + item.qty, 0),
+          items: lineItems.map((item) => ({
+            id: item.id,
+            name: item.name,
+            qty: item.qty,
+            price: item.price,
+            basePrice: item.basePrice,
+            optionPriceTotal: item.optionPriceTotal,
+            selectedOptions: item.selectedOptions || {},
+            selectedOptionsLabel: item.selectedOptionsLabel || "",
+            selectedOptionDetails: item.selectedOptionDetails || [],
+          })),
         },
       }),
     });
