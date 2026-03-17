@@ -1948,40 +1948,43 @@ export default function Admin() {
   };
 
   const startPreviewEdit = (row) => {
-    setPreviewRowToEdit(row);
-    setPreviewEditForm({
-      name: row.name || "",
-      brand: row.brand || "",
-      price: row.price ?? "",
-      oldPrice:
-        row.oldPrice !== null && row.oldPrice !== undefined && row.oldPrice !== ""
-          ? String(row.oldPrice)
-          : "",
-      description: row.description || "",
-      dept: row.dept || "men",
-      kind: row.kind || "fashion",
-      shop:
-        isShopAdmin && normalizedAdminShop
-          ? normalizedAdminShop
-          : row.shop || "fashion",
-      homeSlot: row.homeSlot || "others",
-      inStock: !!row.inStock,
-        row.stock !== null && row.stock !== undefined && row.stock !== ""
-          ? String(row.stock)
-          : "",
-      abroadDeliveryFee:
-        row.abroadDeliveryFee !== null &&
-        row.abroadDeliveryFee !== undefined &&
-        row.abroadDeliveryFee !== ""
-          ? String(row.abroadDeliveryFee)
-          : "",
-      customizations: toEditableCustomizationGroups(row.customizations),
-    });
-    setPreviewEditError("");
-    setPreviewEditMsg("");
-    resetPreviewEditImageState();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  setPreviewRowToEdit(row);
+  setPreviewEditForm({
+    name: row.name || "",
+    brand: row.brand || "",
+    price: row.price ?? "",
+    oldPrice:
+      row.oldPrice !== null && row.oldPrice !== undefined && row.oldPrice !== ""
+        ? String(row.oldPrice)
+        : "",
+    description: row.description || "",
+    dept: row.dept || "men",
+    kind: row.kind || "fashion",
+    shop:
+      isShopAdmin && normalizedAdminShop
+        ? normalizedAdminShop
+        : row.shop || "fashion",
+    homeSlot: row.homeSlot || "others",
+    inStock: !!row.inStock,
+    featured: !!row.featured,
+    shipsFromAbroad: !!row.shipsFromAbroad,
+    stock:
+      row.stock !== null && row.stock !== undefined && row.stock !== ""
+        ? String(row.stock)
+        : "",
+    abroadDeliveryFee:
+      row.abroadDeliveryFee !== null &&
+      row.abroadDeliveryFee !== undefined &&
+      row.abroadDeliveryFee !== ""
+        ? String(row.abroadDeliveryFee)
+        : "",
+    customizations: toEditableCustomizationGroups(row.customizations),
+  });
+  setPreviewEditError("");
+  setPreviewEditMsg("");
+  resetPreviewEditImageState();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
 
   const handleSavePreviewEdit = async () => {
     if (!previewRowToEdit?.id) return;
