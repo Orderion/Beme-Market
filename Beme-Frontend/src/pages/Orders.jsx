@@ -259,7 +259,6 @@ export default function Orders() {
         <div className="orders-wrap">
           <div className="orders-empty-card">
             <h1 className="orders-title">Orders</h1>
-            <p style={{ fontSize: 12 }}>ORDERS API BUILD TEST</p>
             <p className="orders-empty-text">Loading your orders...</p>
           </div>
         </div>
