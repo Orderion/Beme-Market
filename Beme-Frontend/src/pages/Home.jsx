@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { collection, getDocs, limit, query } from "firebase/firestore";
 import { db } from "../firebase";
 import ProductGrid from "../components/ProductGrid";
-import { SHOPS, HOME_FILTER_OPTIONS } from "../constants/catalog";
+import { SHOPS } from "../constants/catalog";
 import banner from "../assets/home-banner.png";
 import fashionBanner from "../assets/fashion-banner.png";
 import kenteBanner from "../assets/kente-banner.png";
@@ -14,38 +14,43 @@ import "./Home.css";
 const COLLECTION_NAME = "Products";
 const SEARCH_PREVIEW_LIMIT = 40;
 const SUGGESTION_LIMIT = 8;
-const HERO_SLIDE_INTERVAL = 5000;
 
 const CATEGORY_CARDS = [
   {
     key: "phones",
     label: "Phones",
     subtitle: "Smartphones and mobile essentials",
+    query: "phone",
   },
   {
     key: "laptops",
     label: "Laptops",
     subtitle: "Portable power for work and study",
+    query: "laptop",
   },
   {
     key: "shoes",
     label: "Shoes",
     subtitle: "Sneakers, formal pairs, and daily comfort",
+    query: "shoes",
   },
   {
     key: "clothing",
     label: "Clothing",
     subtitle: "Fresh fits and wardrobe staples",
+    query: "clothing",
   },
   {
     key: "kids",
     label: "Kids",
     subtitle: "Everyday picks for little ones",
+    query: "kids",
   },
   {
     key: "others",
     label: "Others",
     subtitle: "Accessories, extras, and more",
+    query: "accessories",
   },
 ];
 
@@ -59,9 +64,6 @@ function normalizeProduct(docSnap) {
     dept: String(d.dept || "").trim(),
     kind: String(d.kind || "").trim(),
     shop: String(d.shop || "").trim().toLowerCase(),
-    homeSlot: String(d.homeSlot || "others")
-      .trim()
-      .toLowerCase(),
   };
 }
 
@@ -76,13 +78,6 @@ function titleize(value) {
 function formatShopLabel(value) {
   const key = String(value || "").trim().toLowerCase();
   const match = SHOPS.find((shop) => shop.key === key);
-  if (match?.label) return match.label;
-  return titleize(key);
-}
-
-function formatCategoryLabel(value) {
-  const key = String(value || "").trim().toLowerCase();
-  const match = HOME_FILTER_OPTIONS.find((item) => item.key === key);
   if (match?.label) return match.label;
   return titleize(key);
 }
@@ -119,14 +114,12 @@ function buildSuggestions(products, term) {
     const dept = product.dept;
     const kind = product.kind;
     const shop = product.shop;
-    const homeSlot = product.homeSlot;
 
     const nameLc = name.toLowerCase();
     const descLc = description.toLowerCase();
     const deptLc = dept.toLowerCase();
     const kindLc = kind.toLowerCase();
     const shopLc = shop.toLowerCase();
-    const slotLc = homeSlot.toLowerCase();
 
     if (nameLc.startsWith(q)) pushSuggestion(name, "product", name, 100);
     else if (nameLc.includes(q)) pushSuggestion(name, "product", name, 90);
@@ -149,22 +142,6 @@ function buildSuggestions(products, term) {
       pushSuggestion(formatShopLabel(shop), "shop", `shop:${shop}`, 58);
     }
 
-    if (slotLc.startsWith(q)) {
-      pushSuggestion(
-        formatCategoryLabel(homeSlot),
-        "category",
-        `slot:${homeSlot}`,
-        67
-      );
-    } else if (slotLc.includes(q)) {
-      pushSuggestion(
-        formatCategoryLabel(homeSlot),
-        "category",
-        `slot:${homeSlot}`,
-        57
-      );
-    }
-
     if (descLc.includes(q)) {
       const words = description
         .split(/[\s,.;:/()[\]-]+/)
@@ -185,37 +162,7 @@ function buildSuggestions(products, term) {
     .slice(0, SUGGESTION_LIMIT);
 }
 
-function BannerLinkCard({
-  image,
-  chip,
-  title,
-  subtitle,
-  align = "left",
-  tone = "",
-  size = "square",
-  onClick,
-  ariaLabel,
-}) {
-  const className = [
-    "shop-banner",
-    align === "center" ? "shop-banner--center" : "shop-banner--left",
-    tone ? `shop-banner--${tone}` : "",
-    size ? `shop-banner--${size}` : "",
-  ]
-    .join(" ")
-    .trim();
-
-  const overlayClassName = [
-    "shop-banner-overlay",
-    align === "center"
-      ? "shop-banner-overlay--center"
-      : "shop-banner-overlay--left",
-    size === "featured" ? "shop-banner-overlay--featured" : "",
-    size === "square" ? "shop-banner-overlay--square" : "",
-  ]
-    .join(" ")
-    .trim();
-
+function StoreCard({ image, chip, title, subtitle, onClick, ariaLabel }) {
   const handleKeyDown = (e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -225,20 +172,21 @@ function BannerLinkCard({
 
   return (
     <div
-      className={className}
+      className="store-card"
       role="link"
       tabIndex={0}
       onClick={onClick}
       onKeyDown={handleKeyDown}
       aria-label={ariaLabel || title}
     >
-      <img src={image} alt={title} className="shop-banner-image" />
+      <div className="store-card-media">
+        <img src={image} alt={title} className="store-card-image" />
+        <span className="store-card-chip">{chip}</span>
+      </div>
 
-      <div className={overlayClassName}>
-        <span className="shop-banner-chip">{chip}</span>
-        <h2>{title}</h2>
-        {subtitle ? <p className="shop-banner-copy">{subtitle}</p> : null}
-        <span className="shop-banner-cta">Open shop</span>
+      <div className="store-card-body">
+        <h4 className="store-card-title">{title}</h4>
+        <p className="store-card-subtitle">{subtitle}</p>
       </div>
     </div>
   );
@@ -254,17 +202,17 @@ function CategoryQuickCard({ item, onClick }) {
 
   return (
     <div
-      className="category-quick-card"
+      className="category-box"
       role="link"
       tabIndex={0}
       onClick={onClick}
       onKeyDown={handleKeyDown}
       aria-label={`Open ${item.label}`}
     >
-      <div className="category-quick-icon" aria-hidden="true">
+      <div className="category-box-icon" aria-hidden="true">
         <svg
           viewBox="0 0 24 24"
-          className="category-quick-svg"
+          className="category-box-svg"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
@@ -277,27 +225,7 @@ function CategoryQuickCard({ item, onClick }) {
         </svg>
       </div>
 
-      <div className="category-quick-content">
-        <span className="category-quick-label">{item.label}</span>
-        <span className="category-quick-subtitle">{item.subtitle}</span>
-      </div>
-
-      <span className="category-quick-arrow" aria-hidden="true">
-        <svg
-          viewBox="0 0 24 24"
-          className="category-quick-svg"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M9 6l6 6-6 6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </span>
+      <div className="category-box-label">{item.label}</div>
     </div>
   );
 }
@@ -310,55 +238,8 @@ export default function Home() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const [heroIndex, setHeroIndex] = useState(0);
 
   const searchWrapRef = useRef(null);
-
-  const heroSlides = useMemo(
-    () => [
-      {
-        id: "new-arrivals",
-        image: banner,
-        badge: "New Season",
-        title: "New Arrival 2026",
-        subtitle: "Fresh pieces, modern essentials, and standout finds.",
-        action: () => navigate("/shop"),
-      },
-      {
-        id: "fashion",
-        image: fashionBanner,
-        badge: "Fashion Shop",
-        title: "Modern fashion for every day",
-        subtitle: "Elevated style, clean looks, and curated wardrobe essentials.",
-        action: () => navigate("/shop?shop=fashion"),
-      },
-      {
-        id: "kente",
-        image: kenteBanner,
-        badge: "Ghana Made",
-        title: "Mintah's Kente Collection",
-        subtitle: "Traditional beauty with premium presentation.",
-        action: () => navigate("/shop?shop=kente"),
-      },
-      {
-        id: "perfume",
-        image: perfumeBanner,
-        badge: "Perfume Shop",
-        title: "Luxury scents for every mood",
-        subtitle: "Refined fragrances for daily wear and special moments.",
-        action: () => navigate("/shop?shop=perfume"),
-      },
-      {
-        id: "tech",
-        image: techBanner,
-        badge: "Tech Shop",
-        title: "Latest gadgets for modern living",
-        subtitle: "Smart devices, clean design, everyday performance.",
-        action: () => navigate("/shop?shop=tech"),
-      },
-    ],
-    [navigate]
-  );
 
   const storeCards = useMemo(
     () => [
@@ -368,9 +249,6 @@ export default function Home() {
         chip: "Fashion Shop",
         title: "Modern fashion essentials",
         subtitle: "Clean everyday style and curated wardrobe picks.",
-        align: "left",
-        tone: "fashion",
-        size: "featured",
         onClick: () => navigate("/shop?shop=fashion"),
         ariaLabel: "Open Fashion Shop",
       },
@@ -380,9 +258,6 @@ export default function Home() {
         chip: "Main Store",
         title: "Everyday bestsellers",
         subtitle: "Mixed essentials, popular picks, and store highlights.",
-        align: "left",
-        tone: "main",
-        size: "square",
         onClick: () => navigate("/shop?shop=main"),
         ariaLabel: "Open Main Store",
       },
@@ -392,9 +267,6 @@ export default function Home() {
         chip: "Ghana Made",
         title: "Mintah's Kente",
         subtitle: "Premium woven styles with heritage appeal.",
-        align: "center",
-        tone: "kente",
-        size: "square",
         onClick: () => navigate("/shop?shop=kente"),
         ariaLabel: "Open Mintah's Kente collection",
       },
@@ -404,9 +276,6 @@ export default function Home() {
         chip: "Perfume Shop",
         title: "Luxury scents",
         subtitle: "Refined fragrances for daily wear and gifting.",
-        align: "left",
-        tone: "perfume",
-        size: "square",
         onClick: () => navigate("/shop?shop=perfume"),
         ariaLabel: "Open Perfume Shop",
       },
@@ -416,9 +285,6 @@ export default function Home() {
         chip: "Tech Shop",
         title: "Latest gadgets",
         subtitle: "Smart devices and modern electronics for daily life.",
-        align: "left",
-        tone: "tech",
-        size: "square",
         onClick: () => navigate("/shop?shop=tech"),
         ariaLabel: "Open Tech Shop",
       },
@@ -476,21 +342,9 @@ export default function Home() {
     };
   }, []);
 
-  useEffect(() => {
-    if (heroSlides.length <= 1) return undefined;
-
-    const timer = window.setInterval(() => {
-      setHeroIndex((prev) => (prev + 1) % heroSlides.length);
-    }, HERO_SLIDE_INTERVAL);
-
-    return () => window.clearInterval(timer);
-  }, [heroSlides.length]);
-
   const suggestions = useMemo(() => {
     return buildSuggestions(products, search);
   }, [products, search]);
-
-  const currentSlide = heroSlides[heroIndex];
 
   const goToShop = () => navigate("/shop");
 
@@ -507,12 +361,6 @@ export default function Home() {
     if (q.startsWith("shop:")) {
       const shopKey = q.replace(/^shop:/, "").trim().toLowerCase();
       navigate(`/shop?shop=${encodeURIComponent(shopKey)}`);
-      return;
-    }
-
-    if (q.startsWith("slot:")) {
-      const slotKey = q.replace(/^slot:/, "").trim().toLowerCase();
-      navigate(`/shop?slot=${encodeURIComponent(slotKey)}`);
       return;
     }
 
@@ -560,23 +408,17 @@ export default function Home() {
     }
   };
 
-  const goToSlide = (index) => {
-    setHeroIndex(index);
+  const goToCategory = (item) => {
+    navigate(`/shop?q=${encodeURIComponent(item.query)}`);
   };
-
-  const activateHeroSlide = () => {
-    currentSlide.action?.();
-  };
-
-  const goToCategory = (slot) => {
-    navigate(`/shop?slot=${encodeURIComponent(slot)}`);
-  };
-
-  const featuredStore = storeCards[0];
-  const secondaryStores = storeCards.slice(1);
 
   return (
     <div className="home">
+      <section className="home-intro">
+        <span className="home-brand-mark">Beme Market</span>
+        <h1 className="home-headline">Your next find is just a search away</h1>
+      </section>
+
       <div className="search-wrap" ref={searchWrapRef}>
         <form className="search-container" onSubmit={submitSearch}>
           <svg
@@ -598,7 +440,7 @@ export default function Home() {
 
           <input
             type="text"
-            placeholder="Search products, stores, or categories"
+            placeholder="Search products or stores"
             className="search-input"
             value={search}
             onChange={handleInputChange}
@@ -609,8 +451,27 @@ export default function Home() {
             aria-label="Search products"
           />
 
-          <button type="submit" className="search-submit">
-            Search
+          <button type="submit" className="search-submit" aria-label="Search">
+            <svg
+              viewBox="0 0 24 24"
+              className="search-filter-icon"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M4 7h10M18 7h2M4 17h6M14 17h6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+              />
+              <path
+                d="M14 5v4M10 15v4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+              />
+            </svg>
           </button>
         </form>
 
@@ -644,48 +505,13 @@ export default function Home() {
         ) : null}
       </div>
 
-      <div className="home-note">
-        Browse categories, featured shops, and trending products from one place.
-      </div>
-
-      <section
-        className="hero hero--interactive"
-        role="link"
-        tabIndex={0}
-        onClick={activateHeroSlide}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            activateHeroSlide();
-          }
-        }}
-        aria-label={currentSlide.title}
-      >
-        <img
-          key={currentSlide.id}
-          src={currentSlide.image}
-          alt={currentSlide.title}
-          className="hero-image"
-        />
-
-        <div className="hero-overlay">
-          <span className="badge">{currentSlide.badge}</span>
-          <h2>{currentSlide.title}</h2>
-          <p className="hero-copy">{currentSlide.subtitle}</p>
-          <span className="hero-link-pill">Explore now</span>
-        </div>
-
-        <div className="hero-dots" aria-label="Hero slides">
-          {heroSlides.map((slide, index) => (
-            <button
-              key={slide.id}
-              type="button"
-              className={`hero-dot ${index === heroIndex ? "active" : ""}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                goToSlide(index);
-              }}
-              aria-label={`Go to slide ${index + 1}`}
+      <section className="section section--categories">
+        <div className="category-grid">
+          {CATEGORY_CARDS.map((item) => (
+            <CategoryQuickCard
+              key={item.key}
+              item={item}
+              onClick={() => goToCategory(item)}
             />
           ))}
         </div>
@@ -693,70 +519,24 @@ export default function Home() {
 
       <section className="section">
         <div className="section-header">
-          <div>
-            <h3>Browse categories</h3>
-            <p className="section-subtitle">
-              Jump straight into the sections you want from the home screen.
-            </p>
-          </div>
-
+          <h3>What’s new on Beme Market</h3>
           <button className="see-all-btn" onClick={goToShop}>
-            See all
+            View all
           </button>
         </div>
 
-        <div className="category-quick-grid">
-          {CATEGORY_CARDS.map((item) => (
-            <CategoryQuickCard
-              key={item.key}
-              item={item}
-              onClick={() => goToCategory(item.key)}
+        <div className="store-grid">
+          {storeCards.map((store) => (
+            <StoreCard
+              key={store.id}
+              image={store.image}
+              chip={store.chip}
+              title={store.title}
+              subtitle={store.subtitle}
+              onClick={store.onClick}
+              ariaLabel={store.ariaLabel}
             />
           ))}
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-header section-header--stores">
-          <div>
-            <h3>Shop by store</h3>
-            <p className="section-subtitle">
-              Explore each shop through a cleaner featured-plus-grid layout.
-            </p>
-          </div>
-        </div>
-
-        <div className="shop-storefront">
-          <div className="shop-storefront-featured">
-            <BannerLinkCard
-              image={featuredStore.image}
-              chip={featuredStore.chip}
-              title={featuredStore.title}
-              subtitle={featuredStore.subtitle}
-              align={featuredStore.align}
-              tone={featuredStore.tone}
-              size={featuredStore.size}
-              onClick={featuredStore.onClick}
-              ariaLabel={featuredStore.ariaLabel}
-            />
-          </div>
-
-          <div className="shop-storefront-grid">
-            {secondaryStores.map((store) => (
-              <BannerLinkCard
-                key={store.id}
-                image={store.image}
-                chip={store.chip}
-                title={store.title}
-                subtitle={store.subtitle}
-                align={store.align}
-                tone={store.tone}
-                size={store.size}
-                onClick={store.onClick}
-                ariaLabel={store.ariaLabel}
-              />
-            ))}
-          </div>
         </div>
       </section>
 
