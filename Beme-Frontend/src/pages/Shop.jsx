@@ -5,10 +5,12 @@ import {
   DEPARTMENTS,
   KINDS,
   SHOPS,
+  HOME_FILTER_OPTIONS,
   DEFAULT_KIND_BY_DEPT,
   normalizeDept,
   normalizeKind,
   normalizeShop,
+  normalizeHomeFilter,
 } from "../constants/catalog";
 import "./Shop.css";
 
@@ -21,6 +23,7 @@ const SHOP_TITLE_MAP = {
 };
 
 const SHOP_FILTER_OPTIONS = SHOPS.map((shop) => ({ ...shop }));
+const HOME_SLOT_OPTIONS = HOME_FILTER_OPTIONS.map((item) => ({ ...item }));
 
 function getLabel(list, key) {
   return list.find((item) => item.key === key)?.label || null;
@@ -32,6 +35,8 @@ const Shop = () => {
   const deptParam = normalizeDept(params.get("dept"));
   const kindParam = normalizeKind(params.get("kind"));
   const shopParam = normalizeShop(params.get("shop"));
+  const slotRaw = params.get("slot");
+  const slotParam = slotRaw ? normalizeHomeFilter(slotRaw) : null;
   const qParam = (params.get("q") || "").trim();
 
   const sortParam = (params.get("sort") || "new").toLowerCase();
@@ -81,6 +86,35 @@ const Shop = () => {
     const deptLabel = deptParam ? getLabel(DEPARTMENTS, deptParam) : null;
     const kindLabel = kindParam ? getLabel(KINDS, kindParam) : null;
     const shopLabel = shopParam ? SHOP_TITLE_MAP[shopParam] || "Shop" : null;
+    const slotLabel = slotParam ? getLabel(HOME_FILTER_OPTIONS, slotParam) : null;
+
+    if (shopLabel && slotLabel && deptLabel && kindLabel) {
+      return `${shopLabel} · ${slotLabel} · ${deptLabel} · ${kindLabel}`;
+    }
+
+    if (shopLabel && slotLabel && deptLabel) {
+      return `${shopLabel} · ${slotLabel} · ${deptLabel}`;
+    }
+
+    if (shopLabel && slotLabel && kindLabel) {
+      return `${shopLabel} · ${slotLabel} · ${kindLabel}`;
+    }
+
+    if (slotLabel && deptLabel && kindLabel) {
+      return `${slotLabel} · ${deptLabel} · ${kindLabel}`;
+    }
+
+    if (shopLabel && slotLabel) {
+      return `${shopLabel} · ${slotLabel}`;
+    }
+
+    if (slotLabel && deptLabel) {
+      return `${slotLabel} · ${deptLabel}`;
+    }
+
+    if (slotLabel && kindLabel) {
+      return `${slotLabel} · ${kindLabel}`;
+    }
 
     if (shopLabel && deptLabel && kindLabel) {
       return `${shopLabel} · ${deptLabel} · ${kindLabel}`;
@@ -98,11 +132,11 @@ const Shop = () => {
       return `${deptLabel} · ${kindLabel}`;
     }
 
-    return shopLabel || deptLabel || kindLabel || "Hot sale";
-  }, [deptParam, kindParam, shopParam, qParam]);
+    return slotLabel || shopLabel || deptLabel || kindLabel || "Hot sale";
+  }, [deptParam, kindParam, shopParam, slotParam, qParam]);
 
   const hasActiveFilters =
-    !!deptParam || !!kindParam || !!shopParam || !!qParam;
+    !!deptParam || !!kindParam || !!shopParam || !!slotParam || !!qParam;
 
   const hasActiveSort =
     sortParam !== "new" ||
@@ -158,6 +192,19 @@ const Shop = () => {
     setParams(next);
   };
 
+  const setSlot = (slot) => {
+    const next = new URLSearchParams(params);
+
+    if (!slot) {
+      next.delete("slot");
+      setParams(next);
+      return;
+    }
+
+    next.set("slot", slot);
+    setParams(next);
+  };
+
   const clearSearch = () => {
     const next = new URLSearchParams(params);
     next.delete("q");
@@ -200,6 +247,7 @@ const Shop = () => {
     next.delete("dept");
     next.delete("kind");
     next.delete("shop");
+    next.delete("slot");
     next.delete("q");
     setParams(next);
   };
@@ -211,6 +259,7 @@ const Shop = () => {
       "dept",
       "kind",
       "shop",
+      "slot",
       "sort",
       "min",
       "max",
@@ -297,6 +346,14 @@ const Shop = () => {
       });
     }
 
+    if (slotParam) {
+      pills.push({
+        key: `slot:${slotParam}`,
+        label: getLabel(HOME_FILTER_OPTIONS, slotParam) || slotParam,
+        onRemove: () => setSlot(null),
+      });
+    }
+
     if (deptParam) {
       pills.push({
         key: `dept:${deptParam}`,
@@ -361,6 +418,7 @@ const Shop = () => {
     return pills;
   }, [
     shopParam,
+    slotParam,
     deptParam,
     kindParam,
     qParam,
@@ -376,6 +434,7 @@ const Shop = () => {
       dept: deptParam || null,
       kind: kindParam || null,
       shop: shopParam || null,
+      slot: slotParam || null,
       q: qParam || "",
       priceMin: minParam != null && !Number.isNaN(minParam) ? minParam : null,
       priceMax: maxParam != null && !Number.isNaN(maxParam) ? maxParam : null,
@@ -387,6 +446,7 @@ const Shop = () => {
     deptParam,
     kindParam,
     shopParam,
+    slotParam,
     qParam,
     minParam,
     maxParam,
@@ -397,7 +457,7 @@ const Shop = () => {
 
   return (
     <div className="shop-page">
-      {(filtersOpen || sortOpen) ? (
+      {filtersOpen || sortOpen ? (
         <button
           type="button"
           className="shop-panel-overlay"
@@ -454,6 +514,46 @@ const Shop = () => {
         </div>
       </div>
 
+      <div className="shop-quick-store-bar">
+        <div className="shop-quick-store-head">
+          <span className="shop-quick-store-label">Browse by category</span>
+          {slotParam ? (
+            <button
+              type="button"
+              className="shop-quick-store-clear"
+              onClick={() => setSlot(null)}
+            >
+              Show all
+            </button>
+          ) : null}
+        </div>
+
+        <div className="shop-quick-store-row">
+          <button
+            type="button"
+            className={!slotParam ? "shop-store-chip active" : "shop-store-chip"}
+            onClick={() => setSlot(null)}
+          >
+            All categories
+          </button>
+
+          {HOME_SLOT_OPTIONS.map((slot) => (
+            <button
+              key={slot.key}
+              type="button"
+              className={
+                slotParam === slot.key
+                  ? "shop-store-chip active"
+                  : "shop-store-chip"
+              }
+              onClick={() => setSlot(slot.key)}
+            >
+              {slot.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {activePills.length ? (
         <div className="shop-active-pills-wrap">
           <div className="shop-active-pills">
@@ -490,7 +590,7 @@ const Shop = () => {
             <span className="shop-panel-title">Filters</span>
 
             <div className="shop-panel-head-actions">
-              {(hasActiveFilters || hasActiveSort) && (
+              {hasActiveFilters || hasActiveSort ? (
                 <button
                   type="button"
                   className="shop-panel-action"
@@ -498,9 +598,9 @@ const Shop = () => {
                 >
                   Clear all
                 </button>
-              )}
+              ) : null}
 
-              {hasActiveFilters && (
+              {hasActiveFilters ? (
                 <button
                   type="button"
                   className="shop-panel-action"
@@ -508,7 +608,7 @@ const Shop = () => {
                 >
                   Clear
                 </button>
-              )}
+              ) : null}
 
               <button
                 type="button"
@@ -540,6 +640,30 @@ const Shop = () => {
                     onClick={() => setShop(shop.key)}
                   >
                     {shop.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="shop-panel-section">
+              <div className="shop-panel-label">Category</div>
+              <div className="shop-chips">
+                <button
+                  type="button"
+                  className={!slotParam ? "chip active" : "chip"}
+                  onClick={() => setSlot(null)}
+                >
+                  All categories
+                </button>
+
+                {HOME_SLOT_OPTIONS.map((slot) => (
+                  <button
+                    key={slot.key}
+                    type="button"
+                    className={slotParam === slot.key ? "chip active" : "chip"}
+                    onClick={() => setSlot(slot.key)}
+                  >
+                    {slot.label}
                   </button>
                 ))}
               </div>
