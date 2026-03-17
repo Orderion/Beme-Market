@@ -1,3 +1,5 @@
+import { paystackInit } from "../services/api";
+
 function getNumericStock(item) {
   const parsed = Number(item?.stock);
   return Number.isFinite(parsed) ? parsed : null;
@@ -11,6 +13,102 @@ function isOutOfStock(item) {
   if (stock !== null && stock <= 0) return true;
 
   return false;
+}
+
+function sanitizeText(value, max = 200) {
+  return String(value || "").trim().slice(0, max);
+}
+
+function sanitizeSelectedOptions(source) {
+  if (!source || typeof source !== "object" || Array.isArray(source)) return {};
+
+  const out = {};
+
+  Object.entries(source).forEach(([rawKey, rawValue]) => {
+    const key = sanitizeText(rawKey, 60);
+    if (!key) return;
+
+    if (Array.isArray(rawValue)) {
+      const cleanValues = rawValue
+        .map((entry) => sanitizeText(entry, 80))
+        .filter(Boolean)
+        .slice(0, 20);
+
+      if (cleanValues.length) out[key] = cleanValues;
+      return;
+    }
+
+    if (rawValue && typeof rawValue === "object") {
+      const nested =
+        sanitizeText(rawValue?.value, 80) ||
+        sanitizeText(rawValue?.label, 80) ||
+        sanitizeText(rawValue?.name, 80) ||
+        sanitizeText(rawValue?.title, 80);
+
+      if (nested) out[key] = nested;
+      return;
+    }
+
+    const clean = sanitizeText(rawValue, 80);
+    if (clean) out[key] = clean;
+  });
+
+  return out;
+}
+
+function sanitizeSelectedOptionDetails(source) {
+  if (!Array.isArray(source)) return [];
+
+  return source
+    .map((opt) => {
+      const groupName = sanitizeText(
+        opt?.groupName || opt?.group || opt?.name || opt?.key,
+        60
+      );
+      const label = sanitizeText(opt?.label || opt?.value || opt?.title, 80);
+      const priceBump = Number(opt?.priceBump);
+      const safePriceBump = Number.isFinite(priceBump) && priceBump > 0 ? priceBump : 0;
+
+      if (!groupName && !label) return null;
+
+      return {
+        groupName,
+        label,
+        priceBump: safePriceBump,
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 40);
+}
+
+function sanitizeCustomizations(source) {
+  if (!Array.isArray(source)) return [];
+
+  return source
+    .map((entry) => {
+      if (typeof entry === "string") {
+        const value = sanitizeText(entry, 120);
+        return value || null;
+      }
+
+      if (entry && typeof entry === "object") {
+        const label = sanitizeText(
+          entry?.label || entry?.name || entry?.key || entry?.title,
+          60
+        );
+        const value = sanitizeText(
+          entry?.value || entry?.selected || entry?.option || entry?.label,
+          120
+        );
+
+        if (!label && !value) return null;
+        return { label, value };
+      }
+
+      return null;
+    })
+    .filter(Boolean)
+    .slice(0, 40);
 }
 
 function validateCheckoutItems(cartItems) {
@@ -42,50 +140,36 @@ function validateCheckoutItems(cartItems) {
   }
 }
 
-async function parseJsonSafely(res) {
-  try {
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
-
 function normalizeCheckoutItem(item) {
   const qty = Math.max(1, Number(item?.qty) || 1);
   const price = Number(item?.price) || 0;
-  const basePrice = Number(item?.basePrice) || 0;
+  const basePrice = Number(item?.basePrice ?? item?.price ?? 0) || 0;
   const optionPriceTotal = Number(item?.optionPriceTotal) || 0;
   const stock = getNumericStock(item);
 
   return {
-    id: item?.id || "",
-    productId: item?.productId || item?.id || "",
-    name: item?.name || "",
-    image: item?.image || "",
+    id: sanitizeText(item?.id || "", 120),
+    productId: sanitizeText(item?.productId || item?.id || "", 120),
+    name: sanitizeText(item?.name || "", 160),
+    image: sanitizeText(item?.image || "", 500),
     qty,
     price,
     basePrice,
     optionPriceTotal,
     stock,
     inStock: item?.inStock !== false,
-    shop: item?.shop || "",
-    homeSlot: item?.homeSlot || "",
-    selectedOptions: item?.selectedOptions || {},
-    selectedOptionsLabel: item?.selectedOptionsLabel || "",
-    selectedOptionDetails: Array.isArray(item?.selectedOptionDetails)
-      ? item.selectedOptionDetails.map((opt) => ({
-          groupName: opt?.groupName || "",
-          label: opt?.label || "",
-          priceBump: Number(opt?.priceBump) || 0,
-        }))
-      : [],
-    customizations: Array.isArray(item?.customizations) ? item.customizations : [],
-    shippingSource: item?.shippingSource || "",
+    shop: sanitizeText(item?.shop || "main", 60).toLowerCase(),
+    homeSlot: sanitizeText(item?.homeSlot || "", 60),
+    selectedOptions: sanitizeSelectedOptions(item?.selectedOptions),
+    selectedOptionsLabel: sanitizeText(item?.selectedOptionsLabel || "", 240),
+    selectedOptionDetails: sanitizeSelectedOptionDetails(item?.selectedOptionDetails),
+    customizations: sanitizeCustomizations(item?.customizations),
+    shippingSource: sanitizeText(item?.shippingSource || "", 60),
     shipsFromAbroad: item?.shipsFromAbroad === true,
-    abroadDeliveryFee: Number(item?.abroadDeliveryFee) || 0,
+    abroadDeliveryFee: Math.max(0, Number(item?.abroadDeliveryFee) || 0),
     oldPrice:
       item?.oldPrice !== undefined && item?.oldPrice !== null && item?.oldPrice !== ""
-        ? Number(item.oldPrice) || 0
+        ? Math.max(0, Number(item.oldPrice) || 0)
         : null,
   };
 }
@@ -112,27 +196,33 @@ export async function startPaystackCheckout({
       Number(pricing?.total) ||
       (Number(pricing?.subtotal) || computedSubtotal) +
         (Number(pricing?.deliveryFee) || 0),
-    currency: pricing?.currency || "GHS",
+    currency: sanitizeText(pricing?.currency || "GHS", 10) || "GHS",
   };
 
-  const baseUrl = import.meta.env.VITE_BACKEND_URL;
-  if (!baseUrl) throw new Error("Missing VITE_BACKEND_URL in frontend env");
-
-  const res = await fetch(`${baseUrl}/api/paystack/checkout/init`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email,
-      items,
-      pricing: normalizedPricing,
-      customer,
-    }),
+  const data = await paystackInit({
+    email: sanitizeText(email || customer?.email || "", 160).toLowerCase(),
+    cartItems: items,
+    pricing: normalizedPricing,
+    customer: {
+      userId: sanitizeText(customer?.userId || "", 128),
+      firstName: sanitizeText(customer?.firstName || "", 80),
+      lastName: sanitizeText(customer?.lastName || "", 80),
+      phone: sanitizeText(customer?.phone || "", 30),
+      network: sanitizeText(customer?.network || "", 40),
+      address: sanitizeText(customer?.address || "", 300),
+      region: sanitizeText(customer?.region || "", 80),
+      city: sanitizeText(customer?.city || "", 80),
+      area: sanitizeText(customer?.area || "", 120),
+      notes: sanitizeText(customer?.notes || "", 500),
+      country: sanitizeText(customer?.country || "Ghana", 40) || "Ghana",
+    },
   });
 
-  const data = await parseJsonSafely(res);
-
-  if (!res.ok) {
-    throw new Error(data?.error || "Checkout failed");
+  if (data?.reuseExisting && data?.reference) {
+    window.location.assign(
+      `/order-success?reference=${encodeURIComponent(data.reference)}&status=verifying`
+    );
+    return;
   }
 
   if (!data?.authorization_url) {
@@ -142,42 +232,10 @@ export async function startPaystackCheckout({
   window.location.assign(data.authorization_url);
 }
 
-export async function startShopOwnerCheckout(application) {
-  const baseUrl = import.meta.env.VITE_BACKEND_URL;
-  if (!baseUrl) throw new Error("Missing VITE_BACKEND_URL in frontend env");
-
-  const res = await fetch(`${baseUrl}/api/paystack/shop-owner/init`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(application),
-  });
-
-  const data = await parseJsonSafely(res);
-
-  if (!res.ok) {
-    throw new Error(data?.error || "Shop owner payment init failed");
-  }
-
-  if (!data?.authorization_url) {
-    throw new Error("Missing Paystack authorization_url from backend");
-  }
-
-  window.location.assign(data.authorization_url);
+export async function startShopOwnerCheckout() {
+  throw new Error("Shop owner applications are temporarily disabled.");
 }
 
-export async function verifyShopOwnerPayment(reference) {
-  const baseUrl = import.meta.env.VITE_BACKEND_URL;
-  if (!baseUrl) throw new Error("Missing VITE_BACKEND_URL in frontend env");
-
-  const res = await fetch(
-    `${baseUrl}/api/paystack/shop-owner/verify?reference=${encodeURIComponent(reference)}`
-  );
-
-  const data = await parseJsonSafely(res);
-
-  if (!res.ok) {
-    throw new Error(data?.error || "Verification failed");
-  }
-
-  return data;
+export async function verifyShopOwnerPayment() {
+  throw new Error("Shop owner applications are temporarily disabled.");
 }
