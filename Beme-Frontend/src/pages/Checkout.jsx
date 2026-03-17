@@ -1,20 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
+import { getAuth } from "firebase/auth";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  addDoc,
-  collection,
-  getDocs,
-  limit,
-  query,
-  serverTimestamp,
-  where,
-} from "firebase/firestore";
 import LoaderOverlay from "../components/LoaderOverlay";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
-import { db } from "../firebase";
 import { startPaystackCheckout } from "../lib/checkout";
 import "./Checkout.css";
+
+const API_BASE = String(import.meta.env.VITE_BACKEND_URL || "")
+  .trim()
+  .replace(/\/+$/, "");
 
 const FREE_DELIVERY_REGIONS = new Set(["Greater Accra"]);
 const GH_REGIONS = ["Greater Accra"];
@@ -218,9 +213,13 @@ function sanitizeSelectedOptionDetails(source) {
         entry?.groupName || entry?.group || entry?.name || entry?.key,
         60
       );
-      const label = sanitizeText(entry?.label || entry?.value || entry?.title, 80);
+      const label = sanitizeText(
+        entry?.label || entry?.value || entry?.title,
+        80
+      );
       const priceBump = Number(entry?.priceBump);
-      const safePriceBump = Number.isFinite(priceBump) && priceBump > 0 ? priceBump : 0;
+      const safePriceBump =
+        Number.isFinite(priceBump) && priceBump > 0 ? priceBump : 0;
 
       if (!groupName && !label) return null;
 
@@ -238,6 +237,7 @@ function buildSafeCartItems(cartItems) {
   return cartItems.map((item) => ({
     id: sanitizeText(item.id, 120),
     productId: sanitizeText(item.id || item.productId, 120),
+    lineId: sanitizeText(item.lineId, 320),
     name: sanitizeText(item.name, 160),
     price: Number(item.price) || 0,
     basePrice: Number(item.basePrice ?? item.price ?? 0) || 0,
@@ -247,12 +247,67 @@ function buildSafeCartItems(cartItems) {
     shop: normalizeShop(item.shop),
     selectedOptions: sanitizeSelectedOptions(item.selectedOptions),
     selectedOptionsLabel: sanitizeOptionalText(item.selectedOptionsLabel, 240),
-    selectedOptionDetails: sanitizeSelectedOptionDetails(item.selectedOptionDetails),
+    selectedOptionDetails: sanitizeSelectedOptionDetails(
+      item.selectedOptionDetails
+    ),
     shipsFromAbroad: item.shipsFromAbroad === true,
     abroadDeliveryFee: getItemAbroadDeliveryFee(item),
     inStock: item.inStock !== false,
     stock: getNumericStock(item),
   }));
+}
+
+async function getFirebaseAuthHeaders() {
+  const auth = getAuth();
+  const currentUser = auth.currentUser;
+
+  if (!currentUser) {
+    throw new Error("You must be signed in to continue.");
+  }
+
+  const token = await currentUser.getIdToken();
+
+  return {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  };
+}
+
+async function backendRequest(path, options = {}) {
+  if (!API_BASE) {
+    throw new Error("Missing backend URL. Set VITE_BACKEND_URL.");
+  }
+
+  const headers = await getFirebaseAuthHeaders();
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "GET",
+    ...options,
+    headers: {
+      ...headers,
+      ...(options.headers || {}),
+    },
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(data?.error || data?.message || "Request failed");
+  }
+
+  return data;
+}
+
+async function fetchOwnOrdersSummary() {
+  return backendRequest("/api/orders");
+}
+
+async function createCodOrder(payload) {
+  return backendRequest("/api/orders", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 function PaymentIcon({ type, disabled = false }) {
@@ -400,15 +455,16 @@ export default function Checkout() {
       setCheckingOrderHistory(true);
 
       try {
-        const q = query(
-          collection(db, "orders"),
-          where("userId", "==", user.uid),
-          limit(1)
-        );
-        const snap = await getDocs(q);
-
+        const data = await fetchOwnOrdersSummary();
         if (!active) return;
-        setHasPreviousOrders(!snap.empty);
+
+        const rows = Array.isArray(data?.orders)
+          ? data.orders
+          : Array.isArray(data)
+          ? data
+          : [];
+
+        setHasPreviousOrders(rows.length > 0);
       } catch (error) {
         console.error("Failed to check order history:", error);
         if (!active) return;
@@ -583,8 +639,9 @@ export default function Checkout() {
     else if (!isValidName(v.lastName)) next.lastName = "Use letters only.";
 
     if (!v.address.trim()) next.address = "Address is required.";
-    else if (!isValidGhanaAddress(v.address))
+    else if (!isValidGhanaAddress(v.address)) {
       next.address = "Enter a valid address.";
+    }
 
     if (!v.region) next.region = "Select a region.";
     if (!v.city) next.city = "Select a city.";
@@ -594,8 +651,9 @@ export default function Checkout() {
 
     if (!v.phone.trim()) next.phone = "Phone is required.";
     else if (!normalizedPhone) next.phone = "Use 0XXXXXXXXX or +233XXXXXXXXX.";
-    else if (!network)
+    else if (!network) {
       next.phone = "Phone must be MTN, Telecel, or AirtelTigo.";
+    }
 
     if (!safeCartItems.length) {
       next.cart = "Your cart is empty.";
@@ -670,6 +728,7 @@ export default function Checkout() {
   const buildOrderPayload = (paymentMethod) => {
     const items = safeCartItems.map((item) => ({
       id: item.id || "",
+      productId: item.productId || item.id || "",
       name: item.name || "",
       price: Number(item.price) || 0,
       basePrice: Number(item.basePrice ?? item.price ?? 0) || 0,
@@ -693,7 +752,6 @@ export default function Checkout() {
     );
 
     return {
-      userId: user.uid,
       customer: {
         email: sanitizeText(form.email, 160).toLowerCase(),
         firstName: sanitizeText(form.firstName, 80),
@@ -706,6 +764,7 @@ export default function Checkout() {
         notes: sanitizeOptionalText(form.notes, 500),
         country: "Ghana",
         network,
+        userId: user?.uid || "",
       },
       items,
       shops,
@@ -720,8 +779,6 @@ export default function Checkout() {
       paymentStatus: "pending",
       status: paymentMethod === "cod" ? "pending" : "pending_payment",
       source: "web",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
     };
   };
 
@@ -744,9 +801,9 @@ export default function Checkout() {
 
     try {
       const payload = buildOrderPayload("cod");
-      await addDoc(collection(db, "orders"), payload);
+      await createCodOrder(payload);
       clearCart();
-      navigate("/order-success", { replace: true });
+      navigate("/order-success?status=success", { replace: true });
     } catch (e) {
       console.error("COD order failed:", e);
       alert(
@@ -814,7 +871,7 @@ export default function Checkout() {
           country: "Ghana",
           phone: normalizedPhone,
           network,
-          userId: user.uid,
+          userId: user?.uid || "",
         },
       });
     } catch (e) {
