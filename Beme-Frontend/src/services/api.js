@@ -1,6 +1,9 @@
 // src/services/api.js
+import { getAuth } from "firebase/auth";
 
-const BASE = String(import.meta.env.VITE_BACKEND_URL || "").trim().replace(/\/+$/, "");
+const BASE = String(import.meta.env.VITE_BACKEND_URL || "")
+  .trim()
+  .replace(/\/+$/, "");
 
 if (!BASE) {
   console.warn("Missing VITE_BACKEND_URL. Set it in Vercel/.env");
@@ -10,6 +13,21 @@ function assertBaseUrl() {
   if (!BASE) {
     throw new Error("Missing backend URL. Set VITE_BACKEND_URL.");
   }
+}
+
+async function getAuthHeaders() {
+  const auth = getAuth();
+  const currentUser = auth.currentUser;
+
+  if (!currentUser) {
+    throw new Error("You must be signed in to continue.");
+  }
+
+  const token = await currentUser.getIdToken();
+
+  return {
+    Authorization: `Bearer ${token}`,
+  };
 }
 
 async function toJson(res) {
@@ -25,11 +43,14 @@ async function toJson(res) {
 async function request(path, options = {}) {
   assertBaseUrl();
 
+  const authHeaders = await getAuthHeaders();
+
   const res = await fetch(`${BASE}${path}`, {
     method: "GET",
     ...options,
     headers: {
       Accept: "application/json",
+      ...authHeaders,
       ...(options.headers || {}),
     },
   });
@@ -89,7 +110,8 @@ export async function paystackInit(payload) {
       city: String(payload?.customer?.city || "").trim(),
       area: String(payload?.customer?.area || "").trim(),
       notes: String(payload?.customer?.notes || "").trim(),
-      country: String(payload?.customer?.country || "Ghana").trim() || "Ghana",
+      country:
+        String(payload?.customer?.country || "Ghana").trim() || "Ghana",
     },
   };
 
@@ -114,6 +136,8 @@ export async function paystackVerify(reference) {
   }
 
   return request(
-    `/api/paystack/checkout/verify?reference=${encodeURIComponent(safeReference)}`
+    `/api/paystack/checkout/verify?reference=${encodeURIComponent(
+      safeReference
+    )}`
   );
 }
