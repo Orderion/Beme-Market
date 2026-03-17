@@ -388,19 +388,46 @@ export default function ProductGrid({
     f.priceMax,
   ]);
 
-  const baseQueryParts = useMemo(() => {
-    const colRef = collection(db, COLLECTION_NAME);
-    const wheres = [];
+const finalList = useMemo(() => {
+  let list = [...products];
 
-    if (f.dept) wheres.push(where("dept", "==", f.dept));
-    if (f.kind) wheres.push(where("kind", "==", f.kind));
-    if (f.shop) wheres.push(where("shop", "==", f.shop));
-    if (f.slot) wheres.push(where("homeSlot", "==", f.slot));
-    if (f.inStockOnly) wheres.push(where("inStock", "==", true));
+  if (f.slot) {
+    list = list.filter(
+      (p) => String(p.homeSlot || "others").toLowerCase().trim() === f.slot
+    );
+  }
 
-    const ord = buildOrder(sortKey);
-    return { colRef, wheres, ord };
-  }, [f.dept, f.kind, f.shop, f.slot, f.inStockOnly, sortKey]);
+  if (f.featuredOnly) {
+    list = list.filter((p) => !!p.featured);
+  }
+
+  if (f.priceMin != null) {
+    list = list.filter((p) => (Number(p.price) || 0) >= f.priceMin);
+  }
+
+  if (f.priceMax != null) {
+    list = list.filter((p) => (Number(p.price) || 0) <= f.priceMax);
+  }
+
+  if (f.q) {
+    list = list.filter((p) => matchesSearch(p, f.q));
+  }
+
+  if (shouldRandomize(sortKey)) {
+    return randomizedStableOrder(list, randomSeedBase);
+  }
+
+  return list;
+}, [
+  products,
+  f.slot,
+  f.priceMin,
+  f.priceMax,
+  f.featuredOnly,
+  f.q,
+  sortKey,
+  randomSeedBase,
+]);
 
   useEffect(() => {
     let alive = true;
@@ -623,7 +650,11 @@ export default function ProductGrid({
 
     const base = serverCount != null ? serverCount : finalList.length;
     const clientFilteredActive =
-      f.priceMin != null || f.priceMax != null || f.featuredOnly || !!f.q;
+  !!f.slot ||
+  f.priceMin != null ||
+  f.priceMax != null ||
+  f.featuredOnly ||
+  !!f.q;
 
     if (clientFilteredActive) return <>{finalList.length} items</>;
     return <>{base} items</>;
