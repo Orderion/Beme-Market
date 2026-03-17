@@ -164,6 +164,97 @@ function getItemAbroadDeliveryFee(item) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
+function sanitizeText(value, max = 200) {
+  return String(value || "").trim().slice(0, max);
+}
+
+function sanitizeOptionalText(value, max = 200) {
+  return sanitizeText(value, max);
+}
+
+function sanitizeSelectedOptions(source) {
+  if (!source || typeof source !== "object" || Array.isArray(source)) return {};
+
+  const out = {};
+
+  Object.entries(source).forEach(([rawKey, rawValue]) => {
+    const key = sanitizeText(rawKey, 60);
+    if (!key) return;
+
+    if (Array.isArray(rawValue)) {
+      const cleanValues = rawValue
+        .map((entry) => sanitizeText(entry, 80))
+        .filter(Boolean)
+        .slice(0, 20);
+
+      if (cleanValues.length) out[key] = cleanValues;
+      return;
+    }
+
+    if (rawValue && typeof rawValue === "object") {
+      const nested =
+        sanitizeText(rawValue?.value, 80) ||
+        sanitizeText(rawValue?.label, 80) ||
+        sanitizeText(rawValue?.name, 80) ||
+        sanitizeText(rawValue?.title, 80);
+
+      if (nested) out[key] = nested;
+      return;
+    }
+
+    const clean = sanitizeText(rawValue, 80);
+    if (clean) out[key] = clean;
+  });
+
+  return out;
+}
+
+function sanitizeSelectedOptionDetails(source) {
+  if (!Array.isArray(source)) return [];
+
+  return source
+    .map((entry) => {
+      const groupName = sanitizeText(
+        entry?.groupName || entry?.group || entry?.name || entry?.key,
+        60
+      );
+      const label = sanitizeText(entry?.label || entry?.value || entry?.title, 80);
+      const priceBump = Number(entry?.priceBump);
+      const safePriceBump = Number.isFinite(priceBump) && priceBump > 0 ? priceBump : 0;
+
+      if (!groupName && !label) return null;
+
+      return {
+        groupName,
+        label,
+        priceBump: safePriceBump,
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 40);
+}
+
+function buildSafeCartItems(cartItems) {
+  return cartItems.map((item) => ({
+    id: sanitizeText(item.id, 120),
+    productId: sanitizeText(item.id || item.productId, 120),
+    name: sanitizeText(item.name, 160),
+    price: Number(item.price) || 0,
+    basePrice: Number(item.basePrice ?? item.price ?? 0) || 0,
+    optionPriceTotal: Number(item.optionPriceTotal || 0) || 0,
+    qty: Math.max(1, Number(item.qty) || 1),
+    image: sanitizeOptionalText(item.image, 500),
+    shop: normalizeShop(item.shop),
+    selectedOptions: sanitizeSelectedOptions(item.selectedOptions),
+    selectedOptionsLabel: sanitizeOptionalText(item.selectedOptionsLabel, 240),
+    selectedOptionDetails: sanitizeSelectedOptionDetails(item.selectedOptionDetails),
+    shipsFromAbroad: item.shipsFromAbroad === true,
+    abroadDeliveryFee: getItemAbroadDeliveryFee(item),
+    inStock: item.inStock !== false,
+    stock: getNumericStock(item),
+  }));
+}
+
 function PaymentIcon({ type, disabled = false }) {
   if (type === "cod") {
     return (
@@ -336,13 +427,15 @@ export default function Checkout() {
     };
   }, [user]);
 
+  const safeCartItems = useMemo(() => buildSafeCartItems(cartItems), [cartItems]);
+
   const subtotalUI = useMemo(() => {
-    return cartItems.reduce((sum, item) => {
+    return safeCartItems.reduce((sum, item) => {
       const price = Number(item.price) || 0;
       const qty = Number(item.qty) || 0;
       return sum + price * qty;
     }, 0);
-  }, [cartItems]);
+  }, [safeCartItems]);
 
   const regionalDeliveryFeeUI = useMemo(() => {
     if (!form.region) return 0;
@@ -352,12 +445,12 @@ export default function Checkout() {
   }, [form.region]);
 
   const abroadDeliveryFeeUI = useMemo(() => {
-    return cartItems.reduce((sum, item) => {
+    return safeCartItems.reduce((sum, item) => {
       const qty = Number(item.qty) || 0;
       const fee = getItemAbroadDeliveryFee(item);
       return sum + fee * qty;
     }, 0);
-  }, [cartItems]);
+  }, [safeCartItems]);
 
   const deliveryFeeUI = useMemo(
     () => regionalDeliveryFeeUI + abroadDeliveryFeeUI,
@@ -386,22 +479,22 @@ export default function Checkout() {
 
   const cartShops = useMemo(() => {
     return Array.from(
-      new Set(cartItems.map((item) => normalizeShop(item.shop)))
+      new Set(safeCartItems.map((item) => normalizeShop(item.shop)))
     ).filter(Boolean);
-  }, [cartItems]);
+  }, [safeCartItems]);
 
   const hasShippedFromAbroadItem = useMemo(() => {
-    return cartItems.some((item) => item?.shipsFromAbroad === true);
-  }, [cartItems]);
+    return safeCartItems.some((item) => item?.shipsFromAbroad === true);
+  }, [safeCartItems]);
 
   const unavailableCartItems = useMemo(() => {
-    return cartItems
+    return safeCartItems
       .map((item) => ({
         ...item,
         unavailableReason: getUnavailableReason(item),
       }))
       .filter((item) => item.unavailableReason);
-  }, [cartItems]);
+  }, [safeCartItems]);
 
   const hasUnavailableCartItems = unavailableCartItems.length > 0;
 
@@ -504,7 +597,7 @@ export default function Checkout() {
     else if (!network)
       next.phone = "Phone must be MTN, Telecel, or AirtelTigo.";
 
-    if (!cartItems.length) {
+    if (!safeCartItems.length) {
       next.cart = "Your cart is empty.";
     } else if (hasUnavailableCartItems) {
       next.cart =
@@ -527,7 +620,7 @@ export default function Checkout() {
     form.region,
     form.city,
     form.area,
-    cartItems,
+    safeCartItems,
     hasUnavailableCartItems,
     normalizedPhone,
     network,
@@ -575,7 +668,7 @@ export default function Checkout() {
   };
 
   const buildOrderPayload = (paymentMethod) => {
-    const items = cartItems.map((item) => ({
+    const items = safeCartItems.map((item) => ({
       id: item.id || "",
       name: item.name || "",
       price: Number(item.price) || 0,
@@ -602,15 +695,15 @@ export default function Checkout() {
     return {
       userId: user.uid,
       customer: {
-        email: form.email.trim(),
-        firstName: form.firstName.trim(),
-        lastName: form.lastName.trim(),
+        email: sanitizeText(form.email, 160).toLowerCase(),
+        firstName: sanitizeText(form.firstName, 80),
+        lastName: sanitizeText(form.lastName, 80),
         phone: normalizedPhone,
-        address: form.address.trim(),
-        region: form.region,
-        city: form.city,
-        area: form.area.trim(),
-        notes: form.notes?.trim() || "",
+        address: sanitizeText(form.address, 300),
+        region: sanitizeText(form.region, 80),
+        city: sanitizeText(form.city, 80),
+        area: sanitizeText(form.area, 120),
+        notes: sanitizeOptionalText(form.notes, 500),
         country: "Ghana",
         network,
       },
@@ -619,8 +712,6 @@ export default function Checkout() {
       primaryShop: shops[0] || "main",
       pricing: {
         subtotal: subtotalUI,
-        regionalDeliveryFee: regionalDeliveryFeeUI,
-        abroadDeliveryFee: abroadDeliveryFeeUI,
         deliveryFee: deliveryFeeUI,
         total: totalUI,
         currency: "GHS",
@@ -688,11 +779,11 @@ export default function Checkout() {
       await new Promise((resolve) => setTimeout(resolve, 200));
 
       await startPaystackCheckout({
-        email: form.email.trim(),
-        cartItems: cartItems.map((item) => ({
+        email: sanitizeText(form.email, 160).toLowerCase(),
+        cartItems: safeCartItems.map((item) => ({
           ...item,
           id: item.id || "",
-          qty: Number(item.qty) || 1,
+          qty: Math.max(1, Number(item.qty) || 1),
           price: Number(item.price) || 0,
           basePrice: Number(item.basePrice ?? item.price ?? 0) || 0,
           optionPriceTotal: Number(item.optionPriceTotal || 0) || 0,
@@ -713,13 +804,16 @@ export default function Checkout() {
           currency: "GHS",
         },
         customer: {
-          ...form,
+          firstName: sanitizeText(form.firstName, 80),
+          lastName: sanitizeText(form.lastName, 80),
+          address: sanitizeText(form.address, 300),
+          region: sanitizeText(form.region, 80),
+          city: sanitizeText(form.city, 80),
+          area: sanitizeText(form.area, 120),
+          notes: sanitizeOptionalText(form.notes, 500),
           country: "Ghana",
           phone: normalizedPhone,
           network,
-          deliveryFee: deliveryFeeUI,
-          regionalDeliveryFee: regionalDeliveryFeeUI,
-          abroadDeliveryFee: abroadDeliveryFeeUI,
           userId: user.uid,
         },
       });
@@ -775,7 +869,7 @@ export default function Checkout() {
 
         <h1 className="checkout-title">Checkout</h1>
 
-        {!cartItems.length ? (
+        {!safeCartItems.length ? (
           <div className="checkout-empty">
             <div className="checkout-empty-card">
               <h2>Your cart is empty</h2>
@@ -1101,7 +1195,7 @@ export default function Checkout() {
                 </div>
               ) : null}
 
-              {cartItems.map((item, index) => {
+              {safeCartItems.map((item, index) => {
                 const unavailableReason = getUnavailableReason(item);
                 const itemAbroadFee = getItemAbroadDeliveryFee(item);
 
