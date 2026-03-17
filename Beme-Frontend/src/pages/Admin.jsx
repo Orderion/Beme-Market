@@ -22,6 +22,15 @@ import "./Admin.css";
 
 const COLLECTION_NAME = "Products";
 
+const HOME_FILTER_OPTIONS = [
+  { key: "phones", label: "Phones" },
+  { key: "laptops", label: "Laptops" },
+  { key: "shoes", label: "Shoes" },
+  { key: "clothing", label: "Clothing" },
+  { key: "kids", label: "Kids" },
+  { key: "others", label: "Others" },
+];
+
 const makeOptionValue = () => ({
   id: crypto.randomUUID(),
   label: "",
@@ -45,6 +54,7 @@ const initial = {
   dept: "men",
   kind: "fashion",
   shop: "fashion",
+  homeSlot: "others",
   inStock: true,
   featured: false,
   shipsFromAbroad: false,
@@ -189,6 +199,7 @@ function normalizeAdminProduct(snapshotDoc) {
     dept: String(d.dept || "").trim().toLowerCase(),
     kind: String(d.kind || "").trim().toLowerCase(),
     shop: normalizeShopKey(d.shop || "fashion"),
+    homeSlot: String(d.homeSlot || "others").trim().toLowerCase(),
     ownerId: String(d.ownerId || "").trim(),
     ownerName: String(d.ownerName || d.sellerName || "").trim(),
     ownerEmail: String(d.ownerEmail || "").trim(),
@@ -1620,6 +1631,7 @@ export default function Admin() {
         dept: form.dept,
         kind: form.kind,
         shop: shopValue,
+        homeSlot: String(form.homeSlot || "others").trim().toLowerCase(),
         ownerId: user?.uid || "",
         ownerEmail: String(user?.email || profile?.email || "").trim(),
         ownerName: sellerName,
@@ -1727,6 +1739,7 @@ export default function Admin() {
         dept: resolvedDept,
         kind: resolvedKind,
         shop: resolvedShop,
+        homeSlot: "others",
         ownerId: user?.uid || "",
         ownerEmail: String(user?.email || profile?.email || "").trim(),
         ownerName: sellerName,
@@ -1837,6 +1850,7 @@ export default function Admin() {
             isShopAdmin && normalizedAdminShop
               ? normalizedAdminShop
               : normalizeShopKey(row.shop),
+          homeSlot: String(row.homeSlot || "others").trim().toLowerCase(),
           ownerId: String(row.ownerId || user?.uid || "").trim(),
           ownerEmail: String(
             row.ownerEmail || user?.email || profile?.email || ""
@@ -1950,10 +1964,8 @@ export default function Admin() {
         isShopAdmin && normalizedAdminShop
           ? normalizedAdminShop
           : row.shop || "fashion",
+      homeSlot: row.homeSlot || "others",
       inStock: !!row.inStock,
-      featured: !!row.featured,
-      shipsFromAbroad: !!row.shipsFromAbroad,
-      stock:
         row.stock !== null && row.stock !== undefined && row.stock !== ""
           ? String(row.stock)
           : "",
@@ -2026,7 +2038,8 @@ export default function Admin() {
         dept: previewEditForm.dept,
         kind: previewEditForm.kind,
         shop: shopValue,
-        inStock:
+        homeSlot: String(previewEditForm.homeSlot || "others").trim().toLowerCase(),
+        inStock: 
           nextStock !== null
             ? nextStock > 0 && !!previewEditForm.inStock
             : !!previewEditForm.inStock,
@@ -2214,6 +2227,7 @@ export default function Admin() {
         isShopAdmin && normalizedAdminShop
           ? normalizedAdminShop
           : product.shop || "fashion",
+      homeSlot: product.homeSlot || "others",
       inStock: !!product.inStock,
       featured: !!product.featured,
       shipsFromAbroad: !!product.shipsFromAbroad,
@@ -2294,6 +2308,7 @@ export default function Admin() {
         dept: editForm.dept,
         kind: editForm.kind,
         shop: shopValue,
+        homeSlot: String(editForm.homeSlot || "others").trim().toLowerCase(),
         inStock:
           nextStock !== null
             ? nextStock > 0 && !!editForm.inStock
@@ -2554,6 +2569,20 @@ export default function Admin() {
                     {availableShops.map((shopKey) => (
                       <option key={shopKey} value={shopKey}>
                         {formatShopLabel(shopKey)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="admin-field">
+                  <span>Home / Shop filter placement</span>
+                  <select
+                    value={previewEditForm.homeSlot}
+                    onChange={setPreviewEditField("homeSlot")}
+                  >
+                    {HOME_FILTER_OPTIONS.map((item) => (
+                      <option key={item.key} value={item.key}>
+                        {item.label}
                       </option>
                     ))}
                   </select>
@@ -2858,6 +2887,20 @@ export default function Admin() {
                     {availableShops.map((shopKey) => (
                       <option key={shopKey} value={shopKey}>
                         {formatShopLabel(shopKey)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="admin-field">
+                  <span>Home / Shop filter placement</span>
+                  <select
+                    value={editForm.homeSlot}
+                    onChange={setEditField("homeSlot")}
+                  >
+                    {HOME_FILTER_OPTIONS.map((item) => (
+                      <option key={item.key} value={item.key}>
+                        {item.label}
                       </option>
                     ))}
                   </select>
@@ -3429,6 +3472,17 @@ export default function Admin() {
               {availableShops.map((shopKey) => (
                 <option key={shopKey} value={shopKey}>
                   {formatShopLabel(shopKey)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+         <label className="admin-field">
+            <span>Home / Shop filter placement</span>
+            <select value={form.homeSlot} onChange={setField("homeSlot")}>
+              {HOME_FILTER_OPTIONS.map((item) => (
+                <option key={item.key} value={item.key}>
+                  {item.label}
                 </option>
               ))}
             </select>
