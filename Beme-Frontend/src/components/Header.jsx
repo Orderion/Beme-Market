@@ -177,15 +177,6 @@ export default function Header({ onMenu, onCart }) {
         <IconMenu />
       </button>
 
-      <button
-        className="hdr-brand"
-        onClick={() => navigate("/shop")}
-        aria-label="Go to shop"
-        type="button"
-      >
-        Beme Market
-      </button>
-
       <div className="hdr-right">
         {!user ? (
           <button className="hdr-icon" onClick={goAuth} aria-label="Login" type="button">
