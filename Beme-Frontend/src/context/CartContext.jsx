@@ -54,14 +54,47 @@ function parseBooleanish(value, fallback = false) {
   return fallback;
 }
 
+function sanitizeText(value, max = 200) {
+  return String(value || "").trim().slice(0, max);
+}
+
 function normalizeSelectedOptions(selectedOptions) {
-  if (!selectedOptions || typeof selectedOptions !== "object") return {};
+  if (!selectedOptions || typeof selectedOptions !== "object" || Array.isArray(selectedOptions)) {
+    return {};
+  }
 
   return Object.keys(selectedOptions)
     .sort()
     .reduce((acc, key) => {
+      const safeKey = sanitizeText(key, 60);
+      if (!safeKey) return acc;
+
       const value = selectedOptions[key];
-      acc[key] = typeof value === "string" ? value.trim() : value;
+
+      if (Array.isArray(value)) {
+        const cleanValues = value
+          .map((entry) => sanitizeText(entry, 80))
+          .filter(Boolean)
+          .slice(0, 20);
+
+        if (cleanValues.length) acc[safeKey] = cleanValues;
+        return acc;
+      }
+
+      if (value && typeof value === "object") {
+        const nested =
+          sanitizeText(value?.value, 80) ||
+          sanitizeText(value?.label, 80) ||
+          sanitizeText(value?.name, 80) ||
+          sanitizeText(value?.title, 80);
+
+        if (nested) acc[safeKey] = nested;
+        return acc;
+      }
+
+      const cleanValue = sanitizeText(value, 80);
+      if (cleanValue) acc[safeKey] = cleanValue;
+
       return acc;
     }, {});
 }
@@ -72,17 +105,48 @@ function normalizeSelectedOptionDetails(selectedOptionDetails) {
   return selectedOptionDetails
     .map((item, index) => ({
       id:
-        String(item?.id || "").trim() ||
-        `selected-option-${index}-${String(item?.groupName || "group").trim()}`,
-      groupName: String(item?.groupName || "").trim(),
-      label: String(item?.label || "").trim(),
-      priceBump: Number(item?.priceBump || 0) || 0,
+        sanitizeText(item?.id, 120) ||
+        `selected-option-${index}-${sanitizeText(item?.groupName || "group", 40)}`,
+      groupName: sanitizeText(item?.groupName, 60),
+      label: sanitizeText(item?.label, 80),
+      priceBump: Math.max(0, Number(item?.priceBump || 0) || 0),
     }))
-    .filter((item) => item.groupName && item.label);
+    .filter((item) => item.groupName && item.label)
+    .slice(0, 40);
+}
+
+function normalizeCustomizations(customizations) {
+  if (!Array.isArray(customizations)) return [];
+
+  return customizations
+    .map((entry) => {
+      if (typeof entry === "string") {
+        const value = sanitizeText(entry, 120);
+        return value || null;
+      }
+
+      if (entry && typeof entry === "object") {
+        const label = sanitizeText(
+          entry?.label || entry?.name || entry?.key || entry?.title,
+          60
+        );
+        const value = sanitizeText(
+          entry?.value || entry?.selected || entry?.option || entry?.label,
+          120
+        );
+
+        if (!label && !value) return null;
+        return { label, value };
+      }
+
+      return null;
+    })
+    .filter(Boolean)
+    .slice(0, 40);
 }
 
 function makeLineId(product) {
-  const baseId = String(product?.id || "").trim();
+  const baseId = sanitizeText(product?.id, 120);
   const selectedOptions = normalizeSelectedOptions(product?.selectedOptions);
   return `${baseId}__${JSON.stringify(selectedOptions)}`;
 }
@@ -99,7 +163,12 @@ function getAbroadDeliveryFee(product) {
 
 function isOutOfStock(product) {
   if (!product) return true;
-  return parseBooleanish(product?.inStock, true) === false;
+  if (parseBooleanish(product?.inStock, true) === false) return true;
+
+  const stock = getNumericStock(product);
+  if (stock !== null && stock <= 0) return true;
+
+  return false;
 }
 
 function clampQtyToStock(qty, stock) {
@@ -111,7 +180,10 @@ function clampQtyToStock(qty, stock) {
 function buildSelectedOptionsLabelFromMap(selectedOptions) {
   return Object.entries(selectedOptions)
     .filter(([, value]) => value)
-    .map(([key, value]) => `${key}: ${value}`)
+    .map(([key, value]) => {
+      const displayValue = Array.isArray(value) ? value.join(", ") : value;
+      return `${key}: ${displayValue}`;
+    })
     .join(" • ");
 }
 
@@ -122,26 +194,26 @@ function normalizeCartItem(product) {
   );
 
   const images = Array.isArray(product?.images)
-    ? product.images.map((img) => String(img || "").trim()).filter(Boolean)
+    ? product.images.map((img) => sanitizeText(img, 500)).filter(Boolean)
     : [];
 
-  const image = String(product?.image || images[0] || "").trim();
+  const image = sanitizeText(product?.image || images[0] || "", 500);
   const stock = getNumericStock(product);
   const qty = clampQtyToStock(product?.qty, stock);
-  const price = Number(product?.price) || 0;
+  const price = Math.max(0, Number(product?.price) || 0);
 
   const basePrice =
     product?.basePrice !== undefined &&
     product?.basePrice !== null &&
     product?.basePrice !== ""
-      ? Number(product.basePrice) || 0
+      ? Math.max(0, Number(product.basePrice) || 0)
       : price;
 
   const optionPriceTotal =
     product?.optionPriceTotal !== undefined &&
     product?.optionPriceTotal !== null &&
     product?.optionPriceTotal !== ""
-      ? Number(product.optionPriceTotal) || 0
+      ? Math.max(0, Number(product.optionPriceTotal) || 0)
       : safeSelectedOptionDetails.reduce(
           (sum, item) => sum + (Number(item.priceBump || 0) || 0),
           0
@@ -151,13 +223,13 @@ function normalizeCartItem(product) {
     product?.oldPrice !== undefined &&
     product?.oldPrice !== null &&
     product?.oldPrice !== ""
-      ? Number(product.oldPrice) || 0
+      ? Math.max(0, Number(product.oldPrice) || 0)
       : null;
 
   const normalized = {
-    id: String(product?.id || "").trim(),
-    lineId: String(product?.lineId || makeLineId(product)).trim(),
-    name: String(product?.name || "Untitled").trim(),
+    id: sanitizeText(product?.id, 120),
+    lineId: sanitizeText(product?.lineId || makeLineId(product), 300),
+    name: sanitizeText(product?.name || "Untitled", 160),
     price,
     basePrice,
     optionPriceTotal,
@@ -168,18 +240,16 @@ function normalizeCartItem(product) {
     stock,
     inStock: parseBooleanish(product?.inStock, true),
     selectedOptions: safeSelectedOptions,
-    selectedOptionsLabel: String(product?.selectedOptionsLabel || "").trim(),
+    selectedOptionsLabel: sanitizeText(product?.selectedOptionsLabel, 240),
     selectedOptionDetails: safeSelectedOptionDetails,
-    customizations: Array.isArray(product?.customizations)
-      ? product.customizations
-      : [],
+    customizations: normalizeCustomizations(product?.customizations),
     shipsFromAbroad:
       parseBooleanish(product?.shipsFromAbroad, false) ||
       parseBooleanish(product?.shipFromAbroad, false),
-    shippingSource: String(product?.shippingSource || "").trim(),
+    shippingSource: sanitizeText(product?.shippingSource, 60),
     abroadDeliveryFee: getAbroadDeliveryFee(product),
-    shop: String(product?.shop || "").trim(),
-    productId: String(product?.productId || product?.id || "").trim(),
+    shop: sanitizeText(product?.shop || "main", 60).toLowerCase() || "main",
+    productId: sanitizeText(product?.productId || product?.id, 120),
   };
 
   if (!normalized.selectedOptionsLabel) {
@@ -326,7 +396,8 @@ export const CartProvider = ({ children }) => {
             Number(prevItem.price) !== Number(item.price) ||
             Number(prevItem.basePrice) !== Number(item.basePrice) ||
             Number(prevItem.optionPriceTotal) !== Number(item.optionPriceTotal) ||
-            Number(prevItem.abroadDeliveryFee) !== Number(item.abroadDeliveryFee)
+            Number(prevItem.abroadDeliveryFee) !== Number(item.abroadDeliveryFee) ||
+            prevItem.selectedOptionsLabel !== item.selectedOptionsLabel
           );
         });
 
@@ -444,6 +515,7 @@ export const CartProvider = ({ children }) => {
 
         addedItemForPopup = {
           ...existing,
+          ...nextItem,
           qty: requestedQty,
           stock,
           inStock: existing.inStock !== false,
