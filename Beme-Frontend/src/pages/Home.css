@@ -283,6 +283,91 @@
   transform: scale(1.08);
 }
 
+/* ===== CATEGORY QUICK GRID ===== */
+
+.category-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.category-quick-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 92px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+}
+
+.category-quick-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 36px rgba(17, 17, 17, 0.12);
+}
+
+.category-quick-card:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.category-quick-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--soft);
+  border: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+
+.category-quick-svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.category-quick-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.category-quick-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.category-quick-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.category-quick-arrow {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--soft);
+  border: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+
 /* ===== SHOP STOREFRONT ===== */
 
 .shop-storefront {
@@ -570,6 +655,10 @@
 /* ===== TABLET ===== */
 
 @media (max-width: 900px) {
+  .category-quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .shop-storefront-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
@@ -657,6 +746,17 @@
   .hero-copy {
     font-size: 13px;
     max-width: 280px;
+  }
+
+  .category-quick-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .category-quick-card {
+    min-height: 84px;
+    padding: 14px;
+    border-radius: 18px;
   }
 
   .shop-storefront {
