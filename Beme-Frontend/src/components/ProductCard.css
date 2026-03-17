@@ -244,6 +244,32 @@ body.dark .p-card:hover {
   padding: 16px 16px 18px;
 }
 
+.p-meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.p-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  background: var(--text);
+  color: var(--button-text);
+}
+
+.p-meta-chip--soft {
+  background: var(--soft);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
 .p-name {
   margin: 0 0 8px;
   font-weight: 800;
