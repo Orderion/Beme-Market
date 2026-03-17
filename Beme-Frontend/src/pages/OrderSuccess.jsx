@@ -43,11 +43,12 @@ export default function OrderSuccess() {
 
   const reference = String(params.get("reference") || "").trim();
   const urlStatus = normalizeStatus(params.get("status"));
+  const codOrderId = String(params.get("orderId") || "").trim();
 
   const { clearCart } = useCart();
 
   const [status, setStatus] = useState("verifying");
-  const [orderId, setOrderId] = useState(null);
+  const [orderId, setOrderId] = useState(codOrderId || null);
   const [referenceText, setReferenceText] = useState(reference || null);
 
   const hasClearedCartRef = useRef(false);
@@ -84,58 +85,14 @@ export default function OrderSuccess() {
       if (hasVerifiedRef.current) return;
       hasVerifiedRef.current = true;
 
-      if (!reference) {
-        if (!cancelled) {
-          clearCartEverywhere();
-          setReferenceText(null);
-          setStatus("cod");
-        }
-        return;
-      }
-
-      setReferenceText(reference);
-
-      if (urlStatus === "success") {
-        if (!cancelled) {
-          clearCartEverywhere();
-          setStatus("paid");
-          setOrderId(
-            reference.startsWith("BM_") ? reference.replace("BM_", "") : null
-          );
-        }
-        return;
-      }
-
-      if (urlStatus === "verifying") {
-        try {
-          const data = await paystackVerify(reference);
-
-          if (cancelled) return;
-
-          if (data?.ok && normalizeStatus(data?.status) === "success") {
-            clearCartEverywhere();
-            setStatus("paid");
-            setOrderId(
-              data?.orderId ||
-                (reference.startsWith("BM_")
-                  ? reference.replace("BM_", "")
-                  : null)
-            );
-            return;
-          }
-
-          setStatus("failed");
-          setOrderId(data?.orderId || null);
-        } catch (error) {
-          console.error("Verification error:", error);
-          if (!cancelled) setStatus("failed");
-        }
-        return;
-      }
-
-      if (
-        urlStatus &&
+      const isCodSuccess =
+        !reference && (urlStatus === "success" || urlStatus === "cod");
+      const shouldVerify =
+        !!reference &&
         [
+          "",
+          "verifying",
+          "success",
           "failed",
           "verify_error",
           "missing_reference",
@@ -149,30 +106,32 @@ export default function OrderSuccess() {
           "cancelled",
           "error",
           "pending",
-        ].includes(urlStatus)
-      ) {
-        try {
-          const data = await paystackVerify(reference);
+        ].includes(urlStatus);
 
-          if (cancelled) return;
+      if (isCodSuccess) {
+        if (!cancelled) {
+          clearCartEverywhere();
+          setReferenceText(null);
+          setOrderId(codOrderId || null);
+          setStatus("cod");
+        }
+        return;
+      }
 
-          if (data?.ok && normalizeStatus(data?.status) === "success") {
-            clearCartEverywhere();
-            setStatus("paid");
-            setOrderId(
-              data?.orderId ||
-                (reference.startsWith("BM_")
-                  ? reference.replace("BM_", "")
-                  : null)
-            );
-            return;
-          }
-
+      if (!reference) {
+        if (!cancelled) {
+          setReferenceText(null);
+          setOrderId(codOrderId || null);
           setStatus("failed");
-          setOrderId(data?.orderId || null);
-        } catch (error) {
-          console.error("Verification error:", error);
-          if (!cancelled) setStatus("failed");
+        }
+        return;
+      }
+
+      setReferenceText(reference);
+
+      if (!shouldVerify) {
+        if (!cancelled) {
+          setStatus("failed");
         }
         return;
       }
@@ -189,13 +148,16 @@ export default function OrderSuccess() {
             data?.orderId ||
               (reference.startsWith("BM_") ? reference.replace("BM_", "") : null)
           );
-        } else {
-          setStatus("failed");
-          setOrderId(data?.orderId || null);
+          return;
         }
+
+        setStatus("failed");
+        setOrderId(data?.orderId || null);
       } catch (error) {
         console.error("Verification error:", error);
-        if (!cancelled) setStatus("failed");
+        if (!cancelled) {
+          setStatus("failed");
+        }
       }
     }
 
@@ -204,7 +166,7 @@ export default function OrderSuccess() {
     return () => {
       cancelled = true;
     };
-  }, [reference, urlStatus, clearCart]);
+  }, [reference, urlStatus, codOrderId, clearCart]);
 
   return (
     <div className="page">
@@ -288,6 +250,12 @@ export default function OrderSuccess() {
             </p>
 
             <div className="order-success-meta">
+              {orderId ? (
+                <div>
+                  <span>Order number</span>
+                  <b>{orderId}</b>
+                </div>
+              ) : null}
               <div>
                 <span>Payment method</span>
                 <b>Pay on Delivery</b>
