@@ -9,13 +9,24 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const FRONTEND_URL = process.env.FRONTEND_URL;
 const BACKEND_URL = process.env.BACKEND_URL;
 
-if (!PAYSTACK_SECRET_KEY) throw new Error("Missing PAYSTACK_SECRET_KEY in backend env");
-if (!FRONTEND_URL) throw new Error("Missing FRONTEND_URL in backend env");
-if (!BACKEND_URL) throw new Error("Missing BACKEND_URL in backend env");
+if (!PAYSTACK_SECRET_KEY) {
+  throw new Error("Missing PAYSTACK_SECRET_KEY in backend env");
+}
+if (!FRONTEND_URL) {
+  throw new Error("Missing FRONTEND_URL in backend env");
+}
+if (!BACKEND_URL) {
+  throw new Error("Missing BACKEND_URL in backend env");
+}
 
 const ALLOWED_SHOPS = new Set(["fashion", "main", "kente", "perfume", "tech"]);
-const SPECIAL_REGIONS = new Set(["Ashanti", "Greater Accra", "Eastern", "Western"]);
-// shop-owner flow paused for now
+const SPECIAL_REGIONS = new Set([
+  "Ashanti",
+  "Greater Accra",
+  "Eastern",
+  "Western",
+]);
+
 const SHOP_OWNER_FLOW_ENABLED = false;
 const ORDER_SOURCE = "web";
 const MAX_ITEM_QTY = 20;
@@ -88,9 +99,12 @@ function sanitizeOptionalText(value, max = 200) {
 }
 
 function sanitizeSelectedOptions(source) {
-  if (!source || typeof source !== "object" || Array.isArray(source)) return {};
+  if (!source || typeof source !== "object" || Array.isArray(source)) {
+    return {};
+  }
 
   const out = {};
+
   for (const [rawKey, rawValue] of Object.entries(source)) {
     const key = sanitizeText(rawKey, 60);
     if (!key) continue;
@@ -177,8 +191,29 @@ function sanitizeCustomizations(source) {
     .slice(0, 40);
 }
 
-function buildOrderFingerprint({ email, customer, items }) {
+async function requireAuthUser(req) {
+  const authHeader = String(req.headers.authorization || "");
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+
+  if (!match) {
+    const error = new Error("Missing authorization token.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const decoded = await firebaseAdmin.auth().verifyIdToken(match[1]);
+  if (!decoded?.uid) {
+    const error = new Error("Invalid authorization token.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  return decoded;
+}
+
+function buildOrderFingerprint({ email, customer, items, userId }) {
   const basis = {
+    userId: sanitizeText(userId, 128),
     email: normalizeEmail(email),
     firstName: sanitizeText(customer?.firstName, 80),
     lastName: sanitizeText(customer?.lastName, 80),
@@ -196,7 +231,10 @@ function buildOrderFingerprint({ email, customer, items }) {
     })),
   };
 
-  return crypto.createHash("sha256").update(JSON.stringify(basis)).digest("hex");
+  return crypto
+    .createHash("sha256")
+    .update(JSON.stringify(basis))
+    .digest("hex");
 }
 
 function assertCheckoutCustomer(customer, email) {
@@ -213,7 +251,9 @@ function assertCheckoutCustomer(customer, email) {
   }
   if (!firstName) throw new Error("First name is required.");
   if (!lastName) throw new Error("Last name is required.");
-  if (!phone || phone.length < 7) throw new Error("A valid phone number is required.");
+  if (!phone || phone.length < 7) {
+    throw new Error("A valid phone number is required.");
+  }
   if (!address) throw new Error("Delivery address is required.");
   if (!region) throw new Error("Region is required.");
   if (!city) throw new Error("City is required.");
@@ -245,14 +285,21 @@ function normalizeIncomingItems(items) {
         shop: normalizeShopKey(item?.shop || "main"),
         homeSlot: sanitizeOptionalText(item?.homeSlot, 60),
         selectedOptions: sanitizeSelectedOptions(item?.selectedOptions),
-        selectedOptionsLabel: sanitizeOptionalText(item?.selectedOptionsLabel, 240),
-        selectedOptionDetails: sanitizeSelectedOptionDetails(item?.selectedOptionDetails),
+        selectedOptionsLabel: sanitizeOptionalText(
+          item?.selectedOptionsLabel,
+          240
+        ),
+        selectedOptionDetails: sanitizeSelectedOptionDetails(
+          item?.selectedOptionDetails
+        ),
         customizations: sanitizeCustomizations(item?.customizations),
         shippingSource: sanitizeOptionalText(item?.shippingSource, 60),
         shipsFromAbroad: item?.shipsFromAbroad === true,
         abroadDeliveryFee: Math.max(0, toNumber(item?.abroadDeliveryFee, 0)),
         oldPrice:
-          item?.oldPrice !== undefined && item?.oldPrice !== null && item?.oldPrice !== ""
+          item?.oldPrice !== undefined &&
+          item?.oldPrice !== null &&
+          item?.oldPrice !== ""
             ? Math.max(0, toNumber(item?.oldPrice, 0))
             : null,
       };
@@ -267,7 +314,9 @@ async function buildCheckoutFromItems(items) {
 
   const ids = clean.map((x) => x.id).filter(Boolean);
   const chunks = [];
-  for (let i = 0; i < ids.length; i += 10) chunks.push(ids.slice(i, i + 10));
+  for (let i = 0; i < ids.length; i += 10) {
+    chunks.push(ids.slice(i, i + 10));
+  }
 
   const productMap = new Map();
 
@@ -292,7 +341,9 @@ async function buildCheckoutFromItems(items) {
     }
 
     if (isOutOfStock(product)) {
-      throw new Error(`${product?.name || item?.name || "A product"} is out of stock.`);
+      throw new Error(
+        `${product?.name || item?.name || "A product"} is out of stock.`
+      );
     }
 
     const productStock = getNumericStock(product);
@@ -344,7 +395,9 @@ async function buildCheckoutFromItems(items) {
       selectedOptionDetails: Array.isArray(item.selectedOptionDetails)
         ? item.selectedOptionDetails
         : [],
-      customizations: Array.isArray(item.customizations) ? item.customizations : [],
+      customizations: Array.isArray(item.customizations)
+        ? item.customizations
+        : [],
       shippingSource: item.shippingSource || "",
       shipsFromAbroad: item.shipsFromAbroad === true,
       abroadDeliveryFee: Math.max(0, toNumber(item.abroadDeliveryFee, 0)),
@@ -357,7 +410,12 @@ async function buildCheckoutFromItems(items) {
 }
 
 async function findOrderByReference(reference) {
-  const q = await adminDb.collection("orders").where("reference", "==", reference).limit(1).get();
+  const q = await adminDb
+    .collection("orders")
+    .where("reference", "==", reference)
+    .limit(1)
+    .get();
+
   if (q.empty) return null;
   return q.docs[0];
 }
@@ -396,26 +454,34 @@ async function markOrderFailed(orderRef, existing, status = "failed", extra = {}
 
 router.post("/checkout/init", async (req, res) => {
   try {
+    const authUser = await requireAuthUser(req);
+
     const email = normalizeEmail(req.body?.email);
     const items = req.body?.items || [];
     const customer = req.body?.customer || {};
     const pricing = req.body?.pricing || {};
+    const userId = authUser.uid;
 
     assertCheckoutCustomer(customer, email);
+
+    if (authUser.email && normalizeEmail(authUser.email) !== email) {
+      return res.status(403).json({
+        error: "Authenticated email does not match checkout email.",
+      });
+    }
 
     if (!Array.isArray(items) || !items.length) {
       return res.status(400).json({ error: "Cart is empty" });
     }
 
-    const userId = sanitizeText(customer.userId, 128);
-    if (!userId) {
-      return res.status(400).json({ error: "Missing signed-in user id." });
-    }
-
     const region = sanitizeText(customer.region, 80);
     const fallbackDeliveryFee = computeDeliveryFee(region);
-    const requestedDeliveryFee = toNumber(pricing?.deliveryFee, fallbackDeliveryFee);
-    const deliveryFee = requestedDeliveryFee >= 0 ? requestedDeliveryFee : fallbackDeliveryFee;
+    const requestedDeliveryFee = toNumber(
+      pricing?.deliveryFee,
+      fallbackDeliveryFee
+    );
+    const deliveryFee =
+      requestedDeliveryFee >= 0 ? requestedDeliveryFee : fallbackDeliveryFee;
 
     const { subtotal, lineItems } = await buildCheckoutFromItems(items);
     if (!lineItems.length) {
@@ -423,7 +489,11 @@ router.post("/checkout/init", async (req, res) => {
     }
 
     const requestedSubtotal = toNumber(pricing?.subtotal, subtotal);
-    const safeSubtotal = Math.abs(requestedSubtotal - subtotal) < 0.01 ? requestedSubtotal : subtotal;
+    const safeSubtotal =
+      Math.abs(requestedSubtotal - subtotal) < 0.01
+        ? requestedSubtotal
+        : subtotal;
+
     const total = safeSubtotal + deliveryFee;
 
     if (total <= 0) {
@@ -431,7 +501,12 @@ router.post("/checkout/init", async (req, res) => {
     }
 
     const amountPesewas = Math.round(total * 100);
-    const fingerprint = buildOrderFingerprint({ email, customer, items });
+    const fingerprint = buildOrderFingerprint({
+      email,
+      customer,
+      items,
+      userId,
+    });
 
     const existingPendingOrder = await findExistingRecentPendingOrder({
       userId,
@@ -443,6 +518,7 @@ router.post("/checkout/init", async (req, res) => {
       const existingReference = safeTrim(existingData.reference);
 
       if (
+        existingData?.userId === userId &&
         existingReference &&
         existingData?.paymentMethod === "paystack" &&
         ["pending", "paid"].includes(safeTrim(existingData?.paymentStatus))
@@ -505,40 +581,44 @@ router.post("/checkout/init", async (req, res) => {
 
     const reference = `BM_${orderRef.id}`;
 
-    const initRes = await safeFetch("https://api.paystack.co/transaction/initialize", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email,
-        amount: amountPesewas,
-        currency: "GHS",
-        reference,
-        callback_url: `${BACKEND_URL}/api/paystack/checkout/callback`,
-        metadata: {
-          type: "order",
-          orderId: orderRef.id,
-          fingerprint,
-          deliveryFee,
-          subtotal: safeSubtotal,
-          total,
-          itemCount: lineItems.reduce((sum, item) => sum + item.qty, 0),
-          items: lineItems.map((item) => ({
-            id: item.id,
-            name: item.name,
-            qty: item.qty,
-            price: item.price,
-            basePrice: item.basePrice,
-            optionPriceTotal: item.optionPriceTotal,
-            selectedOptions: item.selectedOptions || {},
-            selectedOptionsLabel: item.selectedOptionsLabel || "",
-            selectedOptionDetails: item.selectedOptionDetails || [],
-          })),
+    const initRes = await safeFetch(
+      "https://api.paystack.co/transaction/initialize",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+          "Content-Type": "application/json",
         },
-      }),
-    });
+        body: JSON.stringify({
+          email,
+          amount: amountPesewas,
+          currency: "GHS",
+          reference,
+          callback_url: `${BACKEND_URL}/api/paystack/checkout/callback`,
+          metadata: {
+            type: "order",
+            orderId: orderRef.id,
+            userId,
+            fingerprint,
+            deliveryFee,
+            subtotal: safeSubtotal,
+            total,
+            itemCount: lineItems.reduce((sum, item) => sum + item.qty, 0),
+            items: lineItems.map((item) => ({
+              id: item.id,
+              name: item.name,
+              qty: item.qty,
+              price: item.price,
+              basePrice: item.basePrice,
+              optionPriceTotal: item.optionPriceTotal,
+              selectedOptions: item.selectedOptions || {},
+              selectedOptionsLabel: item.selectedOptionsLabel || "",
+              selectedOptionDetails: item.selectedOptionDetails || [],
+            })),
+          },
+        }),
+      }
+    );
 
     const initData = await initRes.json();
 
@@ -571,33 +651,46 @@ router.post("/checkout/init", async (req, res) => {
     });
   } catch (err) {
     console.error("Paystack init error:", err);
-    return res.status(500).json({ error: err?.message || "Server error" });
+    return res
+      .status(err?.statusCode || 500)
+      .json({ error: err?.message || "Server error" });
   }
 });
 
-router.post("/shop-owner/init", async (req, res) => {
+router.post("/shop-owner/init", async (_req, res) => {
   if (!SHOP_OWNER_FLOW_ENABLED) {
-    return res.status(403).json({ error: "Shop owner applications are temporarily disabled." });
+    return res.status(403).json({
+      error: "Shop owner applications are temporarily disabled.",
+    });
   }
 
-  return res.status(403).json({ error: "Shop owner applications are temporarily disabled." });
+  return res.status(403).json({
+    error: "Shop owner applications are temporarily disabled.",
+  });
 });
 
 async function verifyOrderAndUpdate(reference) {
   const orderDoc = await findOrderByReference(reference);
-  if (!orderDoc) return { status: "not_found", orderId: null };
+  if (!orderDoc) return { status: "not_found", orderId: null, userId: null };
 
   const orderRef = orderDoc.ref;
   const existing = orderDoc.data() || {};
 
   if (existing?.paid === true && existing?.paymentStatus === "paid") {
-    return { status: "success", orderId: orderDoc.id };
+    return {
+      status: "success",
+      orderId: orderDoc.id,
+      userId: existing?.userId || null,
+    };
   }
 
   if (existing?.verifyLock === true) {
     return {
-      status: existing?.paid ? "success" : safeTrim(existing?.paymentStatus || "pending"),
+      status: existing?.paid
+        ? "success"
+        : safeTrim(existing?.paymentStatus || "pending"),
       orderId: orderDoc.id,
+      userId: existing?.userId || null,
     };
   }
 
@@ -610,7 +703,9 @@ async function verifyOrderAndUpdate(reference) {
     const vr = await safeFetch(
       `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
       {
-        headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
+        headers: {
+          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+        },
       }
     );
 
@@ -629,6 +724,24 @@ async function verifyOrderAndUpdate(reference) {
       throw new Error("Stored order total is invalid.");
     }
 
+    if (metadata?.userId && metadata.userId !== existing?.userId) {
+      await markOrderFailed(orderRef, existing, "user_mismatch", {
+        metadataUserId: metadata.userId,
+        orderUserId: existing?.userId || null,
+      });
+
+      await orderRef.update({
+        verifyLock: false,
+        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      return {
+        status: "user_mismatch",
+        orderId: orderDoc.id,
+        userId: existing?.userId || null,
+      };
+    }
+
     if (amountPesewas !== expectedTotal) {
       await markOrderFailed(orderRef, existing, "amount_mismatch", {
         amountPesewas,
@@ -640,13 +753,14 @@ async function verifyOrderAndUpdate(reference) {
         updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
       });
 
-      return { status: "amount_mismatch", orderId: orderDoc.id };
+      return {
+        status: "amount_mismatch",
+        orderId: orderDoc.id,
+        userId: existing?.userId || null,
+      };
     }
 
-    if (
-      metadata?.type &&
-      metadata.type !== "order"
-    ) {
+    if (metadata?.type && metadata.type !== "order") {
       await markOrderFailed(orderRef, existing, "invalid_metadata_type", {
         amountPesewas,
         expectedAmountPesewas: expectedTotal,
@@ -657,7 +771,11 @@ async function verifyOrderAndUpdate(reference) {
         updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
       });
 
-      return { status: "invalid_metadata_type", orderId: orderDoc.id };
+      return {
+        status: "invalid_metadata_type",
+        orderId: orderDoc.id,
+        userId: existing?.userId || null,
+      };
     }
 
     if (status === "success") {
@@ -700,7 +818,11 @@ async function verifyOrderAndUpdate(reference) {
         }
       }
 
-      return { status: "success", orderId: orderDoc.id };
+      return {
+        status: "success",
+        orderId: orderDoc.id,
+        userId: refreshed?.userId || existing?.userId || null,
+      };
     }
 
     await markOrderFailed(orderRef, existing, status || "failed");
@@ -709,7 +831,11 @@ async function verifyOrderAndUpdate(reference) {
       updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
     });
 
-    return { status: status || "failed", orderId: orderDoc.id };
+    return {
+      status: status || "failed",
+      orderId: orderDoc.id,
+      userId: existing?.userId || null,
+    };
   } catch (error) {
     await orderRef.update({
       verifyLock: false,
@@ -724,10 +850,6 @@ async function verifyOrderAndUpdate(reference) {
   }
 }
 
-async function verifyShopOwnerAndActivate() {
-  throw new Error("Shop owner applications are temporarily disabled.");
-}
-
 router.get("/checkout/callback", async (req, res) => {
   const reference = safeTrim(req.query?.reference);
 
@@ -739,7 +861,9 @@ router.get("/checkout/callback", async (req, res) => {
     const out = await verifyOrderAndUpdate(reference);
 
     if (out?.status === "success") {
-      return res.redirect(`${FRONTEND_URL}/order-success?reference=${reference}&status=success`);
+      return res.redirect(
+        `${FRONTEND_URL}/order-success?reference=${reference}&status=success`
+      );
     }
 
     return res.redirect(
@@ -749,16 +873,30 @@ router.get("/checkout/callback", async (req, res) => {
     );
   } catch (err) {
     console.error("Paystack callback verify error:", err);
-    return res.redirect(`${FRONTEND_URL}/order-success?reference=${reference}&status=verify_error`);
+    return res.redirect(
+      `${FRONTEND_URL}/order-success?reference=${reference}&status=verify_error`
+    );
   }
 });
 
 router.get("/checkout/verify", async (req, res) => {
   try {
+    const authUser = await requireAuthUser(req);
     const reference = safeTrim(req.query?.reference);
-    if (!reference) return res.status(400).json({ error: "Missing reference" });
+
+    if (!reference) {
+      return res.status(400).json({ error: "Missing reference" });
+    }
 
     const out = await verifyOrderAndUpdate(reference);
+
+    if (!out?.orderId) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    if (out?.userId && out.userId !== authUser.uid) {
+      return res.status(403).json({ error: "You are not allowed to verify this order." });
+    }
 
     return res.json({
       ok: true,
@@ -768,16 +906,20 @@ router.get("/checkout/verify", async (req, res) => {
     });
   } catch (err) {
     console.error("Paystack verify error:", err);
-    return res.status(500).json({ error: err?.message || "Server error" });
+    return res
+      .status(err?.statusCode || 500)
+      .json({ error: err?.message || "Server error" });
   }
 });
 
-router.get("/shop-owner/callback", async (req, res) => {
+router.get("/shop-owner/callback", async (_req, res) => {
   return res.redirect(`${FRONTEND_URL}/shop-payment-status?status=disabled`);
 });
 
-router.get("/shop-owner/verify", async (req, res) => {
-  return res.status(403).json({ error: "Shop owner applications are temporarily disabled." });
+router.get("/shop-owner/verify", async (_req, res) => {
+  return res.status(403).json({
+    error: "Shop owner applications are temporarily disabled.",
+  });
 });
 
 export default router;
