@@ -16,8 +16,9 @@ function normalizeRole(value) {
   const role = String(value || "").trim().toLowerCase();
 
   if (role === "super_admin") return "super_admin";
-  if (role === "shop_admin") return "shop_admin";
   if (role === "admin") return "super_admin";
+
+  if (role === "shop_admin") return "shop_admin";
   if (role === "customer") return "customer";
 
   return "customer";
@@ -155,7 +156,7 @@ export function AuthProvider({ children }) {
         role: "customer",
         shop: null,
         capabilities: [],
-        email,
+        email: String(email || "").trim().toLowerCase(),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       },
@@ -171,7 +172,7 @@ export function AuthProvider({ children }) {
         role: "customer",
         shop: null,
         capabilities: [],
-        email,
+        email: String(email || "").trim().toLowerCase(),
       },
     };
 
@@ -215,8 +216,9 @@ export function AuthProvider({ children }) {
 
   const value = useMemo(() => {
     const isSuperAdmin = role === "super_admin";
-    const isShopAdmin = role === "shop_admin";
-    const isAdmin = isSuperAdmin || isShopAdmin;
+
+    const isShopAdmin = false;
+    const isAdmin = isSuperAdmin;
 
     const hasCapability = (capability) => {
       const key = String(capability || "").trim().toLowerCase();
