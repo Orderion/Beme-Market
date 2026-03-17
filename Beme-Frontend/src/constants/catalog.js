@@ -9,6 +9,7 @@ export const DEPARTMENTS = [
 export const KINDS = [
   { key: "fashion", label: "Fashion" },
   { key: "tech", label: "Tech" },
+  { key: "perfumes", label: "Perfumes" },
   { key: "extras", label: "Other" },
 ];
 
@@ -20,6 +21,15 @@ export const SHOPS = [
   { key: "tech", label: "Tech Shop" },
 ];
 
+export const HOME_FILTER_OPTIONS = [
+  { key: "phones", label: "Phones" },
+  { key: "laptops", label: "Laptops" },
+  { key: "shoes", label: "Shoes" },
+  { key: "clothing", label: "Clothing" },
+  { key: "kids", label: "Kids" },
+  { key: "others", label: "Others" },
+];
+
 export const DEFAULT_KIND_BY_DEPT = {
   men: "fashion",
   women: "fashion",
@@ -29,16 +39,21 @@ export const DEFAULT_KIND_BY_DEPT = {
 };
 
 export function normalizeDept(raw) {
-  const v = String(raw || "").toLowerCase();
+  const v = String(raw || "").toLowerCase().trim();
   return DEPARTMENTS.some((d) => d.key === v) ? v : null;
 }
 
 export function normalizeKind(raw) {
-  const v = String(raw || "").toLowerCase();
+  const v = String(raw || "").toLowerCase().trim();
   return KINDS.some((k) => k.key === v) ? v : null;
 }
 
 export function normalizeShop(raw) {
-  const v = String(raw || "").toLowerCase();
+  const v = String(raw || "").toLowerCase().trim();
   return SHOPS.some((s) => s.key === v) ? v : null;
+}
+
+export function normalizeHomeFilter(raw) {
+  const v = String(raw || "").toLowerCase().trim();
+  return HOME_FILTER_OPTIONS.some((item) => item.key === v) ? v : "others";
 }
