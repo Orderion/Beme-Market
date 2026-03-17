@@ -41,7 +41,7 @@ function normalizeStatus(value) {
 export default function OrderSuccess() {
   const [params] = useSearchParams();
 
-  const reference = params.get("reference");
+  const reference = String(params.get("reference") || "").trim();
   const urlStatus = normalizeStatus(params.get("status"));
 
   const { clearCart } = useCart();
@@ -49,6 +49,7 @@ export default function OrderSuccess() {
   const [status, setStatus] = useState("verifying");
   const [orderId, setOrderId] = useState(null);
   const [referenceText, setReferenceText] = useState(reference || null);
+
   const hasClearedCartRef = useRef(false);
   const hasVerifiedRef = useRef(false);
 
@@ -105,6 +106,33 @@ export default function OrderSuccess() {
         return;
       }
 
+      if (urlStatus === "verifying") {
+        try {
+          const data = await paystackVerify(reference);
+
+          if (cancelled) return;
+
+          if (data?.ok && normalizeStatus(data?.status) === "success") {
+            clearCartEverywhere();
+            setStatus("paid");
+            setOrderId(
+              data?.orderId ||
+                (reference.startsWith("BM_")
+                  ? reference.replace("BM_", "")
+                  : null)
+            );
+            return;
+          }
+
+          setStatus("failed");
+          setOrderId(data?.orderId || null);
+        } catch (error) {
+          console.error("Verification error:", error);
+          if (!cancelled) setStatus("failed");
+        }
+        return;
+      }
+
       if (
         urlStatus &&
         [
@@ -113,11 +141,14 @@ export default function OrderSuccess() {
           "missing_reference",
           "amount_mismatch",
           "invalid_metadata_type",
+          "invalid_user",
+          "user_mismatch",
           "not_found",
           "abandoned",
           "reversed",
           "cancelled",
           "error",
+          "pending",
         ].includes(urlStatus)
       ) {
         try {
@@ -130,15 +161,17 @@ export default function OrderSuccess() {
             setStatus("paid");
             setOrderId(
               data?.orderId ||
-                (reference.startsWith("BM_") ? reference.replace("BM_", "") : null)
+                (reference.startsWith("BM_")
+                  ? reference.replace("BM_", "")
+                  : null)
             );
             return;
           }
 
           setStatus("failed");
           setOrderId(data?.orderId || null);
-        } catch (e) {
-          console.error("Verification error:", e);
+        } catch (error) {
+          console.error("Verification error:", error);
           if (!cancelled) setStatus("failed");
         }
         return;
@@ -160,8 +193,8 @@ export default function OrderSuccess() {
           setStatus("failed");
           setOrderId(data?.orderId || null);
         }
-      } catch (e) {
-        console.error("Verification error:", e);
+      } catch (error) {
+        console.error("Verification error:", error);
         if (!cancelled) setStatus("failed");
       }
     }
@@ -281,7 +314,9 @@ export default function OrderSuccess() {
 
         {status === "failed" && (
           <>
-            <div className="order-success-icon order-success-icon--failed">!</div>
+            <div className="order-success-icon order-success-icon--failed">
+              !
+            </div>
             <h2 className="order-success-title">Payment not confirmed</h2>
             <p className="order-success-sub">
               We could not confirm this payment yet. If you were charged, contact
