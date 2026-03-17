@@ -148,6 +148,6 @@ export async function paystackVerify(reference) {
       safeReference
     )}`,
     {},
-    false
+    true
   );
 }
