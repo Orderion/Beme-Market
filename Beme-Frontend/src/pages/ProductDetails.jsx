@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useCart } from "../context/CartContext";
+import { SHOPS, HOME_FILTER_OPTIONS } from "../constants/catalog";
 import "./ProductDetails.css";
 
 function parseBooleanish(value, fallback = false) {
@@ -110,6 +111,22 @@ function normalizeImages(product) {
 
 function normalizeShop(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function formatShopLabel(value) {
+  const key = normalizeShop(value);
+  const match = SHOPS.find((shop) => shop.key === key);
+  return match?.label || key || "";
+}
+
+function normalizeHomeSlot(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function formatHomeSlotLabel(value) {
+  const key = normalizeHomeSlot(value);
+  const match = HOME_FILTER_OPTIONS.find((item) => item.key === key);
+  return match?.label || key || "";
 }
 
 function normalizeShippingSource(product) {
@@ -375,6 +392,15 @@ export default function ProductDetails() {
   const oldPrice = useMemo(() => Number(product?.oldPrice || 0), [product]);
 
   const shopKey = useMemo(() => normalizeShop(product?.shop), [product?.shop]);
+  const shopLabel = useMemo(() => formatShopLabel(product?.shop), [product?.shop]);
+  const homeSlot = useMemo(
+    () => normalizeHomeSlot(product?.homeSlot || "others"),
+    [product?.homeSlot]
+  );
+  const homeSlotLabel = useMemo(
+    () => formatHomeSlotLabel(product?.homeSlot || "others"),
+    [product?.homeSlot]
+  );
   const brand = useMemo(() => String(product?.brand || "").trim(), [product]);
 
   const shippingSource = useMemo(
@@ -506,6 +532,7 @@ export default function ProductDetails() {
       stock,
       inStock: parseBooleanish(product?.inStock, true),
       shop: shopKey || "",
+      homeSlot,
       selectedOptions,
       selectedOptionsLabel,
       selectedOptionDetails,
@@ -543,8 +570,7 @@ export default function ProductDetails() {
       setCartFeedback("");
     }, 2200);
   };
-
-  const handleAdd = () => {
+    const handleAdd = () => {
     if (!product) return;
 
     if (isOutOfStock) {
@@ -848,6 +874,18 @@ export default function ProductDetails() {
               </div>
             ) : null}
 
+            {shopLabel ? (
+              <div className="pd-badge pd-badge--soft">
+                <span>{shopLabel}</span>
+              </div>
+            ) : null}
+
+            {homeSlotLabel ? (
+              <div className="pd-badge pd-badge--soft">
+                <span>{homeSlotLabel}</span>
+              </div>
+            ) : null}
+
             {images.length > 1 ? (
               <div className="pd-badge">
                 <MonoGalleryIcon />
@@ -991,8 +1029,7 @@ export default function ProductDetails() {
               ) : null}
             </div>
           ) : null}
-
-          <div className="pd-qty-row">
+                    <div className="pd-qty-row">
             <div className="pd-qty-label">
               Quantity
               {stock !== null && !isOutOfStock ? (
@@ -1049,7 +1086,9 @@ export default function ProductDetails() {
           ) : null}
 
           {cartFeedback ? (
-            <div className={addedFeedback ? "pd-added-feedback" : "pd-option-error"}>
+            <div
+              className={addedFeedback ? "pd-added-feedback" : "pd-option-error"}
+            >
               {cartFeedback}
             </div>
           ) : null}
