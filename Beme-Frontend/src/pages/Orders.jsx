@@ -1,14 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { db } from "../firebase";
+import { auth } from "../firebase";
 import "./Orders.css";
 
-const STATUS_STEPS = ["pending", "paid", "processing", "shipped", "delivered"];
+const API_BASE = String(import.meta.env.VITE_BACKEND_URL || "")
+  .trim()
+  .replace(/\/+$/, "");
+
+const STATUS_STEPS = [
+  "pending",
+  "paid",
+  "processing",
+  "shipped",
+  "delivered",
+];
+
+function normalizeStatus(value) {
+  return String(value || "").trim().toLowerCase();
+}
 
 function getStepIndex(status) {
-  const normalized = String(status || "pending").trim().toLowerCase();
+  const normalized = normalizeStatus(status || "pending");
   const index = STATUS_STEPS.indexOf(normalized);
   return index === -1 ? 0 : index;
 }
@@ -19,9 +32,13 @@ function formatMoney(value) {
 
 function formatDate(value) {
   if (!value) return "—";
+
   try {
     const date =
       typeof value?.toDate === "function" ? value.toDate() : new Date(value);
+
+    if (Number.isNaN(date.getTime())) return "—";
+
     return new Intl.DateTimeFormat("en-GH", {
       year: "numeric",
       month: "short",
@@ -34,10 +51,13 @@ function formatDate(value) {
 
 function getSortableTime(value) {
   if (!value) return 0;
+
   try {
     if (typeof value?.toMillis === "function") return value.toMillis();
     if (typeof value?.seconds === "number") return value.seconds * 1000;
-    return new Date(value).getTime() || 0;
+
+    const time = new Date(value).getTime();
+    return Number.isFinite(time) ? time : 0;
   } catch {
     return 0;
   }
@@ -54,6 +74,7 @@ function titleize(value) {
 function formatOptionPair(key, value) {
   const cleanKey = String(key || "").trim();
   const cleanValue = String(value || "").trim();
+
   if (!cleanValue) return "";
   return cleanKey ? `${titleize(cleanKey)}: ${cleanValue}` : cleanValue;
 }
@@ -103,7 +124,11 @@ function extractItemOptions(item) {
 
     Object.entries(source).forEach(([key, value]) => {
       if (Array.isArray(value)) {
-        const joined = value.map((v) => String(v || "").trim()).filter(Boolean).join(", ");
+        const joined = value
+          .map((v) => String(v || "").trim())
+          .filter(Boolean)
+          .join(", ");
+
         pushEntry(formatOptionPair(key, joined));
         return;
       }
@@ -125,6 +150,7 @@ function extractItemOptions(item) {
         pushEntry(entry);
         return;
       }
+
       if (entry && typeof entry === "object") {
         pushEntry(
           formatOptionPair(
@@ -139,47 +165,87 @@ function extractItemOptions(item) {
   return collected;
 }
 
+async function getOwnOrders() {
+  if (!API_BASE) {
+    throw new Error("Missing backend URL. Set VITE_BACKEND_URL.");
+  }
+
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error("You must be signed in to view your orders.");
+  }
+
+  const token = await currentUser.getIdToken();
+
+  const res = await fetch(`${API_BASE}/api/orders`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(data?.error || data?.message || "Failed to load orders.");
+  }
+
+  return Array.isArray(data?.orders) ? data.orders : [];
+}
+
 export default function Orders() {
   const { user, loading } = useAuth();
+
   const [orders, setOrders] = useState([]);
   const [pageError, setPageError] = useState("");
   const [loadingOrders, setLoadingOrders] = useState(true);
 
   useEffect(() => {
-    if (loading) return;
+    let active = true;
 
-    if (!user) {
-      setOrders([]);
-      setLoadingOrders(false);
-      return;
-    }
+    async function loadOrders() {
+      if (loading) return;
 
-    const q = query(collection(db, "orders"), where("userId", "==", user.uid));
+      if (!user) {
+        if (!active) return;
+        setOrders([]);
+        setPageError("");
+        setLoadingOrders(false);
+        return;
+      }
 
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const rows = snap.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }));
+      setLoadingOrders(true);
+      setPageError("");
 
-        rows.sort(
+      try {
+        const rows = await getOwnOrders();
+
+        if (!active) return;
+
+        const sorted = [...rows].sort(
           (a, b) => getSortableTime(b.createdAt) - getSortableTime(a.createdAt)
         );
 
-        setOrders(rows);
+        setOrders(sorted);
         setPageError("");
-        setLoadingOrders(false);
-      },
-      (error) => {
-        console.error("Orders snapshot error:", error);
+      } catch (error) {
+        console.error("Orders load error:", error);
+        if (!active) return;
+        setOrders([]);
         setPageError(error?.message || "Failed to load orders.");
-        setLoadingOrders(false);
+      } finally {
+        if (active) {
+          setLoadingOrders(false);
+        }
       }
-    );
+    }
 
-    return () => unsub();
+    loadOrders();
+
+    return () => {
+      active = false;
+    };
   }, [user, loading]);
 
   const hasOrders = useMemo(() => orders.length > 0, [orders]);
@@ -243,7 +309,7 @@ export default function Orders() {
         ) : (
           <div className="orders-list">
             {orders.map((order) => {
-              const status = String(order.status || "pending").trim().toLowerCase();
+              const status = normalizeStatus(order.status || "pending");
               const stepIndex = getStepIndex(status);
               const total = order.pricing?.total ?? order.amounts?.total ?? 0;
               const createdAt = formatDate(order.createdAt);
@@ -255,7 +321,7 @@ export default function Orders() {
                     <div>
                       <p className="orders-order-label">Order</p>
                       <h2 className="orders-order-id">
-                        #{order.id.slice(0, 8).toUpperCase()}
+                        #{String(order.id || "").slice(0, 8).toUpperCase()}
                       </h2>
                     </div>
 
@@ -272,9 +338,15 @@ export default function Orders() {
                   </div>
 
                   <div className="orders-status-row">
-                    <span className={`orders-status-badge status-${status.replace(/\s+/g, "-")}`}>
+                    <span
+                      className={`orders-status-badge status-${status.replace(
+                        /\s+/g,
+                        "-"
+                      )}`}
+                    >
                       {titleize(status)}
                     </span>
+
                     <span className="orders-items-count">
                       {items.length} item{items.length === 1 ? "" : "s"}
                     </span>
@@ -283,10 +355,19 @@ export default function Orders() {
                   <div className="orders-progress">
                     {STATUS_STEPS.map((step, index) => {
                       const active = index <= stepIndex;
+
                       return (
                         <div className="orders-progress-step" key={step}>
-                          <span className={`orders-progress-dot ${active ? "active" : ""}`} />
-                          <span className={`orders-progress-text ${active ? "active" : ""}`}>
+                          <span
+                            className={`orders-progress-dot ${
+                              active ? "active" : ""
+                            }`}
+                          />
+                          <span
+                            className={`orders-progress-text ${
+                              active ? "active" : ""
+                            }`}
+                          >
                             {titleize(step)}
                           </span>
                         </div>
@@ -367,7 +448,9 @@ export default function Orders() {
                               >
                                 {optionLines.map((line, optionIndex) => (
                                   <span
-                                    key={`${item.id || `${order.id}-${index}`}-opt-${optionIndex}`}
+                                    key={`${
+                                      item.id || `${order.id}-${index}`
+                                    }-opt-${optionIndex}`}
                                     style={{
                                       fontSize: 12,
                                       opacity: 0.82,
@@ -385,7 +468,9 @@ export default function Orders() {
                             ) : null}
                           </div>
 
-                          <span className="orders-item-qty">x{item.qty || 1}</span>
+                          <span className="orders-item-qty">
+                            x{item.qty || 1}
+                          </span>
                         </div>
                       );
                     })}
