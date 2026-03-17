@@ -9,8 +9,8 @@ import React, {
 
 const CartContext = createContext(null);
 
-const CART_STORAGE_KEY = "beme_market_cart";
-const CART_POPUP_STORAGE_KEY = "beme_market_cart_popup_state";
+export const CART_STORAGE_KEY = "beme_market_cart";
+export const CART_POPUP_STORAGE_KEY = "beme_market_cart_popup_state";
 
 function parseBooleanish(value, fallback = false) {
   if (typeof value === "boolean") return value;
@@ -104,7 +104,6 @@ function isOutOfStock(product) {
 
 function clampQtyToStock(qty, stock) {
   const safeQty = Math.max(1, Number(qty) || 1);
-
   if (stock === null) return safeQty;
   return Math.max(1, Math.min(safeQty, stock));
 }
@@ -130,12 +129,14 @@ function normalizeCartItem(product) {
   const stock = getNumericStock(product);
   const qty = clampQtyToStock(product?.qty, stock);
   const price = Number(product?.price) || 0;
+
   const basePrice =
     product?.basePrice !== undefined &&
     product?.basePrice !== null &&
     product?.basePrice !== ""
       ? Number(product.basePrice) || 0
       : price;
+
   const optionPriceTotal =
     product?.optionPriceTotal !== undefined &&
     product?.optionPriceTotal !== null &&
@@ -195,7 +196,10 @@ function sanitizeStoredCartItems(items) {
     .filter((item) => item.id && item.lineId && !isOutOfStock(item))
     .map((item) => {
       if (item.stock !== null && item.qty > item.stock) {
-        return { ...item, qty: item.stock };
+        return {
+          ...item,
+          qty: item.stock,
+        };
       }
       return item;
     })
@@ -224,10 +228,8 @@ function safeReadStoredCart() {
   try {
     const raw = window.localStorage.getItem(CART_STORAGE_KEY);
     if (!raw) return [];
-
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-
     return sanitizeStoredCartItems(parsed);
   } catch (error) {
     console.error("Failed to read cart from localStorage:", error);
@@ -245,7 +247,6 @@ function safeReadPopupState() {
     if (!raw) return makeDefaultPopupState();
 
     const parsed = JSON.parse(raw);
-
     return {
       ...makeDefaultPopupState(),
       ...parsed,
@@ -264,6 +265,17 @@ function safeReadPopupState() {
   } catch (error) {
     console.error("Failed to read cart popup state from localStorage:", error);
     return makeDefaultPopupState();
+  }
+}
+
+export function clearCartStorage() {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.removeItem(CART_STORAGE_KEY);
+    window.localStorage.removeItem(CART_POPUP_STORAGE_KEY);
+  } catch (error) {
+    console.error("Failed to clear cart storage:", error);
   }
 }
 
@@ -313,10 +325,8 @@ export const CartProvider = ({ children }) => {
             prevItem.inStock !== item.inStock ||
             Number(prevItem.price) !== Number(item.price) ||
             Number(prevItem.basePrice) !== Number(item.basePrice) ||
-            Number(prevItem.optionPriceTotal) !==
-              Number(item.optionPriceTotal) ||
-            Number(prevItem.abroadDeliveryFee) !==
-              Number(item.abroadDeliveryFee)
+            Number(prevItem.optionPriceTotal) !== Number(item.optionPriceTotal) ||
+            Number(prevItem.abroadDeliveryFee) !== Number(item.abroadDeliveryFee)
           );
         });
 
@@ -365,12 +375,15 @@ export const CartProvider = ({ children }) => {
     clearAutoHideTimer();
 
     const firstAdd = Boolean(options?.firstAdd);
+
     const popupState = {
       visible: true,
       item: item ? normalizeCartItem(item) : null,
       hasShownSinceEmpty: true,
       mode: String(options?.mode || "added"),
-      title: String(options?.title || (firstAdd ? "Added to cart" : "Cart updated")),
+      title: String(
+        options?.title || (firstAdd ? "Added to cart" : "Cart updated")
+      ),
       message: String(
         options?.message ||
           (firstAdd
@@ -409,12 +422,7 @@ export const CartProvider = ({ children }) => {
     const lineId = nextItem.lineId;
     let shouldShowFirstAddPopup = false;
     let addedItemForPopup = nextItem;
-
-    let result = {
-      ok: true,
-      message: "Added to cart.",
-      reason: "added",
-    };
+    let result = { ok: true, message: "Added to cart.", reason: "added" };
 
     setCartItems((prev) => {
       const existing = prev.find((item) => item.lineId === lineId);
@@ -502,16 +510,10 @@ export const CartProvider = ({ children }) => {
             message: `Only ${stock} item${stock === 1 ? "" : "s"} available in stock.`,
             reason: "stock_limit",
           };
-          return {
-            ...item,
-            qty: stock,
-          };
+          return { ...item, qty: stock };
         }
 
-        return {
-          ...item,
-          qty: safeQty,
-        };
+        return { ...item, qty: safeQty };
       })
     );
 
@@ -522,6 +524,7 @@ export const CartProvider = ({ children }) => {
     setCartItems([]);
     clearAutoHideTimer();
     setCartPopup(makeDefaultPopupState());
+    clearCartStorage();
   };
 
   const itemCount = useMemo(() => {
