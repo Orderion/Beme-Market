@@ -6,6 +6,17 @@ const router = express.Router();
 const ALLOWED_PAYMENT_METHODS = new Set(["cod"]);
 const ALLOWED_CREATE_STATUS = new Set(["pending"]);
 const ALLOWED_PAYMENT_STATUS = new Set(["pending"]);
+const ALLOWED_ORDER_UPDATE_STATUSES = new Set([
+  "pending",
+  "pending_payment",
+  "paid",
+  "processing",
+  "shipped",
+  "delivered",
+  "cancelled",
+  "payment_failed",
+]);
+
 const MAX_CART_ITEMS = 100;
 const MAX_ITEM_QTY = 20;
 
@@ -30,13 +41,15 @@ function normalizePhone(value) {
 }
 
 function normalizeShopKey(value) {
-  return String(value || "main")
-    .trim()
-    .toLowerCase()
-    .replace(/['"]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60) || "main";
+  return (
+    String(value || "main")
+      .trim()
+      .toLowerCase()
+      .replace(/['"]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "main"
+  );
 }
 
 function toNumber(value, fallback = 0) {
@@ -78,6 +91,85 @@ async function requireAuthUser(req) {
   }
 
   return decoded;
+}
+
+async function getUserProfile(uid) {
+  const safeUid = sanitizeText(uid, 128);
+  if (!safeUid) return null;
+
+  const snap = await adminDb.collection("users").doc(safeUid).get();
+  if (!snap.exists) return null;
+
+  const data = snap.data() || {};
+  const role = sanitizeText(data.role, 40).toLowerCase();
+  const shop = normalizeShopKey(data.shop || "main");
+
+  return {
+    id: snap.id,
+    ...data,
+    role,
+    shop,
+  };
+}
+
+function isSuperAdminRole(role) {
+  return role === "super_admin" || role === "admin";
+}
+
+function isShopAdminRole(role) {
+  return role === "shop_admin";
+}
+
+function orderMatchesShop(order, shopKey) {
+  const normalizedShop = normalizeShopKey(shopKey);
+  if (!normalizedShop) return false;
+
+  const shops = Array.isArray(order?.shops)
+    ? order.shops.map((shop) => normalizeShopKey(shop))
+    : [];
+
+  if (shops.includes(normalizedShop)) return true;
+
+  const primaryShop = normalizeShopKey(order?.primaryShop || "main");
+  if (primaryShop === normalizedShop) return true;
+
+  const items = Array.isArray(order?.items) ? order.items : [];
+  return items.some((item) => normalizeShopKey(item?.shop) === normalizedShop);
+}
+
+async function requireAdminOrderAccess(authUser, orderData) {
+  const profile = await getUserProfile(authUser?.uid);
+
+  if (!profile) {
+    const error = new Error("Admin profile not found.");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (isSuperAdminRole(profile.role)) {
+    return { profile, scope: "all" };
+  }
+
+  if (isShopAdminRole(profile.role)) {
+    const adminShop = normalizeShopKey(profile.shop);
+    if (!adminShop) {
+      const error = new Error("Shop admin account has no assigned shop.");
+      error.statusCode = 403;
+      throw error;
+    }
+
+    if (!orderMatchesShop(orderData, adminShop)) {
+      const error = new Error("You are not allowed to manage this order.");
+      error.statusCode = 403;
+      throw error;
+    }
+
+    return { profile, scope: adminShop };
+  }
+
+  const error = new Error("Admin access required.");
+  error.statusCode = 403;
+  throw error;
 }
 
 function sanitizeSelectedOptions(source) {
@@ -366,8 +458,15 @@ async function buildValidatedOrderItems(items) {
   };
 }
 
-function sanitizePricing(pricing = {}, computedSubtotal = 0, computedDelivery = 0) {
-  const requestedSubtotal = Math.max(0, toNumber(pricing.subtotal, computedSubtotal));
+function sanitizePricing(
+  pricing = {},
+  computedSubtotal = 0,
+  computedDelivery = 0
+) {
+  const requestedSubtotal = Math.max(
+    0,
+    toNumber(pricing.subtotal, computedSubtotal)
+  );
   const requestedDeliveryFee = Math.max(
     0,
     toNumber(pricing.deliveryFee, computedDelivery)
@@ -445,7 +544,10 @@ router.post("/", async (req, res) => {
   try {
     const authUser = await requireAuthUser(req);
 
-    const paymentMethod = sanitizeText(req.body?.paymentMethod, 30).toLowerCase();
+    const paymentMethod = sanitizeText(
+      req.body?.paymentMethod,
+      30
+    ).toLowerCase();
     const paymentStatus = sanitizeText(
       req.body?.paymentStatus,
       30
@@ -534,6 +636,78 @@ router.post("/", async (req, res) => {
     return res.status(error?.statusCode || 500).json({
       success: false,
       error: error?.message || "Failed to create order.",
+    });
+  }
+});
+
+router.patch("/:orderId/status", async (req, res) => {
+  try {
+    const authUser = await requireAuthUser(req);
+    const orderId = sanitizeText(req.params?.orderId, 128);
+    const nextStatus = sanitizeText(req.body?.status, 40).toLowerCase();
+
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing order ID.",
+      });
+    }
+
+    if (!ALLOWED_ORDER_UPDATE_STATUSES.has(nextStatus)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid order status.",
+      });
+    }
+
+    const orderRef = adminDb.collection("orders").doc(orderId);
+    const orderSnap = await orderRef.get();
+
+    if (!orderSnap.exists) {
+      return res.status(404).json({
+        success: false,
+        error: "Order not found.",
+      });
+    }
+
+    const orderData = orderSnap.data() || {};
+    await requireAdminOrderAccess(authUser, orderData);
+
+    const updatePayload = {
+      status: nextStatus,
+      updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    if (nextStatus === "paid") {
+      updatePayload.paymentStatus = "paid";
+      updatePayload.paid = true;
+    }
+
+    if (nextStatus === "payment_failed") {
+      updatePayload.paymentStatus = "failed";
+      updatePayload.paid = false;
+    }
+
+    if (nextStatus === "cancelled") {
+      if (String(orderData?.paymentMethod || "").toLowerCase() === "cod") {
+        updatePayload.paid = false;
+      }
+    }
+
+    await orderRef.update(updatePayload);
+
+    const updatedSnap = await orderRef.get();
+
+    return res.json({
+      success: true,
+      message: "Order status updated successfully.",
+      order: sanitizeOrderForResponse(updatedSnap),
+    });
+  } catch (error) {
+    console.error("Orders PATCH status error:", error);
+    return res.status(error?.statusCode || 500).json({
+      success: false,
+      error: error?.message || "Failed to update order status.",
     });
   }
 });
