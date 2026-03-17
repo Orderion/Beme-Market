@@ -1,16 +1,34 @@
-const jwt = require('jsonwebtoken');
+// src/middlewares/authMiddleware.js
+import { firebaseAdmin } from "../firebaseAdmin.js";
 
-const authMiddleware = (req, res, next) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
-
+export async function requireAuth(req, res, next) {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).json({ msg: 'Token is not valid' });
-  }
-};
+    const authHeader = String(req.headers.authorization || "").trim();
 
-module.exports = authMiddleware;
+    if (!authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Missing Authorization bearer token." });
+    }
+
+    const token = authHeader.slice(7).trim();
+
+    if (!token) {
+      return res.status(401).json({ error: "Missing Firebase ID token." });
+    }
+
+    const decoded = await firebaseAdmin.auth().verifyIdToken(token);
+
+    req.user = {
+      uid: decoded.uid,
+      email: decoded.email || "",
+      name: decoded.name || "",
+      picture: decoded.picture || "",
+      emailVerified: decoded.email_verified === true,
+      claims: decoded,
+    };
+
+    next();
+  } catch (error) {
+    console.error("Auth middleware error:", error);
+    return res.status(401).json({ error: "Unauthorized. Invalid or expired token." });
+  }
+}
