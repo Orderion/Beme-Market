@@ -1,27 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { getAuth } from "firebase/auth";
 import { useAuth } from "../context/AuthContext";
-import { auth } from "../firebase";
 import "./Orders.css";
-
-const API_BASE = String(import.meta.env.VITE_BACKEND_URL || "")
-  .trim()
-  .replace(/\/+$/, "");
 
 const STATUS_STEPS = [
   "pending",
+  "pending_payment",
   "paid",
   "processing",
   "shipped",
   "delivered",
 ];
 
-function normalizeStatus(value) {
-  return String(value || "").trim().toLowerCase();
-}
+const API_BASE = String(import.meta.env.VITE_BACKEND_URL || "")
+  .trim()
+  .replace(/\/+$/, "");
 
 function getStepIndex(status) {
-  const normalized = normalizeStatus(status || "pending");
+  const normalized = String(status || "pending").trim().toLowerCase();
   const index = STATUS_STEPS.indexOf(normalized);
   return index === -1 ? 0 : index;
 }
@@ -35,7 +32,11 @@ function formatDate(value) {
 
   try {
     const date =
-      typeof value?.toDate === "function" ? value.toDate() : new Date(value);
+      typeof value?.toDate === "function"
+        ? value.toDate()
+        : typeof value?.seconds === "number"
+        ? new Date(value.seconds * 1000)
+        : new Date(value);
 
     if (Number.isNaN(date.getTime())) return "—";
 
@@ -55,9 +56,7 @@ function getSortableTime(value) {
   try {
     if (typeof value?.toMillis === "function") return value.toMillis();
     if (typeof value?.seconds === "number") return value.seconds * 1000;
-
-    const time = new Date(value).getTime();
-    return Number.isFinite(time) ? time : 0;
+    return new Date(value).getTime() || 0;
   } catch {
     return 0;
   }
@@ -74,7 +73,6 @@ function titleize(value) {
 function formatOptionPair(key, value) {
   const cleanKey = String(key || "").trim();
   const cleanValue = String(value || "").trim();
-
   if (!cleanValue) return "";
   return cleanKey ? `${titleize(cleanKey)}: ${cleanValue}` : cleanValue;
 }
@@ -128,7 +126,6 @@ function extractItemOptions(item) {
           .map((v) => String(v || "").trim())
           .filter(Boolean)
           .join(", ");
-
         pushEntry(formatOptionPair(key, joined));
         return;
       }
@@ -165,24 +162,32 @@ function extractItemOptions(item) {
   return collected;
 }
 
-async function getOwnOrders() {
-  if (!API_BASE) {
-    throw new Error("Missing backend URL. Set VITE_BACKEND_URL.");
-  }
-
+async function getAuthHeaders() {
+  const auth = getAuth();
   const currentUser = auth.currentUser;
+
   if (!currentUser) {
-    throw new Error("You must be signed in to view your orders.");
+    throw new Error("You must be signed in to continue.");
   }
 
   const token = await currentUser.getIdToken();
 
+  return {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/json",
+  };
+}
+
+async function fetchOwnOrders() {
+  if (!API_BASE) {
+    throw new Error("Missing backend URL. Set VITE_BACKEND_URL.");
+  }
+
+  const headers = await getAuthHeaders();
+
   const res = await fetch(`${API_BASE}/api/orders`, {
     method: "GET",
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers,
   });
 
   const data = await res.json().catch(() => ({}));
@@ -196,46 +201,44 @@ async function getOwnOrders() {
 
 export default function Orders() {
   const { user, loading } = useAuth();
-
   const [orders, setOrders] = useState([]);
   const [pageError, setPageError] = useState("");
   const [loadingOrders, setLoadingOrders] = useState(true);
 
   useEffect(() => {
-    let active = true;
+    let cancelled = false;
 
     async function loadOrders() {
       if (loading) return;
 
       if (!user) {
-        if (!active) return;
-        setOrders([]);
-        setPageError("");
-        setLoadingOrders(false);
+        if (!cancelled) {
+          setOrders([]);
+          setLoadingOrders(false);
+        }
         return;
       }
 
       setLoadingOrders(true);
-      setPageError("");
 
       try {
-        const rows = await getOwnOrders();
+        const rows = await fetchOwnOrders();
 
-        if (!active) return;
+        if (cancelled) return;
 
-        const sorted = [...rows].sort(
+        rows.sort(
           (a, b) => getSortableTime(b.createdAt) - getSortableTime(a.createdAt)
         );
 
-        setOrders(sorted);
+        setOrders(rows);
         setPageError("");
       } catch (error) {
-        console.error("Orders load error:", error);
-        if (!active) return;
+        console.error("Orders fetch error:", error);
+        if (cancelled) return;
         setOrders([]);
         setPageError(error?.message || "Failed to load orders.");
       } finally {
-        if (active) {
+        if (!cancelled) {
           setLoadingOrders(false);
         }
       }
@@ -244,7 +247,7 @@ export default function Orders() {
     loadOrders();
 
     return () => {
-      active = false;
+      cancelled = true;
     };
   }, [user, loading]);
 
@@ -309,7 +312,9 @@ export default function Orders() {
         ) : (
           <div className="orders-list">
             {orders.map((order) => {
-              const status = normalizeStatus(order.status || "pending");
+              const status = String(order.status || "pending")
+                .trim()
+                .toLowerCase();
               const stepIndex = getStepIndex(status);
               const total = order.pricing?.total ?? order.amounts?.total ?? 0;
               const createdAt = formatDate(order.createdAt);
@@ -346,7 +351,6 @@ export default function Orders() {
                     >
                       {titleize(status)}
                     </span>
-
                     <span className="orders-items-count">
                       {items.length} item{items.length === 1 ? "" : "s"}
                     </span>
@@ -355,7 +359,6 @@ export default function Orders() {
                   <div className="orders-progress">
                     {STATUS_STEPS.map((step, index) => {
                       const active = index <= stepIndex;
-
                       return (
                         <div className="orders-progress-step" key={step}>
                           <span
@@ -468,9 +471,7 @@ export default function Orders() {
                             ) : null}
                           </div>
 
-                          <span className="orders-item-qty">
-                            x{item.qty || 1}
-                          </span>
+                          <span className="orders-item-qty">x{item.qty || 1}</span>
                         </div>
                       );
                     })}
