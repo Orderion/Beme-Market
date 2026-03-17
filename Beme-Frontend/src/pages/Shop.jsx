@@ -35,8 +35,10 @@ const Shop = () => {
   const deptParam = normalizeDept(params.get("dept"));
   const kindParam = normalizeKind(params.get("kind"));
   const shopParam = normalizeShop(params.get("shop"));
-  const slotRaw = params.get("slot");
-  const slotParam = slotRaw ? normalizeHomeFilter(slotRaw) : null;
+
+  const rawSlot = params.get("slot");
+  const slotParam = rawSlot ? normalizeHomeFilter(rawSlot) : null;
+
   const qParam = (params.get("q") || "").trim();
 
   const sortParam = (params.get("sort") || "new").toLowerCase();
@@ -88,51 +90,8 @@ const Shop = () => {
     const shopLabel = shopParam ? SHOP_TITLE_MAP[shopParam] || "Shop" : null;
     const slotLabel = slotParam ? getLabel(HOME_FILTER_OPTIONS, slotParam) : null;
 
-    if (shopLabel && slotLabel && deptLabel && kindLabel) {
-      return `${shopLabel} · ${slotLabel} · ${deptLabel} · ${kindLabel}`;
-    }
-
-    if (shopLabel && slotLabel && deptLabel) {
-      return `${shopLabel} · ${slotLabel} · ${deptLabel}`;
-    }
-
-    if (shopLabel && slotLabel && kindLabel) {
-      return `${shopLabel} · ${slotLabel} · ${kindLabel}`;
-    }
-
-    if (slotLabel && deptLabel && kindLabel) {
-      return `${slotLabel} · ${deptLabel} · ${kindLabel}`;
-    }
-
-    if (shopLabel && slotLabel) {
-      return `${shopLabel} · ${slotLabel}`;
-    }
-
-    if (slotLabel && deptLabel) {
-      return `${slotLabel} · ${deptLabel}`;
-    }
-
-    if (slotLabel && kindLabel) {
-      return `${slotLabel} · ${kindLabel}`;
-    }
-
-    if (shopLabel && deptLabel && kindLabel) {
-      return `${shopLabel} · ${deptLabel} · ${kindLabel}`;
-    }
-
-    if (shopLabel && deptLabel) {
-      return `${shopLabel} · ${deptLabel}`;
-    }
-
-    if (shopLabel && kindLabel) {
-      return `${shopLabel} · ${kindLabel}`;
-    }
-
-    if (deptLabel && kindLabel) {
-      return `${deptLabel} · ${kindLabel}`;
-    }
-
-    return slotLabel || shopLabel || deptLabel || kindLabel || "Hot sale";
+    const parts = [shopLabel, slotLabel, deptLabel, kindLabel].filter(Boolean);
+    return parts.length ? parts.join(" · ") : "Hot sale";
   }, [deptParam, kindParam, shopParam, slotParam, qParam]);
 
   const hasActiveFilters =
@@ -182,26 +141,18 @@ const Shop = () => {
   const setShop = (shop) => {
     const next = new URLSearchParams(params);
 
-    if (!shop) {
-      next.delete("shop");
-      setParams(next);
-      return;
-    }
+    if (!shop) next.delete("shop");
+    else next.set("shop", shop);
 
-    next.set("shop", shop);
     setParams(next);
   };
 
   const setSlot = (slot) => {
     const next = new URLSearchParams(params);
 
-    if (!slot) {
-      next.delete("slot");
-      setParams(next);
-      return;
-    }
+    if (!slot) next.delete("slot");
+    else next.set("slot", slot);
 
-    next.set("slot", slot);
     setParams(next);
   };
 
@@ -874,7 +825,7 @@ const Shop = () => {
               xmlns="http://www.w3.org/2000/svg"
             >
               <path
-                d="M4 7h10M18 7h2 M4 17h6M14 17h6"
+                d="M4 7h10M18 7h2M4 17h6M14 17h6"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.7"
