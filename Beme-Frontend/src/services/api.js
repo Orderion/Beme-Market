@@ -1,5 +1,5 @@
 // src/services/api.js
-import { getAuth } from "firebase/auth";
+import { auth } from "../firebase";
 
 const BASE = String(import.meta.env.VITE_BACKEND_URL || "")
   .trim()
@@ -15,12 +15,14 @@ function assertBaseUrl() {
   }
 }
 
-async function getAuthHeaders() {
-  const auth = getAuth();
+async function getAuthHeaders(required = false) {
   const currentUser = auth.currentUser;
 
   if (!currentUser) {
-    throw new Error("You must be signed in to continue.");
+    if (required) {
+      throw new Error("You must be signed in to continue.");
+    }
+    return {};
   }
 
   const token = await currentUser.getIdToken();
@@ -40,10 +42,10 @@ async function toJson(res) {
   return data;
 }
 
-async function request(path, options = {}) {
+async function request(path, options = {}, authRequired = false) {
   assertBaseUrl();
 
-  const authHeaders = await getAuthHeaders();
+  const authHeaders = await getAuthHeaders(authRequired);
 
   const res = await fetch(`${BASE}${path}`, {
     method: "GET",
@@ -79,7 +81,9 @@ export async function paystackInit(payload) {
             item?.selectedOptions && typeof item.selectedOptions === "object"
               ? item.selectedOptions
               : {},
-          selectedOptionsLabel: String(item?.selectedOptionsLabel || "").trim(),
+          selectedOptionsLabel: String(
+            item?.selectedOptionsLabel || ""
+          ).trim(),
           selectedOptionDetails: Array.isArray(item?.selectedOptionDetails)
             ? item.selectedOptionDetails
             : [],
@@ -115,13 +119,17 @@ export async function paystackInit(payload) {
     },
   };
 
-  return request("/api/paystack/checkout/init", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  return request(
+    "/api/paystack/checkout/init",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(safePayload),
     },
-    body: JSON.stringify(safePayload),
-  });
+    true
+  );
 }
 
 /**
@@ -138,6 +146,8 @@ export async function paystackVerify(reference) {
   return request(
     `/api/paystack/checkout/verify?reference=${encodeURIComponent(
       safeReference
-    )}`
+    )}`,
+    {},
+    false
   );
 }
