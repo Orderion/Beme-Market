@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   collection,
   doc,
@@ -159,7 +159,11 @@ function getOrderAddress(order) {
 }
 
 function getPaymentLabel(order) {
-  if (order?.paid === true || order?.paymentStatus === "paid" || order?.status === "paid") {
+  if (
+    order?.paid === true ||
+    order?.paymentStatus === "paid" ||
+    order?.status === "paid"
+  ) {
     return "Paid";
   }
 
@@ -172,6 +176,119 @@ function getPaymentLabel(order) {
 function csvEscape(value) {
   const stringValue = String(value ?? "");
   return `"${stringValue.replace(/"/g, '""')}"`;
+}
+
+function normalizeOptionLabel(label) {
+  const raw = String(label || "").trim();
+  if (!raw) return "";
+  return titleize(raw);
+}
+
+function formatOptionPair(key, value) {
+  const cleanValue = String(value ?? "").trim();
+  if (!cleanValue) return "";
+  const label = normalizeOptionLabel(key);
+  return label ? `${label}: ${cleanValue}` : cleanValue;
+}
+
+function extractItemOptions(item) {
+  if (!item || typeof item !== "object") return [];
+
+  const collected = [];
+
+  const pushEntry = (text) => {
+    const clean = String(text || "").trim();
+    if (!clean) return;
+    if (!collected.includes(clean)) collected.push(clean);
+  };
+
+  pushEntry(item?.selectedOptionsLabel);
+
+  if (Array.isArray(item?.selectedOptionDetails)) {
+    item.selectedOptionDetails.forEach((entry) => {
+      if (typeof entry === "string") {
+        pushEntry(entry);
+        return;
+      }
+
+      if (entry && typeof entry === "object") {
+        pushEntry(
+          formatOptionPair(
+            entry?.label || entry?.name || entry?.key || entry?.title,
+            entry?.value
+          )
+        );
+      }
+    });
+  }
+
+  const objectSources = [
+    item?.selectedOptions,
+    item?.customizations,
+    item?.customizationOptions,
+    item?.options,
+    item?.variant,
+    item?.variantOptions,
+  ];
+
+  objectSources.forEach((source) => {
+    if (!source || typeof source !== "object" || Array.isArray(source)) return;
+
+    Object.entries(source).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        const cleanValues = value
+          .map((part) => String(part || "").trim())
+          .filter(Boolean);
+
+        if (cleanValues.length) {
+          pushEntry(formatOptionPair(key, cleanValues.join(", ")));
+        }
+        return;
+      }
+
+      if (value && typeof value === "object") {
+        const nestedValue =
+          value?.value ??
+          value?.label ??
+          value?.name ??
+          value?.title ??
+          "";
+
+        pushEntry(formatOptionPair(key, nestedValue));
+        return;
+      }
+
+      pushEntry(formatOptionPair(key, value));
+    });
+  });
+
+  const arraySources = [
+    item?.customizationsList,
+    item?.selectedVariants,
+    item?.optionGroups,
+  ];
+
+  arraySources.forEach((source) => {
+    if (!Array.isArray(source)) return;
+
+    source.forEach((entry) => {
+      if (typeof entry === "string") {
+        pushEntry(entry);
+        return;
+      }
+
+      if (entry && typeof entry === "object") {
+        pushEntry(
+          formatOptionPair(
+            entry?.label || entry?.name || entry?.key || entry?.title,
+            entry?.value || entry?.selected || entry?.option
+          )
+        );
+      }
+    });
+  });
+
+  return collected;
 }
 
 export default function AdminOrders() {
@@ -347,9 +464,10 @@ export default function AdminOrders() {
   }, [loading, user, isAdmin, isShopAdmin, normalizedAdminShop]);
 
   const filtered = useMemo(() => {
-    let rows = filter === "all"
-      ? orders
-      : orders.filter((o) => (o.status || "pending") === filter);
+    const rows =
+      filter === "all"
+        ? orders
+        : orders.filter((o) => (o.status || "pending") === filter);
 
     const q = searchTerm.trim().toLowerCase();
     if (!q) return rows;
@@ -357,6 +475,10 @@ export default function AdminOrders() {
     return rows.filter((o) => {
       const items = Array.isArray(o?.items) ? o.items : [];
       const shops = Array.isArray(o?.shops) ? o.shops : [];
+
+      const optionText = items
+        .flatMap((it) => extractItemOptions(it))
+        .join(" ");
 
       const haystack = [
         o?.id,
@@ -373,6 +495,7 @@ export default function AdminOrders() {
         ...shops,
         ...items.map((it) => it?.name),
         ...items.map((it) => it?.shop),
+        optionText,
       ]
         .join(" ")
         .toLowerCase();
@@ -421,7 +544,10 @@ export default function AdminOrders() {
       const phone = o?.customer?.phone || "";
       const email = o?.customer?.email || "";
       const address = getOrderAddress(o);
-      const itemQty = visibleItems.reduce((sum, item) => sum + Number(item?.qty || 0), 0);
+      const itemQty = visibleItems.reduce(
+        (sum, item) => sum + Number(item?.qty || 0),
+        0
+      );
 
       const shops = Array.isArray(o?.shops)
         ? o.shops.map((shop) => normalizeShop(shop))
@@ -445,7 +571,12 @@ export default function AdminOrders() {
         address: address || "—",
         itemsText: visibleItems.length
           ? visibleItems
-              .map((it) => `${it?.name || "Item"} x${Number(it?.qty || 1)}`)
+              .map((it) => {
+                const options = extractItemOptions(it);
+                return `${it?.name || "Item"} x${Number(it?.qty || 1)}${
+                  options.length ? ` [${options.join(" | ")}]` : ""
+                }`;
+              })
               .join(" | ")
           : "—",
         itemCount: visibleItems.length,
@@ -651,7 +782,7 @@ export default function AdminOrders() {
         >
           <input
             type="text"
-            placeholder="Search name, phone, email, order id, item, address..."
+            placeholder="Search name, phone, email, order id, item, options, address..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -754,20 +885,46 @@ export default function AdminOrders() {
                 </div>
 
                 <div className="order-items">
-                  {visibleItems.slice(0, 3).map((it, index) => (
-                    <div key={it.id || `${o.id}-${index}`} className="order-item">
-                      <span>
-                        {it.name || "Item"}
-                        {it.shop ? (
-                          <span className="muted">
-                            {" "}
-                            • {titleize(normalizeShop(it.shop))}
+                  {visibleItems.slice(0, 3).map((it, index) => {
+                    const optionLines = extractItemOptions(it);
+
+                    return (
+                      <div key={it.id || `${o.id}-${index}`} className="order-item">
+                        <div style={{ display: "grid", gap: 6 }}>
+                          <span>
+                            {it.name || "Item"}
+                            {it.shop ? (
+                              <span className="muted">
+                                {" "}
+                                • {titleize(normalizeShop(it.shop))}
+                              </span>
+                            ) : null}
                           </span>
-                        ) : null}
-                      </span>
-                      <span className="muted">x{it.qty || 1}</span>
-                    </div>
-                  ))}
+
+                          {optionLines.length ? (
+                            <div
+                              style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 6,
+                              }}
+                            >
+                              {optionLines.map((line, lineIndex) => (
+                                <span
+                                  key={`${it.id || `${o.id}-${index}`}-opt-${lineIndex}`}
+                                  className="pill"
+                                >
+                                  {line}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <span className="muted">x{it.qty || 1}</span>
+                      </div>
+                    );
+                  })}
 
                   {visibleItems.length > 3 && (
                     <div className="muted">+{visibleItems.length - 3} more</div>
@@ -892,8 +1049,8 @@ export default function AdminOrders() {
                   const isExpanded = expandedRow === row.id;
 
                   return (
-                    <>
-                      <tr key={row.id}>
+                    <React.Fragment key={row.id}>
+                      <tr>
                         <td
                           style={{
                             padding: "12px",
@@ -949,16 +1106,35 @@ export default function AdminOrders() {
                           style={{
                             padding: "12px",
                             borderBottom: "1px solid var(--border)",
-                            minWidth: 240,
+                            minWidth: 280,
                           }}
                         >
                           {visibleItems.length ? (
-                            <div style={{ display: "grid", gap: 6 }}>
-                              {visibleItems.slice(0, 2).map((item, index) => (
-                                <div key={item?.id || `${row.id}-${index}`}>
-                                  {item?.name || "Item"} x{Number(item?.qty || 1)}
-                                </div>
-                              ))}
+                            <div style={{ display: "grid", gap: 8 }}>
+                              {visibleItems.slice(0, 2).map((item, index) => {
+                                const optionLines = extractItemOptions(item);
+
+                                return (
+                                  <div
+                                    key={item?.id || `${row.id}-${index}`}
+                                    style={{ display: "grid", gap: 4 }}
+                                  >
+                                    <div>
+                                      {item?.name || "Item"} x{Number(item?.qty || 1)}
+                                    </div>
+
+                                    {optionLines.length ? (
+                                      <div
+                                        className="muted"
+                                        style={{ fontSize: 12, lineHeight: 1.5 }}
+                                      >
+                                        {optionLines.join(" • ")}
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                );
+                              })}
+
                               {visibleItems.length > 2 ? (
                                 <button
                                   type="button"
@@ -968,7 +1144,9 @@ export default function AdminOrders() {
                                   }
                                   style={{ width: "fit-content" }}
                                 >
-                                  {isExpanded ? "Hide details" : `+${visibleItems.length - 2} more`}
+                                  {isExpanded
+                                    ? "Hide details"
+                                    : `+${visibleItems.length - 2} more`}
                                 </button>
                               ) : null}
                             </div>
@@ -1066,7 +1244,7 @@ export default function AdminOrders() {
                       </tr>
 
                       {isExpanded ? (
-                        <tr key={`${row.id}-expanded`}>
+                        <tr>
                           <td
                             colSpan={13}
                             style={{
@@ -1093,34 +1271,66 @@ export default function AdminOrders() {
                                 <strong>Items:</strong>
                               </div>
 
-                              <div style={{ display: "grid", gap: 6 }}>
-                                {visibleItems.map((item, index) => (
-                                  <div
-                                    key={item?.id || `${row.id}-full-${index}`}
-                                    style={{
-                                      padding: "8px 10px",
-                                      border: "1px solid var(--border)",
-                                      borderRadius: 10,
-                                      background: "var(--card)",
-                                    }}
-                                  >
-                                    <strong>{item?.name || "Item"}</strong> • Qty:{" "}
-                                    {Number(item?.qty || 1)} • Price: GHS{" "}
-                                    {Number(item?.price || 0).toFixed(2)}
-                                    {item?.shop ? (
-                                      <>
-                                        {" "}
-                                        • Shop: {titleize(normalizeShop(item.shop))}
-                                      </>
-                                    ) : null}
-                                  </div>
-                                ))}
+                              <div style={{ display: "grid", gap: 8 }}>
+                                {visibleItems.map((item, index) => {
+                                  const optionLines = extractItemOptions(item);
+
+                                  return (
+                                    <div
+                                      key={item?.id || `${row.id}-full-${index}`}
+                                      style={{
+                                        padding: "10px 12px",
+                                        border: "1px solid var(--border)",
+                                        borderRadius: 10,
+                                        background: "var(--card)",
+                                        display: "grid",
+                                        gap: 6,
+                                      }}
+                                    >
+                                      <div>
+                                        <strong>{item?.name || "Item"}</strong> • Qty:{" "}
+                                        {Number(item?.qty || 1)} • Price: GHS{" "}
+                                        {Number(item?.price || 0).toFixed(2)}
+                                        {item?.shop ? (
+                                          <>
+                                            {" "}
+                                            • Shop:{" "}
+                                            {titleize(normalizeShop(item.shop))}
+                                          </>
+                                        ) : null}
+                                      </div>
+
+                                      {optionLines.length ? (
+                                        <div
+                                          style={{
+                                            display: "flex",
+                                            flexWrap: "wrap",
+                                            gap: 6,
+                                          }}
+                                        >
+                                          {optionLines.map((line, lineIndex) => (
+                                            <span
+                                              key={`${item?.id || `${row.id}-full-${index}`}-opt-${lineIndex}`}
+                                              className="pill"
+                                            >
+                                              {line}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <div className="muted">
+                                          No selected options saved for this item.
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           </td>
                         </tr>
                       ) : null}
-                    </>
+                    </React.Fragment>
                   );
                 })}
               </tbody>
