@@ -691,14 +691,27 @@ export default function Checkout() {
         email: form.email.trim(),
         cartItems: cartItems.map((item) => ({
           ...item,
+          id: item.id || "",
+          qty: Number(item.qty) || 1,
+          price: Number(item.price) || 0,
+          basePrice: Number(item.basePrice ?? item.price ?? 0) || 0,
+          optionPriceTotal: Number(item.optionPriceTotal || 0) || 0,
           shop: normalizeShop(item.shop),
           abroadDeliveryFee: getItemAbroadDeliveryFee(item),
+          selectedOptions: item.selectedOptions || {},
+          selectedOptionsLabel: item.selectedOptionsLabel || "",
           selectedOptionDetails: Array.isArray(item.selectedOptionDetails)
             ? item.selectedOptionDetails
             : [],
-          basePrice: Number(item.basePrice ?? item.price ?? 0) || 0,
-          optionPriceTotal: Number(item.optionPriceTotal || 0) || 0,
+          inStock: item.inStock !== false,
+          stock: getNumericStock(item),
         })),
+        pricing: {
+          subtotal: subtotalUI,
+          deliveryFee: deliveryFeeUI,
+          total: totalUI,
+          currency: "GHS",
+        },
         customer: {
           ...form,
           country: "Ghana",
