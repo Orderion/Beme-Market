@@ -192,6 +192,153 @@ function StoreCard({ image, chip, title, subtitle, onClick, ariaLabel }) {
   );
 }
 
+function CategoryIcon({ type }) {
+  if (type === "phones") {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className="category-box-svg"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="7"
+          y="2.5"
+          width="10"
+          height="19"
+          rx="2.2"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+        />
+        <path
+          d="M10 5.5h4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+        />
+        <circle cx="12" cy="18.2" r="0.9" fill="currentColor" />
+      </svg>
+    );
+  }
+
+  if (type === "laptops") {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className="category-box-svg"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="5"
+          y="5"
+          width="14"
+          height="10"
+          rx="1.6"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+        />
+        <path
+          d="M3.5 18h17"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+
+  if (type === "shoes") {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className="category-box-svg"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M4 15.5c2.2 0 3.3-1.2 4.4-2.4l1.2-1.3c.4 1.8 1.6 3.1 4 3.7l3 .8c1.8.5 2.4 1 2.4 2.2V20H4v-4.5Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
+  if (type === "clothing") {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className="category-box-svg"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M9 4l3 2 3-2 3 3-2 3v9H8v-9L6 7l3-3Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
+  if (type === "kids") {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className="category-box-svg"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <circle
+          cx="12"
+          cy="8"
+          r="3"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+        />
+        <path
+          d="M7.5 19v-2.2A3.8 3.8 0 0 1 11.3 13h1.4a3.8 3.8 0 0 1 3.8 3.8V19"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="category-box-svg"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect
+        x="4"
+        y="5"
+        width="16"
+        height="14"
+        rx="2.4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M8 9h8M8 12h8M8 15h5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function CategoryQuickCard({ item, onClick }) {
   const handleKeyDown = (e) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -210,19 +357,7 @@ function CategoryQuickCard({ item, onClick }) {
       aria-label={`Open ${item.label}`}
     >
       <div className="category-box-icon" aria-hidden="true">
-        <svg
-          viewBox="0 0 24 24"
-          className="category-box-svg"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M5 7.5h14M5 12h14M5 16.5h14"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-          />
-        </svg>
+        <CategoryIcon type={item.key} />
       </div>
 
       <div className="category-box-label">{item.label}</div>
