@@ -1,5 +1,6 @@
 // src/services/api.js
 import { auth } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 const BASE = String(import.meta.env.VITE_BACKEND_URL || "")
   .trim()
@@ -15,8 +16,33 @@ function assertBaseUrl() {
   }
 }
 
+function waitForAuthReady(timeoutMs = 10000) {
+  return new Promise((resolve, reject) => {
+    if (auth.currentUser) {
+      resolve(auth.currentUser);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      unsubscribe();
+      reject(new Error("Authentication session not ready. Please try again."));
+    }, timeoutMs);
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) return;
+      clearTimeout(timeout);
+      unsubscribe();
+      resolve(user);
+    });
+  });
+}
+
 async function getAuthHeaders(required = false) {
-  const currentUser = auth.currentUser;
+  let currentUser = auth.currentUser;
+
+  if (!currentUser && required) {
+    currentUser = await waitForAuthReady();
+  }
 
   if (!currentUser) {
     if (required) {
@@ -25,7 +51,7 @@ async function getAuthHeaders(required = false) {
     return {};
   }
 
-  const token = await currentUser.getIdToken();
+  const token = await currentUser.getIdToken(true);
 
   return {
     Authorization: `Bearer ${token}`,
@@ -58,66 +84,6 @@ async function request(path, options = {}, authRequired = false) {
   });
 
   return toJson(res);
-}
-
-function sanitizeCodPayload(payload) {
-  return {
-    paymentMethod: "cod",
-    paymentStatus: "pending",
-    status: "pending",
-    source: String(payload?.source || "web").trim() || "web",
-    pricing: {
-      subtotal: Number(payload?.pricing?.subtotal || 0) || 0,
-      deliveryFee: Number(payload?.pricing?.deliveryFee || 0) || 0,
-      total: Number(payload?.pricing?.total || 0) || 0,
-      currency: String(payload?.pricing?.currency || "GHS").trim() || "GHS",
-    },
-    customer: {
-      email: String(payload?.customer?.email || "").trim().toLowerCase(),
-      firstName: String(payload?.customer?.firstName || "").trim(),
-      lastName: String(payload?.customer?.lastName || "").trim(),
-      phone: String(payload?.customer?.phone || "").trim(),
-      network: String(payload?.customer?.network || "").trim(),
-      address: String(payload?.customer?.address || "").trim(),
-      region: String(payload?.customer?.region || "").trim(),
-      city: String(payload?.customer?.city || "").trim(),
-      area: String(payload?.customer?.area || "").trim(),
-      notes: String(payload?.customer?.notes || "").trim(),
-      country:
-        String(payload?.customer?.country || "Ghana").trim() || "Ghana",
-    },
-    items: Array.isArray(payload?.items)
-      ? payload.items.map((item) => ({
-          id: String(item?.id || item?.productId || "").trim(),
-          productId: String(item?.productId || item?.id || "").trim(),
-          name: String(item?.name || "").trim(),
-          image: String(item?.image || "").trim(),
-          qty: Math.max(1, Number(item?.qty) || 1),
-          price: Number(item?.price) || 0,
-          basePrice: Number(item?.basePrice ?? item?.price ?? 0) || 0,
-          optionPriceTotal: Number(item?.optionPriceTotal || 0) || 0,
-          shop: String(item?.shop || "main").trim().toLowerCase(),
-          selectedOptions:
-            item?.selectedOptions && typeof item.selectedOptions === "object"
-              ? item.selectedOptions
-              : {},
-          selectedOptionsLabel: String(
-            item?.selectedOptionsLabel || ""
-          ).trim(),
-          selectedOptionDetails: Array.isArray(item?.selectedOptionDetails)
-            ? item.selectedOptionDetails
-            : [],
-          customizations: Array.isArray(item?.customizations)
-            ? item.customizations
-            : [],
-          shipsFromAbroad: item?.shipsFromAbroad === true,
-          abroadDeliveryFee: Number(item?.abroadDeliveryFee || 0) || 0,
-          inStock: item?.inStock !== false,
-          stock:
-            Number.isFinite(Number(item?.stock)) ? Number(item.stock) : null,
-        }))
-      : [],
-  };
 }
 
 /**
@@ -193,30 +159,6 @@ export async function paystackInit(payload) {
 }
 
 /**
- * Create COD order
- */
-export async function createCodOrder(payload) {
-  return request(
-    "/api/orders",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(sanitizeCodPayload(payload)),
-    },
-    true
-  );
-}
-
-/**
- * Fetch signed-in user's orders
- */
-export async function getMyOrders() {
-  return request("/api/orders", {}, true);
-}
-
-/**
  * Verify payment
  * returns: { ok, status, orderId, reference }
  */
@@ -232,6 +174,6 @@ export async function paystackVerify(reference) {
       safeReference
     )}`,
     {},
-    true
+    false
   );
 }
