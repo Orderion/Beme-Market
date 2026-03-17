@@ -1839,40 +1839,39 @@ export default function Admin() {
 
     try {
       const prepared = importPreviewRows.map((row) => {
-        const payload = {
-          name: String(row.name || "").trim(),
-          brand: String(row.brand || "").trim(),
-          price: Number(row.price || 0),
-          description: String(row.description || "").trim(),
-          dept: row.dept,
-          kind: row.kind,
-          shop:
-            isShopAdmin && normalizedAdminShop
-              ? normalizedAdminShop
-              : normalizeShopKey(row.shop),
-          homeSlot: String(row.homeSlot || "others").trim().toLowerCase(),
-          ownerId: String(row.ownerId || user?.uid || "").trim(),
-          ownerEmail: String(
-            row.ownerEmail || user?.email || profile?.email || ""
-          ).trim(),
-          ownerName: String(row.ownerName || row.sellerName || "").trim(),
-          sellerName: String(row.sellerName || row.ownerName || "").trim(),
-          inStock: !!row.inStock,
-          featured: !!row.featured,
-          shipsFromAbroad: !!row.shipsFromAbroad,
-          customizations: Array.isArray(row.customizations)
-            ? row.customizations
-            : [],
-          abroadDeliveryFee:
-            row.abroadDeliveryFee !== null &&
-            row.abroadDeliveryFee !== undefined &&
-            row.abroadDeliveryFee !== ""
-              ? Number(row.abroadDeliveryFee) || 0
-              : 0,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        };
-
+           const payload = {
+  name: String(row.name || "").trim(),
+  brand: String(row.brand || "").trim(),
+  price: Number(row.price || 0),
+  description: String(row.description || "").trim(),
+  dept: row.dept,
+  kind: row.kind,
+  shop:
+    isShopAdmin && normalizedAdminShop
+      ? normalizedAdminShop
+      : normalizeShopKey(row.shop),
+  homeSlot: String(row.homeSlot || "others").trim().toLowerCase(),
+  ownerId: String(row.ownerId || user?.uid || "").trim(),
+  ownerEmail: String(
+    row.ownerEmail || user?.email || profile?.email || ""
+  ).trim(),
+  ownerName: String(row.ownerName || row.sellerName || "").trim(),
+  sellerName: String(row.sellerName || row.ownerName || "").trim(),
+  inStock: !!row.inStock,
+  featured: !!row.featured,
+  shipsFromAbroad: !!row.shipsFromAbroad,
+  customizations: normalizeCustomizationGroups(
+    Array.isArray(row.customizations) ? row.customizations : []
+  ),
+  abroadDeliveryFee:
+    row.abroadDeliveryFee !== null &&
+    row.abroadDeliveryFee !== undefined &&
+    row.abroadDeliveryFee !== ""
+      ? Number(row.abroadDeliveryFee) || 0
+      : 0,
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp(),
+};
         if (
           row.stock !== null &&
           row.stock !== undefined &&
@@ -2058,10 +2057,28 @@ export default function Admin() {
       };
 
       if (nextImagePayloads?.length) {
-        const imageUrls = nextImagePayloads.map((item) => item.url).filter(Boolean);
-        nextRow.image = imageUrls[0] || "";
-        nextRow.images = imageUrls;
-      }
+  const imageUrls = nextImagePayloads.map((item) => item.url).filter(Boolean);
+
+  nextRow.image = imageUrls[0] || "";
+  nextRow.images = imageUrls;
+  nextRow.imageMeta = {
+    publicId: nextImagePayloads[0]?.publicId || "",
+    width: nextImagePayloads[0]?.width || null,
+    height: nextImagePayloads[0]?.height || null,
+    format: nextImagePayloads[0]?.format || "",
+    bytes: nextImagePayloads[0]?.bytes || 0,
+    originalFilename: nextImagePayloads[0]?.originalFilename || "",
+  };
+  nextRow.imageMetaList = nextImagePayloads.map((item) => ({
+    publicId: item.publicId || "",
+    width: item.width || null,
+    height: item.height || null,
+    format: item.format || "",
+    bytes: item.bytes || 0,
+    originalFilename: item.originalFilename || "",
+    url: item.url || "",
+  }));
+}
 
       setImportPreviewRows((prev) =>
         prev.map((row) => (row.id === previewRowToEdit.id ? nextRow : row))
@@ -2303,29 +2320,37 @@ export default function Admin() {
           ? Number(editForm.stock)
           : null;
 
-      const updatePayload = {
-        name: String(editForm.name || "").trim(),
-        brand: String(editForm.brand || "").trim(),
-        description: String(editForm.description || "").trim(),
-        price: Number(editForm.price),
-        dept: editForm.dept,
-        kind: editForm.kind,
-        shop: shopValue,
-        homeSlot: String(editForm.homeSlot || "others").trim().toLowerCase(),
-        inStock:
-          nextStock !== null
-            ? nextStock > 0 && !!editForm.inStock
-            : !!editForm.inStock,
-        featured: !!editForm.featured,
-        shipsFromAbroad: !!editForm.shipsFromAbroad,
-        abroadDeliveryFee:
-          editForm.abroadDeliveryFee !== "" &&
-          Number.isFinite(Number(editForm.abroadDeliveryFee))
-            ? Number(editForm.abroadDeliveryFee)
-            : 0,
-        customizations,
-        updatedAt: serverTimestamp(),
-      };
+const updatePayload = {
+  name: String(editForm.name || "").trim(),
+  brand: String(editForm.brand || "").trim(),
+  description: String(editForm.description || "").trim(),
+  price: Number(editForm.price),
+  dept: editForm.dept,
+  kind: editForm.kind,
+  shop: shopValue,
+  homeSlot: String(editForm.homeSlot || "others").trim().toLowerCase(),
+  inStock:
+    nextStock !== null
+      ? nextStock > 0 && !!editForm.inStock
+      : !!editForm.inStock,
+  featured: !!editForm.featured,
+  shipsFromAbroad: !!editForm.shipsFromAbroad,
+  abroadDeliveryFee:
+    editForm.abroadDeliveryFee !== "" &&
+    Number.isFinite(Number(editForm.abroadDeliveryFee))
+      ? Number(editForm.abroadDeliveryFee)
+      : 0,
+  customizations,
+  updatedAt: serverTimestamp(),
+};
+
+const sellerName = resolveCurrentSellerName(user, profile);
+
+updatePayload.ownerEmail = String(
+  user?.email || profile?.email || ""
+).trim();
+updatePayload.ownerName = sellerName;
+updatePayload.sellerName = sellerName;
 
       if (nextStock !== null) {
         updatePayload.stock = nextStock;
@@ -2344,10 +2369,28 @@ export default function Admin() {
       if (!updatePayload.customizations.length) delete updatePayload.customizations;
 
       if (nextImagePayloads?.length) {
-        const imageUrls = nextImagePayloads.map((item) => item.url).filter(Boolean);
-        updatePayload.image = imageUrls[0];
-        updatePayload.images = imageUrls;
-      }
+  const imageUrls = nextImagePayloads.map((item) => item.url).filter(Boolean);
+
+  updatePayload.image = imageUrls[0] || "";
+  updatePayload.images = imageUrls;
+  updatePayload.imageMeta = {
+    publicId: nextImagePayloads[0]?.publicId || "",
+    width: nextImagePayloads[0]?.width || null,
+    height: nextImagePayloads[0]?.height || null,
+    format: nextImagePayloads[0]?.format || "",
+    bytes: nextImagePayloads[0]?.bytes || 0,
+    originalFilename: nextImagePayloads[0]?.originalFilename || "",
+  };
+  updatePayload.imageMetaList = nextImagePayloads.map((item) => ({
+    publicId: item.publicId || "",
+    width: item.width || null,
+    height: item.height || null,
+    format: item.format || "",
+    bytes: item.bytes || 0,
+    originalFilename: item.originalFilename || "",
+    url: item.url || "",
+  }));
+}
 
       await updateDoc(doc(db, COLLECTION_NAME, productToEdit.id), updatePayload);
       setMsg(`✅ "${updatePayload.name}" updated successfully.`);
@@ -2454,6 +2497,34 @@ export default function Admin() {
     ? "Create products from this super admin account and review products across every shop. Other shops remain visible here but are read-only."
     : `Manage only products belonging to ${formatShopLabel(normalizedAdminShop)}.`;
 
+  if (!user) {
+    return (
+      <div className="admin-page">
+        <div className="admin-card">
+          <div className="admin-head">
+            <h2 className="admin-title">Admin access required</h2>
+            <p className="admin-sub">Please sign in to continue.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isSuperAdmin && !isShopAdmin) {
+    return (
+      <div className="admin-page">
+        <div className="admin-card">
+          <div className="admin-head">
+            <h2 className="admin-title">Access denied</h2>
+            <p className="admin-sub">
+              This page is available to admins only.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   if (previewRowToEdit) {
     return (
       <div className="admin-page">
