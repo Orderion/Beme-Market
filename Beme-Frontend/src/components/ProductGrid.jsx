@@ -67,54 +67,55 @@ function getNumericStock(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function normalizeFilter(filter) {
-  if (!filter) {
-    return {
-      dept: null,
-      kind: null,
-      shop: null,
-      slot: null,
-      q: "",
-      priceMin: null,
-      priceMax: null,
-      inStockOnly: false,
-      featuredOnly: false,
-      sort: "new",
-    };
-  }
+function normalizeDoc(docSnap) {
+  const d = docSnap.data() || {};
 
-  if (typeof filter === "string") {
-    return {
-      dept: filter.toLowerCase(),
-      kind: null,
-      shop: null,
-      slot: null,
-      q: "",
-      priceMin: null,
-      priceMax: null,
-      inStockOnly: false,
-      featuredOnly: false,
-      sort: "new",
-    };
-  }
+  const price = Number(d.price ?? d.Price ?? 0) || 0;
+  const rawOldPrice = d.oldPrice ?? d.oldprice ?? null;
+
+  const dept = d.dept ?? d.Dept ?? null;
+  const kind = d.kind ?? d.Kind ?? null;
+  const shop = d.shop ?? d.Shop ?? "main";
+  const homeSlot =
+    d.homeSlot ??
+    d.home_filter ??
+    d.homeFilter ??
+    d.slot ??
+    d.discoveryCategory ??
+    "others";
+
+  const stock = getNumericStock(d.stock ?? d.Stock ?? d.quantity ?? d.qty);
+  const inStock = parseBooleanish(d.inStock ?? d.in_stock, true);
+  const featured = parseBooleanish(d.featured ?? d.Featured, false);
+
+  const images = normalizeImages(d);
+  const shippingSource = normalizeShippingSource(d);
+  const shipsFromAbroad =
+    shippingSource === "abroad" ||
+    parseBooleanish(d.shipFromAbroad, false) ||
+    parseBooleanish(d.shipsFromAbroad, false);
 
   return {
-    dept: filter.dept ? String(filter.dept).toLowerCase() : null,
-    kind: filter.kind ? String(filter.kind).toLowerCase() : null,
-    shop: filter.shop ? String(filter.shop).toLowerCase() : null,
-    slot: filter.slot ? String(filter.slot).toLowerCase() : null,
-    q: filter.q ? String(filter.q).toLowerCase().trim() : "",
-    priceMin:
-      filter.priceMin != null && !Number.isNaN(Number(filter.priceMin))
-        ? Number(filter.priceMin)
+    id: docSnap.id,
+    ...d,
+    price,
+    oldPrice:
+      rawOldPrice !== null && rawOldPrice !== undefined && rawOldPrice !== ""
+        ? Number(rawOldPrice) || rawOldPrice
         : null,
-    priceMax:
-      filter.priceMax != null && !Number.isNaN(Number(filter.priceMax))
-        ? Number(filter.priceMax)
-        : null,
-    inStockOnly: !!filter.inStockOnly,
-    featuredOnly: !!filter.featuredOnly,
-    sort: (filter.sort || "new").toLowerCase(),
+    dept: typeof dept === "string" ? dept.toLowerCase().trim() : dept,
+    kind: typeof kind === "string" ? kind.toLowerCase().trim() : kind,
+    shop: typeof shop === "string" ? shop.toLowerCase().trim() : shop,
+    homeSlot:
+      typeof homeSlot === "string" ? homeSlot.toLowerCase().trim() : "others",
+    stock,
+    inStock,
+    featured,
+    image: images[0] || "",
+    images,
+    shippingSource,
+    shipsFromAbroad,
+    createdAt: d.createdAt ?? null,
   };
 }
 
