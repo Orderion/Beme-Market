@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { HOME_FILTER_OPTIONS, SHOPS } from "../constants/catalog";
 import "./ProductCard.css";
 
 function normalizeImages(product) {
@@ -112,6 +113,22 @@ function getShippingBadgeLabel(source) {
 
 function normalizeShop(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function formatShopLabel(value) {
+  const key = normalizeShop(value);
+  const match = SHOPS.find((shop) => shop.key === key);
+  return match?.label || "";
+}
+
+function normalizeHomeSlot(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function formatHomeSlotLabel(value) {
+  const key = normalizeHomeSlot(value);
+  const match = HOME_FILTER_OPTIONS.find((item) => item.key === key);
+  return match?.label || "";
 }
 
 function getNumericStock(product) {
@@ -226,6 +243,16 @@ export default function ProductCard({ product }) {
     [product]
   );
 
+  const shopLabel = useMemo(
+    () => formatShopLabel(product?.shop),
+    [product?.shop]
+  );
+
+  const homeSlotLabel = useMemo(
+    () => formatHomeSlotLabel(product?.homeSlot),
+    [product?.homeSlot]
+  );
+
   const formatMoney = (n) => {
     if (n === null || Number.isNaN(n)) return "";
     return `GHS ${n.toFixed(2)}`;
@@ -261,6 +288,7 @@ export default function ProductCard({ product }) {
         images,
         qty: 1,
         shop: normalizeShop(product?.shop),
+        homeSlot: normalizeHomeSlot(product?.homeSlot || "others"),
         selectedOptions: {},
         selectedOptionsLabel: "",
         selectedOptionDetails: [],
@@ -382,6 +410,17 @@ export default function ProductCard({ product }) {
         </div>
 
         <div className="p-body">
+          {(shopLabel || homeSlotLabel) && (
+            <div className="p-meta-line">
+              {shopLabel ? <span className="p-meta-chip">{shopLabel}</span> : null}
+              {homeSlotLabel ? (
+                <span className="p-meta-chip p-meta-chip--soft">
+                  {homeSlotLabel}
+                </span>
+              ) : null}
+            </div>
+          )}
+
           <p className="p-name">{name}</p>
 
           {price !== null ? (
