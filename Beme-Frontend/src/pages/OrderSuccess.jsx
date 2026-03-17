@@ -34,17 +34,23 @@ function AnimatedTitle({ text }) {
   );
 }
 
+function normalizeStatus(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 export default function OrderSuccess() {
   const [params] = useSearchParams();
 
   const reference = params.get("reference");
-  const urlStatus = params.get("status");
+  const urlStatus = normalizeStatus(params.get("status"));
 
   const { clearCart } = useCart();
 
   const [status, setStatus] = useState("verifying");
   const [orderId, setOrderId] = useState(null);
+  const [referenceText, setReferenceText] = useState(reference || null);
   const hasClearedCartRef = useRef(false);
+  const hasVerifiedRef = useRef(false);
 
   const etaText = useMemo(() => {
     const now = new Date();
@@ -74,43 +80,63 @@ export default function OrderSuccess() {
     let cancelled = false;
 
     async function run() {
+      if (hasVerifiedRef.current) return;
+      hasVerifiedRef.current = true;
+
       if (!reference) {
         if (!cancelled) {
           clearCartEverywhere();
+          setReferenceText(null);
           setStatus("cod");
         }
         return;
       }
 
+      setReferenceText(reference);
+
       if (urlStatus === "success") {
         if (!cancelled) {
           clearCartEverywhere();
           setStatus("paid");
-          const derivedId = reference.startsWith("BM_")
-            ? reference.replace("BM_", "")
-            : null;
-          setOrderId(derivedId);
+          setOrderId(
+            reference.startsWith("BM_") ? reference.replace("BM_", "") : null
+          );
         }
         return;
       }
 
-      if (urlStatus && urlStatus !== "success") {
+      if (
+        urlStatus &&
+        [
+          "failed",
+          "verify_error",
+          "missing_reference",
+          "amount_mismatch",
+          "invalid_metadata_type",
+          "not_found",
+          "abandoned",
+          "reversed",
+          "cancelled",
+          "error",
+        ].includes(urlStatus)
+      ) {
         try {
           const data = await paystackVerify(reference);
 
           if (cancelled) return;
 
-          if (data?.ok && data?.status === "success") {
+          if (data?.ok && normalizeStatus(data?.status) === "success") {
             clearCartEverywhere();
             setStatus("paid");
             setOrderId(
               data?.orderId ||
                 (reference.startsWith("BM_") ? reference.replace("BM_", "") : null)
             );
-          } else {
-            setStatus("failed");
-            setOrderId(data?.orderId || null);
+            return;
           }
+
+          setStatus("failed");
+          setOrderId(data?.orderId || null);
         } catch (e) {
           console.error("Verification error:", e);
           if (!cancelled) setStatus("failed");
@@ -123,7 +149,7 @@ export default function OrderSuccess() {
 
         if (cancelled) return;
 
-        if (data?.ok && data?.status === "success") {
+        if (data?.ok && normalizeStatus(data?.status) === "success") {
           clearCartEverywhere();
           setStatus("paid");
           setOrderId(
@@ -162,11 +188,11 @@ export default function OrderSuccess() {
               Please wait while we confirm your transaction.
             </p>
 
-            {reference ? (
+            {referenceText ? (
               <div className="order-success-meta">
                 <div>
                   <span>Reference</span>
-                  <b>{reference}</b>
+                  <b>{referenceText}</b>
                 </div>
               </div>
             ) : null}
@@ -193,10 +219,12 @@ export default function OrderSuccess() {
                   <b>{orderId}</b>
                 </div>
               ) : null}
-              <div>
-                <span>Reference</span>
-                <b>{reference}</b>
-              </div>
+              {referenceText ? (
+                <div>
+                  <span>Reference</span>
+                  <b>{referenceText}</b>
+                </div>
+              ) : null}
             </div>
 
             <div className="order-success-actions">
@@ -267,10 +295,10 @@ export default function OrderSuccess() {
                   <b>{orderId}</b>
                 </div>
               ) : null}
-              {reference ? (
+              {referenceText ? (
                 <div>
                   <span>Reference</span>
-                  <b>{reference}</b>
+                  <b>{referenceText}</b>
                 </div>
               ) : null}
             </div>
