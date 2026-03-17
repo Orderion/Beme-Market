@@ -1,15 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { getAuth } from "firebase/auth";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import LoaderOverlay from "../components/LoaderOverlay";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { startPaystackCheckout } from "../lib/checkout";
+import { createCodOrder, getMyOrders } from "../services/api";
 import "./Checkout.css";
-
-const API_BASE = String(import.meta.env.VITE_BACKEND_URL || "")
-  .trim()
-  .replace(/\/+$/, "");
 
 const FREE_DELIVERY_REGIONS = new Set(["Greater Accra"]);
 const GH_REGIONS = ["Greater Accra"];
@@ -129,6 +125,10 @@ function getNumericStock(item) {
 function isItemOutOfStock(item) {
   if (!item) return true;
   if (item.inStock === false) return true;
+
+  const stock = getNumericStock(item);
+  if (stock !== null && stock <= 0) return true;
+
   return false;
 }
 
@@ -233,6 +233,36 @@ function sanitizeSelectedOptionDetails(source) {
     .slice(0, 40);
 }
 
+function sanitizeCustomizations(source) {
+  if (!Array.isArray(source)) return [];
+
+  return source
+    .map((entry) => {
+      if (typeof entry === "string") {
+        const value = sanitizeText(entry, 120);
+        return value || null;
+      }
+
+      if (entry && typeof entry === "object") {
+        const label = sanitizeText(
+          entry?.label || entry?.name || entry?.key || entry?.title,
+          60
+        );
+        const value = sanitizeText(
+          entry?.value || entry?.selected || entry?.option || entry?.label,
+          120
+        );
+
+        if (!label && !value) return null;
+        return { label, value };
+      }
+
+      return null;
+    })
+    .filter(Boolean)
+    .slice(0, 40);
+}
+
 function buildSafeCartItems(cartItems) {
   return cartItems.map((item) => ({
     id: sanitizeText(item.id, 120),
@@ -250,64 +280,12 @@ function buildSafeCartItems(cartItems) {
     selectedOptionDetails: sanitizeSelectedOptionDetails(
       item.selectedOptionDetails
     ),
+    customizations: sanitizeCustomizations(item.customizations),
     shipsFromAbroad: item.shipsFromAbroad === true,
     abroadDeliveryFee: getItemAbroadDeliveryFee(item),
     inStock: item.inStock !== false,
     stock: getNumericStock(item),
   }));
-}
-
-async function getFirebaseAuthHeaders() {
-  const auth = getAuth();
-  const currentUser = auth.currentUser;
-
-  if (!currentUser) {
-    throw new Error("You must be signed in to continue.");
-  }
-
-  const token = await currentUser.getIdToken();
-
-  return {
-    Authorization: `Bearer ${token}`,
-    Accept: "application/json",
-    "Content-Type": "application/json",
-  };
-}
-
-async function backendRequest(path, options = {}) {
-  if (!API_BASE) {
-    throw new Error("Missing backend URL. Set VITE_BACKEND_URL.");
-  }
-
-  const headers = await getFirebaseAuthHeaders();
-
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: "GET",
-    ...options,
-    headers: {
-      ...headers,
-      ...(options.headers || {}),
-    },
-  });
-
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    throw new Error(data?.error || data?.message || "Request failed");
-  }
-
-  return data;
-}
-
-async function fetchOwnOrdersSummary() {
-  return backendRequest("/api/orders");
-}
-
-async function createCodOrder(payload) {
-  return backendRequest("/api/orders", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
 }
 
 function PaymentIcon({ type, disabled = false }) {
@@ -455,15 +433,10 @@ export default function Checkout() {
       setCheckingOrderHistory(true);
 
       try {
-        const data = await fetchOwnOrdersSummary();
+        const data = await getMyOrders();
         if (!active) return;
 
-        const rows = Array.isArray(data?.orders)
-          ? data.orders
-          : Array.isArray(data)
-          ? data
-          : [];
-
+        const rows = Array.isArray(data?.orders) ? data.orders : [];
         setHasPreviousOrders(rows.length > 0);
       } catch (error) {
         console.error("Failed to check order history:", error);
@@ -553,7 +526,6 @@ export default function Checkout() {
   }, [safeCartItems]);
 
   const hasUnavailableCartItems = unavailableCartItems.length > 0;
-
   const isFirstTimeCheckout = !checkingOrderHistory && !hasPreviousOrders;
 
   const codDisabledReason = useMemo(() => {
@@ -741,6 +713,9 @@ export default function Checkout() {
       selectedOptionDetails: Array.isArray(item.selectedOptionDetails)
         ? item.selectedOptionDetails
         : [],
+      customizations: Array.isArray(item.customizations)
+        ? item.customizations
+        : [],
       shipsFromAbroad: item.shipsFromAbroad === true,
       abroadDeliveryFee: getItemAbroadDeliveryFee(item),
       inStock: item.inStock !== false,
@@ -801,9 +776,16 @@ export default function Checkout() {
 
     try {
       const payload = buildOrderPayload("cod");
-      await createCodOrder(payload);
+      const result = await createCodOrder(payload);
+      const createdOrderId = result?.order?.id || result?.id || "";
       clearCart();
-      navigate("/order-success?status=success", { replace: true });
+
+      navigate(
+        `/order-success?status=success${
+          createdOrderId ? `&orderId=${encodeURIComponent(createdOrderId)}` : ""
+        }`,
+        { replace: true }
+      );
     } catch (e) {
       console.error("COD order failed:", e);
       alert(
@@ -840,6 +822,7 @@ export default function Checkout() {
         cartItems: safeCartItems.map((item) => ({
           ...item,
           id: item.id || "",
+          productId: item.productId || item.id || "",
           qty: Math.max(1, Number(item.qty) || 1),
           price: Number(item.price) || 0,
           basePrice: Number(item.basePrice ?? item.price ?? 0) || 0,
@@ -850,6 +833,9 @@ export default function Checkout() {
           selectedOptionsLabel: item.selectedOptionsLabel || "",
           selectedOptionDetails: Array.isArray(item.selectedOptionDetails)
             ? item.selectedOptionDetails
+            : [],
+          customizations: Array.isArray(item.customizations)
+            ? item.customizations
             : [],
           inStock: item.inStock !== false,
           stock: getNumericStock(item),
