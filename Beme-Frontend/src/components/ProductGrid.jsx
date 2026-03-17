@@ -67,55 +67,54 @@ function getNumericStock(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function normalizeDoc(docSnap) {
-  const d = docSnap.data() || {};
+function normalizeFilter(filter) {
+  if (!filter) {
+    return {
+      dept: null,
+      kind: null,
+      shop: null,
+      slot: null,
+      q: "",
+      priceMin: null,
+      priceMax: null,
+      inStockOnly: false,
+      featuredOnly: false,
+      sort: "new",
+    };
+  }
 
-  const price = Number(d.price ?? d.Price ?? 0) || 0;
-  const rawOldPrice = d.oldPrice ?? d.oldprice ?? null;
-
-  const dept = d.dept ?? d.Dept ?? null;
-  const kind = d.kind ?? d.Kind ?? null;
-  const shop = d.shop ?? d.Shop ?? "main";
-  const homeSlot =
-    d.homeSlot ??
-    d.home_filter ??
-    d.homeFilter ??
-    d.slot ??
-    d.discoveryCategory ??
-    "others";
-
-  const stock = getNumericStock(d.stock ?? d.Stock ?? d.quantity ?? d.qty);
-  const inStock = parseBooleanish(d.inStock ?? d.in_stock, true);
-  const featured = parseBooleanish(d.featured ?? d.Featured, false);
-
-  const images = normalizeImages(d);
-  const shippingSource = normalizeShippingSource(d);
-  const shipsFromAbroad =
-    shippingSource === "abroad" ||
-    parseBooleanish(d.shipFromAbroad, false) ||
-    parseBooleanish(d.shipsFromAbroad, false);
+  if (typeof filter === "string") {
+    return {
+      dept: filter.toLowerCase(),
+      kind: null,
+      shop: null,
+      slot: null,
+      q: "",
+      priceMin: null,
+      priceMax: null,
+      inStockOnly: false,
+      featuredOnly: false,
+      sort: "new",
+    };
+  }
 
   return {
-    id: docSnap.id,
-    ...d,
-    price,
-    oldPrice:
-      rawOldPrice !== null && rawOldPrice !== undefined && rawOldPrice !== ""
-        ? Number(rawOldPrice) || rawOldPrice
+    dept: filter.dept ? String(filter.dept).toLowerCase().trim() : null,
+    kind: filter.kind ? String(filter.kind).toLowerCase().trim() : null,
+    shop: filter.shop ? String(filter.shop).toLowerCase().trim() : null,
+    slot: filter.slot ? String(filter.slot).toLowerCase().trim() : null,
+    q: filter.q ? String(filter.q).toLowerCase().trim() : "",
+    priceMin:
+      filter.priceMin != null && !Number.isNaN(Number(filter.priceMin))
+        ? Number(filter.priceMin)
         : null,
-    dept: typeof dept === "string" ? dept.toLowerCase().trim() : dept,
-    kind: typeof kind === "string" ? kind.toLowerCase().trim() : kind,
-    shop: typeof shop === "string" ? shop.toLowerCase().trim() : shop,
-    homeSlot:
-      typeof homeSlot === "string" ? homeSlot.toLowerCase().trim() : "others",
-    stock,
-    inStock,
-    featured,
-    image: images[0] || "",
-    images,
-    shippingSource,
-    shipsFromAbroad,
-    createdAt: d.createdAt ?? null,
+    priceMax:
+      filter.priceMax != null && !Number.isNaN(Number(filter.priceMax))
+        ? Number(filter.priceMax)
+        : null,
+    inStockOnly: !!filter.inStockOnly,
+    featuredOnly: !!filter.featuredOnly,
+    sort: (filter.sort || "new").toLowerCase(),
   };
 }
 
@@ -214,9 +213,9 @@ function normalizeDoc(docSnap) {
       rawOldPrice !== null && rawOldPrice !== undefined && rawOldPrice !== ""
         ? Number(rawOldPrice) || rawOldPrice
         : null,
-    dept: typeof dept === "string" ? dept.toLowerCase() : dept,
-    kind: typeof kind === "string" ? kind.toLowerCase() : kind,
-    shop: typeof shop === "string" ? shop.toLowerCase() : shop,
+    dept: typeof dept === "string" ? dept.toLowerCase().trim() : dept,
+    kind: typeof kind === "string" ? kind.toLowerCase().trim() : kind,
+    shop: typeof shop === "string" ? shop.toLowerCase().trim() : shop,
     homeSlot:
       typeof homeSlot === "string" ? homeSlot.toLowerCase().trim() : "others",
     stock,
@@ -388,46 +387,18 @@ export default function ProductGrid({
     f.priceMax,
   ]);
 
-const finalList = useMemo(() => {
-  let list = [...products];
+  const baseQueryParts = useMemo(() => {
+    const colRef = collection(db, COLLECTION_NAME);
+    const wheres = [];
 
-  if (f.slot) {
-    list = list.filter(
-      (p) => String(p.homeSlot || "others").toLowerCase().trim() === f.slot
-    );
-  }
+    if (f.dept) wheres.push(where("dept", "==", f.dept));
+    if (f.kind) wheres.push(where("kind", "==", f.kind));
+    if (f.shop) wheres.push(where("shop", "==", f.shop));
+    if (f.inStockOnly) wheres.push(where("inStock", "==", true));
 
-  if (f.featuredOnly) {
-    list = list.filter((p) => !!p.featured);
-  }
-
-  if (f.priceMin != null) {
-    list = list.filter((p) => (Number(p.price) || 0) >= f.priceMin);
-  }
-
-  if (f.priceMax != null) {
-    list = list.filter((p) => (Number(p.price) || 0) <= f.priceMax);
-  }
-
-  if (f.q) {
-    list = list.filter((p) => matchesSearch(p, f.q));
-  }
-
-  if (shouldRandomize(sortKey)) {
-    return randomizedStableOrder(list, randomSeedBase);
-  }
-
-  return list;
-}, [
-  products,
-  f.slot,
-  f.priceMin,
-  f.priceMax,
-  f.featuredOnly,
-  f.q,
-  sortKey,
-  randomSeedBase,
-]);
+    const ord = buildOrder(sortKey);
+    return { colRef, wheres, ord };
+  }, [f.dept, f.kind, f.shop, f.inStockOnly, sortKey]);
 
   useEffect(() => {
     let alive = true;
@@ -613,6 +584,12 @@ const finalList = useMemo(() => {
   const finalList = useMemo(() => {
     let list = [...products];
 
+    if (f.slot) {
+      list = list.filter(
+        (p) => String(p.homeSlot || "others").toLowerCase().trim() === f.slot
+      );
+    }
+
     if (f.featuredOnly) {
       list = list.filter((p) => !!p.featured);
     }
@@ -636,6 +613,7 @@ const finalList = useMemo(() => {
     return list;
   }, [
     products,
+    f.slot,
     f.priceMin,
     f.priceMax,
     f.featuredOnly,
@@ -650,11 +628,11 @@ const finalList = useMemo(() => {
 
     const base = serverCount != null ? serverCount : finalList.length;
     const clientFilteredActive =
-  !!f.slot ||
-  f.priceMin != null ||
-  f.priceMax != null ||
-  f.featuredOnly ||
-  !!f.q;
+      !!f.slot ||
+      f.priceMin != null ||
+      f.priceMax != null ||
+      f.featuredOnly ||
+      !!f.q;
 
     if (clientFilteredActive) return <>{finalList.length} items</>;
     return <>{base} items</>;
