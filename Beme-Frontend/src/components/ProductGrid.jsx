@@ -73,6 +73,7 @@ function normalizeFilter(filter) {
       dept: null,
       kind: null,
       shop: null,
+      slot: null,
       q: "",
       priceMin: null,
       priceMax: null,
@@ -87,6 +88,7 @@ function normalizeFilter(filter) {
       dept: filter.toLowerCase(),
       kind: null,
       shop: null,
+      slot: null,
       q: "",
       priceMin: null,
       priceMax: null,
@@ -100,6 +102,7 @@ function normalizeFilter(filter) {
     dept: filter.dept ? String(filter.dept).toLowerCase() : null,
     kind: filter.kind ? String(filter.kind).toLowerCase() : null,
     shop: filter.shop ? String(filter.shop).toLowerCase() : null,
+    slot: filter.slot ? String(filter.slot).toLowerCase() : null,
     q: filter.q ? String(filter.q).toLowerCase().trim() : "",
     priceMin:
       filter.priceMin != null && !Number.isNaN(Number(filter.priceMin))
@@ -183,6 +186,13 @@ function normalizeDoc(docSnap) {
   const dept = d.dept ?? d.Dept ?? null;
   const kind = d.kind ?? d.Kind ?? null;
   const shop = d.shop ?? d.Shop ?? "main";
+  const homeSlot =
+    d.homeSlot ??
+    d.home_filter ??
+    d.homeFilter ??
+    d.slot ??
+    d.discoveryCategory ??
+    "others";
 
   const stock = getNumericStock(d.stock ?? d.Stock ?? d.quantity ?? d.qty);
   const inStock = parseBooleanish(d.inStock ?? d.in_stock, true);
@@ -206,6 +216,8 @@ function normalizeDoc(docSnap) {
     dept: typeof dept === "string" ? dept.toLowerCase() : dept,
     kind: typeof kind === "string" ? kind.toLowerCase() : kind,
     shop: typeof shop === "string" ? shop.toLowerCase() : shop,
+    homeSlot:
+      typeof homeSlot === "string" ? homeSlot.toLowerCase().trim() : "others",
     stock,
     inStock,
     featured,
@@ -261,7 +273,10 @@ function matchesSearch(product, term) {
     product.dept,
     product.kind,
     product.shop,
-    product.shipsFromAbroad ? "ships from abroad imported international" : "local",
+    product.homeSlot,
+    product.shipsFromAbroad
+      ? "ships from abroad imported international"
+      : "local",
     product.inStock ? "in stock" : "out of stock",
   ]
     .filter(Boolean)
@@ -326,6 +341,7 @@ export default function ProductGrid({
       dept: f.dept,
       kind: f.kind,
       shop: f.shop,
+      slot: f.slot,
       q: f.q,
       inStockOnly: f.inStockOnly,
       sortKey,
@@ -337,6 +353,7 @@ export default function ProductGrid({
     f.dept,
     f.kind,
     f.shop,
+    f.slot,
     f.q,
     f.inStockOnly,
     f.priceMin,
@@ -351,6 +368,7 @@ export default function ProductGrid({
       f.dept || "all",
       f.kind || "all",
       f.shop || "all",
+      f.slot || "all",
       f.q || "none",
       f.featuredOnly ? "featured" : "not-featured",
       f.inStockOnly ? "in-stock" : "stock-any",
@@ -361,6 +379,7 @@ export default function ProductGrid({
     f.dept,
     f.kind,
     f.shop,
+    f.slot,
     f.q,
     f.featuredOnly,
     f.inStockOnly,
@@ -375,11 +394,12 @@ export default function ProductGrid({
     if (f.dept) wheres.push(where("dept", "==", f.dept));
     if (f.kind) wheres.push(where("kind", "==", f.kind));
     if (f.shop) wheres.push(where("shop", "==", f.shop));
+    if (f.slot) wheres.push(where("homeSlot", "==", f.slot));
     if (f.inStockOnly) wheres.push(where("inStock", "==", true));
 
     const ord = buildOrder(sortKey);
     return { colRef, wheres, ord };
-  }, [f.dept, f.kind, f.shop, f.inStockOnly, sortKey]);
+  }, [f.dept, f.kind, f.shop, f.slot, f.inStockOnly, sortKey]);
 
   useEffect(() => {
     let alive = true;
