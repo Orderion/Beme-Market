@@ -288,6 +288,21 @@ function buildSafeCartItems(cartItems) {
   }));
 }
 
+function isOrderSuccessfullyPaid(order) {
+  const status = String(order?.status || "")
+    .trim()
+    .toLowerCase();
+  const paymentStatus = String(order?.paymentStatus || "")
+    .trim()
+    .toLowerCase();
+
+  return (
+    order?.paid === true ||
+    paymentStatus === "paid" ||
+    ["paid", "processing", "shipped", "delivered"].includes(status)
+  );
+}
+
 function PaymentIcon({ type, disabled = false }) {
   if (type === "cod") {
     return (
@@ -359,6 +374,42 @@ function PaymentIcon({ type, disabled = false }) {
   );
 }
 
+function LockIcon() {
+  return (
+    <svg
+      className="payment-lock-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path
+        d="M7.75 10V8.25a4.25 4.25 0 1 1 8.5 0V10"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <rect
+        x="5.25"
+        y="10"
+        width="13.5"
+        height="9.5"
+        rx="2.2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M12 13.5v2.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function InfoIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className="cod-info-icon">
@@ -398,7 +449,7 @@ export default function Checkout() {
   const [sessionExpired, setSessionExpired] = useState(false);
   const [showCODInfo, setShowCODInfo] = useState(false);
   const [checkingOrderHistory, setCheckingOrderHistory] = useState(true);
-  const [hasPreviousOrders, setHasPreviousOrders] = useState(false);
+  const [hasSuccessfulPaidOrder, setHasSuccessfulPaidOrder] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -424,7 +475,7 @@ export default function Checkout() {
     const checkPreviousOrders = async () => {
       if (!user?.uid) {
         if (active) {
-          setHasPreviousOrders(false);
+          setHasSuccessfulPaidOrder(false);
           setCheckingOrderHistory(false);
         }
         return;
@@ -437,11 +488,11 @@ export default function Checkout() {
         if (!active) return;
 
         const rows = Array.isArray(data?.orders) ? data.orders : [];
-        setHasPreviousOrders(rows.length > 0);
+        setHasSuccessfulPaidOrder(rows.some(isOrderSuccessfullyPaid));
       } catch (error) {
         console.error("Failed to check order history:", error);
         if (!active) return;
-        setHasPreviousOrders(false);
+        setHasSuccessfulPaidOrder(false);
       } finally {
         if (active) {
           setCheckingOrderHistory(false);
@@ -526,7 +577,7 @@ export default function Checkout() {
   }, [safeCartItems]);
 
   const hasUnavailableCartItems = unavailableCartItems.length > 0;
-  const isFirstTimeCheckout = !checkingOrderHistory && !hasPreviousOrders;
+  const needsFirstSuccessfulPaystackOrder = !checkingOrderHistory && !hasSuccessfulPaidOrder;
 
   const codDisabledReason = useMemo(() => {
     if (hasUnavailableCartItems) {
@@ -535,16 +586,42 @@ export default function Checkout() {
     if (hasShippedFromAbroadItem) {
       return "Pay on Delivery is unavailable because your cart contains a shipped from abroad item.";
     }
-    if (isFirstTimeCheckout) {
-      return "Pay on Delivery is unavailable for your first checkout. Please complete your first order with Paystack.";
+    if (needsFirstSuccessfulPaystackOrder) {
+      return "Pay on Delivery is unavailable until you complete your first successful Paystack payment.";
     }
     return "";
-  }, [hasShippedFromAbroadItem, isFirstTimeCheckout, hasUnavailableCartItems]);
+  }, [
+    hasUnavailableCartItems,
+    hasShippedFromAbroadItem,
+    needsFirstSuccessfulPaystackOrder,
+  ]);
 
   const isCODBlocked = !!codDisabledReason;
   const isFinalMinute = timeLeft <= 60 && !sessionExpired;
   const inputsDisabled = loading || sessionExpired;
   const formattedTimeLeft = formatTime(timeLeft);
+
+  const selectedMethodMeta = useMemo(() => {
+    if (method === "cod") {
+      return {
+        heading: "Review your payment choice",
+        title: "Pay on Delivery selected",
+        note: isCODBlocked
+          ? codDisabledReason
+          : "You will place the order now and pay when your order arrives.",
+        badge: isCODBlocked ? "Unavailable right now" : "Cash on delivery",
+        secureNote: "",
+      };
+    }
+
+    return {
+      heading: "Review your payment choice",
+      title: "Paystack selected",
+      note: "You will be redirected securely to Paystack to complete payment for this order.",
+      badge: "Secure online checkout",
+      secureNote: "Secured by Paystack",
+    };
+  }, [method, isCODBlocked, codDisabledReason]);
 
   useEffect(() => {
     if (isCODBlocked && method === "cod") {
@@ -868,6 +945,24 @@ export default function Checkout() {
     }
   };
 
+  const handleSelectPaystack = () => {
+    if (inputsDisabled || checkingOrderHistory) return;
+    setMethod("paystack");
+    setShowCODInfo(false);
+  };
+
+  const handleSelectCOD = () => {
+    if (inputsDisabled || checkingOrderHistory) return;
+
+    if (isCODBlocked) {
+      setShowCODInfo(true);
+      return;
+    }
+
+    setMethod("cod");
+    setShowCODInfo(false);
+  };
+
   return (
     <div className="checkout">
       <div className="checkout-container">
@@ -1081,52 +1176,87 @@ export default function Checkout() {
 
               <h3>Payment method</h3>
 
-              <div className="payment-options payment-options--enhanced">
+              <div className="payment-methods-panel">
                 <button
                   type="button"
-                  className={method === "paystack" ? "chip active" : "chip"}
-                  onClick={() => setMethod("paystack")}
+                  className={[
+                    "payment-method-card",
+                    "payment-method-card--paystack",
+                    method === "paystack" ? "is-selected" : "",
+                    method === "cod" ? "is-dimmed" : "",
+                  ]
+                    .join(" ")
+                    .trim()}
+                  onClick={handleSelectPaystack}
                   disabled={inputsDisabled || checkingOrderHistory}
                 >
-                  Paystack
+                  <span className="payment-method-card__left">
+                    <span className="payment-method-card__icon-wrap">
+                      <PaymentIcon type="paystack" />
+                    </span>
+                    <span className="payment-method-card__content">
+                      <span className="payment-method-card__title">
+                        Pay with Paystack
+                      </span>
+                      <span className="payment-method-card__sub">
+                        Secure online payment
+                      </span>
+                      <span className="payment-method-card__note">
+                        Secured by Paystack
+                      </span>
+                    </span>
+                  </span>
+
+                  <span className="payment-method-card__right">
+                    <LockIcon />
+                  </span>
                 </button>
 
-                <div className="payment-method-inline">
-                  <button
-                    type="button"
-                    className={[
-                      method === "cod" ? "chip active" : "chip",
-                      isCODBlocked ? "chip-disabled" : "",
-                    ]
-                      .join(" ")
-                      .trim()}
-                    onClick={() => {
-                      if (isCODBlocked) {
-                        setShowCODInfo((prev) => !prev);
-                        return;
-                      }
-                      setMethod("cod");
-                    }}
-                    disabled={inputsDisabled || checkingOrderHistory}
-                    aria-disabled={isCODBlocked}
-                    title={
-                      isCODBlocked
-                        ? "Pay on Delivery is currently unavailable"
-                        : "Pay on Delivery"
-                    }
-                  >
-                    Pay on Delivery
-                  </button>
+                <button
+                  type="button"
+                  className={[
+                    "payment-method-card",
+                    "payment-method-card--cod",
+                    method === "cod" ? "is-selected" : "",
+                    method === "paystack" ? "is-dimmed" : "",
+                    isCODBlocked ? "is-blocked" : "",
+                  ]
+                    .join(" ")
+                    .trim()}
+                  onClick={handleSelectCOD}
+                  disabled={inputsDisabled || checkingOrderHistory}
+                  aria-disabled={isCODBlocked}
+                  title={
+                    isCODBlocked
+                      ? "Pay on Delivery is currently unavailable"
+                      : "Pay on Delivery"
+                  }
+                >
+                  <span className="payment-method-card__left">
+                    <span className="payment-method-card__icon-wrap">
+                      <PaymentIcon type="cod" disabled={isCODBlocked} />
+                    </span>
+                    <span className="payment-method-card__content">
+                      <span className="payment-method-card__title">
+                        Pay on Delivery
+                      </span>
+                      <span className="payment-method-card__sub">
+                        {isCODBlocked
+                          ? "Currently unavailable"
+                          : "Pay when your order arrives"}
+                      </span>
+                      <span className="payment-method-card__note">
+                        {isCODBlocked
+                          ? "Unavailable until eligible"
+                          : "Available after your first successful prepaid order"}
+                      </span>
+                    </span>
+                  </span>
 
-                  <button
-                    type="button"
-                    className="cod-info-trigger"
-                    onClick={() => setShowCODInfo((prev) => !prev)}
-                    aria-label="Why Pay on Delivery is unavailable"
-                  >
+                  <span className="payment-method-card__right payment-method-card__right--info">
                     <InfoIcon />
-                  </button>
-                </div>
+                  </span>
+                </button>
               </div>
 
               {checkingOrderHistory ? (
@@ -1135,7 +1265,42 @@ export default function Checkout() {
                 </div>
               ) : null}
 
-              {showCODInfo ? (
+              <div
+                className={[
+                  "payment-selection-review",
+                  method === "paystack"
+                    ? "payment-selection-review--paystack"
+                    : "payment-selection-review--cod",
+                ]
+                  .join(" ")
+                  .trim()}
+              >
+                <div className="payment-selection-review__top">
+                  <span className="payment-selection-review__eyebrow">
+                    {selectedMethodMeta.heading}
+                  </span>
+                  <span className="payment-selection-review__badge">
+                    {selectedMethodMeta.badge}
+                  </span>
+                </div>
+
+                <strong className="payment-selection-review__title">
+                  {selectedMethodMeta.title}
+                </strong>
+
+                <p className="payment-selection-review__text">
+                  {selectedMethodMeta.note}
+                </p>
+
+                {selectedMethodMeta.secureNote ? (
+                  <div className="payment-selection-review__secure">
+                    <LockIcon />
+                    <span>{selectedMethodMeta.secureNote}</span>
+                  </div>
+                ) : null}
+              </div>
+
+              {showCODInfo || (method === "cod" && isCODBlocked) ? (
                 <div className="payment-info-panel">
                   <div className="payment-info-panel__icon">
                     <InfoIcon />
@@ -1151,75 +1316,78 @@ export default function Checkout() {
               ) : null}
 
               <div className="checkout-actions checkout-actions--enhanced">
-                <button
-                  className={[
-                    "primary-btn",
-                    "payment-btn",
-                    "payment-btn--paystack",
-                    method === "paystack" ? "is-selected" : "",
-                  ]
-                    .join(" ")
-                    .trim()}
-                  onClick={payWithPaystack}
-                  disabled={
-                    inputsDisabled ||
-                    !!errors.cart ||
-                    !user ||
-                    checkingOrderHistory ||
-                    hasUnavailableCartItems
-                  }
-                  type="button"
-                >
-                  <span className="payment-btn__inner">
-                    <PaymentIcon type="paystack" />
-                    <span className="payment-btn__text">
-                      <span className="payment-btn__title">
-                        Pay with Paystack
+                {method === "paystack" ? (
+                  <button
+                    className={[
+                      "primary-btn",
+                      "payment-btn",
+                      "payment-btn--paystack",
+                      "is-selected",
+                    ]
+                      .join(" ")
+                      .trim()}
+                    onClick={payWithPaystack}
+                    disabled={
+                      inputsDisabled ||
+                      !!errors.cart ||
+                      !user ||
+                      checkingOrderHistory ||
+                      hasUnavailableCartItems
+                    }
+                    type="button"
+                  >
+                    <span className="payment-btn__inner">
+                      <PaymentIcon type="paystack" />
+                      <span className="payment-btn__text">
+                        <span className="payment-btn__title">
+                          Pay with Paystack
+                        </span>
+                        <span className="payment-btn__sub">
+                          {hasUnavailableCartItems
+                            ? "Resolve unavailable cart items first"
+                            : "Secured by Paystack"}
+                        </span>
                       </span>
-                      <span className="payment-btn__sub">
-                        {hasUnavailableCartItems
-                          ? "Resolve unavailable cart items first"
-                          : "Secure online payment"}
+                      <LockIcon />
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    className={[
+                      "primary-btn",
+                      "payment-btn",
+                      "payment-btn--cod",
+                      "is-selected",
+                      isCODBlocked ? "is-disabled" : "",
+                    ]
+                      .join(" ")
+                      .trim()}
+                    onClick={placeCOD}
+                    disabled={
+                      inputsDisabled ||
+                      !!errors.cart ||
+                      !user ||
+                      checkingOrderHistory ||
+                      isCODBlocked ||
+                      hasUnavailableCartItems
+                    }
+                    type="button"
+                  >
+                    <span className="payment-btn__inner">
+                      <PaymentIcon type="cod" disabled={isCODBlocked} />
+                      <span className="payment-btn__text">
+                        <span className="payment-btn__title">
+                          Pay on Delivery
+                        </span>
+                        <span className="payment-btn__sub">
+                          {isCODBlocked
+                            ? "Currently unavailable"
+                            : "Confirm order and pay on arrival"}
+                        </span>
                       </span>
                     </span>
-                  </span>
-                </button>
-
-                <button
-                  className={[
-                    "primary-btn",
-                    "payment-btn",
-                    "payment-btn--cod",
-                    method === "cod" ? "is-selected" : "",
-                    isCODBlocked ? "is-disabled" : "",
-                  ]
-                    .join(" ")
-                    .trim()}
-                  onClick={placeCOD}
-                  disabled={
-                    inputsDisabled ||
-                    !!errors.cart ||
-                    !user ||
-                    checkingOrderHistory ||
-                    isCODBlocked ||
-                    hasUnavailableCartItems
-                  }
-                  type="button"
-                >
-                  <span className="payment-btn__inner">
-                    <PaymentIcon type="cod" disabled={isCODBlocked} />
-                    <span className="payment-btn__text">
-                      <span className="payment-btn__title">
-                        Pay on Delivery
-                      </span>
-                      <span className="payment-btn__sub">
-                        {isCODBlocked
-                          ? "Currently unavailable"
-                          : "Pay when your order arrives"}
-                      </span>
-                    </span>
-                  </span>
-                </button>
+                  </button>
+                )}
               </div>
             </div>
 
