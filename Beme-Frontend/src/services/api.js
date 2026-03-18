@@ -23,12 +23,14 @@ function waitForAuthReady(timeoutMs = 10000) {
       return;
     }
 
+    let unsubscribe = () => {};
+
     const timeout = setTimeout(() => {
       unsubscribe();
       reject(new Error("Authentication session not ready. Please try again."));
     }, timeoutMs);
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) return;
       clearTimeout(timeout);
       unsubscribe();
@@ -84,6 +86,97 @@ async function request(path, options = {}, authRequired = false) {
   });
 
   return toJson(res);
+}
+
+/**
+ * Get signed-in user's orders
+ * returns: { success, orders }
+ */
+export async function getMyOrders() {
+  return request("/api/orders", {}, true);
+}
+
+/**
+ * Create COD order
+ * payload: { customer, items, shops, primaryShop, pricing, paymentMethod, paymentStatus, status, source }
+ */
+export async function createCodOrder(payload) {
+  const safePayload = {
+    customer: {
+      userId: String(payload?.customer?.userId || "").trim(),
+      firstName: String(payload?.customer?.firstName || "").trim(),
+      lastName: String(payload?.customer?.lastName || "").trim(),
+      email: String(payload?.customer?.email || "").trim().toLowerCase(),
+      phone: String(payload?.customer?.phone || "").trim(),
+      network: String(payload?.customer?.network || "").trim(),
+      address: String(payload?.customer?.address || "").trim(),
+      region: String(payload?.customer?.region || "").trim(),
+      city: String(payload?.customer?.city || "").trim(),
+      area: String(payload?.customer?.area || "").trim(),
+      notes: String(payload?.customer?.notes || "").trim(),
+      country:
+        String(payload?.customer?.country || "Ghana").trim() || "Ghana",
+    },
+    items: Array.isArray(payload?.items)
+      ? payload.items.map((item) => ({
+          id: String(item?.id || item?.productId || "").trim(),
+          productId: String(item?.productId || item?.id || "").trim(),
+          qty: Math.max(1, Number(item?.qty) || 1),
+          price: Number(item?.price) || 0,
+          basePrice: Number(item?.basePrice ?? item?.price ?? 0) || 0,
+          optionPriceTotal: Number(item?.optionPriceTotal || 0) || 0,
+          name: String(item?.name || "").trim(),
+          image: String(item?.image || "").trim(),
+          shop: String(item?.shop || "main").trim().toLowerCase(),
+          selectedOptions:
+            item?.selectedOptions && typeof item.selectedOptions === "object"
+              ? item.selectedOptions
+              : {},
+          selectedOptionsLabel: String(
+            item?.selectedOptionsLabel || ""
+          ).trim(),
+          selectedOptionDetails: Array.isArray(item?.selectedOptionDetails)
+            ? item.selectedOptionDetails
+            : [],
+          customizations: Array.isArray(item?.customizations)
+            ? item.customizations
+            : [],
+          shipsFromAbroad: item?.shipsFromAbroad === true,
+          abroadDeliveryFee: Number(item?.abroadDeliveryFee || 0) || 0,
+          inStock: item?.inStock !== false,
+          stock:
+            Number.isFinite(Number(item?.stock)) ? Number(item.stock) : null,
+        }))
+      : [],
+    shops: Array.isArray(payload?.shops)
+      ? payload.shops.map((shop) =>
+          String(shop || "main").trim().toLowerCase()
+        )
+      : [],
+    primaryShop: String(payload?.primaryShop || "main").trim().toLowerCase(),
+    pricing: {
+      subtotal: Number(payload?.pricing?.subtotal || 0) || 0,
+      deliveryFee: Number(payload?.pricing?.deliveryFee || 0) || 0,
+      total: Number(payload?.pricing?.total || 0) || 0,
+      currency: String(payload?.pricing?.currency || "GHS").trim() || "GHS",
+    },
+    paymentMethod: "cod",
+    paymentStatus: "pending",
+    status: "pending",
+    source: String(payload?.source || "web").trim() || "web",
+  };
+
+  return request(
+    "/api/orders",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(safePayload),
+    },
+    true
+  );
 }
 
 /**
