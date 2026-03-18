@@ -1,7 +1,7 @@
 .page {
-  max-width: 760px;
+  max-width: 820px;
   margin: 0 auto;
-  padding: 60px 20px 80px;
+  padding: 56px 20px 88px;
   color: var(--text);
   display: flex;
   justify-content: center;
@@ -10,90 +10,155 @@
 .order-success-card {
   position: relative;
   width: 100%;
-  background: var(--card);
+  background: linear-gradient(
+    180deg,
+    var(--card) 0%,
+    rgba(255, 255, 255, 0.96) 100%
+  );
   border: 1px solid var(--border);
-  border-radius: 28px;
-  box-shadow: var(--shadow);
-  padding: 46px 32px;
+  border-radius: 30px;
+  box-shadow:
+    0 24px 60px rgba(17, 17, 17, 0.08),
+    0 6px 18px rgba(17, 17, 17, 0.04);
+  padding: 48px 34px;
   text-align: center;
   overflow: hidden;
   animation: fadeUpSoft 0.38s ease;
 }
 
+body.dark .order-success-card {
+  background: linear-gradient(
+    180deg,
+    var(--card) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.34),
+    0 6px 18px rgba(0, 0, 0, 0.22);
+}
+
 .order-success-glow {
   position: absolute;
-  inset: auto;
   top: -120px;
   left: 50%;
-  width: 260px;
-  height: 260px;
+  width: 280px;
+  height: 280px;
   border-radius: 50%;
   transform: translateX(-50%);
-  background: radial-gradient(circle, rgba(17, 17, 17, 0.07), transparent 66%);
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.12), transparent 68%);
   pointer-events: none;
 }
 
+.order-success-card.cod .order-success-glow {
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.12), transparent 68%);
+}
+
+.order-success-card.failed .order-success-glow {
+  background: radial-gradient(circle, rgba(220, 38, 38, 0.12), transparent 68%);
+}
+
 body.dark .order-success-glow {
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.06), transparent 66%);
+  background: radial-gradient(circle, rgba(96, 165, 250, 0.16), transparent 68%);
+}
+
+body.dark .order-success-card.cod .order-success-glow {
+  background: radial-gradient(circle, rgba(251, 146, 60, 0.15), transparent 68%);
+}
+
+body.dark .order-success-card.failed .order-success-glow {
+  background: radial-gradient(circle, rgba(248, 113, 113, 0.16), transparent 68%);
 }
 
 .order-success-title {
   font-family: var(--font-display);
-  font-size: 30px;
+  font-size: 32px;
   letter-spacing: -0.06em;
   margin: 0 0 10px;
   font-weight: 700;
+  line-height: 1.05;
 }
 
 .order-success-sub {
   font-size: 14px;
   color: var(--muted);
   margin: 0 0 18px;
-  line-height: 1.7;
+  line-height: 1.75;
+  max-width: 520px;
+  margin-inline: auto;
 }
 
 .order-success-icon {
-  width: 62px;
-  height: 62px;
-  margin: 0 auto 20px;
+  width: 70px;
+  height: 70px;
+  margin: 0 auto 22px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   border: 1px solid var(--border);
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 800;
   background: var(--soft);
   animation: popIn 0.4s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .order-success-icon--success {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
+  box-shadow:
+    0 14px 30px rgba(37, 99, 235, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
   animation: popIn 0.4s ease, pulseSoft 2s infinite;
 }
 
+.order-success-card.cod .order-success-icon--success {
+  background: linear-gradient(180deg, #fb923c 0%, #ea580c 100%);
+  box-shadow:
+    0 14px 30px rgba(234, 88, 12, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
 .order-success-icon--failed {
-  background: transparent;
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.16);
+  background: rgba(220, 38, 38, 0.08);
+  box-shadow: none;
 }
 
 .order-success-meta {
-  margin: 14px auto 0;
-  max-width: 440px;
+  margin: 16px auto 0;
+  max-width: 500px;
   border: 1px solid var(--border);
-  background: var(--soft);
-  border-radius: 16px;
-  padding: 14px 16px;
+  background: linear-gradient(
+    180deg,
+    rgba(17, 17, 17, 0.02) 0%,
+    rgba(17, 17, 17, 0.04) 100%
+  );
+  border-radius: 18px;
+  padding: 15px 16px;
   text-align: left;
   display: grid;
   gap: 10px;
   animation: fadeUpSoft 0.48s ease;
 }
 
+body.dark .order-success-meta {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.02) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+}
+
 .order-success-meta > div {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 14px;
   font-size: 13px;
-  opacity: 0.92;
+  opacity: 0.96;
 }
 
 .order-success-meta span {
@@ -105,20 +170,26 @@ body.dark .order-success-glow {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 240px;
+  max-width: 260px;
+  text-align: right;
 }
 
 .spinner {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 999px;
-  border: 2px solid var(--border);
+  border: 2px solid rgba(17, 17, 17, 0.12);
   border-top-color: var(--text);
   animation: spin 0.8s linear infinite;
 }
 
+body.dark .spinner {
+  border-color: rgba(255, 255, 255, 0.12);
+  border-top-color: #fff;
+}
+
 .order-success-actions {
-  margin-top: 24px;
+  margin-top: 26px;
   display: flex;
   justify-content: center;
   gap: 12px;
@@ -126,23 +197,27 @@ body.dark .order-success-glow {
 }
 
 .order-success-btn {
+  min-height: 50px;
   padding: 14px 24px;
   border-radius: 16px;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   background: var(--text);
   color: var(--bg);
   text-decoration: none;
   font-size: 14px;
   font-weight: 800;
   transition:
-    transform 0.12s ease,
+    transform 0.14s ease,
     opacity 0.2s ease,
-    box-shadow 0.22s ease;
+    box-shadow 0.22s ease,
+    border-color 0.22s ease,
+    background 0.22s ease;
 }
 
 .order-success-btn:hover {
-  opacity: 0.92;
-  box-shadow: 0 12px 24px rgba(17, 17, 17, 0.12);
+  opacity: 0.94;
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(17, 17, 17, 0.12);
 }
 
 .order-success-btn:active {
@@ -152,10 +227,19 @@ body.dark .order-success-glow {
 .order-success-btn--ghost {
   background: transparent;
   color: var(--text);
+  border-color: var(--border);
+}
+
+.order-success-btn--ghost:hover {
+  background: rgba(17, 17, 17, 0.03);
 }
 
 body.dark .order-success-btn {
   color: var(--text);
+}
+
+body.dark .order-success-btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .order-success-letters {
@@ -200,24 +284,44 @@ body.dark .order-success-btn {
 
 @media (max-width: 600px) {
   .page {
-    padding: 40px 16px 60px;
+    padding: 38px 16px 60px;
   }
 
   .order-success-card {
-    padding: 34px 22px;
+    padding: 34px 20px;
     border-radius: 24px;
   }
 
   .order-success-title {
-    font-size: 24px;
+    font-size: 25px;
   }
 
   .order-success-sub {
     font-size: 13px;
   }
 
+  .order-success-icon {
+    width: 62px;
+    height: 62px;
+    font-size: 24px;
+  }
+
+  .order-success-meta {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .order-success-meta > div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
   .order-success-meta b {
-    max-width: 180px;
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+    word-break: break-word;
   }
 
   .order-success-btn {
