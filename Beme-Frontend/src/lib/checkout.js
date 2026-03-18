@@ -20,7 +20,9 @@ function sanitizeText(value, max = 200) {
 }
 
 function sanitizeSelectedOptions(source) {
-  if (!source || typeof source !== "object" || Array.isArray(source)) return {};
+  if (!source || typeof source !== "object" || Array.isArray(source)) {
+    return {};
+  }
 
   const out = {};
 
@@ -189,10 +191,9 @@ export async function startPaystackCheckout({
 
   const items = cartItems.map(normalizeCheckoutItem);
 
-  const computedSubtotal = items.reduce(
-    (sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 1),
-    0
-  );
+  const computedSubtotal = items.reduce((sum, item) => {
+    return sum + (Number(item.price) || 0) * (Number(item.qty) || 1);
+  }, 0);
 
   const normalizedPricing = {
     subtotal: Number(pricing?.subtotal) || computedSubtotal,
@@ -224,7 +225,11 @@ export async function startPaystackCheckout({
   });
 
   if (data?.reuseExisting && data?.reference) {
-    window.location.assign(data.authorization_url || `/order-success?reference=${encodeURIComponent(data.reference)}&status=verifying`);
+    window.location.assign(
+      `/order-success?reference=${encodeURIComponent(
+        data.reference
+      )}&status=verifying`
+    );
     return;
   }
 
