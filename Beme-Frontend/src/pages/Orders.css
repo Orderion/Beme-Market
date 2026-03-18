@@ -147,6 +147,19 @@
   font-weight: 600;
 }
 
+.orders-status-badge.status-paid,
+.orders-status-badge.status-processing,
+.orders-status-badge.status-shipped,
+.orders-status-badge.status-delivered {
+  background: rgba(17, 17, 17, 0.06);
+}
+
+.orders-status-badge.status-pending_payment,
+.orders-status-badge.status-payment_failed,
+.orders-status-badge.status-failed {
+  background: rgba(17, 17, 17, 0.04);
+}
+
 .orders-items-count {
   font-size: 13px;
   opacity: 0.72;
@@ -154,7 +167,7 @@
 
 .orders-progress {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 10px;
   margin-bottom: 20px;
 }
@@ -217,14 +230,14 @@
   flex-shrink: 0;
 }
 
-.orders-item-image img {
+.orders-item-image-tag {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.orders-item-image-placeholder {
+.orders-item-image-empty {
   width: 100%;
   height: 100%;
   display: flex;
@@ -236,20 +249,24 @@
   opacity: 0.6;
 }
 
+.orders-item-main {
+  min-width: 0;
+}
+
 .orders-item-name {
   display: inline-block;
   font-weight: 600;
   line-height: 1.4;
 }
 
-.orders-item-meta {
+.orders-item-options {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 6px;
 }
 
-.orders-item-pill {
+.orders-item-option-chip {
   display: inline-flex;
   align-items: center;
   padding: 5px 8px;
