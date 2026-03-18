@@ -67,7 +67,8 @@ function sanitizeSelectedOptionDetails(source) {
       );
       const label = sanitizeText(opt?.label || opt?.value || opt?.title, 80);
       const priceBump = Number(opt?.priceBump);
-      const safePriceBump = Number.isFinite(priceBump) && priceBump > 0 ? priceBump : 0;
+      const safePriceBump =
+        Number.isFinite(priceBump) && priceBump > 0 ? priceBump : 0;
 
       if (!groupName && !label) return null;
 
@@ -162,13 +163,17 @@ function normalizeCheckoutItem(item) {
     homeSlot: sanitizeText(item?.homeSlot || "", 60),
     selectedOptions: sanitizeSelectedOptions(item?.selectedOptions),
     selectedOptionsLabel: sanitizeText(item?.selectedOptionsLabel || "", 240),
-    selectedOptionDetails: sanitizeSelectedOptionDetails(item?.selectedOptionDetails),
+    selectedOptionDetails: sanitizeSelectedOptionDetails(
+      item?.selectedOptionDetails
+    ),
     customizations: sanitizeCustomizations(item?.customizations),
     shippingSource: sanitizeText(item?.shippingSource || "", 60),
     shipsFromAbroad: item?.shipsFromAbroad === true,
     abroadDeliveryFee: Math.max(0, Number(item?.abroadDeliveryFee) || 0),
     oldPrice:
-      item?.oldPrice !== undefined && item?.oldPrice !== null && item?.oldPrice !== ""
+      item?.oldPrice !== undefined &&
+      item?.oldPrice !== null &&
+      item?.oldPrice !== ""
         ? Math.max(0, Number(item.oldPrice) || 0)
         : null,
   };
@@ -219,9 +224,7 @@ export async function startPaystackCheckout({
   });
 
   if (data?.reuseExisting && data?.reference) {
-    window.location.assign(
-      `/order-success?reference=${encodeURIComponent(data.reference)}&status=verifying`
-    );
+    window.location.assign(data.authorization_url || `/order-success?reference=${encodeURIComponent(data.reference)}&status=verifying`);
     return;
   }
 
