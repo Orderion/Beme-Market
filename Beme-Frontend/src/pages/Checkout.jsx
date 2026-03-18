@@ -714,6 +714,10 @@ export default function Checkout() {
         "Some items in your cart are out of stock or exceed available stock. Update your cart before checkout.";
     }
 
+    if (!method) {
+      next.paymentMethod = "Please select a payment method.";
+    }
+
     return next;
   };
 
@@ -734,6 +738,7 @@ export default function Checkout() {
     hasUnavailableCartItems,
     normalizedPhone,
     network,
+    method,
   ]);
 
   const showError = (key) => touched[key] && errors[key];
@@ -756,6 +761,7 @@ export default function Checkout() {
       region: true,
       city: true,
       area: true,
+      paymentMethod: true,
     });
 
     return Object.values(next)[0] || null;
@@ -950,6 +956,11 @@ export default function Checkout() {
 
   const handleMethodChange = (e) => {
     const value = e.target.value;
+
+    setTouched((prev) => ({
+      ...prev,
+      paymentMethod: true,
+    }));
 
     if (!value) {
       setMethod("");
@@ -1181,7 +1192,10 @@ export default function Checkout() {
               <h3>Payment method</h3>
 
               <div className="payment-dropdown-wrap">
-                <label className="payment-dropdown-label" htmlFor="payment-method">
+                <label
+                  className="payment-dropdown-label"
+                  htmlFor="payment-method"
+                >
                   Choose how you want to pay
                 </label>
 
@@ -1191,6 +1205,7 @@ export default function Checkout() {
                     className="payment-dropdown"
                     value={method}
                     onChange={handleMethodChange}
+                    onBlur={markTouched("paymentMethod")}
                     disabled={inputsDisabled || checkingOrderHistory}
                   >
                     <option value="">Select payment method</option>
@@ -1204,6 +1219,10 @@ export default function Checkout() {
                   </span>
                 </div>
               </div>
+
+              {showError("paymentMethod") ? (
+                <div className="field-error">{errors.paymentMethod}</div>
+              ) : null}
 
               {checkingOrderHistory ? (
                 <div className="payment-note">
