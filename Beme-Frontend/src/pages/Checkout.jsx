@@ -439,7 +439,7 @@ export default function Checkout() {
   const { cartItems, clearCart, itemCount } = useCart();
   const { user } = useAuth();
 
-  const [method, setMethod] = useState("paystack");
+  const [method, setMethod] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingMode, setLoadingMode] = useState("");
   const [form, setForm] = useState(INITIAL_FORM);
@@ -577,7 +577,8 @@ export default function Checkout() {
   }, [safeCartItems]);
 
   const hasUnavailableCartItems = unavailableCartItems.length > 0;
-  const needsFirstSuccessfulPaystackOrder = !checkingOrderHistory && !hasSuccessfulPaidOrder;
+  const needsFirstSuccessfulPaystackOrder =
+    !checkingOrderHistory && !hasSuccessfulPaidOrder;
 
   const codDisabledReason = useMemo(() => {
     if (hasUnavailableCartItems) {
@@ -602,6 +603,8 @@ export default function Checkout() {
   const formattedTimeLeft = formatTime(timeLeft);
 
   const selectedMethodMeta = useMemo(() => {
+    if (!method) return null;
+
     if (method === "cod") {
       return {
         heading: "Review your payment choice",
@@ -625,7 +628,7 @@ export default function Checkout() {
 
   useEffect(() => {
     if (isCODBlocked && method === "cod") {
-      setMethod("paystack");
+      setMethod("");
     }
   }, [isCODBlocked, method]);
 
@@ -765,7 +768,7 @@ export default function Checkout() {
     });
     setTouched({});
     setErrors({});
-    setMethod("paystack");
+    setMethod("");
     setLoading(false);
     setLoadingMode("");
     setSessionExpired(false);
@@ -945,21 +948,22 @@ export default function Checkout() {
     }
   };
 
-  const handleSelectPaystack = () => {
-    if (inputsDisabled || checkingOrderHistory) return;
-    setMethod("paystack");
-    setShowCODInfo(false);
-  };
+  const handleMethodChange = (e) => {
+    const value = e.target.value;
 
-  const handleSelectCOD = () => {
-    if (inputsDisabled || checkingOrderHistory) return;
+    if (!value) {
+      setMethod("");
+      setShowCODInfo(false);
+      return;
+    }
 
-    if (isCODBlocked) {
+    if (value === "cod" && isCODBlocked) {
+      setMethod("");
       setShowCODInfo(true);
       return;
     }
 
-    setMethod("cod");
+    setMethod(value);
     setShowCODInfo(false);
   };
 
@@ -1176,87 +1180,29 @@ export default function Checkout() {
 
               <h3>Payment method</h3>
 
-              <div className="payment-methods-panel">
-                <button
-                  type="button"
-                  className={[
-                    "payment-method-card",
-                    "payment-method-card--paystack",
-                    method === "paystack" ? "is-selected" : "",
-                    method === "cod" ? "is-dimmed" : "",
-                  ]
-                    .join(" ")
-                    .trim()}
-                  onClick={handleSelectPaystack}
-                  disabled={inputsDisabled || checkingOrderHistory}
-                >
-                  <span className="payment-method-card__left">
-                    <span className="payment-method-card__icon-wrap">
-                      <PaymentIcon type="paystack" />
-                    </span>
-                    <span className="payment-method-card__content">
-                      <span className="payment-method-card__title">
-                        Pay with Paystack
-                      </span>
-                      <span className="payment-method-card__sub">
-                        Secure online payment
-                      </span>
-                      <span className="payment-method-card__note">
-                        Secured by Paystack
-                      </span>
-                    </span>
-                  </span>
+              <div className="payment-dropdown-wrap">
+                <label className="payment-dropdown-label" htmlFor="payment-method">
+                  Choose how you want to pay
+                </label>
 
-                  <span className="payment-method-card__right">
-                    <LockIcon />
+                <div className="payment-dropdown-shell">
+                  <select
+                    id="payment-method"
+                    className="payment-dropdown"
+                    value={method}
+                    onChange={handleMethodChange}
+                    disabled={inputsDisabled || checkingOrderHistory}
+                  >
+                    <option value="">Select payment method</option>
+                    <option value="paystack">Pay with Paystack</option>
+                    <option value="cod">
+                      Pay on Delivery{isCODBlocked ? " (Unavailable)" : ""}
+                    </option>
+                  </select>
+                  <span className="payment-dropdown-arrow" aria-hidden="true">
+                    ▾
                   </span>
-                </button>
-
-                <button
-                  type="button"
-                  className={[
-                    "payment-method-card",
-                    "payment-method-card--cod",
-                    method === "cod" ? "is-selected" : "",
-                    method === "paystack" ? "is-dimmed" : "",
-                    isCODBlocked ? "is-blocked" : "",
-                  ]
-                    .join(" ")
-                    .trim()}
-                  onClick={handleSelectCOD}
-                  disabled={inputsDisabled || checkingOrderHistory}
-                  aria-disabled={isCODBlocked}
-                  title={
-                    isCODBlocked
-                      ? "Pay on Delivery is currently unavailable"
-                      : "Pay on Delivery"
-                  }
-                >
-                  <span className="payment-method-card__left">
-                    <span className="payment-method-card__icon-wrap">
-                      <PaymentIcon type="cod" disabled={isCODBlocked} />
-                    </span>
-                    <span className="payment-method-card__content">
-                      <span className="payment-method-card__title">
-                        Pay on Delivery
-                      </span>
-                      <span className="payment-method-card__sub">
-                        {isCODBlocked
-                          ? "Currently unavailable"
-                          : "Pay when your order arrives"}
-                      </span>
-                      <span className="payment-method-card__note">
-                        {isCODBlocked
-                          ? "Unavailable until eligible"
-                          : "Available after your first successful prepaid order"}
-                      </span>
-                    </span>
-                  </span>
-
-                  <span className="payment-method-card__right payment-method-card__right--info">
-                    <InfoIcon />
-                  </span>
-                </button>
+                </div>
               </div>
 
               {checkingOrderHistory ? (
@@ -1265,40 +1211,42 @@ export default function Checkout() {
                 </div>
               ) : null}
 
-              <div
-                className={[
-                  "payment-selection-review",
-                  method === "paystack"
-                    ? "payment-selection-review--paystack"
-                    : "payment-selection-review--cod",
-                ]
-                  .join(" ")
-                  .trim()}
-              >
-                <div className="payment-selection-review__top">
-                  <span className="payment-selection-review__eyebrow">
-                    {selectedMethodMeta.heading}
-                  </span>
-                  <span className="payment-selection-review__badge">
-                    {selectedMethodMeta.badge}
-                  </span>
-                </div>
-
-                <strong className="payment-selection-review__title">
-                  {selectedMethodMeta.title}
-                </strong>
-
-                <p className="payment-selection-review__text">
-                  {selectedMethodMeta.note}
-                </p>
-
-                {selectedMethodMeta.secureNote ? (
-                  <div className="payment-selection-review__secure">
-                    <LockIcon />
-                    <span>{selectedMethodMeta.secureNote}</span>
+              {selectedMethodMeta ? (
+                <div
+                  className={[
+                    "payment-selection-review",
+                    method === "paystack"
+                      ? "payment-selection-review--paystack"
+                      : "payment-selection-review--cod",
+                  ]
+                    .join(" ")
+                    .trim()}
+                >
+                  <div className="payment-selection-review__top">
+                    <span className="payment-selection-review__eyebrow">
+                      {selectedMethodMeta.heading}
+                    </span>
+                    <span className="payment-selection-review__badge">
+                      {selectedMethodMeta.badge}
+                    </span>
                   </div>
-                ) : null}
-              </div>
+
+                  <strong className="payment-selection-review__title">
+                    {selectedMethodMeta.title}
+                  </strong>
+
+                  <p className="payment-selection-review__text">
+                    {selectedMethodMeta.note}
+                  </p>
+
+                  {selectedMethodMeta.secureNote ? (
+                    <div className="payment-selection-review__secure">
+                      <LockIcon />
+                      <span>{selectedMethodMeta.secureNote}</span>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               {showCODInfo || (method === "cod" && isCODBlocked) ? (
                 <div className="payment-info-panel">
@@ -1315,80 +1263,82 @@ export default function Checkout() {
                 </div>
               ) : null}
 
-              <div className="checkout-actions checkout-actions--enhanced">
-                {method === "paystack" ? (
-                  <button
-                    className={[
-                      "primary-btn",
-                      "payment-btn",
-                      "payment-btn--paystack",
-                      "is-selected",
-                    ]
-                      .join(" ")
-                      .trim()}
-                    onClick={payWithPaystack}
-                    disabled={
-                      inputsDisabled ||
-                      !!errors.cart ||
-                      !user ||
-                      checkingOrderHistory ||
-                      hasUnavailableCartItems
-                    }
-                    type="button"
-                  >
-                    <span className="payment-btn__inner">
-                      <PaymentIcon type="paystack" />
-                      <span className="payment-btn__text">
-                        <span className="payment-btn__title">
-                          Pay with Paystack
+              {method ? (
+                <div className="checkout-actions checkout-actions--enhanced">
+                  {method === "paystack" ? (
+                    <button
+                      className={[
+                        "primary-btn",
+                        "payment-btn",
+                        "payment-btn--paystack",
+                        "is-selected",
+                      ]
+                        .join(" ")
+                        .trim()}
+                      onClick={payWithPaystack}
+                      disabled={
+                        inputsDisabled ||
+                        !!errors.cart ||
+                        !user ||
+                        checkingOrderHistory ||
+                        hasUnavailableCartItems
+                      }
+                      type="button"
+                    >
+                      <span className="payment-btn__inner">
+                        <PaymentIcon type="paystack" />
+                        <span className="payment-btn__text">
+                          <span className="payment-btn__title">
+                            Pay with Paystack
+                          </span>
+                          <span className="payment-btn__sub">
+                            {hasUnavailableCartItems
+                              ? "Resolve unavailable cart items first"
+                              : "Secured by Paystack"}
+                          </span>
                         </span>
-                        <span className="payment-btn__sub">
-                          {hasUnavailableCartItems
-                            ? "Resolve unavailable cart items first"
-                            : "Secured by Paystack"}
+                        <LockIcon />
+                      </span>
+                    </button>
+                  ) : (
+                    <button
+                      className={[
+                        "primary-btn",
+                        "payment-btn",
+                        "payment-btn--cod",
+                        "is-selected",
+                        isCODBlocked ? "is-disabled" : "",
+                      ]
+                        .join(" ")
+                        .trim()}
+                      onClick={placeCOD}
+                      disabled={
+                        inputsDisabled ||
+                        !!errors.cart ||
+                        !user ||
+                        checkingOrderHistory ||
+                        isCODBlocked ||
+                        hasUnavailableCartItems
+                      }
+                      type="button"
+                    >
+                      <span className="payment-btn__inner">
+                        <PaymentIcon type="cod" disabled={isCODBlocked} />
+                        <span className="payment-btn__text">
+                          <span className="payment-btn__title">
+                            Pay on Delivery
+                          </span>
+                          <span className="payment-btn__sub">
+                            {isCODBlocked
+                              ? "Currently unavailable"
+                              : "Confirm order and pay on arrival"}
+                          </span>
                         </span>
                       </span>
-                      <LockIcon />
-                    </span>
-                  </button>
-                ) : (
-                  <button
-                    className={[
-                      "primary-btn",
-                      "payment-btn",
-                      "payment-btn--cod",
-                      "is-selected",
-                      isCODBlocked ? "is-disabled" : "",
-                    ]
-                      .join(" ")
-                      .trim()}
-                    onClick={placeCOD}
-                    disabled={
-                      inputsDisabled ||
-                      !!errors.cart ||
-                      !user ||
-                      checkingOrderHistory ||
-                      isCODBlocked ||
-                      hasUnavailableCartItems
-                    }
-                    type="button"
-                  >
-                    <span className="payment-btn__inner">
-                      <PaymentIcon type="cod" disabled={isCODBlocked} />
-                      <span className="payment-btn__text">
-                        <span className="payment-btn__title">
-                          Pay on Delivery
-                        </span>
-                        <span className="payment-btn__sub">
-                          {isCODBlocked
-                            ? "Currently unavailable"
-                            : "Confirm order and pay on arrival"}
-                        </span>
-                      </span>
-                    </span>
-                  </button>
-                )}
-              </div>
+                    </button>
+                  )}
+                </div>
+              ) : null}
             </div>
 
             <div className="checkout-summary">
