@@ -13,13 +13,51 @@ const STATUS_STEPS = [
   "delivered",
 ];
 
-const API_BASE = String(import.meta.env.VITE_BACKEND_URL || "")
-  .trim()
-  .replace(/\/+$/, "");
+function normalizeStatus(value) {
+  return String(value || "pending").trim().toLowerCase();
+}
+
+function getVisualStatus(status, paymentStatus, paid) {
+  const normalizedStatus = normalizeStatus(status);
+  const normalizedPaymentStatus = normalizeStatus(paymentStatus);
+
+  if (paid === true || normalizedPaymentStatus === "paid") {
+    if (
+      ["processing", "shipped", "delivered"].includes(normalizedStatus)
+    ) {
+      return normalizedStatus;
+    }
+    return "paid";
+  }
+
+  if (
+    [
+      "payment_failed",
+      "failed",
+      "verify_error",
+      "cancelled",
+      "canceled",
+      "abandoned",
+      "reversed",
+      "amount_mismatch",
+      "invalid_metadata_type",
+      "invalid_user",
+      "user_mismatch",
+      "not_found",
+    ].includes(normalizedStatus)
+  ) {
+    return "pending_payment";
+  }
+
+  if (STATUS_STEPS.includes(normalizedStatus)) {
+    return normalizedStatus;
+  }
+
+  return "pending";
+}
 
 function getStepIndex(status) {
-  const normalized = String(status || "pending").trim().toLowerCase();
-  const index = STATUS_STEPS.indexOf(normalized);
+  const index = STATUS_STEPS.indexOf(status);
   return index === -1 ? 0 : index;
 }
 
@@ -35,8 +73,10 @@ function formatDate(value) {
       typeof value?.toDate === "function"
         ? value.toDate()
         : typeof value?.seconds === "number"
-        ? new Date(value.seconds * 1000)
-        : new Date(value);
+          ? new Date(value.seconds * 1000)
+          : typeof value?._seconds === "number"
+            ? new Date(value._seconds * 1000)
+            : new Date(value);
 
     if (Number.isNaN(date.getTime())) return "—";
 
@@ -56,6 +96,7 @@ function getSortableTime(value) {
   try {
     if (typeof value?.toMillis === "function") return value.toMillis();
     if (typeof value?.seconds === "number") return value.seconds * 1000;
+    if (typeof value?._seconds === "number") return value._seconds * 1000;
     return new Date(value).getTime() || 0;
   } catch {
     return 0;
@@ -170,7 +211,7 @@ async function getAuthHeaders() {
     throw new Error("You must be signed in to continue.");
   }
 
-  const token = await currentUser.getIdToken();
+  const token = await currentUser.getIdToken(true);
 
   return {
     Authorization: `Bearer ${token}`,
@@ -179,13 +220,17 @@ async function getAuthHeaders() {
 }
 
 async function fetchOwnOrders() {
-  if (!API_BASE) {
+  const apiBase = String(import.meta.env.VITE_BACKEND_URL || "")
+    .trim()
+    .replace(/\/+$/, "");
+
+  if (!apiBase) {
     throw new Error("Missing backend URL. Set VITE_BACKEND_URL.");
   }
 
   const headers = await getAuthHeaders();
 
-  const res = await fetch(`${API_BASE}/api/orders`, {
+  const res = await fetch(`${apiBase}/api/orders`, {
     method: "GET",
     headers,
   });
@@ -214,6 +259,7 @@ export default function Orders() {
       if (!user) {
         if (!cancelled) {
           setOrders([]);
+          setPageError("");
           setLoadingOrders(false);
         }
         return;
@@ -272,7 +318,9 @@ export default function Orders() {
         <div className="orders-wrap">
           <div className="orders-empty-card">
             <h1 className="orders-title">Orders</h1>
-            <p className="orders-empty-text">Please log in to view your orders.</p>
+            <p className="orders-empty-text">
+              Please log in to view your orders.
+            </p>
             <Link to="/login" className="orders-action-btn">
               Login
             </Link>
@@ -312,13 +360,20 @@ export default function Orders() {
         ) : (
           <div className="orders-list">
             {orders.map((order) => {
-              const status = String(order.status || "pending")
-                .trim()
-                .toLowerCase();
-              const stepIndex = getStepIndex(status);
+              const rawStatus = normalizeStatus(order.status || "pending");
+              const visualStatus = getVisualStatus(
+                order.status,
+                order.paymentStatus,
+                order.paid
+              );
+              const stepIndex = getStepIndex(visualStatus);
               const total = order.pricing?.total ?? order.amounts?.total ?? 0;
               const createdAt = formatDate(order.createdAt);
               const items = Array.isArray(order.items) ? order.items : [];
+              const badgeText =
+                rawStatus === "payment_failed"
+                  ? "Payment Failed"
+                  : titleize(rawStatus);
 
               return (
                 <article className="orders-card" key={order.id}>
@@ -344,12 +399,12 @@ export default function Orders() {
 
                   <div className="orders-status-row">
                     <span
-                      className={`orders-status-badge status-${status.replace(
+                      className={`orders-status-badge status-${rawStatus.replace(
                         /\s+/g,
                         "-"
                       )}`}
                     >
-                      {titleize(status)}
+                      {badgeText}
                     </span>
                     <span className="orders-items-count">
                       {items.length} item{items.length === 1 ? "" : "s"}
@@ -386,83 +441,34 @@ export default function Orders() {
                         <div
                           className="orders-item-row"
                           key={item.id || `${order.id}-${index}`}
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "64px 1fr auto",
-                            gap: 12,
-                            alignItems: "start",
-                          }}
                         >
-                          <div
-                            className="orders-item-image"
-                            style={{
-                              width: 64,
-                              height: 64,
-                              borderRadius: 14,
-                              overflow: "hidden",
-                              border: "1px solid var(--border)",
-                              background: "var(--soft)",
-                              flexShrink: 0,
-                            }}
-                          >
+                          <div className="orders-item-image">
                             {item.image ? (
                               <img
                                 src={item.image}
                                 alt={item.name || "Product"}
-                                style={{
-                                  width: "100%",
-                                  height: "100%",
-                                  objectFit: "cover",
-                                  display: "block",
-                                }}
+                                className="orders-item-image-tag"
                               />
                             ) : (
-                              <div
-                                style={{
-                                  width: "100%",
-                                  height: "100%",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  fontSize: 11,
-                                  opacity: 0.6,
-                                  textAlign: "center",
-                                  padding: 6,
-                                }}
-                              >
+                              <div className="orders-item-image-empty">
                                 No image
                               </div>
                             )}
                           </div>
 
-                          <div>
+                          <div className="orders-item-main">
                             <span className="orders-item-name">
                               {item.name || "Product"}
                             </span>
 
                             {optionLines.length ? (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexWrap: "wrap",
-                                  gap: 6,
-                                  marginTop: 6,
-                                }}
-                              >
+                              <div className="orders-item-options">
                                 {optionLines.map((line, optionIndex) => (
                                   <span
                                     key={`${
                                       item.id || `${order.id}-${index}`
                                     }-opt-${optionIndex}`}
-                                    style={{
-                                      fontSize: 12,
-                                      opacity: 0.82,
-                                      padding: "5px 8px",
-                                      borderRadius: 999,
-                                      border: "1px solid var(--border)",
-                                      background: "var(--soft)",
-                                      lineHeight: 1.25,
-                                    }}
+                                    className="orders-item-option-chip"
                                   >
                                     {line}
                                   </span>
@@ -471,7 +477,9 @@ export default function Orders() {
                             ) : null}
                           </div>
 
-                          <span className="orders-item-qty">x{item.qty || 1}</span>
+                          <span className="orders-item-qty">
+                            x{item.qty || 1}
+                          </span>
                         </div>
                       );
                     })}
