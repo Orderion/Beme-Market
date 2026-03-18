@@ -383,6 +383,7 @@ async function buildCheckoutFromItems(items) {
 
     lineItems.push({
       id: item.id,
+      productId: item.id,
       name,
       price: finalUnitPrice,
       basePrice: baseUnitPrice,
@@ -437,11 +438,31 @@ async function findExistingRecentPendingOrder({ userId, fingerprint }) {
   return q.docs[0];
 }
 
-async function markOrderFailed(orderRef, existing, status = "failed", extra = {}) {
+async function verifyPaystackReference(reference) {
+  const response = await safeFetch(
+    `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+      },
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || !data?.status) {
+    throw new Error(data?.message || "Verify failed");
+  }
+
+  return data?.data || {};
+}
+
+async function finalizeFailedOrder(orderRef, existing, status = "failed", extra = {}) {
   await orderRef.update({
     paid: false,
     paymentStatus: "failed",
     status: "payment_failed",
+    verifyLock: false,
     updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
     paystack: {
       ...(existing?.paystack || {}),
@@ -523,12 +544,43 @@ router.post("/checkout/init", async (req, res) => {
         existingData?.paymentMethod === "paystack" &&
         safeTrim(existingData?.paymentStatus) === "pending"
       ) {
-        return res.json({
-          authorization_url: null,
-          reference: existingReference,
-          orderId: existingPendingOrder.id,
-          reuseExisting: true,
-        });
+        try {
+          const verifyData = await verifyPaystackReference(existingReference);
+          const paystackStatus = safeTrim(verifyData?.status).toLowerCase();
+
+          if (paystackStatus === "success") {
+            return res.json({
+              authorization_url: `${FRONTEND_URL}/order-success?reference=${encodeURIComponent(
+                existingReference
+              )}&status=verifying`,
+              reference: existingReference,
+              orderId: existingPendingOrder.id,
+              reuseExisting: true,
+              alreadyPaid: true,
+            });
+          }
+
+          await finalizeFailedOrder(
+            existingPendingOrder.ref,
+            existingData,
+            paystackStatus || "stale_pending",
+            {
+              amountPesewas: Number(verifyData?.amount || 0),
+              paidAt: verifyData?.paid_at || null,
+              replacedByRetry: true,
+            }
+          );
+        } catch (verifyError) {
+          await finalizeFailedOrder(
+            existingPendingOrder.ref,
+            existingData,
+            "stale_pending",
+            {
+              replacedByRetry: true,
+              verifyError: String(verifyError?.message || verifyError),
+            }
+          );
+        }
       }
     }
 
@@ -550,14 +602,12 @@ router.post("/checkout/init", async (req, res) => {
       userId,
       orderFingerprint: fingerprint,
       verifyLock: false,
-
       pricing: {
         currency: "GHS",
         subtotal: safeSubtotal,
         deliveryFee,
         total,
       },
-
       customer: {
         email,
         firstName: sanitizeText(customer.firstName, 80),
@@ -571,7 +621,6 @@ router.post("/checkout/init", async (req, res) => {
         area: sanitizeOptionalText(customer.area, 120),
         notes: sanitizeOptionalText(customer.notes, 500),
       },
-
       items: lineItems,
       shops,
       primaryShop: shops[0] || "main",
@@ -620,11 +669,12 @@ router.post("/checkout/init", async (req, res) => {
       }
     );
 
-    const initData = await initRes.json();
+    const initData = await initRes.json().catch(() => ({}));
 
     if (!initRes.ok || !initData?.status || !initData?.data?.authorization_url) {
       await orderRef.update({
         status: "paystack_init_failed",
+        paymentStatus: "failed",
         updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
         paystack: { initError: initData },
       });
@@ -700,24 +750,12 @@ async function verifyOrderAndUpdate(reference) {
   });
 
   try {
-    const vr = await safeFetch(
-      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-        },
-      }
-    );
+    const data = await verifyPaystackReference(reference);
 
-    const data = await vr.json();
-    if (!vr.ok || !data?.status) {
-      throw new Error(data?.message || "Verify failed");
-    }
-
-    const status = safeTrim(data?.data?.status).toLowerCase();
-    const amountPesewas = Number(data?.data?.amount || 0);
-    const paidAt = data?.data?.paid_at || null;
-    const metadata = data?.data?.metadata || {};
+    const status = safeTrim(data?.status).toLowerCase();
+    const amountPesewas = Number(data?.amount || 0);
+    const paidAt = data?.paid_at || null;
+    const metadata = data?.metadata || {};
 
     const expectedTotal = Math.round(toNumber(existing?.pricing?.total, 0) * 100);
     if (expectedTotal <= 0) {
@@ -725,14 +763,9 @@ async function verifyOrderAndUpdate(reference) {
     }
 
     if (metadata?.userId && metadata.userId !== existing?.userId) {
-      await markOrderFailed(orderRef, existing, "user_mismatch", {
+      await finalizeFailedOrder(orderRef, existing, "user_mismatch", {
         metadataUserId: metadata.userId,
         orderUserId: existing?.userId || null,
-      });
-
-      await orderRef.update({
-        verifyLock: false,
-        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
       });
 
       return {
@@ -743,14 +776,9 @@ async function verifyOrderAndUpdate(reference) {
     }
 
     if (amountPesewas !== expectedTotal) {
-      await markOrderFailed(orderRef, existing, "amount_mismatch", {
+      await finalizeFailedOrder(orderRef, existing, "amount_mismatch", {
         amountPesewas,
         expectedAmountPesewas: expectedTotal,
-      });
-
-      await orderRef.update({
-        verifyLock: false,
-        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
       });
 
       return {
@@ -761,14 +789,9 @@ async function verifyOrderAndUpdate(reference) {
     }
 
     if (metadata?.type && metadata.type !== "order") {
-      await markOrderFailed(orderRef, existing, "invalid_metadata_type", {
+      await finalizeFailedOrder(orderRef, existing, "invalid_metadata_type", {
         amountPesewas,
         expectedAmountPesewas: expectedTotal,
-      });
-
-      await orderRef.update({
-        verifyLock: false,
-        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
       });
 
       return {
@@ -825,10 +848,9 @@ async function verifyOrderAndUpdate(reference) {
       };
     }
 
-    await markOrderFailed(orderRef, existing, status || "failed");
-    await orderRef.update({
-      verifyLock: false,
-      updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+    await finalizeFailedOrder(orderRef, existing, status || "failed", {
+      amountPesewas,
+      paidAt,
     });
 
     return {
@@ -851,7 +873,7 @@ async function verifyOrderAndUpdate(reference) {
 }
 
 router.get("/checkout/callback", async (req, res) => {
-  const reference = safeTrim(req.query?.reference);
+  const reference = safeTrim(req.query?.reference || req.query?.trxref);
 
   if (!reference) {
     return res.redirect(`${FRONTEND_URL}/order-success?status=missing_reference`);
@@ -862,19 +884,23 @@ router.get("/checkout/callback", async (req, res) => {
 
     if (out?.status === "success") {
       return res.redirect(
-        `${FRONTEND_URL}/order-success?reference=${reference}&status=success`
+        `${FRONTEND_URL}/order-success?reference=${encodeURIComponent(
+          reference
+        )}&status=success`
       );
     }
 
     return res.redirect(
-      `${FRONTEND_URL}/order-success?reference=${reference}&status=${encodeURIComponent(
-        out?.status || "failed"
-      )}`
+      `${FRONTEND_URL}/order-success?reference=${encodeURIComponent(
+        reference
+      )}&status=${encodeURIComponent(out?.status || "failed")}`
     );
   } catch (err) {
     console.error("Paystack callback verify error:", err);
     return res.redirect(
-      `${FRONTEND_URL}/order-success?reference=${reference}&status=verify_error`
+      `${FRONTEND_URL}/order-success?reference=${encodeURIComponent(
+        reference
+      )}&status=verify_error`
     );
   }
 });
