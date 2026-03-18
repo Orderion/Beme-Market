@@ -288,7 +288,7 @@
   position: absolute;
   right: 16px;
   top: 50%;
-  transform: translateY(calc(-50% - 8px));
+  transform: translateY(-50%);
   pointer-events: none;
   font-size: 16px;
   opacity: 0.65;
