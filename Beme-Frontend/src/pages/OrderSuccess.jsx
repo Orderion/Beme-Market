@@ -86,7 +86,9 @@ export default function OrderSuccess() {
       hasVerifiedRef.current = true;
 
       const isCodSuccess =
-        !reference && (urlStatus === "success" || urlStatus === "cod");
+        !reference &&
+        (urlStatus === "success" || urlStatus === "cod" || !!codOrderId);
+
       const shouldVerify =
         !!reference &&
         [
