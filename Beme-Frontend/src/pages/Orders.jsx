@@ -258,7 +258,7 @@ export default function Orders() {
       <div className="orders-page">
         <div className="orders-wrap">
           <div className="orders-empty-card">
-            <h1 className="orders-title">Orders Api test</h1>
+            <h1 className="orders-title">Orders</h1>
             <p className="orders-empty-text">Loading your orders...</p>
           </div>
         </div>
