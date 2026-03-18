@@ -428,7 +428,7 @@ async function findExistingRecentPendingOrder({ userId, fingerprint }) {
     .where("userId", "==", userId)
     .where("orderFingerprint", "==", fingerprint)
     .where("paymentMethod", "==", "paystack")
-    .where("paymentStatus", "in", ["pending", "paid"])
+    .where("paymentStatus", "==", "pending")
     .limit(1)
     .get()
     .catch(() => null);
@@ -521,7 +521,7 @@ router.post("/checkout/init", async (req, res) => {
         existingData?.userId === userId &&
         existingReference &&
         existingData?.paymentMethod === "paystack" &&
-        ["pending", "paid"].includes(safeTrim(existingData?.paymentStatus))
+        safeTrim(existingData?.paymentStatus) === "pending"
       ) {
         return res.json({
           authorization_url: null,
@@ -895,7 +895,9 @@ router.get("/checkout/verify", async (req, res) => {
     }
 
     if (out?.userId && out.userId !== authUser.uid) {
-      return res.status(403).json({ error: "You are not allowed to verify this order." });
+      return res.status(403).json({
+        error: "You are not allowed to verify this order.",
+      });
     }
 
     return res.json({
