@@ -439,6 +439,12 @@ export default function Checkout() {
   const { cartItems, clearCart, itemCount } = useCart();
   const { user, loading: authLoading } = useAuth();
 
+  const searchParams = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search]
+  );
+  const cancelledPayment = searchParams.get("payment") === "cancelled";
+
   const [method, setMethod] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingMode, setLoadingMode] = useState("");
@@ -811,6 +817,18 @@ export default function Checkout() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const dismissCancelledNotice = () => {
+    const nextParams = new URLSearchParams(location.search);
+    nextParams.delete("payment");
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextParams.toString() ? `?${nextParams.toString()}` : "",
+      },
+      { replace: true }
+    );
+  };
+
   const buildOrderPayload = (paymentMethod) => {
     const items = safeCartItems.map((item) => ({
       id: item.id || "",
@@ -1009,6 +1027,26 @@ export default function Checkout() {
   return (
     <div className="checkout">
       <div className="checkout-container">
+        {cancelledPayment ? (
+          <div className="checkout-cancel-notice" role="status" aria-live="polite">
+            <div className="checkout-cancel-notice__content">
+              <strong>Payment cancelled.</strong>
+              <span>
+                Your order was not completed. You can review your details and try
+                again whenever you are ready.
+              </span>
+            </div>
+            <button
+              type="button"
+              className="checkout-cancel-notice__close"
+              onClick={dismissCancelledNotice}
+              aria-label="Dismiss payment cancelled notice"
+            >
+              ×
+            </button>
+          </div>
+        ) : null}
+
         <div
           className={[
             "checkout-timer",
