@@ -437,7 +437,7 @@ export default function Checkout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { cartItems, clearCart, itemCount } = useCart();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [method, setMethod] = useState("");
   const [loading, setLoading] = useState(false);
@@ -452,13 +452,15 @@ export default function Checkout() {
   const [hasSuccessfulPaidOrder, setHasSuccessfulPaidOrder] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return;
+
     if (!user) {
       navigate("/login", {
         replace: true,
         state: { from: location.pathname },
       });
     }
-  }, [user, navigate, location.pathname]);
+  }, [user, authLoading, navigate, location.pathname]);
 
   useEffect(() => {
     if (user?.email) {
@@ -470,9 +472,34 @@ export default function Checkout() {
   }, [user]);
 
   useEffect(() => {
+    const restoreAfterExternalReturn = () => {
+      setLoading(false);
+      setLoadingMode("");
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        restoreAfterExternalReturn();
+      }
+    };
+
+    window.addEventListener("pageshow", restoreAfterExternalReturn);
+    window.addEventListener("focus", restoreAfterExternalReturn);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.removeEventListener("pageshow", restoreAfterExternalReturn);
+      window.removeEventListener("focus", restoreAfterExternalReturn);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, []);
+
+  useEffect(() => {
     let active = true;
 
     const checkPreviousOrders = async () => {
+      if (authLoading) return;
+
       if (!user?.uid) {
         if (active) {
           setHasSuccessfulPaidOrder(false);
@@ -505,7 +532,7 @@ export default function Checkout() {
     return () => {
       active = false;
     };
-  }, [user]);
+  }, [user, authLoading]);
 
   const safeCartItems = useMemo(() => buildSafeCartItems(cartItems), [cartItems]);
 
@@ -679,7 +706,7 @@ export default function Checkout() {
   const validate = (v) => {
     const next = {};
 
-    if (!user) next.auth = "Please login before checkout.";
+    if (!user && !authLoading) next.auth = "Please login before checkout.";
 
     if (!v.email.trim()) next.email = "Email is required.";
     else if (!isValidEmail(v.email)) next.email = "Enter a valid email address.";
@@ -726,6 +753,7 @@ export default function Checkout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     user,
+    authLoading,
     form.email,
     form.firstName,
     form.lastName,
@@ -1299,6 +1327,7 @@ export default function Checkout() {
                         inputsDisabled ||
                         !!errors.cart ||
                         !user ||
+                        authLoading ||
                         checkingOrderHistory ||
                         hasUnavailableCartItems
                       }
@@ -1335,6 +1364,7 @@ export default function Checkout() {
                         inputsDisabled ||
                         !!errors.cart ||
                         !user ||
+                        authLoading ||
                         checkingOrderHistory ||
                         isCODBlocked ||
                         hasUnavailableCartItems
