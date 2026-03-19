@@ -88,14 +88,21 @@ body.dark .p-media-frame {
 .p-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   border-radius: 20px;
   transition: transform 0.35s ease;
   display: block;
+  padding: 10px;
+  background: #f7f7f7;
+}
+
+body.dark .p-img {
+  background: #181818;
 }
 
 .p-card:hover .p-img {
-  transform: scale(1.025);
+  transform: scale(1.02);
 }
 
 .p-img--empty {
@@ -124,8 +131,6 @@ body.dark .p-img--empty {
   justify-content: flex-end;
   z-index: 4;
 }
-
-/* shipping badge removed intentionally */
 
 .p-ship-badge,
 .p-ship-badge--abroad,
@@ -326,37 +331,9 @@ body.dark .p-media-nav {
   padding: 6px 14px 16px;
 }
 
-.p-meta-line {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-/* only keep main store chip style */
-.p-meta-chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  padding: 0 13px;
-  border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  background: #111;
-  color: #fff;
-}
-
+.p-meta-line,
+.p-meta-chip,
 .p-meta-chip--soft {
-  display: none !important;
-}
-
-body.dark .p-meta-chip {
-  background: #fff;
-  color: #111;
-}
-
-body.dark .p-meta-chip--soft {
   display: none !important;
 }
 
@@ -459,6 +436,10 @@ body.dark .p-price {
     border-radius: 18px;
   }
 
+  .p-img {
+    padding: 8px;
+  }
+
   .p-media-top {
     top: 14px;
     right: 14px;
@@ -501,12 +482,6 @@ body.dark .p-price {
 
   .p-body {
     padding: 6px 12px 14px;
-  }
-
-  .p-meta-chip {
-    min-height: 30px;
-    padding: 0 12px;
-    font-size: 10px;
   }
 
   .p-name {
