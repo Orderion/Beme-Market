@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { HOME_FILTER_OPTIONS, SHOPS } from "../constants/catalog";
 import "./ProductCard.css";
 
 function normalizeImages(product) {
@@ -109,20 +108,8 @@ function normalizeShop(value) {
   return String(value || "").trim().toLowerCase();
 }
 
-function formatShopLabel(value) {
-  const key = normalizeShop(value);
-  const match = SHOPS.find((shop) => shop.key === key);
-  return match?.label || "";
-}
-
 function normalizeHomeSlot(value) {
   return String(value || "").trim().toLowerCase();
-}
-
-function formatHomeSlotLabel(value) {
-  const key = normalizeHomeSlot(value);
-  const match = HOME_FILTER_OPTIONS.find((item) => item.key === key);
-  return match?.label || "";
 }
 
 function getNumericStock(product) {
@@ -262,16 +249,6 @@ export default function ProductCard({ product }) {
   const customizations = useMemo(
     () => normalizeCustomizations(product?.customizations),
     [product]
-  );
-
-  const shopLabel = useMemo(
-    () => formatShopLabel(product?.shop),
-    [product?.shop]
-  );
-
-  const homeSlotLabel = useMemo(
-    () => formatHomeSlotLabel(product?.homeSlot),
-    [product?.homeSlot]
   );
 
   const descriptionSnippet = useMemo(
@@ -523,12 +500,6 @@ export default function ProductCard({ product }) {
         </div>
 
         <div className="p-body">
-          {shopLabel ? (
-            <div className="p-meta-line">
-              <span className="p-meta-chip">{shopLabel}</span>
-            </div>
-          ) : null}
-
           <h3 className="p-name">{name}</h3>
 
           {descriptionSnippet ? (
