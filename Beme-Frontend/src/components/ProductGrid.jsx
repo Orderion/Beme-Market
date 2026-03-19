@@ -16,6 +16,7 @@ import "./ProductGrid.css";
 const COLLECTION_NAME = "Products";
 const PAGE_SIZE = 24;
 const MAX_PAGES = 8;
+const SKELETON_COUNT = 8;
 
 function parseBooleanish(value, fallback = false) {
   if (typeof value === "boolean") return value;
@@ -259,7 +260,7 @@ function buildOrder(sortKey) {
   return orderBy("createdAt", "desc");
 }
 
-function makeSkeleton(n = 8) {
+function makeSkeleton(n = SKELETON_COUNT) {
   return Array.from({ length: n }).map((_, i) => ({ id: `sk_${i}` }));
 }
 
@@ -270,6 +271,8 @@ function matchesSearch(product, term) {
     product.name,
     product.brand,
     product.description,
+    product.shortDescription,
+    product.short_description,
     product.dept,
     product.kind,
     product.shop,
@@ -307,7 +310,6 @@ function randomizedStableOrder(list, seedBase) {
     const bSeed = seededHash(`${seedBase}:${b.id}`);
 
     if (aSeed !== bSeed) return aSeed - bSeed;
-
     return getCreatedAtMillis(b) - getCreatedAtMillis(a);
   });
 }
@@ -324,7 +326,6 @@ export default function ProductGrid({
   const [hasMore, setHasMore] = useState(true);
   const [pagesLoaded, setPagesLoaded] = useState(0);
   const [lastDoc, setLastDoc] = useState(null);
-
   const [err, setErr] = useState("");
   const [serverCount, setServerCount] = useState(null);
 
@@ -420,6 +421,7 @@ export default function ProductGrid({
     }
 
     runCount();
+
     return () => {
       alive = false;
     };
@@ -640,12 +642,13 @@ export default function ProductGrid({
 
   if (loadingFirst) {
     return (
-      <div className="product-grid">
-        {makeSkeleton(8).map((x) => (
+      <div className="product-grid product-grid--loading">
+        {makeSkeleton().map((x) => (
           <div key={x.id} className="product-skeleton" aria-hidden="true">
             <div className="product-skeleton-media" />
             <div className="product-skeleton-line" />
             <div className="product-skeleton-line short" />
+            <div className="product-skeleton-line tiny" />
           </div>
         ))}
       </div>
