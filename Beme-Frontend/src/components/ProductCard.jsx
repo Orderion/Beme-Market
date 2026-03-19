@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { HOME_FILTER_OPTIONS, SHOPS } from "../constants/catalog";
@@ -195,16 +195,44 @@ function getItemAbroadDeliveryFee(product) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
+function getDescriptionSnippet(product) {
+  const candidates = [
+    product?.shortDescription,
+    product?.short_description,
+    product?.descriptionSnippet,
+    product?.description_snippet,
+    product?.tagline,
+    product?.summary,
+    product?.description,
+  ];
+
+  for (const item of candidates) {
+    const text = String(item || "").replace(/\s+/g, " ").trim();
+    if (text) {
+      return text.length > 88 ? `${text.slice(0, 85).trim()}...` : text;
+    }
+  }
+
+  return "";
+}
+
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();
   const [cardPopup, setCardPopup] = useState("");
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const touchStartXRef = useRef(null);
+  const touchDeltaXRef = useRef(0);
 
   const id = product?.id ?? product?.docId ?? product?._id ?? "";
   const name = String(product?.name || "Untitled").trim() || "Untitled";
 
   const images = useMemo(() => normalizeImages(product), [product]);
-  const image = images[0] || "";
   const imageCount = images.length;
+  const activeImage = images[activeImageIndex] || images[0] || "";
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [id, imageCount]);
 
   const shippingSource = useMemo(
     () => normalizeShippingSource(product),
@@ -253,6 +281,11 @@ export default function ProductCard({ product }) {
     [product?.homeSlot]
   );
 
+  const descriptionSnippet = useMemo(
+    () => getDescriptionSnippet(product),
+    [product]
+  );
+
   const formatMoney = (n) => {
     if (n === null || Number.isNaN(n)) return "";
     return `GHS ${n.toFixed(2)}`;
@@ -284,7 +317,7 @@ export default function ProductCard({ product }) {
         optionPriceTotal: 0,
         oldPrice:
           oldPrice !== null && Number.isFinite(oldPrice) ? oldPrice : null,
-        image,
+        image: activeImage || images[0] || "",
         images,
         qty: 1,
         shop: normalizeShop(product?.shop),
@@ -308,6 +341,49 @@ export default function ProductCard({ product }) {
     }
   };
 
+  const goToImage = (e, index) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveImageIndex(index);
+  };
+
+  const goPrevImage = () => {
+    if (imageCount <= 1) return;
+    setActiveImageIndex((prev) => (prev - 1 + imageCount) % imageCount);
+  };
+
+  const goNextImage = () => {
+    if (imageCount <= 1) return;
+    setActiveImageIndex((prev) => (prev + 1) % imageCount);
+  };
+
+  const handleTouchStart = (e) => {
+    if (imageCount <= 1) return;
+    touchStartXRef.current = e.touches[0].clientX;
+    touchDeltaXRef.current = 0;
+  };
+
+  const handleTouchMove = (e) => {
+    if (imageCount <= 1 || touchStartXRef.current === null) return;
+    touchDeltaXRef.current = e.touches[0].clientX - touchStartXRef.current;
+  };
+
+  const handleTouchEnd = () => {
+    if (imageCount <= 1 || touchStartXRef.current === null) return;
+
+    const deltaX = touchDeltaXRef.current;
+    const threshold = 36;
+
+    if (deltaX <= -threshold) {
+      goNextImage();
+    } else if (deltaX >= threshold) {
+      goPrevImage();
+    }
+
+    touchStartXRef.current = null;
+    touchDeltaXRef.current = 0;
+  };
+
   const Wrapper = id ? Link : "div";
   const wrapperProps = id
     ? {
@@ -320,21 +396,85 @@ export default function ProductCard({ product }) {
   return (
     <Wrapper {...wrapperProps}>
       <div className={`p-card ${!inStock ? "p-card--out" : ""}`}>
-        <div className="p-media">
-          {image ? (
+        <div
+          className="p-media"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          {activeImage ? (
             <>
-              <img className="p-img" src={image} alt={name} loading="lazy" />
+              <div className="p-media-frame">
+                <img
+                  className="p-img"
+                  src={activeImage}
+                  alt={name}
+                  loading="lazy"
+                />
+              </div>
 
-              {shippingBadgeLabel ? (
-                <div
-                  className={`p-ship-badge ${
-                    shippingSource === "uni" ? "p-ship-badge--uni" : ""
-                  } ${shipsFromAbroad ? "p-ship-badge--abroad" : ""}`}
-                  aria-label={shippingBadgeLabel}
+              <div className="p-media-top">
+                {shippingBadgeLabel ? (
+                  <div
+                    className={`p-ship-badge ${
+                      shippingSource === "uni" ? "p-ship-badge--uni" : ""
+                    } ${shipsFromAbroad ? "p-ship-badge--abroad" : ""}`}
+                    aria-label={shippingBadgeLabel}
+                  >
+                    {shippingBadgeLabel}
+                  </div>
+                ) : (
+                  <div />
+                )}
+
+                <button
+                  className={`p-cart-btn ${
+                    !inStock ? "p-cart-btn--disabled" : ""
+                  }`}
+                  onClick={handleAddToCart}
+                  aria-label={inStock ? "Add to cart" : "Product is out of stock"}
+                  type="button"
+                  disabled={!inStock}
                 >
-                  {shippingBadgeLabel}
-                </div>
-              ) : null}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    className="cart-svg"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M6 7h12l-1 12H7L6 7z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M9 7V5a3 3 0 0 1 6 0v2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                    />
+                    {inStock ? (
+                      <path
+                        d="M12 11v6M9 14h6"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                      />
+                    ) : (
+                      <path
+                        d="M9 15l6-6M9 9l6 6"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                      />
+                    )}
+                  </svg>
+                </button>
+              </div>
 
               {!inStock ? (
                 <div className="p-stock-badge p-stock-badge--out">
@@ -343,64 +483,57 @@ export default function ProductCard({ product }) {
               ) : null}
 
               {imageCount > 1 ? (
-                <div
-                  className="p-gallery-badge"
-                  aria-label={`${imageCount} product images`}
-                >
-                  <span className="p-gallery-dot" />
-                  <span>+{imageCount - 1}</span>
-                </div>
+                <>
+                  <button
+                    className="p-media-nav p-media-nav--prev"
+                    type="button"
+                    aria-label="Previous image"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      goPrevImage();
+                    }}
+                  >
+                    ‹
+                  </button>
+
+                  <button
+                    className="p-media-nav p-media-nav--next"
+                    type="button"
+                    aria-label="Next image"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      goNextImage();
+                    }}
+                  >
+                    ›
+                  </button>
+
+                  <div
+                    className="p-gallery-dots"
+                    aria-label={`${imageCount} product images`}
+                  >
+                    {images.map((img, index) => (
+                      <button
+                        key={`${img}-${index}`}
+                        type="button"
+                        className={`p-gallery-dot ${
+                          index === activeImageIndex
+                            ? "p-gallery-dot--active"
+                            : ""
+                        }`}
+                        aria-label={`Show image ${index + 1}`}
+                        onClick={(e) => goToImage(e, index)}
+                      />
+                    ))}
+                  </div>
+                </>
               ) : null}
             </>
           ) : (
             <div className="p-img p-img--empty">No image</div>
           )}
-
-          <button
-            className={`p-cart-btn ${!inStock ? "p-cart-btn--disabled" : ""}`}
-            onClick={handleAddToCart}
-            aria-label={inStock ? "Add to cart" : "Product is out of stock"}
-            type="button"
-            disabled={!inStock}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              className="cart-svg"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <path
-                d="M6 7h12l-1 12H7L6 7z"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M9 7V5a3 3 0 0 1 6 0v2"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-              />
-              {inStock ? (
-                <path
-                  d="M12 11v6M9 14h6"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                />
-              ) : (
-                <path
-                  d="M9 15l6-6M9 9l6 6"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                />
-              )}
-            </svg>
-          </button>
 
           {cardPopup ? (
             <div className="p-card-popup" role="status" aria-live="polite">
@@ -421,15 +554,24 @@ export default function ProductCard({ product }) {
             </div>
           )}
 
-          <p className="p-name">{name}</p>
+          <h3 className="p-name">{name}</h3>
+
+          {descriptionSnippet ? (
+            <p className="p-desc">{descriptionSnippet}</p>
+          ) : (
+            <div className="p-desc p-desc--empty" aria-hidden="true" />
+          )}
 
           {price !== null ? (
             <div className="p-prices">
               <span className="p-price">{formatMoney(price)}</span>
 
-              {oldPrice !== null && oldPrice > price && (
-                <span className="p-old">{formatMoney(oldPrice)}</span>
-              )}
+              {oldPrice !== null && oldPrice > price ? (
+                <span className="p-old-wrap">
+                  <span className="p-old-label">Old price</span>
+                  <span className="p-old">{formatMoney(oldPrice)}</span>
+                </span>
+              ) : null}
             </div>
           ) : (
             <span className="p-missing">No price</span>
