@@ -105,12 +105,6 @@ function normalizeShippingSource(product) {
   return "";
 }
 
-function getShippingBadgeLabel(source) {
-  if (source === "abroad") return "Ships from abroad";
-  if (source === "uni") return "Uni";
-  return "";
-}
-
 function normalizeShop(value) {
   return String(value || "").trim().toLowerCase();
 }
@@ -238,7 +232,6 @@ export default function ProductCard({ product }) {
     () => normalizeShippingSource(product),
     [product]
   );
-  const shippingBadgeLabel = getShippingBadgeLabel(shippingSource);
 
   const shipsFromAbroad =
     shippingSource === "abroad" ||
@@ -414,19 +407,6 @@ export default function ProductCard({ product }) {
               </div>
 
               <div className="p-media-top">
-                {shippingBadgeLabel ? (
-                  <div
-                    className={`p-ship-badge ${
-                      shippingSource === "uni" ? "p-ship-badge--uni" : ""
-                    } ${shipsFromAbroad ? "p-ship-badge--abroad" : ""}`}
-                    aria-label={shippingBadgeLabel}
-                  >
-                    {shippingBadgeLabel}
-                  </div>
-                ) : (
-                  <div />
-                )}
-
                 <button
                   className={`p-cart-btn ${
                     !inStock ? "p-cart-btn--disabled" : ""
@@ -543,16 +523,11 @@ export default function ProductCard({ product }) {
         </div>
 
         <div className="p-body">
-          {(shopLabel || homeSlotLabel) && (
+          {shopLabel ? (
             <div className="p-meta-line">
-              {shopLabel ? <span className="p-meta-chip">{shopLabel}</span> : null}
-              {homeSlotLabel ? (
-                <span className="p-meta-chip p-meta-chip--soft">
-                  {homeSlotLabel}
-                </span>
-              ) : null}
+              <span className="p-meta-chip">{shopLabel}</span>
             </div>
-          )}
+          ) : null}
 
           <h3 className="p-name">{name}</h3>
 
