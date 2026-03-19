@@ -11,7 +11,7 @@
 .p-card {
   background: #f7f7f7;
   border: 1px solid rgba(17, 17, 17, 0.06);
-  border-radius: 28px;
+  border-radius: 26px;
   overflow: hidden;
   box-shadow:
     0 18px 45px rgba(17, 17, 17, 0.08),
@@ -35,7 +35,7 @@ body.dark .p-card {
 }
 
 .p-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
   box-shadow:
     0 24px 52px rgba(17, 17, 17, 0.12),
     0 4px 14px rgba(17, 17, 17, 0.05);
@@ -59,8 +59,8 @@ body.dark .p-card:hover {
 
 .p-media {
   position: relative;
-  padding: 14px 14px 8px;
-  border-radius: 28px 28px 0 0;
+  padding: 10px 10px 6px;
+  border-radius: 26px 26px 0 0;
   background: transparent;
   isolation: isolate;
 }
@@ -68,11 +68,11 @@ body.dark .p-card:hover {
 .p-media-frame {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 24px;
+  aspect-ratio: 1 / 1.02;
+  border-radius: 20px;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0)),
     #ececec;
   display: flex;
   align-items: center;
@@ -89,24 +89,25 @@ body.dark .p-media-frame {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 24px;
-  transition: transform 0.4s ease;
+  border-radius: 20px;
+  transition: transform 0.35s ease;
   display: block;
 }
 
 .p-card:hover .p-img {
-  transform: scale(1.03);
+  transform: scale(1.025);
 }
 
 .p-img--empty {
   width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 24px;
+  aspect-ratio: 1 / 1.02;
+  border-radius: 20px;
   display: grid;
   place-items: center;
   opacity: 0.58;
   background: #ececec;
   color: #666;
+  font-size: 0.95rem;
 }
 
 body.dark .p-img--empty {
@@ -116,77 +117,36 @@ body.dark .p-img--empty {
 
 .p-media-top {
   position: absolute;
-  top: 24px;
-  left: 24px;
-  right: 24px;
+  top: 18px;
+  right: 18px;
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  pointer-events: none;
-  z-index: 3;
+  justify-content: flex-end;
+  z-index: 4;
 }
 
-.p-media-top > * {
-  pointer-events: auto;
-}
+/* shipping badge removed intentionally */
 
-/* SHIPPING BADGE */
-
-.p-ship-badge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  max-width: calc(100% - 74px);
-  padding: 0 12px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  background: rgba(255, 255, 255, 0.92);
-  color: #111;
-  z-index: 3;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 8px 20px rgba(17, 17, 17, 0.08);
-  border: 1px solid rgba(17, 17, 17, 0.06);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-body.dark .p-ship-badge {
-  background: rgba(20, 20, 20, 0.92);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.06);
-}
-
-.p-ship-badge--abroad {
-  background: linear-gradient(180deg, #22c55e, #16a34a);
-  color: #fff;
-  border-color: rgba(22, 163, 74, 0.28);
-  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.24);
-}
-
+.p-ship-badge,
+.p-ship-badge--abroad,
 .p-ship-badge--uni {
-  background: #e8d18a;
-  color: #111;
-  border-color: rgba(17, 17, 17, 0.08);
+  display: none !important;
 }
 
 /* STOCK BADGE */
 
 .p-stock-badge {
   position: absolute;
-  left: 24px;
-  bottom: 28px;
+  left: 18px;
+  bottom: 22px;
   display: inline-flex;
   align-items: center;
-  min-height: 30px;
+  min-height: 28px;
   padding: 0 10px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  z-index: 3;
+  z-index: 4;
   backdrop-filter: blur(8px);
   box-shadow: 0 8px 18px rgba(17, 17, 17, 0.12);
 }
@@ -200,8 +160,8 @@ body.dark .p-ship-badge {
 /* CART BUTTON */
 
 .p-cart-btn {
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
   border: 1px solid rgba(17, 17, 17, 0.08);
   background: rgba(255, 255, 255, 0.95);
@@ -215,7 +175,7 @@ body.dark .p-ship-badge {
     box-shadow 0.2s ease,
     opacity 0.2s ease,
     border-color 0.2s ease;
-  z-index: 4;
+  z-index: 5;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   box-shadow: 0 8px 20px rgba(17, 17, 17, 0.08);
@@ -227,7 +187,7 @@ body.dark .p-cart-btn {
 }
 
 .p-cart-btn:hover {
-  transform: scale(1.05);
+  transform: scale(1.04);
   box-shadow: 0 12px 24px rgba(17, 17, 17, 0.14);
 }
 
@@ -267,15 +227,15 @@ body.dark .cart-svg {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
   color: #111;
   display: grid;
   place-items: center;
-  font-size: 24px;
+  font-size: 26px;
   line-height: 1;
   cursor: pointer;
   z-index: 4;
@@ -292,15 +252,15 @@ body.dark .p-media-nav {
 }
 
 .p-media-nav:hover {
-  transform: translateY(-50%) scale(1.05);
+  transform: translateY(-50%) scale(1.04);
 }
 
 .p-media-nav--prev {
-  left: 24px;
+  left: 14px;
 }
 
 .p-media-nav--next {
-  right: 24px;
+  right: 14px;
 }
 
 /* DOTS */
@@ -308,7 +268,7 @@ body.dark .p-media-nav {
 .p-gallery-dots {
   position: absolute;
   left: 50%;
-  bottom: 22px;
+  bottom: 14px;
   transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
@@ -316,13 +276,13 @@ body.dark .p-media-nav {
   z-index: 4;
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(17, 17, 17, 0.18);
+  background: rgba(17, 17, 17, 0.16);
   backdrop-filter: blur(8px);
 }
 
 .p-gallery-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 999px;
   border: 0;
   padding: 0;
@@ -336,7 +296,7 @@ body.dark .p-media-nav {
 }
 
 .p-gallery-dot--active {
-  width: 18px;
+  width: 16px;
   background: #fff;
 }
 
@@ -344,14 +304,14 @@ body.dark .p-media-nav {
 
 .p-card-popup {
   position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 58px;
-  padding: 11px 12px;
+  left: 12px;
+  right: 12px;
+  bottom: 50px;
+  padding: 10px 11px;
   border-radius: 14px;
   background: rgba(17, 17, 17, 0.94);
   color: #fff;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   line-height: 1.45;
   z-index: 6;
@@ -363,23 +323,24 @@ body.dark .p-media-nav {
 /* BODY */
 
 .p-body {
-  padding: 8px 16px 18px;
+  padding: 6px 14px 16px;
 }
 
 .p-meta-line {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
+/* only keep main store chip style */
 .p-meta-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 34px;
-  padding: 0 14px;
+  min-height: 32px;
+  padding: 0 13px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   letter-spacing: -0.01em;
   background: #111;
@@ -387,9 +348,7 @@ body.dark .p-media-nav {
 }
 
 .p-meta-chip--soft {
-  background: #ecebe8;
-  color: #111;
-  border: 1px solid rgba(17, 17, 17, 0.08);
+  display: none !important;
 }
 
 body.dark .p-meta-chip {
@@ -398,17 +357,15 @@ body.dark .p-meta-chip {
 }
 
 body.dark .p-meta-chip--soft {
-  background: #202020;
-  color: #f2f2f2;
-  border-color: rgba(255, 255, 255, 0.08);
+  display: none !important;
 }
 
 .p-name {
   margin: 0;
   font-weight: 800;
-  font-size: 0.98rem;
+  font-size: 0.92rem;
   letter-spacing: -0.03em;
-  line-height: 1.28;
+  line-height: 1.24;
   color: #111;
 }
 
@@ -417,12 +374,12 @@ body.dark .p-name {
 }
 
 .p-desc {
-  margin: 8px 0 0;
-  font-size: 0.83rem;
-  line-height: 1.45;
+  margin: 7px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.42;
   font-weight: 500;
   color: #8b8b8b;
-  min-height: 2.4em;
+  min-height: 2.2em;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -441,14 +398,14 @@ body.dark .p-desc {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 5px;
-  margin-top: 14px;
+  gap: 4px;
+  margin-top: 12px;
 }
 
 .p-price {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 1rem;
+  font-size: 0.94rem;
   letter-spacing: -0.03em;
   color: #111;
 }
@@ -460,12 +417,12 @@ body.dark .p-price {
 .p-old-wrap {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   flex-wrap: wrap;
 }
 
 .p-old-label {
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1;
   font-weight: 700;
   color: #9a9a9a;
@@ -475,12 +432,12 @@ body.dark .p-price {
   color: #8a8a8a;
   text-decoration: line-through;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .p-missing {
   opacity: 0.6;
-  font-size: 13px;
+  font-size: 12px;
   display: inline-block;
   margin-top: 10px;
 }
@@ -489,78 +446,83 @@ body.dark .p-price {
 
 @media (max-width: 640px) {
   .p-card {
-    border-radius: 24px;
+    border-radius: 22px;
   }
 
   .p-media {
-    padding: 12px 12px 8px;
+    padding: 8px 8px 6px;
   }
 
   .p-media-frame,
   .p-img,
   .p-img--empty {
-    border-radius: 20px;
+    border-radius: 18px;
   }
 
   .p-media-top {
-    top: 20px;
-    left: 20px;
-    right: 20px;
+    top: 14px;
+    right: 14px;
   }
 
   .p-stock-badge {
-    left: 20px;
-    bottom: 26px;
-  }
-
-  .p-media-nav--prev {
-    left: 20px;
-  }
-
-  .p-media-nav--next {
-    right: 20px;
-  }
-
-  .p-gallery-dots {
+    left: 14px;
     bottom: 18px;
   }
 
+  .p-media-nav {
+    width: 34px;
+    height: 34px;
+    font-size: 24px;
+  }
+
+  .p-media-nav--prev {
+    left: 10px;
+  }
+
+  .p-media-nav--next {
+    right: 10px;
+  }
+
+  .p-gallery-dots {
+    bottom: 10px;
+  }
+
   .p-cart-btn {
-    width: 44px;
-    height: 44px;
+    width: 42px;
+    height: 42px;
   }
 
   .p-card-popup {
-    left: 14px;
-    right: 14px;
-    bottom: 54px;
-    font-size: 11.5px;
+    left: 10px;
+    right: 10px;
+    bottom: 46px;
+    font-size: 11px;
   }
 
   .p-body {
-    padding: 8px 14px 16px;
+    padding: 6px 12px 14px;
   }
 
   .p-meta-chip {
-    min-height: 31px;
+    min-height: 30px;
     padding: 0 12px;
-    font-size: 10.5px;
+    font-size: 10px;
   }
 
   .p-name {
-    font-size: 0.93rem;
+    font-size: 0.88rem;
   }
 
   .p-desc {
-    font-size: 0.79rem;
+    font-size: 0.75rem;
   }
 
   .p-price {
-    font-size: 0.96rem;
+    font-size: 0.91rem;
   }
 
   .p-old {
-    font-size: 0.84rem;
+    font-size: 0.78rem;
   }
 }
 
