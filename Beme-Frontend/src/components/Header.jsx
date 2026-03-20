@@ -130,12 +130,40 @@ export default function Header({ onMenu, onCart }) {
   const { user, logout } = useAuth();
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [logoutConfirmMounted, setLogoutConfirmMounted] = useState(false);
+
   const logoutWrapRef = useRef(null);
+  const actionLockRef = useRef(false);
 
   const count =
     cartItems?.reduce((sum, i) => sum + Number(i.qty || 1), 0) || 0;
 
   const goAuth = () => navigate("/login");
+
+  const pulseLock = () => {
+    actionLockRef.current = true;
+    window.setTimeout(() => {
+      actionLockRef.current = false;
+    }, 220);
+  };
+
+  const handleMenuOpen = () => {
+    if (actionLockRef.current) return;
+    pulseLock();
+    onMenu?.();
+  };
+
+  const handleCartOpen = () => {
+    if (actionLockRef.current) return;
+    pulseLock();
+    onCart?.();
+  };
+
+  const handleToggleTheme = () => {
+    if (actionLockRef.current) return;
+    pulseLock();
+    toggleTheme();
+  };
 
   const onConfirmLogout = async () => {
     try {
@@ -147,7 +175,21 @@ export default function Header({ onMenu, onCart }) {
   };
 
   useEffect(() => {
-    if (!showLogoutConfirm) return;
+    let timeoutId;
+
+    if (showLogoutConfirm) {
+      setLogoutConfirmMounted(true);
+    } else {
+      timeoutId = window.setTimeout(() => {
+        setLogoutConfirmMounted(false);
+      }, 220);
+    }
+
+    return () => window.clearTimeout(timeoutId);
+  }, [showLogoutConfirm]);
+
+  useEffect(() => {
+    if (!showLogoutConfirm && !logoutConfirmMounted) return;
 
     const handleClickOutside = (event) => {
       if (!logoutWrapRef.current) return;
@@ -169,17 +211,27 @@ export default function Header({ onMenu, onCart }) {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [showLogoutConfirm]);
+  }, [showLogoutConfirm, logoutConfirmMounted]);
 
   return (
     <header className="hdr">
-      <button className="hdr-icon" onClick={onMenu} aria-label="Open menu" type="button">
+      <button
+        className="hdr-icon"
+        onClick={handleMenuOpen}
+        aria-label="Open menu"
+        type="button"
+      >
         <IconMenu />
       </button>
 
       <div className="hdr-right">
         {!user ? (
-          <button className="hdr-icon" onClick={goAuth} aria-label="Login" type="button">
+          <button
+            className="hdr-icon"
+            onClick={goAuth}
+            aria-label="Login"
+            type="button"
+          >
             <IconUser />
           </button>
         ) : (
@@ -193,34 +245,36 @@ export default function Header({ onMenu, onCart }) {
               <IconLogout />
             </button>
 
-            <div
-              className={`hdr-confirm ${showLogoutConfirm ? "is-open" : ""}`}
-              aria-hidden={!showLogoutConfirm}
-            >
-              <p className="hdr-confirm-text">Log out of your account?</p>
-              <div className="hdr-confirm-actions">
-                <button
-                  className="hdr-confirm-btn"
-                  onClick={() => setShowLogoutConfirm(false)}
-                  type="button"
-                >
-                  Cancel
-                </button>
-                <button
-                  className="hdr-confirm-btn hdr-confirm-btn--danger"
-                  onClick={onConfirmLogout}
-                  type="button"
-                >
-                  Log out
-                </button>
+            {(logoutConfirmMounted || showLogoutConfirm) && (
+              <div
+                className={`hdr-confirm ${showLogoutConfirm ? "is-open" : ""}`}
+                aria-hidden={!showLogoutConfirm}
+              >
+                <p className="hdr-confirm-text">Log out of your account?</p>
+                <div className="hdr-confirm-actions">
+                  <button
+                    className="hdr-confirm-btn"
+                    onClick={() => setShowLogoutConfirm(false)}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="hdr-confirm-btn hdr-confirm-btn--danger"
+                    onClick={onConfirmLogout}
+                    type="button"
+                  >
+                    Log out
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
         <button
           className="hdr-icon"
-          onClick={toggleTheme}
+          onClick={handleToggleTheme}
           aria-label="Toggle theme"
           type="button"
         >
@@ -229,7 +283,7 @@ export default function Header({ onMenu, onCart }) {
 
         <button
           className="hdr-icon hdr-bag"
-          onClick={onCart}
+          onClick={handleCartOpen}
           aria-label="Open cart"
           type="button"
         >
