@@ -19,9 +19,15 @@ function parseBooleanish(value, fallback = false) {
   }
 
   if (
-    ["false", "no", "0", "out of stock", "outofstock", "unavailable", "inactive"].includes(
-      raw
-    )
+    [
+      "false",
+      "no",
+      "0",
+      "out of stock",
+      "outofstock",
+      "unavailable",
+      "inactive",
+    ].includes(raw)
   ) {
     return false;
   }
@@ -72,6 +78,7 @@ export default function CartDrawer({ isOpen, onClose }) {
   } = useCart();
 
   const [cartMessage, setCartMessage] = useState("");
+  const [mounted, setMounted] = useState(isOpen);
 
   useEffect(() => {
     if (!cartMessage) return;
@@ -82,6 +89,38 @@ export default function CartDrawer({ isOpen, onClose }) {
 
     return () => window.clearTimeout(timer);
   }, [cartMessage]);
+
+  useEffect(() => {
+    let timeoutId;
+
+    if (isOpen) {
+      setMounted(true);
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+      timeoutId = window.setTimeout(() => {
+        setMounted(false);
+      }, 420);
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+      window.clearTimeout(timeoutId);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose?.();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [mounted, onClose]);
 
   const unavailableCount = useMemo(() => {
     return cartItems.filter((item) => getUnavailableReason(item)).length;
@@ -131,6 +170,8 @@ export default function CartDrawer({ isOpen, onClose }) {
     }
   };
 
+  if (!mounted && !isOpen) return null;
+
   return (
     <div className={`cd ${isOpen ? "cd--open" : ""}`} aria-hidden={!isOpen}>
       <div className="cd-overlay" onClick={onClose} />
@@ -144,7 +185,12 @@ export default function CartDrawer({ isOpen, onClose }) {
             </p>
           </div>
 
-          <button className="cd-close" onClick={onClose} aria-label="Close cart">
+          <button
+            className="cd-close"
+            onClick={onClose}
+            aria-label="Close cart"
+            type="button"
+          >
             ×
           </button>
         </div>
@@ -185,9 +231,7 @@ export default function CartDrawer({ isOpen, onClose }) {
 
                   <div className="cd-success-product">
                     <strong>{popupItem.name || "Product"}</strong>
-                    <span>
-                      GHS {Number(popupItem.price || 0).toFixed(2)}
-                    </span>
+                    <span>GHS {Number(popupItem.price || 0).toFixed(2)}</span>
                   </div>
 
                   <div className="cd-success-actions">
