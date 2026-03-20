@@ -264,6 +264,76 @@ function makeSkeleton(n = SKELETON_COUNT) {
   return Array.from({ length: n }).map((_, i) => ({ id: `sk_${i}` }));
 }
 
+function buildSearchAliases(product) {
+  const source = [
+    product.name,
+    product.brand,
+    product.description,
+    product.shortDescription,
+    product.short_description,
+    product.dept,
+    product.kind,
+    product.shop,
+    product.homeSlot,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const aliases = [];
+
+  if (
+    /\b(phone|iphone|samsung|android|mobile|smartphone|tecno|infinix|itel|pixel|tablet|ipad)\b/.test(
+      source
+    )
+  ) {
+    aliases.push("phones phone iphone samsung android mobile smartphone");
+  }
+
+  if (
+    /\b(laptop|macbook|notebook|ultrabook|dell|hp|lenovo|acer|asus)\b/.test(
+      source
+    )
+  ) {
+    aliases.push("laptops laptop macbook notebook computer");
+  }
+
+  if (
+    /\b(shoe|shoes|sneaker|sneakers|slides|slippers|sandals|heels|boot|boots|loafer)\b/.test(
+      source
+    )
+  ) {
+    aliases.push("shoes shoe sneakers sandals slides heels boots");
+  }
+
+  if (
+    /\b(clothing|cloth|fashion|shirt|t-shirt|tee|hoodie|jacket|trouser|trousers|jeans|dress|skirt|shorts|top)\b/.test(
+      source
+    )
+  ) {
+    aliases.push("clothing clothes fashion shirt dress jeans trousers hoodie");
+  }
+
+  if (
+    /\b(kids|kid|children|child|baby|babies|toddler|infant|youth)\b/.test(
+      source
+    )
+  ) {
+    aliases.push("kids kid children child baby toddler infant");
+  }
+
+  if (
+    product.homeSlot === "others" ||
+    /\b(other|others|accessory|accessories|misc|general|power bank|powerbank|speaker|watch|perfume|cosmetic)\b/.test(
+      source
+    )
+  ) {
+    aliases.push("others other accessories accessory misc general");
+  }
+
+  return aliases.join(" ");
+}
+
 function matchesSearch(product, term) {
   if (!term) return true;
 
@@ -277,6 +347,7 @@ function matchesSearch(product, term) {
     product.kind,
     product.shop,
     product.homeSlot,
+    buildSearchAliases(product),
     product.shipsFromAbroad
       ? "ships from abroad imported international"
       : "local",
@@ -286,7 +357,13 @@ function matchesSearch(product, term) {
     .join(" ")
     .toLowerCase();
 
-  return haystack.includes(term);
+  const tokens = String(term)
+    .toLowerCase()
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  return tokens.every((token) => haystack.includes(token));
 }
 
 function seededHash(input) {
