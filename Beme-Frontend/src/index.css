@@ -23,11 +23,14 @@
   --font-main: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
   --font-display: "Space Grotesk", "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
-  --motion-fast: 180ms ease;
-  --motion-smooth: 280ms cubic-bezier(0.22, 1, 0.36, 1);
-  --motion-slow: 360ms cubic-bezier(0.22, 1, 0.36, 1);
-  --drawer-motion: 380ms cubic-bezier(0.22, 1, 0.36, 1);
-  --page-motion: 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-soft: cubic-bezier(0.25, 0.9, 0.3, 1);
+  --motion-fast: 180ms var(--ease-premium);
+  --motion-smooth: 300ms var(--ease-premium);
+  --motion-slow: 420ms var(--ease-premium);
+  --drawer-motion: 440ms var(--ease-premium);
+  --page-motion: 520ms var(--ease-premium);
+  --micro-lift: translateY(-1px);
 }
 
 body.dark {
@@ -62,6 +65,10 @@ body {
   scroll-behavior: smooth;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -75,6 +82,7 @@ body {
   transition:
     background var(--motion-slow),
     color var(--motion-slow);
+  overflow-x: hidden;
 }
 
 #root {
@@ -181,7 +189,8 @@ textarea {
     border-color var(--motion-fast),
     transform var(--motion-fast),
     background var(--motion-smooth),
-    color var(--motion-smooth);
+    color var(--motion-smooth),
+    box-shadow var(--motion-smooth);
 }
 
 input:focus,
@@ -209,7 +218,7 @@ textarea::placeholder {
 @keyframes fadeUpSoft {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -242,7 +251,7 @@ textarea::placeholder {
     box-shadow: 0 0 0 0 rgba(17, 17, 17, 0.08);
   }
   50% {
-    box-shadow: 0 0 0 12px rgba(17, 17, 17, 0);
+    box-shadow: 0 0 0 10px rgba(17, 17, 17, 0);
   }
 }
 
@@ -258,7 +267,7 @@ textarea::placeholder {
 @keyframes routeEnter {
   from {
     opacity: 0;
-    transform: translateY(18px) scale(0.995);
+    transform: translateY(14px) scale(0.995);
   }
   to {
     opacity: 1;
@@ -269,7 +278,7 @@ textarea::placeholder {
 @keyframes cartPopupIn {
   from {
     opacity: 0;
-    transform: translateY(18px) scale(0.97);
+    transform: translateY(14px) scale(0.975);
   }
   to {
     opacity: 1;
@@ -302,7 +311,7 @@ textarea::placeholder {
     0 18px 45px rgba(0, 0, 0, 0.16),
     0 8px 18px rgba(0, 0, 0, 0.06);
   backdrop-filter: blur(14px);
-  animation: cartPopupIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: cartPopupIn 0.34s var(--ease-premium);
 }
 
 body.dark .cart-added-popup {
@@ -333,7 +342,8 @@ body.dark .cart-added-popup {
     transform var(--motion-fast),
     background var(--motion-fast),
     border-color var(--motion-fast),
-    opacity var(--motion-fast);
+    opacity var(--motion-fast),
+    box-shadow var(--motion-fast);
 }
 
 .cart-added-popup__close:hover {
@@ -472,6 +482,27 @@ body.dark .cart-added-popup__btn--primary {
   opacity: 0.92;
 }
 
+/* =========================
+   GLOBAL SCROLL / INTERACTION POLISH
+========================= */
+
+body,
+.side-scroll,
+.cd-body,
+.product-grid,
+main,
+section {
+  -webkit-overflow-scrolling: touch;
+}
+
+html:focus-within {
+  scroll-behavior: smooth;
+}
+
+/* =========================
+   REDUCED MOTION
+========================= */
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -521,7 +552,9 @@ textarea,
     border-color var(--motion-slow),
     box-shadow var(--motion-slow),
     transform var(--motion-fast),
-    opacity var(--motion-fast);
+    opacity var(--motion-fast),
+    filter var(--motion-fast),
+    backdrop-filter var(--motion-slow);
 }
 
 @media (max-width: 640px) {
