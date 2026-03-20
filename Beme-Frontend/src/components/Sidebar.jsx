@@ -384,6 +384,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const [openSection, setOpenSection] = useState(null);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [mounted, setMounted] = useState(isOpen);
 
   const offers = useMemo(() => [], []);
   const shopLabel = useMemo(
@@ -392,9 +393,21 @@ export default function Sidebar({ isOpen, onClose }) {
   );
 
   useEffect(() => {
-    document.body.style.overflow = isOpen ? "hidden" : "";
+    let timeoutId;
+
+    if (isOpen) {
+      setMounted(true);
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+      timeoutId = window.setTimeout(() => {
+        setMounted(false);
+      }, 360);
+    }
+
     return () => {
       document.body.style.overflow = "";
+      window.clearTimeout(timeoutId);
     };
   }, [isOpen]);
 
@@ -404,6 +417,19 @@ export default function Sidebar({ isOpen, onClose }) {
       setOpenSection(null);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose?.();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [mounted, onClose]);
 
   const go = (path) => {
     setConfirmLogout(false);
@@ -442,12 +468,17 @@ export default function Sidebar({ isOpen, onClose }) {
     setOpenSection((prev) => (prev === name ? null : name));
   };
 
+  if (!mounted && !isOpen) return null;
+
   return (
     <div
       className={`side-shell ${isOpen ? "is-open" : ""}`}
       aria-hidden={!isOpen}
     >
-      <div className={`overlay ${isOpen ? "is-open" : ""}`} onClick={onClose} />
+      <div
+        className={`overlay ${isOpen ? "is-open" : ""}`}
+        onClick={onClose}
+      />
 
       <aside
         className={`side-panel ${isOpen ? "open" : ""}`}
@@ -469,20 +500,18 @@ export default function Sidebar({ isOpen, onClose }) {
         </div>
 
         <div className="side-scroll">
-          <section className="side-group">
+          <section className="side-group side-group--intro">
             <div className="side-group-list">
               <SidebarRow
                 icon={<IconHome />}
                 label="Home"
                 onClick={() => go("/")}
               />
-
               <SidebarRow
                 icon={<IconShop />}
                 label="Shop"
                 onClick={() => go("/shop")}
               />
-
               {user ? (
                 <SidebarRow
                   icon={<IconOrders />}
