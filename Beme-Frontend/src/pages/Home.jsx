@@ -21,42 +21,36 @@ const CATEGORY_CARDS = [
     label: "Phones",
     subtitle: "Smartphones and mobile essentials",
     query: "phone",
-    slot: "phones",
   },
   {
     key: "laptops",
     label: "Laptops",
     subtitle: "Portable power for work and study",
     query: "laptop",
-    slot: "laptops",
   },
   {
     key: "shoes",
     label: "Shoes",
     subtitle: "Sneakers, formal pairs, and daily comfort",
     query: "shoes",
-    slot: "shoes",
   },
   {
     key: "clothing",
     label: "Clothing",
     subtitle: "Fresh fits and wardrobe staples",
     query: "clothing",
-    slot: "clothing",
   },
   {
     key: "kids",
     label: "Kids",
     subtitle: "Everyday picks for little ones",
     query: "kids",
-    slot: "kids",
   },
   {
     key: "others",
     label: "Others",
     subtitle: "Accessories, extras, and more",
     query: "accessories",
-    slot: "others",
   },
 ];
 
@@ -552,7 +546,6 @@ export default function Home() {
   const goToCategory = (item) => {
     const next = new URLSearchParams();
 
-    if (item.slot) next.set("slot", item.slot);
     if (item.query) next.set("q", item.query);
 
     navigate(`/shop?${next.toString()}`);
