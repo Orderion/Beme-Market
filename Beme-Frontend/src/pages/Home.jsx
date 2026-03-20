@@ -20,7 +20,7 @@ const CATEGORY_CARDS = [
     key: "phones",
     label: "Phones",
     subtitle: "Smartphones and mobile essentials",
-    query: "phone",
+    query: "phones",
   },
   {
     key: "laptops",
