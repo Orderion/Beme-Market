@@ -12,8 +12,8 @@ import techBanner from "../assets/tech-banner.png";
 import "./Home.css";
 
 const COLLECTION_NAME = "Products";
-const SEARCH_PREVIEW_LIMIT = 40;
-const SUGGESTION_LIMIT = 8;
+const SEARCH_PREVIEW_LIMIT = 80;
+const SUGGESTION_LIMIT = 10;
 
 const CATEGORY_CARDS = [
   {
@@ -54,6 +54,117 @@ const CATEGORY_CARDS = [
   },
 ];
 
+const CATEGORY_KEYWORDS = [
+  {
+    label: "Phones",
+    type: "category",
+    value: "phone",
+    aliases: [
+      "phone",
+      "phones",
+      "iphone",
+      "android",
+      "mobile",
+      "smartphone",
+      "tecno",
+      "infinix",
+      "samsung",
+      "itel",
+      "pixel",
+      "ipad",
+      "tablet",
+    ],
+  },
+  {
+    label: "Laptops",
+    type: "category",
+    value: "laptop",
+    aliases: [
+      "laptop",
+      "laptops",
+      "macbook",
+      "notebook",
+      "computer",
+      "pc",
+      "dell",
+      "hp",
+      "lenovo",
+      "acer",
+      "asus",
+    ],
+  },
+  {
+    label: "Shoes",
+    type: "category",
+    value: "shoes",
+    aliases: [
+      "shoe",
+      "shoes",
+      "sneaker",
+      "sneakers",
+      "slides",
+      "sandals",
+      "heels",
+      "boots",
+      "slippers",
+      "airforce",
+      "air force",
+    ],
+  },
+  {
+    label: "Clothing",
+    type: "category",
+    value: "clothing",
+    aliases: [
+      "clothing",
+      "clothes",
+      "fashion",
+      "shirt",
+      "shirts",
+      "dress",
+      "dresses",
+      "hoodie",
+      "hoodies",
+      "trousers",
+      "jeans",
+      "top",
+      "tops",
+    ],
+  },
+  {
+    label: "Kids",
+    type: "category",
+    value: "kids",
+    aliases: [
+      "kids",
+      "kid",
+      "children",
+      "child",
+      "baby",
+      "babies",
+      "toddler",
+      "infant",
+    ],
+  },
+  {
+    label: "Accessories",
+    type: "category",
+    value: "accessories",
+    aliases: [
+      "accessories",
+      "accessory",
+      "watch",
+      "bag",
+      "bags",
+      "power bank",
+      "speaker",
+      "perfume",
+      "cosmetics",
+      "others",
+    ],
+  },
+];
+
 function normalizeProduct(docSnap) {
   const d = docSnap.data() || {};
 
@@ -61,9 +172,18 @@ function normalizeProduct(docSnap) {
     id: docSnap.id,
     name: String(d.name || "").trim(),
     description: String(d.description || "").trim(),
+    shortDescription: String(
+      d.shortDescription || d.short_description || ""
+    ).trim(),
+    brand: String(d.brand || "").trim(),
     dept: String(d.dept || "").trim(),
     kind: String(d.kind || "").trim(),
     shop: String(d.shop || "").trim().toLowerCase(),
+    homeSlot: String(
+      d.homeSlot || d.home_filter || d.homeFilter || d.slot || ""
+    )
+      .trim()
+      .toLowerCase(),
   };
 }
 
@@ -108,21 +228,52 @@ function buildSuggestions(products, term) {
     });
   };
 
+  for (const category of CATEGORY_KEYWORDS) {
+    const aliasMatch = category.aliases.some((alias) => alias.includes(q));
+    const queryMatch = q.includes(category.value);
+
+    if (aliasMatch || queryMatch) {
+      pushSuggestion(category.label, category.type, category.value, 200);
+    }
+  }
+
   for (const product of products) {
     const name = product.name;
     const description = product.description;
+    const shortDescription = product.shortDescription;
+    const brand = product.brand;
     const dept = product.dept;
     const kind = product.kind;
     const shop = product.shop;
+    const homeSlot = product.homeSlot;
+
+    const fullText = [
+      name,
+      description,
+      shortDescription,
+      brand,
+      dept,
+      kind,
+      shop,
+      homeSlot,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
 
     const nameLc = name.toLowerCase();
-    const descLc = description.toLowerCase();
+    const brandLc = brand.toLowerCase();
     const deptLc = dept.toLowerCase();
     const kindLc = kind.toLowerCase();
     const shopLc = shop.toLowerCase();
+    const slotLc = homeSlot.toLowerCase();
 
     if (nameLc.startsWith(q)) pushSuggestion(name, "product", name, 100);
     else if (nameLc.includes(q)) pushSuggestion(name, "product", name, 90);
+
+    if (brandLc && brandLc.includes(q)) {
+      pushSuggestion(titleize(brand), "brand", brand, 84);
+    }
 
     if (deptLc.startsWith(q)) {
       pushSuggestion(titleize(dept), "department", titleize(dept), 70);
@@ -136,22 +287,25 @@ function buildSuggestions(products, term) {
       pushSuggestion(titleize(kind), "type", titleize(kind), 55);
     }
 
+    if (slotLc && slotLc.includes(q)) {
+      pushSuggestion(titleize(homeSlot), "category", homeSlot, 75);
+    }
+
     if (shopLc.startsWith(q)) {
       pushSuggestion(formatShopLabel(shop), "shop", `shop:${shop}`, 68);
     } else if (shopLc.includes(q)) {
       pushSuggestion(formatShopLabel(shop), "shop", `shop:${shop}`, 58);
     }
 
-    if (descLc.includes(q)) {
-      const words = description
+    if (fullText.includes(q)) {
+      const words = fullText
         .split(/[\s,.;:/()[\]-]+/)
         .map((w) => w.trim())
         .filter(Boolean);
 
       for (const word of words) {
-        const wlc = word.toLowerCase();
-        if (wlc.length < 3) continue;
-        if (!wlc.includes(q)) continue;
+        if (word.length < 3) continue;
+        if (!word.includes(q)) continue;
         pushSuggestion(titleize(word), "keyword", word, 40);
       }
     }
@@ -544,11 +698,7 @@ export default function Home() {
   };
 
   const goToCategory = (item) => {
-    const next = new URLSearchParams();
-
-    if (item.query) next.set("q", item.query);
-
-    navigate(`/shop?${next.toString()}`);
+    navigate(`/shop?q=${encodeURIComponent(item.query)}`);
   };
 
   return (
