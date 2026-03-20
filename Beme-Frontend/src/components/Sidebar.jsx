@@ -384,7 +384,8 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const [openSection, setOpenSection] = useState(null);
   const [confirmLogout, setConfirmLogout] = useState(false);
-  const [mounted, setMounted] = useState(isOpen);
+  const [mounted, setMounted] = useState(false);
+  const [visible, setVisible] = useState(false);
 
   const offers = useMemo(() => [], []);
   const shopLabel = useMemo(
@@ -394,20 +395,29 @@ export default function Sidebar({ isOpen, onClose }) {
 
   useEffect(() => {
     let timeoutId;
+    let rafId;
 
     if (isOpen) {
       setMounted(true);
       document.body.style.overflow = "hidden";
+
+      rafId = window.requestAnimationFrame(() => {
+        rafId = window.requestAnimationFrame(() => {
+          setVisible(true);
+        });
+      });
     } else {
+      setVisible(false);
       document.body.style.overflow = "";
       timeoutId = window.setTimeout(() => {
         setMounted(false);
-      }, 360);
+      }, 460);
     }
 
     return () => {
       document.body.style.overflow = "";
       window.clearTimeout(timeoutId);
+      window.cancelAnimationFrame(rafId);
     };
   }, [isOpen]);
 
@@ -468,20 +478,20 @@ export default function Sidebar({ isOpen, onClose }) {
     setOpenSection((prev) => (prev === name ? null : name));
   };
 
-  if (!mounted && !isOpen) return null;
+  if (!mounted) return null;
 
   return (
     <div
-      className={`side-shell ${isOpen ? "is-open" : ""}`}
-      aria-hidden={!isOpen}
+      className={`side-shell ${visible ? "is-open" : ""}`}
+      aria-hidden={!visible}
     >
       <div
-        className={`overlay ${isOpen ? "is-open" : ""}`}
+        className={`overlay ${visible ? "is-open" : ""}`}
         onClick={onClose}
       />
 
       <aside
-        className={`side-panel ${isOpen ? "open" : ""}`}
+        className={`side-panel ${visible ? "open" : ""}`}
         aria-label="Sidebar menu"
       >
         <div className="side-header">
