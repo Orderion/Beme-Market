@@ -1,0 +1,79 @@
+.review-queue-table {
+  width: 100%;
+}
+
+.review-queue-table__empty {
+  border: 1px dashed var(--border);
+  border-radius: 18px;
+  padding: 22px;
+  background: var(--card);
+  color: var(--text);
+  opacity: 0.72;
+}
+
+.review-queue-table__list {
+  display: grid;
+  gap: 10px;
+}
+
+.review-queue-table__card {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 18px;
+  padding: 14px;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.review-queue-table__card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.review-queue-table__card.is-active {
+  border-color: rgba(255, 255, 255, 0.26);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+}
+
+.review-queue-table__top,
+.review-queue-table__bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.review-queue-table__body {
+  margin: 12px 0;
+  display: grid;
+  gap: 6px;
+}
+
+.review-queue-table__name {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.review-queue-table__meta {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  opacity: 0.74;
+}
+
+.review-queue-table__badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--soft);
+  font-size: 12px;
+}
