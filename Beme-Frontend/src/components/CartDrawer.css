@@ -14,16 +14,16 @@
   inset: 0;
   background: var(--overlay);
   opacity: 0;
-  backdrop-filter: blur(1px);
+  backdrop-filter: blur(0px);
   transition:
-    opacity var(--drawer-motion),
-    backdrop-filter var(--drawer-motion),
+    opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    backdrop-filter 0.42s cubic-bezier(0.22, 1, 0.36, 1),
     background var(--motion-slow);
 }
 
 .cd--open .cd-overlay {
   opacity: 1;
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(4px);
 }
 
 .cd-panel {
@@ -34,11 +34,11 @@
   width: min(420px, 92vw);
   background: var(--card);
   color: var(--text);
-  transform: translateX(104%);
+  transform: translateX(108%);
   opacity: 0.98;
   transition:
-    transform var(--drawer-motion),
-    opacity var(--drawer-motion),
+    transform 0.44s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.34s ease,
     background var(--motion-slow),
     color var(--motion-slow),
     border-color var(--motion-slow),
@@ -84,13 +84,17 @@
   line-height: 1;
   color: var(--text);
   transition:
-    transform var(--motion-fast),
-    opacity var(--motion-fast),
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease,
     color var(--motion-smooth);
 }
 
 .cd-close:hover {
-  transform: rotate(90deg);
+  transform: rotate(90deg) scale(1.04);
+}
+
+.cd-close:active {
+  transform: scale(0.94);
 }
 
 .cd-body {
@@ -109,7 +113,7 @@
   color: var(--text);
   font-size: 12px;
   line-height: 1.6;
-  animation: fadeUpSoft 0.24s ease;
+  animation: fadeUpSoft 0.28s ease;
 }
 
 .cd-cart-alert--warning {
@@ -121,7 +125,7 @@
   padding: 36px 0;
   text-align: center;
   color: var(--text);
-  animation: fadeUpSoft 0.32s ease;
+  animation: fadeUpSoft 0.36s ease;
 }
 
 .cd-empty-sub {
@@ -140,16 +144,21 @@
   border-radius: 14px;
   cursor: pointer;
   transition:
-    transform var(--motion-fast),
-    opacity var(--motion-fast),
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease,
     background var(--motion-smooth),
     border-color var(--motion-smooth),
-    color var(--motion-smooth);
+    color var(--motion-smooth),
+    box-shadow 0.24s ease;
 }
 
 .cd-ghost:hover {
-  opacity: 0.88;
+  opacity: 0.94;
   transform: translateY(-1px);
+}
+
+.cd-ghost:active {
+  transform: scale(0.985);
 }
 
 .cd-item {
@@ -158,7 +167,7 @@
   gap: 14px;
   padding: 14px 0;
   border-bottom: 1px solid var(--border);
-  animation: fadeUpSoft 0.28s ease;
+  animation: fadeUpSoft 0.32s ease;
 }
 
 .cd-item-img {
@@ -177,7 +186,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform var(--motion-smooth);
+  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .cd-item:hover .cd-item-img img {
@@ -227,7 +236,8 @@
   transition:
     background var(--motion-smooth),
     border-color var(--motion-smooth),
-    color var(--motion-smooth);
+    color var(--motion-smooth),
+    transform 0.22s ease;
 }
 
 .cd-option-pill--danger {
@@ -254,7 +264,8 @@
   background: var(--card);
   transition:
     background var(--motion-smooth),
-    border-color var(--motion-smooth);
+    border-color var(--motion-smooth),
+    box-shadow 0.24s ease;
 }
 
 .cd-qty button {
@@ -266,10 +277,10 @@
   font-size: 18px;
   color: var(--text);
   transition:
-    background var(--motion-fast),
+    background 0.22s ease,
     color var(--motion-smooth),
-    transform var(--motion-fast),
-    opacity var(--motion-fast);
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease;
 }
 
 .cd-qty button:hover:not(:disabled) {
@@ -277,7 +288,7 @@
 }
 
 .cd-qty button:active:not(:disabled) {
-  transform: scale(0.96);
+  transform: scale(0.94);
 }
 
 .cd-qty button:disabled {
@@ -300,11 +311,12 @@
   font-weight: 700;
   color: var(--text);
   transition:
-    transform var(--motion-fast),
-    opacity var(--motion-fast),
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease,
     background var(--motion-smooth),
     border-color var(--motion-smooth),
-    color var(--motion-smooth);
+    color var(--motion-smooth),
+    box-shadow 0.24s ease;
   border-radius: 999px;
   min-height: 34px;
   padding: 0 12px;
@@ -312,8 +324,12 @@
 
 .cd-remove:hover {
   opacity: 1;
-  transform: scale(1.03);
+  transform: translateY(-1px);
   background: var(--soft);
+}
+
+.cd-remove:active {
+  transform: scale(0.985);
 }
 
 .cd-footer {
@@ -354,15 +370,15 @@
   font-weight: 800;
   cursor: pointer;
   transition:
-    transform var(--motion-fast),
-    opacity var(--motion-fast),
-    box-shadow var(--motion-smooth),
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease,
+    box-shadow 0.28s ease,
     background var(--motion-smooth),
     color var(--motion-smooth);
 }
 
 .cd-checkout:hover:not(:disabled) {
-  opacity: 0.92;
+  opacity: 0.94;
   box-shadow: 0 12px 26px rgba(17, 17, 17, 0.12);
   transform: translateY(-1px);
 }
@@ -398,5 +414,24 @@
 
   .cd-remove {
     width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-overlay,
+  .cd-panel,
+  .cd-close,
+  .cd-cart-alert,
+  .cd-empty,
+  .cd-ghost,
+  .cd-item,
+  .cd-item-img img,
+  .cd-option-pill,
+  .cd-qty,
+  .cd-qty button,
+  .cd-remove,
+  .cd-checkout {
+    transition: none !important;
+    animation: none !important;
   }
 }
