@@ -264,6 +264,74 @@ function makeSkeleton(n = SKELETON_COUNT) {
   return Array.from({ length: n }).map((_, i) => ({ id: `sk_${i}` }));
 }
 
+function buildSearchAliases(product) {
+  const source = [
+    product.name,
+    product.brand,
+    product.description,
+    product.shortDescription,
+    product.short_description,
+    product.dept,
+    product.kind,
+    product.shop,
+    product.homeSlot,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const aliases = [];
+
+  if (
+    /\b(phone|phones|iphone|android|mobile|smartphone|tecno|infinix|samsung|itel|pixel|tablet|ipad)\b/.test(
+      source
+    )
+  ) {
+    aliases.push("phone phones iphone android mobile smartphone tablet ipad");
+  }
+
+  if (
+    /\b(laptop|laptops|macbook|notebook|computer|pc|dell|hp|lenovo|acer|asus)\b/.test(
+      source
+    )
+  ) {
+    aliases.push("laptop laptops macbook notebook computer pc");
+  }
+
+  if (
+    /\b(shoe|shoes|sneaker|sneakers|slides|sandals|heels|boots|slippers|airforce|air force)\b/.test(
+      source
+    )
+  ) {
+    aliases.push("shoe shoes sneaker sneakers slides sandals heels boots slippers");
+  }
+
+  if (
+    /\b(clothing|clothes|fashion|shirt|shirts|dress|dresses|hoodie|hoodies|trousers|jeans|top|tops)\b/.test(
+      source
+    )
+  ) {
+    aliases.push("clothing clothes fashion shirt dress hoodie trousers jeans top");
+  }
+
+  if (
+    /\b(kids|kid|children|child|baby|babies|toddler|infant)\b/.test(source)
+  ) {
+    aliases.push("kids kid children child baby babies toddler infant");
+  }
+
+  if (
+    product.homeSlot === "others" ||
+    /\b(other|others|accessory|accessories|watch|bag|bags|power bank|speaker|perfume|cosmetics)\b/.test(
+      source
+    )
+  ) {
+    aliases.push("other others accessory accessories watch bag bags power bank speaker perfume cosmetics");
+  }
+
+  return aliases.join(" ");
+}
+
 function matchesSearch(product, term) {
   if (!term) return true;
 
@@ -277,6 +345,7 @@ function matchesSearch(product, term) {
     product.kind,
     product.shop,
     product.homeSlot,
+    buildSearchAliases(product),
     product.shipsFromAbroad
       ? "ships from abroad imported international"
       : "local",
@@ -286,7 +355,13 @@ function matchesSearch(product, term) {
     .join(" ")
     .toLowerCase();
 
-  return haystack.includes(term);
+  const tokens = String(term)
+    .toLowerCase()
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+  return tokens.every((token) => haystack.includes(token));
 }
 
 function seededHash(input) {
@@ -336,6 +411,8 @@ export default function ProductGrid({
     () => (sortBy || f.sort || "new").toLowerCase(),
     [sortBy, f.sort]
   );
+
+  const hasTextSearch = !!f.q;
 
   const signature = useMemo(() => {
     return JSON.stringify({
@@ -442,7 +519,8 @@ export default function ProductGrid({
       const { colRef, wheres, ord } = baseQueryParts;
 
       try {
-        const qIdeal = query(colRef, ...wheres, ord, limit(PAGE_SIZE));
+        const effectiveLimit = hasTextSearch ? PAGE_SIZE * 3 : PAGE_SIZE;
+        const qIdeal = query(colRef, ...wheres, ord, limit(effectiveLimit));
         const snap = await getDocs(qIdeal);
 
         if (!alive) return;
@@ -450,13 +528,14 @@ export default function ProductGrid({
         const normalized = snap.docs.map(normalizeDoc);
         setProducts(normalized);
         setLastDoc(snap.docs[snap.docs.length - 1] || null);
-        setHasMore(snap.docs.length === PAGE_SIZE);
+        setHasMore(!hasTextSearch && snap.docs.length === PAGE_SIZE);
         setPagesLoaded(1);
         setLoadingFirst(false);
         return;
       } catch {
         try {
-          const qFallback = query(colRef, ...wheres, limit(PAGE_SIZE));
+          const effectiveLimit = hasTextSearch ? PAGE_SIZE * 3 : PAGE_SIZE;
+          const qFallback = query(colRef, ...wheres, limit(effectiveLimit));
           const snap2 = await getDocs(qFallback);
 
           if (!alive) return;
@@ -466,7 +545,7 @@ export default function ProductGrid({
 
           setProducts(sorted);
           setLastDoc(snap2.docs[snap2.docs.length - 1] || null);
-          setHasMore(snap2.docs.length === PAGE_SIZE);
+          setHasMore(!hasTextSearch && snap2.docs.length === PAGE_SIZE);
           setPagesLoaded(1);
           setLoadingFirst(false);
         } catch (e2) {
@@ -484,9 +563,10 @@ export default function ProductGrid({
     return () => {
       alive = false;
     };
-  }, [baseQueryParts, sortKey, signature]);
+  }, [baseQueryParts, sortKey, signature, hasTextSearch]);
 
   const loadMore = async () => {
+    if (hasTextSearch) return;
     if (loadingFirst || loadingMore || !hasMore) return;
     if (!lastDoc) return;
     if (pagesLoaded >= MAX_PAGES) {
@@ -558,7 +638,7 @@ export default function ProductGrid({
   };
 
   useEffect(() => {
-    if (!infinite) return;
+    if (!infinite || hasTextSearch) return;
     if (!sentinelRef.current) return;
 
     const el = sentinelRef.current;
@@ -575,6 +655,7 @@ export default function ProductGrid({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     infinite,
+    hasTextSearch,
     hasMore,
     lastDoc,
     loadingFirst,
