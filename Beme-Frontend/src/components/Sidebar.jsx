@@ -51,10 +51,46 @@ function IconShop() {
 function IconGrid() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <rect x="4" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
-      <rect x="13" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
-      <rect x="4" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
-      <rect x="13" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <rect
+        x="4"
+        y="4"
+        width="7"
+        height="7"
+        rx="1.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <rect
+        x="13"
+        y="4"
+        width="7"
+        height="7"
+        rx="1.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <rect
+        x="4"
+        y="13"
+        width="7"
+        height="7"
+        rx="1.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <rect
+        x="13"
+        y="13"
+        width="7"
+        height="7"
+        rx="1.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
     </svg>
   );
 }
@@ -62,9 +98,27 @@ function IconGrid() {
 function IconLayers() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path d="m12 4 8 4-8 4-8-4 8-4Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-      <path d="m4 12 8 4 8-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-      <path d="m4 16 8 4 8-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path
+        d="m12 4 8 4-8 4-8-4 8-4Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m4 12 8 4 8-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m4 16 8 4 8-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -106,6 +160,42 @@ function IconOrders() {
       />
       <path
         d="M9 8.5h6M9 11.5h6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconReviewQueue() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
+      <path
+        d="M6 5.5h9a2 2 0 0 1 2 2V18a1 1 0 0 1-1.6.8L12 16.5l-3.4 2.3A1 1 0 0 1 7 18V6.5a1 1 0 0 0-1-1Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 9.2h5.5M9 12.2h4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <circle
+        cx="18"
+        cy="17.5"
+        r="3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path
+        d="m19.8 19.3 1.7 1.7"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.7"
@@ -203,7 +293,14 @@ function IconLogout() {
 function IconSun() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <circle
+        cx="12"
+        cy="12"
+        r="4.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
       <path
         d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"
         fill="none"
@@ -232,7 +329,14 @@ function IconShield() {
 function IconAccount() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <circle cx="12" cy="8" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <circle
+        cx="12"
+        cy="8"
+        r="3.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
       <path
         d="M5 19a7 7 0 0 1 14 0"
         fill="none"
@@ -388,10 +492,16 @@ export default function Sidebar({ isOpen, onClose }) {
   };
 
   return (
-    <div className={`side-shell ${isOpen ? "is-open" : ""}`} aria-hidden={!isOpen}>
+    <div
+      className={`side-shell ${isOpen ? "is-open" : ""}`}
+      aria-hidden={!isOpen}
+    >
       <div className={`overlay ${isOpen ? "is-open" : ""}`} onClick={onClose} />
 
-      <aside className={`side-panel ${isOpen ? "open" : ""}`} aria-label="Sidebar menu">
+      <aside
+        className={`side-panel ${isOpen ? "open" : ""}`}
+        aria-label="Sidebar menu"
+      >
         <div className="side-header">
           <div className="side-header-copy">
             <h3 className="side-title">Menu</h3>
@@ -410,8 +520,16 @@ export default function Sidebar({ isOpen, onClose }) {
         <div className="side-scroll">
           <section className="side-group side-group--intro">
             <div className="side-group-list">
-              <SidebarRow icon={<IconHome />} label="Home" onClick={() => go("/")} />
-              <SidebarRow icon={<IconShop />} label="Shop" onClick={() => go("/shop")} />
+              <SidebarRow
+                icon={<IconHome />}
+                label="Home"
+                onClick={() => go("/")}
+              />
+              <SidebarRow
+                icon={<IconShop />}
+                label="Shop"
+                onClick={() => go("/shop")}
+              />
               {user ? (
                 <SidebarRow
                   icon={<IconOrders />}
@@ -426,13 +544,46 @@ export default function Sidebar({ isOpen, onClose }) {
             <section className="side-group">
               <div className="side-group-label">Admin</div>
               <div className="side-group-list">
-                <SidebarRow icon={<IconShield />} label="Product Manager" onClick={() => go("/admin")} />
-                <SidebarRow icon={<IconOrders />} label="Marketplace Orders" onClick={() => go("/admin-orders")} />
-                <SidebarRow icon={<IconGrid />} label="Analytics" onClick={() => go("/analytics")} />
-                <SidebarRow icon={<IconTag />} label="Payout Requests" onClick={() => go("/payout-requests")} />
-                <SidebarRow icon={<IconLayers />} label="Shop Applications" onClick={() => go("/shop-applications")} />
-                <SidebarRow icon={<IconAccount />} label="Account Management" onClick={() => go("/account-management")} />
-                <SidebarRow icon={<IconTools />} label="Own a Shop" onClick={() => go("/own-a-shop")} />
+                <SidebarRow
+                  icon={<IconShield />}
+                  label="Product Manager"
+                  onClick={() => go("/admin")}
+                />
+                <SidebarRow
+                  icon={<IconReviewQueue />}
+                  label="Admin Review Queue"
+                  onClick={() => go("/admin-review-queue")}
+                />
+                <SidebarRow
+                  icon={<IconOrders />}
+                  label="Marketplace Orders"
+                  onClick={() => go("/admin-orders")}
+                />
+                <SidebarRow
+                  icon={<IconGrid />}
+                  label="Analytics"
+                  onClick={() => go("/analytics")}
+                />
+                <SidebarRow
+                  icon={<IconTag />}
+                  label="Payout Requests"
+                  onClick={() => go("/payout-requests")}
+                />
+                <SidebarRow
+                  icon={<IconLayers />}
+                  label="Shop Applications"
+                  onClick={() => go("/shop-applications")}
+                />
+                <SidebarRow
+                  icon={<IconAccount />}
+                  label="Account Management"
+                  onClick={() => go("/account-management")}
+                />
+                <SidebarRow
+                  icon={<IconTools />}
+                  label="Own a Shop"
+                  onClick={() => go("/own-a-shop")}
+                />
               </div>
             </section>
           ) : null}
@@ -443,11 +594,36 @@ export default function Sidebar({ isOpen, onClose }) {
                 Shop Admin{shopLabel ? ` • ${shopLabel}` : ""}
               </div>
               <div className="side-group-list">
-                <SidebarRow icon={<IconShield />} label="Product Manager" onClick={() => go("/admin")} />
-                <SidebarRow icon={<IconOrders />} label="Shop Orders" onClick={() => go("/admin-orders")} />
-                <SidebarRow icon={<IconGrid />} label="Analytics" onClick={() => go("/analytics")} />
-                <SidebarRow icon={<IconTag />} label="Payout Requests" onClick={() => go("/payout-requests")} />
-                <SidebarRow icon={<IconAccount />} label="Account Management" onClick={() => go("/account-management")} />
+                <SidebarRow
+                  icon={<IconShield />}
+                  label="Product Manager"
+                  onClick={() => go("/admin")}
+                />
+                <SidebarRow
+                  icon={<IconReviewQueue />}
+                  label="Review Queue"
+                  onClick={() => go("/admin-review-queue")}
+                />
+                <SidebarRow
+                  icon={<IconOrders />}
+                  label="Shop Orders"
+                  onClick={() => go("/admin-orders")}
+                />
+                <SidebarRow
+                  icon={<IconGrid />}
+                  label="Analytics"
+                  onClick={() => go("/analytics")}
+                />
+                <SidebarRow
+                  icon={<IconTag />}
+                  label="Payout Requests"
+                  onClick={() => go("/payout-requests")}
+                />
+                <SidebarRow
+                  icon={<IconAccount />}
+                  label="Account Management"
+                  onClick={() => go("/account-management")}
+                />
               </div>
             </section>
           ) : null}
@@ -462,11 +638,33 @@ export default function Sidebar({ isOpen, onClose }) {
                 open={openSection === "categories"}
               />
 
-              <div className={`side-submenu-wrap ${openSection === "categories" ? "is-open" : ""}`}>
+              <div
+                className={`side-submenu-wrap ${
+                  openSection === "categories" ? "is-open" : ""
+                }`}
+              >
                 <div className="side-submenu">
-                  <button className="side-subitem" onClick={() => goCategory("tech")} type="button">Tech</button>
-                  <button className="side-subitem" onClick={() => goCategory("fashion")} type="button">Fashion</button>
-                  <button className="side-subitem" onClick={() => goCategory("accessories")} type="button">Accessories</button>
+                  <button
+                    className="side-subitem"
+                    onClick={() => goCategory("tech")}
+                    type="button"
+                  >
+                    Tech
+                  </button>
+                  <button
+                    className="side-subitem"
+                    onClick={() => goCategory("fashion")}
+                    type="button"
+                  >
+                    Fashion
+                  </button>
+                  <button
+                    className="side-subitem"
+                    onClick={() => goCategory("accessories")}
+                    type="button"
+                  >
+                    Accessories
+                  </button>
                 </div>
               </div>
 
@@ -478,13 +676,47 @@ export default function Sidebar({ isOpen, onClose }) {
                 open={openSection === "departments"}
               />
 
-              <div className={`side-submenu-wrap ${openSection === "departments" ? "is-open" : ""}`}>
+              <div
+                className={`side-submenu-wrap ${
+                  openSection === "departments" ? "is-open" : ""
+                }`}
+              >
                 <div className="side-submenu">
-                  <button className="side-subitem" onClick={() => goDept("men")} type="button">Men</button>
-                  <button className="side-subitem" onClick={() => goDept("women")} type="button">Women</button>
-                  <button className="side-subitem" onClick={() => goDept("unisex")} type="button">Unisex</button>
-                  <button className="side-subitem" onClick={() => goDept("kids")} type="button">Kids</button>
-                  <button className="side-subitem" onClick={() => goDept("accessories")} type="button">Accessories</button>
+                  <button
+                    className="side-subitem"
+                    onClick={() => goDept("men")}
+                    type="button"
+                  >
+                    Men
+                  </button>
+                  <button
+                    className="side-subitem"
+                    onClick={() => goDept("women")}
+                    type="button"
+                  >
+                    Women
+                  </button>
+                  <button
+                    className="side-subitem"
+                    onClick={() => goDept("unisex")}
+                    type="button"
+                  >
+                    Unisex
+                  </button>
+                  <button
+                    className="side-subitem"
+                    onClick={() => goDept("kids")}
+                    type="button"
+                  >
+                    Kids
+                  </button>
+                  <button
+                    className="side-subitem"
+                    onClick={() => goDept("accessories")}
+                    type="button"
+                  >
+                    Accessories
+                  </button>
                 </div>
               </div>
 
@@ -496,17 +728,55 @@ export default function Sidebar({ isOpen, onClose }) {
                 open={openSection === "more"}
               />
 
-              <div className={`side-submenu-wrap ${openSection === "more" ? "is-open" : ""}`}>
+              <div
+                className={`side-submenu-wrap ${
+                  openSection === "more" ? "is-open" : ""
+                }`}
+              >
                 <div className="side-submenu">
-                  <button className="side-subitem" onClick={() => go("/about")} type="button">About us</button>
-                  <button className="side-subitem" onClick={() => go("/support")} type="button">Support us</button>
-                  <button className="side-subitem" onClick={() => go("/contact")} type="button">Contact</button>
-                  <button className="side-subitem" onClick={() => go("/faq")} type="button">FAQ</button>
-                  <button className="side-subitem" onClick={() => go("/shipping&returns")} type="button">Shipping & Returns</button>
+                  <button
+                    className="side-subitem"
+                    onClick={() => go("/about")}
+                    type="button"
+                  >
+                    About us
+                  </button>
+                  <button
+                    className="side-subitem"
+                    onClick={() => go("/support")}
+                    type="button"
+                  >
+                    Support us
+                  </button>
+                  <button
+                    className="side-subitem"
+                    onClick={() => go("/contact")}
+                    type="button"
+                  >
+                    Contact
+                  </button>
+                  <button
+                    className="side-subitem"
+                    onClick={() => go("/faq")}
+                    type="button"
+                  >
+                    FAQ
+                  </button>
+                  <button
+                    className="side-subitem"
+                    onClick={() => go("/shipping&returns")}
+                    type="button"
+                  >
+                    Shipping & Returns
+                  </button>
                 </div>
               </div>
 
-              <SidebarRow icon={<IconTag />} label="Offers" onClick={onOffersClick} />
+              <SidebarRow
+                icon={<IconTag />}
+                label="Offers"
+                onClick={onOffersClick}
+              />
             </div>
           </section>
 
@@ -514,8 +784,16 @@ export default function Sidebar({ isOpen, onClose }) {
             <div className="side-group-list">
               {!user ? (
                 <>
-                  <SidebarRow icon={<IconLogin />} label="Login" onClick={() => go("/login")} />
-                  <SidebarRow icon={<IconUserPlus />} label="Sign up" onClick={() => go("/signup")} />
+                  <SidebarRow
+                    icon={<IconLogin />}
+                    label="Login"
+                    onClick={() => go("/login")}
+                  />
+                  <SidebarRow
+                    icon={<IconUserPlus />}
+                    label="Sign up"
+                    onClick={() => go("/signup")}
+                  />
                 </>
               ) : !confirmLogout ? (
                 <SidebarRow
@@ -526,12 +804,22 @@ export default function Sidebar({ isOpen, onClose }) {
                 />
               ) : (
                 <div className="side-confirm">
-                  <p className="side-confirm-text">Are you sure you want to log out?</p>
+                  <p className="side-confirm-text">
+                    Are you sure you want to log out?
+                  </p>
                   <div className="side-confirm-actions">
-                    <button className="side-confirm-btn" onClick={() => setConfirmLogout(false)} type="button">
+                    <button
+                      className="side-confirm-btn"
+                      onClick={() => setConfirmLogout(false)}
+                      type="button"
+                    >
                       Cancel
                     </button>
-                    <button className="side-confirm-btn side-confirm-btn--danger" onClick={onLogout} type="button">
+                    <button
+                      className="side-confirm-btn side-confirm-btn--danger"
+                      onClick={onLogout}
+                      type="button"
+                    >
                       Log out
                     </button>
                   </div>
