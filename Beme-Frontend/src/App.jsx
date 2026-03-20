@@ -22,6 +22,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import AdminLogin from "./pages/AdminLogin";
 import AdminOrders from "./pages/AdminOrders";
+import AdminReviewQueue from "./pages/AdminReviewQueue";
 import Analytics from "./pages/Analytics";
 import ShopOwnerApply from "./pages/ShopOwnerApply";
 import PayoutRequests from "./pages/PayoutRequests";
@@ -230,6 +231,17 @@ function AppShell() {
               <AdminRoute>
                 <RequireAdmin>
                   <Admin />
+                </RequireAdmin>
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/admin-review-queue"
+            element={
+              <AdminRoute>
+                <RequireAdmin>
+                  <AdminReviewQueue />
                 </RequireAdmin>
               </AdminRoute>
             }
