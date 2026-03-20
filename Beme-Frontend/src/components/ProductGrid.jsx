@@ -18,6 +18,22 @@ const PAGE_SIZE = 24;
 const MAX_PAGES = 8;
 const SKELETON_COUNT = 8;
 
+const SEARCH_SYNONYMS = {
+  phone: ["phone", "phones", "iphone", "android", "mobile", "smartphone", "samsung", "tecno", "infinix", "itel", "pixel", "ipad", "tablet"],
+  phones: ["phone", "phones", "iphone", "android", "mobile", "smartphone", "samsung", "tecno", "infinix", "itel", "pixel", "ipad", "tablet"],
+  laptop: ["laptop", "laptops", "macbook", "notebook", "computer", "pc", "dell", "hp", "lenovo", "acer", "asus"],
+  laptops: ["laptop", "laptops", "macbook", "notebook", "computer", "pc", "dell", "hp", "lenovo", "acer", "asus"],
+  shoes: ["shoe", "shoes", "sneaker", "sneakers", "slides", "sandals", "heels", "boots", "slippers", "loafer"],
+  shoe: ["shoe", "shoes", "sneaker", "sneakers", "slides", "sandals", "heels", "boots", "slippers", "loafer"],
+  clothing: ["clothing", "clothes", "fashion", "shirt", "shirts", "dress", "dresses", "hoodie", "hoodies", "jeans", "trousers", "top", "tops"],
+  clothes: ["clothing", "clothes", "fashion", "shirt", "shirts", "dress", "dresses", "hoodie", "hoodies", "jeans", "trousers", "top", "tops"],
+  kids: ["kids", "kid", "children", "child", "baby", "babies", "toddler", "infant"],
+  kid: ["kids", "kid", "children", "child", "baby", "babies", "toddler", "infant"],
+  accessories: ["accessories", "accessory", "watch", "bag", "bags", "speaker", "power bank", "powerbank", "perfume", "cosmetics", "others"],
+  accessory: ["accessories", "accessory", "watch", "bag", "bags", "speaker", "power bank", "powerbank", "perfume", "cosmetics", "others"],
+  others: ["others", "other", "accessories", "accessory", "general", "misc"],
+};
+
 function parseBooleanish(value, fallback = false) {
   if (typeof value === "boolean") return value;
   if (typeof value === "number") return value > 0;
@@ -209,6 +225,12 @@ function normalizeDoc(docSnap) {
   return {
     id: docSnap.id,
     ...d,
+    name: String(d.name || "").trim(),
+    brand: String(d.brand || "").trim(),
+    description: String(d.description || "").trim(),
+    shortDescription: String(
+      d.shortDescription ?? d.short_description ?? ""
+    ).trim(),
     price,
     oldPrice:
       rawOldPrice !== null && rawOldPrice !== undefined && rawOldPrice !== ""
@@ -264,90 +286,39 @@ function makeSkeleton(n = SKELETON_COUNT) {
   return Array.from({ length: n }).map((_, i) => ({ id: `sk_${i}` }));
 }
 
-function buildSearchAliases(product) {
-  const source = [
-    product.name,
-    product.brand,
-    product.description,
-    product.shortDescription,
-    product.short_description,
-    product.dept,
-    product.kind,
-    product.shop,
-    product.homeSlot,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  const aliases = [];
-
-  if (
-    /\b(phone|iphone|samsung|android|mobile|smartphone|tecno|infinix|itel|pixel|tablet|ipad)\b/.test(
-      source
-    )
-  ) {
-    aliases.push("phones phone iphone samsung android mobile smartphone");
-  }
-
-  if (
-    /\b(laptop|macbook|notebook|ultrabook|dell|hp|lenovo|acer|asus)\b/.test(
-      source
-    )
-  ) {
-    aliases.push("laptops laptop macbook notebook computer");
-  }
-
-  if (
-    /\b(shoe|shoes|sneaker|sneakers|slides|slippers|sandals|heels|boot|boots|loafer)\b/.test(
-      source
-    )
-  ) {
-    aliases.push("shoes shoe sneakers sandals slides heels boots");
-  }
-
-  if (
-    /\b(clothing|cloth|fashion|shirt|t-shirt|tee|hoodie|jacket|trouser|trousers|jeans|dress|skirt|shorts|top)\b/.test(
-      source
-    )
-  ) {
-    aliases.push("clothing clothes fashion shirt dress jeans trousers hoodie");
-  }
-
-  if (
-    /\b(kids|kid|children|child|baby|babies|toddler|infant|youth)\b/.test(
-      source
-    )
-  ) {
-    aliases.push("kids kid children child baby toddler infant");
-  }
-
-  if (
-    product.homeSlot === "others" ||
-    /\b(other|others|accessory|accessories|misc|general|power bank|powerbank|speaker|watch|perfume|cosmetic)\b/.test(
-      source
-    )
-  ) {
-    aliases.push("others other accessories accessory misc general");
-  }
-
-  return aliases.join(" ");
+function tokenizeSearch(term) {
+  return String(term || "")
+    .toLowerCase()
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
 }
 
-function matchesSearch(product, term) {
-  if (!term) return true;
+function expandTokens(tokens) {
+  const expanded = new Set();
 
-  const haystack = [
+  for (const token of tokens) {
+    expanded.add(token);
+
+    const synonyms = SEARCH_SYNONYMS[token];
+    if (Array.isArray(synonyms)) {
+      for (const word of synonyms) expanded.add(word);
+    }
+  }
+
+  return [...expanded];
+}
+
+function buildSearchText(product) {
+  return [
     product.name,
     product.brand,
     product.description,
     product.shortDescription,
-    product.short_description,
     product.dept,
     product.kind,
     product.shop,
     product.homeSlot,
-    buildSearchAliases(product),
     product.shipsFromAbroad
       ? "ships from abroad imported international"
       : "local",
@@ -356,14 +327,26 @@ function matchesSearch(product, term) {
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
+}
 
-  const tokens = String(term)
-    .toLowerCase()
-    .split(/\s+/)
-    .map((t) => t.trim())
-    .filter(Boolean);
+function matchesSearch(product, term) {
+  if (!term) return true;
 
-  return tokens.every((token) => haystack.includes(token));
+  const tokens = tokenizeSearch(term);
+  if (!tokens.length) return true;
+
+  const haystack = buildSearchText(product);
+  const expandedTokens = expandTokens(tokens);
+
+  return tokens.every((token) => {
+    if (haystack.includes(token)) return true;
+
+    const related = expandedTokens.filter(
+      (item) => item === token || SEARCH_SYNONYMS[token]?.includes(item)
+    );
+
+    return related.some((word) => haystack.includes(word));
+  });
 }
 
 function seededHash(input) {
