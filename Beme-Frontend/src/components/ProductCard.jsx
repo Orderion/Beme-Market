@@ -1,22 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  collection,
-  getCountFromServer,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  startAfter,
-  where,
-} from "firebase/firestore";
-import { db } from "../firebase";
-import ProductCard from "./ProductCard";
-import "./ProductGrid.css";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { useCart } from "../context/CartContext";
+import "./ProductCard.css";
 
-const COLLECTION_NAME = "Products";
-const PAGE_SIZE = 24;
-const MAX_PAGES = 8;
-const SKELETON_COUNT = 8;
+function normalizeImages(product) {
+  const list = Array.isArray(product?.images)
+    ? product.images.map((item) => String(item || "").trim()).filter(Boolean)
+    : [];
+
+  if (list.length) return list;
+
+  const single = String(product?.image || "").trim();
+  return single ? [single] : [];
+}
 
 function parseBooleanish(value, fallback = false) {
   if (typeof value === "boolean") return value;
@@ -34,11 +30,9 @@ function parseBooleanish(value, fallback = false) {
       "instock",
       "available",
       "active",
-      "featured",
       "abroad",
       "imported",
       "international",
-      "overseas",
     ].includes(raw)
   ) {
     return true;
@@ -62,84 +56,24 @@ function parseBooleanish(value, fallback = false) {
   return fallback;
 }
 
-function getNumericStock(value) {
-  if (value === "" || value === null || value === undefined) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
+function normalizeShop(value) {
+  return String(value || "").trim().toLowerCase();
 }
 
-function normalizeFilter(filter) {
-  if (!filter) {
-    return {
-      dept: null,
-      kind: null,
-      shop: null,
-      slot: null,
-      q: "",
-      priceMin: null,
-      priceMax: null,
-      inStockOnly: false,
-      featuredOnly: false,
-      sort: "new",
-    };
-  }
-
-  if (typeof filter === "string") {
-    return {
-      dept: filter.toLowerCase(),
-      kind: null,
-      shop: null,
-      slot: null,
-      q: "",
-      priceMin: null,
-      priceMax: null,
-      inStockOnly: false,
-      featuredOnly: false,
-      sort: "new",
-    };
-  }
-
-  return {
-    dept: filter.dept ? String(filter.dept).toLowerCase().trim() : null,
-    kind: filter.kind ? String(filter.kind).toLowerCase().trim() : null,
-    shop: filter.shop ? String(filter.shop).toLowerCase().trim() : null,
-    slot: filter.slot ? String(filter.slot).toLowerCase().trim() : null,
-    q: filter.q ? String(filter.q).toLowerCase().trim() : "",
-    priceMin:
-      filter.priceMin != null && !Number.isNaN(Number(filter.priceMin))
-        ? Number(filter.priceMin)
-        : null,
-    priceMax:
-      filter.priceMax != null && !Number.isNaN(Number(filter.priceMax))
-        ? Number(filter.priceMax)
-        : null,
-    inStockOnly: !!filter.inStockOnly,
-    featuredOnly: !!filter.featuredOnly,
-    sort: (filter.sort || "new").toLowerCase(),
-  };
+function normalizeHomeSlot(value) {
+  return String(value || "").trim().toLowerCase();
 }
 
-function normalizeImages(data) {
-  const list = Array.isArray(data?.images)
-    ? data.images.map((item) => String(item || "").trim()).filter(Boolean)
-    : [];
-
-  if (list.length) return list;
-
-  const single = String(data?.image || "").trim();
-  return single ? [single] : [];
-}
-
-function normalizeShippingSource(data) {
+function normalizeShippingSource(product) {
   const candidates = [
-    data?.shippingSource,
-    data?.shippingType,
-    data?.shipFrom,
-    data?.ship_from,
-    data?.fulfillmentType,
-    data?.originType,
-    data?.shipping_origin,
-    data?.shipping_origin_type,
+    product?.shippingSource,
+    product?.shippingType,
+    product?.shipFrom,
+    product?.ship_from,
+    product?.fulfillmentType,
+    product?.originType,
+    product?.shipping_origin,
+    product?.shipping_origin_type,
   ];
 
   for (const candidate of candidates) {
@@ -169,8 +103,8 @@ function normalizeShippingSource(data) {
   }
 
   if (
-    parseBooleanish(data?.shipFromAbroad, false) ||
-    parseBooleanish(data?.shipsFromAbroad, false)
+    parseBooleanish(product?.shipFromAbroad, false) ||
+    parseBooleanish(product?.shipsFromAbroad, false)
   ) {
     return "abroad";
   }
@@ -178,628 +112,418 @@ function normalizeShippingSource(data) {
   return "";
 }
 
-function normalizeDoc(docSnap) {
-  const d = docSnap.data() || {};
-
-  const price = Number(d.price ?? d.Price ?? 0) || 0;
-  const rawOldPrice = d.oldPrice ?? d.oldprice ?? null;
-
-  const dept = d.dept ?? d.Dept ?? null;
-  const kind = d.kind ?? d.Kind ?? null;
-  const shop = d.shop ?? d.Shop ?? "main";
-  const homeSlot =
-    d.homeSlot ??
-    d.home_filter ??
-    d.homeFilter ??
-    d.slot ??
-    d.discoveryCategory ??
-    "others";
-
-  const stock = getNumericStock(d.stock ?? d.Stock ?? d.quantity ?? d.qty);
-  const inStock = parseBooleanish(d.inStock ?? d.in_stock, true);
-  const featured = parseBooleanish(d.featured ?? d.Featured, false);
-
-  const images = normalizeImages(d);
-  const shippingSource = normalizeShippingSource(d);
-  const shipsFromAbroad =
-    shippingSource === "abroad" ||
-    parseBooleanish(d.shipFromAbroad, false) ||
-    parseBooleanish(d.shipsFromAbroad, false);
-
-  return {
-    id: docSnap.id,
-    ...d,
-    price,
-    oldPrice:
-      rawOldPrice !== null && rawOldPrice !== undefined && rawOldPrice !== ""
-        ? Number(rawOldPrice) || rawOldPrice
-        : null,
-    dept: typeof dept === "string" ? dept.toLowerCase().trim() : dept,
-    kind: typeof kind === "string" ? kind.toLowerCase().trim() : kind,
-    shop: typeof shop === "string" ? shop.toLowerCase().trim() : shop,
-    homeSlot:
-      typeof homeSlot === "string" ? homeSlot.toLowerCase().trim() : "others",
-    stock,
-    inStock,
-    featured,
-    image: images[0] || "",
-    images,
-    shippingSource,
-    shipsFromAbroad,
-    createdAt: d.createdAt ?? null,
-  };
+function getNumericStock(product) {
+  const parsed = Number(product?.stock);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
-function getCreatedAtMillis(item) {
-  if (typeof item?.createdAt?.toMillis === "function") {
-    return item.createdAt.toMillis();
-  }
-  if (typeof item?.createdAt?.seconds === "number") {
-    return item.createdAt.seconds * 1000;
-  }
-  return 0;
+function normalizeStock(product) {
+  return parseBooleanish(product?.inStock, true);
 }
 
-function clientSort(list, sortKey) {
-  const arr = [...list];
+function normalizeCustomizations(raw) {
+  if (!Array.isArray(raw)) return [];
 
-  if (sortKey === "price-asc") {
-    return arr.sort((a, b) => (a.price || 0) - (b.price || 0));
-  }
+  return raw
+    .map((group, groupIndex) => ({
+      id: group?.id || `${group?.name || "option"}-${groupIndex}`,
+      name: String(group?.name || "").trim(),
+      type: group?.type === "select" ? "select" : "buttons",
+      required: group?.required !== false,
+      values: Array.isArray(group?.values)
+        ? group.values
+            .map((value, valueIndex) => {
+              if (value && typeof value === "object") {
+                const label = String(
+                  value.label ?? value.value ?? value.name ?? ""
+                ).trim();
 
-  if (sortKey === "price-desc") {
-    return arr.sort((a, b) => (b.price || 0) - (a.price || 0));
-  }
+                if (!label) return null;
 
-  return arr.sort((a, b) => getCreatedAtMillis(b) - getCreatedAtMillis(a));
+                return {
+                  id:
+                    value.id ||
+                    `${group?.name || "option"}-${groupIndex}-${valueIndex}`,
+                  label,
+                  priceBump: Number(value.priceBump || 0) || 0,
+                };
+              }
+
+              const label = String(value || "").trim();
+              if (!label) return null;
+
+              return {
+                id: `${group?.name || "option"}-${groupIndex}-${valueIndex}`,
+                label,
+                priceBump: 0,
+              };
+            })
+            .filter(Boolean)
+        : [],
+    }))
+    .filter((group) => group.name && group.values.length > 0);
 }
 
-function buildOrder(sortKey) {
-  if (sortKey === "price-asc") return orderBy("price", "asc");
-  if (sortKey === "price-desc") return orderBy("price", "desc");
-  return orderBy("createdAt", "desc");
-}
-
-function makeSkeleton(n = SKELETON_COUNT) {
-  return Array.from({ length: n }).map((_, i) => ({ id: `sk_${i}` }));
-}
-
-function buildSearchAliases(product) {
-  const source = [
-    product.name,
-    product.brand,
-    product.description,
-    product.shortDescription,
-    product.short_description,
-    product.dept,
-    product.kind,
-    product.shop,
-    product.homeSlot,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  const aliases = [];
-
+function getItemAbroadDeliveryFee(product) {
   if (
-    /\b(phone|phones|iphone|android|mobile|smartphone|tecno|infinix|samsung|itel|pixel|ipad|tablet)\b/.test(
-      source
-    )
+    !parseBooleanish(product?.shipsFromAbroad, false) &&
+    !parseBooleanish(product?.shipFromAbroad, false)
   ) {
-    aliases.push(
-      "phone phones iphone android mobile smartphone tecno infinix samsung itel pixel ipad tablet"
-    );
+    return 0;
   }
 
-  if (
-    /\b(laptop|laptops|macbook|notebook|computer|pc|dell|hp|lenovo|acer|asus)\b/.test(
-      source
-    )
-  ) {
-    aliases.push(
-      "laptop laptops macbook notebook computer pc dell hp lenovo acer asus"
-    );
-  }
-
-  if (
-    /\b(shoe|shoes|sneaker|sneakers|slides|sandals|heels|boots|slippers|loafer|loafers)\b/.test(
-      source
-    )
-  ) {
-    aliases.push(
-      "shoe shoes sneaker sneakers slides sandals heels boots slippers loafer loafers"
-    );
-  }
-
-  if (
-    /\b(clothing|clothes|fashion|shirt|shirts|dress|dresses|hoodie|hoodies|trousers|jeans|top|tops|skirt|skirts|shorts)\b/.test(
-      source
-    )
-  ) {
-    aliases.push(
-      "clothing clothes fashion shirt shirts dress dresses hoodie hoodies trousers jeans top tops skirt skirts shorts"
-    );
-  }
-
-  if (
-    /\b(kids|kid|children|child|baby|babies|toddler|infant|youth)\b/.test(
-      source
-    )
-  ) {
-    aliases.push("kids kid children child baby babies toddler infant youth");
-  }
-
-  if (
-    product.homeSlot === "others" ||
-    /\b(other|others|accessory|accessories|watch|bag|bags|speaker|power bank|powerbank|perfume|cosmetics)\b/.test(
-      source
-    )
-  ) {
-    aliases.push(
-      "others other accessory accessories watch bag bags speaker power bank powerbank perfume cosmetics"
-    );
-  }
-
-  return aliases.join(" ");
+  const parsed = Number(product?.abroadDeliveryFee);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
-function matchesSearch(product, term) {
-  if (!term) return true;
+function getDescriptionSnippet(product) {
+  const candidates = [
+    product?.shortDescription,
+    product?.short_description,
+    product?.descriptionSnippet,
+    product?.description_snippet,
+    product?.tagline,
+    product?.summary,
+    product?.description,
+  ];
 
-  const haystack = [
-    product.name,
-    product.brand,
-    product.description,
-    product.shortDescription,
-    product.short_description,
-    product.dept,
-    product.kind,
-    product.shop,
-    product.homeSlot,
-    buildSearchAliases(product),
-    product.shipsFromAbroad
-      ? "ships from abroad imported international"
-      : "local",
-    product.inStock ? "in stock" : "out of stock",
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  const tokens = String(term)
-    .toLowerCase()
-    .split(/\s+/)
-    .map((t) => t.trim())
-    .filter(Boolean);
-
-  return tokens.every((token) => haystack.includes(token));
-}
-
-function seededHash(input) {
-  let hash = 2166136261;
-
-  for (let i = 0; i < input.length; i += 1) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
+  for (const item of candidates) {
+    const text = String(item || "").replace(/\s+/g, " ").trim();
+    if (text) {
+      return text.length > 88 ? `${text.slice(0, 85).trim()}...` : text;
+    }
   }
 
-  return hash >>> 0;
+  return "";
 }
 
-function shouldRandomize(sortKey) {
-  return sortKey === "new" || sortKey === "";
-}
+export default function ProductCard({ product }) {
+  const { addToCart } = useCart();
+  const [cardPopup, setCardPopup] = useState("");
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const touchStartXRef = useRef(null);
+  const touchDeltaXRef = useRef(0);
 
-function randomizedStableOrder(list, seedBase) {
-  return [...list].sort((a, b) => {
-    const aSeed = seededHash(`${seedBase}:${a.id}`);
-    const bSeed = seededHash(`${seedBase}:${b.id}`);
+  const id = product?.id ?? product?.docId ?? product?._id ?? "";
+  const name = String(product?.name || "Untitled").trim() || "Untitled";
 
-    if (aSeed !== bSeed) return aSeed - bSeed;
-    return getCreatedAtMillis(b) - getCreatedAtMillis(a);
-  });
-}
+  const images = useMemo(() => normalizeImages(product), [product]);
+  const imageCount = images.length;
+  const activeImage = images[activeImageIndex] || images[0] || "";
 
-export default function ProductGrid({
-  filter = null,
-  sortBy = "new",
-  withCount = false,
-  infinite = true,
-}) {
-  const [products, setProducts] = useState([]);
-  const [loadingFirst, setLoadingFirst] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [pagesLoaded, setPagesLoaded] = useState(0);
-  const [lastDoc, setLastDoc] = useState(null);
-  const [err, setErr] = useState("");
-  const [serverCount, setServerCount] = useState(null);
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [id, imageCount]);
 
-  const sentinelRef = useRef(null);
-
-  const f = useMemo(() => normalizeFilter(filter), [filter]);
-  const sortKey = useMemo(
-    () => (sortBy || f.sort || "new").toLowerCase(),
-    [sortBy, f.sort]
+  const shippingSource = useMemo(
+    () => normalizeShippingSource(product),
+    [product]
   );
 
-  const signature = useMemo(() => {
-    return JSON.stringify({
-      dept: f.dept,
-      kind: f.kind,
-      shop: f.shop,
-      slot: f.slot,
-      q: f.q,
-      inStockOnly: f.inStockOnly,
-      sortKey,
-      priceMin: f.priceMin,
-      priceMax: f.priceMax,
-      featuredOnly: f.featuredOnly,
-    });
-  }, [
-    f.dept,
-    f.kind,
-    f.shop,
-    f.slot,
-    f.q,
-    f.inStockOnly,
-    f.priceMin,
-    f.priceMax,
-    f.featuredOnly,
-    sortKey,
-  ]);
+  const shipsFromAbroad =
+    shippingSource === "abroad" ||
+    parseBooleanish(product?.shipFromAbroad, false) ||
+    parseBooleanish(product?.shipsFromAbroad, false);
 
-  const randomSeedBase = useMemo(() => {
-    return [
-      "beme-market",
-      f.dept || "all",
-      f.kind || "all",
-      f.shop || "all",
-      f.slot || "all",
-      f.q || "none",
-      f.featuredOnly ? "featured" : "not-featured",
-      f.inStockOnly ? "in-stock" : "stock-any",
-      f.priceMin ?? "min-any",
-      f.priceMax ?? "max-any",
-    ].join("|");
-  }, [
-    f.dept,
-    f.kind,
-    f.shop,
-    f.slot,
-    f.q,
-    f.featuredOnly,
-    f.inStockOnly,
-    f.priceMin,
-    f.priceMax,
-  ]);
+  const abroadDeliveryFee = useMemo(
+    () => getItemAbroadDeliveryFee(product),
+    [product]
+  );
 
-  const baseQueryParts = useMemo(() => {
-    const colRef = collection(db, COLLECTION_NAME);
-    const wheres = [];
+  const inStock = useMemo(() => normalizeStock(product), [product]);
+  const stock = useMemo(() => getNumericStock(product), [product]);
 
-    if (f.dept) wheres.push(where("dept", "==", f.dept));
-    if (f.kind) wheres.push(where("kind", "==", f.kind));
-    if (f.shop) wheres.push(where("shop", "==", f.shop));
-    if (f.inStockOnly) wheres.push(where("inStock", "==", true));
+  const priceRaw = product?.price;
+  const oldPriceRaw = product?.oldPrice;
 
-    const ord = buildOrder(sortKey);
-    return { colRef, wheres, ord };
-  }, [f.dept, f.kind, f.shop, f.inStockOnly, sortKey]);
+  const price =
+    priceRaw !== undefined && priceRaw !== null && priceRaw !== ""
+      ? Number(priceRaw)
+      : null;
 
-  useEffect(() => {
-    let alive = true;
+  const oldPrice =
+    oldPriceRaw !== undefined && oldPriceRaw !== null && oldPriceRaw !== ""
+      ? Number(oldPriceRaw)
+      : null;
 
-    async function runCount() {
-      if (!withCount) return;
+  const customizations = useMemo(
+    () => normalizeCustomizations(product?.customizations),
+    [product]
+  );
 
-      try {
-        const { colRef, wheres } = baseQueryParts;
-        const qCount = query(colRef, ...wheres);
-        const snap = await getCountFromServer(qCount);
+  const descriptionSnippet = useMemo(
+    () => getDescriptionSnippet(product),
+    [product]
+  );
 
-        if (!alive) return;
-        setServerCount(snap.data().count);
-      } catch {
-        if (!alive) return;
-        setServerCount(null);
-      }
-    }
+  const formatMoney = (n) => {
+    if (n === null || Number.isNaN(n)) return "";
+    return `GHS ${n.toFixed(2)}`;
+  };
 
-    runCount();
+  const showCardPopup = (message) => {
+    setCardPopup(message);
+    window.clearTimeout(showCardPopup._timeoutId);
+    showCardPopup._timeoutId = window.setTimeout(() => {
+      setCardPopup("");
+    }, 2600);
+  };
 
-    return () => {
-      alive = false;
-    };
-  }, [withCount, baseQueryParts, signature]);
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-  useEffect(() => {
-    let alive = true;
-
-    async function fetchFirst() {
-      setErr("");
-      setLoadingFirst(true);
-      setLoadingMore(false);
-      setProducts([]);
-      setHasMore(true);
-      setPagesLoaded(0);
-      setLastDoc(null);
-
-      const { colRef, wheres, ord } = baseQueryParts;
-
-      try {
-        const qIdeal = query(colRef, ...wheres, ord, limit(PAGE_SIZE));
-        const snap = await getDocs(qIdeal);
-
-        if (!alive) return;
-
-        const normalized = snap.docs.map(normalizeDoc);
-        setProducts(normalized);
-        setLastDoc(snap.docs[snap.docs.length - 1] || null);
-        setHasMore(snap.docs.length === PAGE_SIZE);
-        setPagesLoaded(1);
-        setLoadingFirst(false);
-        return;
-      } catch {
-        try {
-          const qFallback = query(colRef, ...wheres, limit(PAGE_SIZE));
-          const snap2 = await getDocs(qFallback);
-
-          if (!alive) return;
-
-          const normalized2 = snap2.docs.map(normalizeDoc);
-          const sorted = clientSort(normalized2, sortKey);
-
-          setProducts(sorted);
-          setLastDoc(snap2.docs[snap2.docs.length - 1] || null);
-          setHasMore(snap2.docs.length === PAGE_SIZE);
-          setPagesLoaded(1);
-          setLoadingFirst(false);
-        } catch (e2) {
-          if (!alive) return;
-          console.error("❌ Failed to fetch products:", e2);
-          setErr("Failed to load products.");
-          setLoadingFirst(false);
-          setHasMore(false);
-        }
-      }
-    }
-
-    fetchFirst();
-
-    return () => {
-      alive = false;
-    };
-  }, [baseQueryParts, sortKey, signature]);
-
-  const loadMore = async () => {
-    if (loadingFirst || loadingMore || !hasMore) return;
-    if (!lastDoc) return;
-    if (pagesLoaded >= MAX_PAGES) {
-      setHasMore(false);
+    if (!inStock) {
+      showCardPopup("Sorry, this item is currently out of stock.");
       return;
     }
 
-    setLoadingMore(true);
-    setErr("");
-
-    const { colRef, wheres, ord } = baseQueryParts;
-
     try {
-      const qMore = query(
-        colRef,
-        ...wheres,
-        ord,
-        startAfter(lastDoc),
-        limit(PAGE_SIZE)
-      );
-      const snap = await getDocs(qMore);
-
-      const normalized = snap.docs.map(normalizeDoc);
-
-      setProducts((prev) => {
-        const seen = new Set(prev.map((p) => p.id));
-        const merged = [...prev];
-        for (const p of normalized) {
-          if (!seen.has(p.id)) merged.push(p);
-        }
-        return merged;
+      addToCart({
+        id,
+        name,
+        price: price ?? 0,
+        basePrice: price ?? 0,
+        optionPriceTotal: 0,
+        oldPrice:
+          oldPrice !== null && Number.isFinite(oldPrice) ? oldPrice : null,
+        image: activeImage || images[0] || "",
+        images,
+        qty: 1,
+        shop: normalizeShop(product?.shop),
+        homeSlot: normalizeHomeSlot(product?.homeSlot || "others"),
+        selectedOptions: {},
+        selectedOptionsLabel: "",
+        selectedOptionDetails: [],
+        customizations,
+        shippingSource,
+        shipsFromAbroad,
+        abroadDeliveryFee,
+        inStock,
+        stock,
+        productId: id,
       });
 
-      setLastDoc(snap.docs[snap.docs.length - 1] || lastDoc);
-      setHasMore(snap.docs.length === PAGE_SIZE);
-      setPagesLoaded((p) => p + 1);
-      setLoadingMore(false);
-    } catch {
-      try {
-        const qMore2 = query(
-          colRef,
-          ...wheres,
-          startAfter(lastDoc),
-          limit(PAGE_SIZE)
-        );
-        const snap2 = await getDocs(qMore2);
-        const normalized2 = snap2.docs.map(normalizeDoc);
-
-        setProducts((prev) => {
-          const seen = new Set(prev.map((p) => p.id));
-          const merged = [...prev];
-          for (const p of normalized2) {
-            if (!seen.has(p.id)) merged.push(p);
-          }
-          return clientSort(merged, sortKey);
-        });
-
-        setLastDoc(snap2.docs[snap2.docs.length - 1] || lastDoc);
-        setHasMore(snap2.docs.length === PAGE_SIZE);
-        setPagesLoaded((p) => p + 1);
-        setLoadingMore(false);
-      } catch (e2) {
-        console.error("❌ Failed to load more:", e2);
-        setErr("Failed to load more products.");
-        setLoadingMore(false);
-        setHasMore(false);
-      }
+      setCardPopup("");
+    } catch (error) {
+      console.error("ProductCard addToCart error:", error);
+      showCardPopup("Unable to add this item to cart right now.");
     }
   };
 
-  useEffect(() => {
-    if (!infinite) return;
-    if (!sentinelRef.current) return;
+  const goToImage = (e, index) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveImageIndex(index);
+  };
 
-    const el = sentinelRef.current;
-    const io = new IntersectionObserver(
-      (entries) => {
-        const first = entries[0];
-        if (first?.isIntersecting) loadMore();
-      },
-      { root: null, rootMargin: "800px 0px", threshold: 0 }
-    );
+  const goPrevImage = () => {
+    if (imageCount <= 1) return;
+    setActiveImageIndex((prev) => (prev - 1 + imageCount) % imageCount);
+  };
 
-    io.observe(el);
-    return () => io.disconnect();
-  }, [
-    infinite,
-    hasMore,
-    lastDoc,
-    loadingFirst,
-    loadingMore,
-    pagesLoaded,
-    signature,
-  ]);
+  const goNextImage = () => {
+    if (imageCount <= 1) return;
+    setActiveImageIndex((prev) => (prev + 1) % imageCount);
+  };
 
-  const finalList = useMemo(() => {
-    let list = [...products];
+  const handleTouchStart = (e) => {
+    if (imageCount <= 1) return;
+    touchStartXRef.current = e.touches[0].clientX;
+    touchDeltaXRef.current = 0;
+  };
 
-    if (f.slot) {
-      list = list.filter(
-        (p) => String(p.homeSlot || "others").toLowerCase().trim() === f.slot
-      );
+  const handleTouchMove = (e) => {
+    if (imageCount <= 1 || touchStartXRef.current === null) return;
+    touchDeltaXRef.current = e.touches[0].clientX - touchStartXRef.current;
+  };
+
+  const handleTouchEnd = () => {
+    if (imageCount <= 1 || touchStartXRef.current === null) return;
+
+    const deltaX = touchDeltaXRef.current;
+    const threshold = 36;
+
+    if (deltaX <= -threshold) {
+      goNextImage();
+    } else if (deltaX >= threshold) {
+      goPrevImage();
     }
 
-    if (f.featuredOnly) {
-      list = list.filter((p) => !!p.featured);
-    }
+    touchStartXRef.current = null;
+    touchDeltaXRef.current = 0;
+  };
 
-    if (f.priceMin != null) {
-      list = list.filter((p) => (Number(p.price) || 0) >= f.priceMin);
-    }
-
-    if (f.priceMax != null) {
-      list = list.filter((p) => (Number(p.price) || 0) <= f.priceMax);
-    }
-
-    if (f.q) {
-      list = list.filter((p) => matchesSearch(p, f.q));
-    }
-
-    if (shouldRandomize(sortKey)) {
-      return randomizedStableOrder(list, randomSeedBase);
-    }
-
-    return list;
-  }, [
-    products,
-    f.slot,
-    f.priceMin,
-    f.priceMax,
-    f.featuredOnly,
-    f.q,
-    sortKey,
-    randomSeedBase,
-  ]);
-
-  if (withCount) {
-    if (loadingFirst) return <>…</>;
-    if (err) return <>0 items</>;
-
-    const base = serverCount != null ? serverCount : finalList.length;
-    const clientFilteredActive =
-      !!f.slot ||
-      f.priceMin != null ||
-      f.priceMax != null ||
-      f.featuredOnly ||
-      !!f.q;
-
-    if (clientFilteredActive) return <>{finalList.length} items</>;
-    return <>{base} items</>;
-  }
-
-  if (loadingFirst) {
-    return (
-      <div className="product-grid product-grid--loading">
-        {makeSkeleton().map((x) => (
-          <div key={x.id} className="product-skeleton" aria-hidden="true">
-            <div className="product-skeleton-media" />
-            <div className="product-skeleton-line" />
-            <div className="product-skeleton-line short" />
-            <div className="product-skeleton-line tiny" />
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (err) {
-    return (
-      <div className="product-grid-empty">
-        <div className="product-grid-empty-title">Something went wrong</div>
-        <div className="product-grid-empty-sub">{err}</div>
-        <button
-          className="product-grid-empty-btn"
-          type="button"
-          onClick={() => window.location.reload()}
-        >
-          Refresh
-        </button>
-      </div>
-    );
-  }
-
-  if (!finalList.length) {
-    return (
-      <div className="product-grid-empty">
-        <div className="product-grid-empty-title">No products found</div>
-        <div className="product-grid-empty-sub">
-          Try another keyword or adjust your filters.
-        </div>
-        <button
-          className="product-grid-empty-btn"
-          type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        >
-          Back to filters
-        </button>
-      </div>
-    );
-  }
+  const Wrapper = id ? Link : "div";
+  const wrapperProps = id
+    ? {
+        to: `/product/${id}`,
+        className: "p-card-link",
+        "aria-label": `View ${name}`,
+      }
+    : { className: "p-card-link p-card-link--disabled" };
 
   return (
-    <>
-      <div className="product-grid">
-        {finalList.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
+    <Wrapper {...wrapperProps}>
+      <div className={`p-card ${!inStock ? "p-card--out" : ""}`}>
+        <div
+          className="p-media"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          {activeImage ? (
+            <>
+              <div className="p-media-frame">
+                <img
+                  className="p-img"
+                  src={activeImage}
+                  alt={name}
+                  loading="lazy"
+                />
+              </div>
 
-      <div className="product-grid-footer">
-        {loadingMore ? (
-          <div className="product-grid-footer-muted">Loading more…</div>
-        ) : hasMore ? (
-          <button
-            className="product-grid-loadmore"
-            type="button"
-            onClick={loadMore}
-          >
-            Load more
-          </button>
-        ) : (
-          <div className="product-grid-footer-muted">End of results</div>
-        )}
+              <div className="p-media-top">
+                <button
+                  className={`p-cart-btn ${
+                    !inStock ? "p-cart-btn--disabled" : ""
+                  }`}
+                  onClick={handleAddToCart}
+                  aria-label={inStock ? "Add to cart" : "Product is out of stock"}
+                  type="button"
+                  disabled={!inStock}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    className="cart-svg"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="M6 7h12l-1 12H7L6 7z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M9 7V5a3 3 0 0 1 6 0v2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                    />
+                    {inStock ? (
+                      <path
+                        d="M12 11v6M9 14h6"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                      />
+                    ) : (
+                      <path
+                        d="M9 15l6-6M9 9l6 6"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                      />
+                    )}
+                  </svg>
+                </button>
+              </div>
 
-        <div ref={sentinelRef} style={{ height: 1 }} />
+              {!inStock ? (
+                <div className="p-stock-badge p-stock-badge--out">
+                  Out of stock
+                </div>
+              ) : null}
+
+              {imageCount > 1 ? (
+                <>
+                  <button
+                    className="p-media-nav p-media-nav--prev"
+                    type="button"
+                    aria-label="Previous image"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      goPrevImage();
+                    }}
+                  >
+                    ‹
+                  </button>
+
+                  <button
+                    className="p-media-nav p-media-nav--next"
+                    type="button"
+                    aria-label="Next image"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      goNextImage();
+                    }}
+                  >
+                    ›
+                  </button>
+
+                  <div
+                    className="p-gallery-dots"
+                    aria-label={`${imageCount} product images`}
+                  >
+                    {images.map((img, index) => (
+                      <button
+                        key={`${img}-${index}`}
+                        type="button"
+                        className={`p-gallery-dot ${
+                          index === activeImageIndex
+                            ? "p-gallery-dot--active"
+                            : ""
+                        }`}
+                        aria-label={`Show image ${index + 1}`}
+                        onClick={(e) => goToImage(e, index)}
+                      />
+                    ))}
+                  </div>
+                </>
+              ) : null}
+            </>
+          ) : (
+            <div className="p-img p-img--empty">No image</div>
+          )}
+
+          {cardPopup ? (
+            <div className="p-card-popup" role="status" aria-live="polite">
+              {cardPopup}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="p-body">
+          <h3 className="p-name">{name}</h3>
+
+          {descriptionSnippet ? (
+            <p className="p-desc">{descriptionSnippet}</p>
+          ) : (
+            <div className="p-desc p-desc--empty" aria-hidden="true" />
+          )}
+
+          {price !== null ? (
+            <div className="p-prices">
+              <span className="p-price">{formatMoney(price)}</span>
+
+              {oldPrice !== null && oldPrice > price ? (
+                <span className="p-old-wrap">
+                  <span className="p-old-label">Old price</span>
+                  <span className="p-old">{formatMoney(oldPrice)}</span>
+                </span>
+              ) : null}
+            </div>
+          ) : (
+            <span className="p-missing">No price</span>
+          )}
+        </div>
       </div>
-    </>
+    </Wrapper>
   );
 }
