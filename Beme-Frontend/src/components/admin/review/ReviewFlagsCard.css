@@ -1,0 +1,73 @@
+.review-flags {
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 16px;
+  background: var(--card);
+  display: grid;
+  gap: 14px;
+  box-shadow: var(--shadow);
+}
+
+.review-flags__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.review-flags__head h3 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.review-flags__empty {
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  font-size: 13px;
+  opacity: 0.65;
+  text-align: center;
+}
+
+.review-flags__list {
+  display: grid;
+  gap: 10px;
+}
+
+.review-flags__item {
+  border-radius: 14px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  background: var(--soft);
+  display: grid;
+  gap: 4px;
+}
+
+.review-flags__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.review-flags__desc {
+  font-size: 12px;
+  opacity: 0.75;
+  color: var(--text);
+}
+
+/* Types */
+
+.review-flags__item--warning {
+  border-color: rgba(255, 200, 0, 0.35);
+  background: rgba(255, 200, 0, 0.06);
+}
+
+.review-flags__item--danger {
+  border-color: rgba(255, 80, 80, 0.35);
+  background: rgba(255, 80, 80, 0.06);
+}
+
+.review-flags__item--info {
+  border-color: rgba(120, 180, 255, 0.35);
+  background: rgba(120, 180, 255, 0.06);
+}
