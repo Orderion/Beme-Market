@@ -12,9 +12,10 @@
   backdrop-filter: blur(14px);
   animation: fadeInSoft 0.5s ease;
   transition:
-    background var(--motion-slow),
-    border-color var(--motion-slow),
-    box-shadow var(--motion-slow);
+    background 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.28s ease,
+    box-shadow 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+    backdrop-filter 0.36s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .hdr-icon {
@@ -29,12 +30,13 @@
   box-shadow: var(--shadow);
   cursor: pointer;
   transition:
-    transform var(--motion-fast),
-    box-shadow var(--motion-smooth),
-    opacity var(--motion-fast),
-    background var(--motion-smooth),
-    border-color var(--motion-smooth),
-    color var(--motion-smooth);
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease,
+    background 0.28s ease,
+    border-color 0.28s ease,
+    color 0.28s ease,
+    filter 0.24s ease;
   will-change: transform;
 }
 
@@ -44,7 +46,7 @@
 }
 
 .hdr-icon:active {
-  transform: translateY(0) scale(0.97);
+  transform: translateY(0) scale(0.965);
 }
 
 .hdr-icon.is-active {
@@ -59,7 +61,13 @@ body.dark .hdr-icon:hover {
 .hdr-svg {
   width: 22px;
   height: 22px;
-  transition: transform var(--motion-fast), opacity var(--motion-fast);
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease;
+}
+
+.hdr-icon:hover .hdr-svg {
+  transform: scale(1.04);
 }
 
 .hdr-brand {
@@ -73,9 +81,9 @@ body.dark .hdr-icon:hover {
   cursor: pointer;
   position: relative;
   transition:
-    opacity var(--motion-fast),
-    transform var(--motion-fast),
-    color var(--motion-smooth);
+    opacity 0.18s ease,
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.28s ease;
 }
 
 .hdr-brand:hover {
@@ -114,9 +122,10 @@ body.dark .hdr-icon:hover {
   line-height: 1;
   animation: pulseSoft 1.8s infinite;
   transition:
-    background var(--motion-smooth),
-    color var(--motion-smooth),
-    transform var(--motion-fast);
+    background 0.28s ease,
+    color 0.28s ease,
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s ease;
 }
 
 .hdr-confirm {
@@ -132,16 +141,16 @@ body.dark .hdr-icon:hover {
   z-index: 120;
   opacity: 0;
   visibility: hidden;
-  transform: translateY(8px) scale(0.98);
+  transform: translateY(10px) scale(0.985);
   transform-origin: top right;
   pointer-events: none;
   transition:
-    opacity var(--motion-smooth),
-    transform var(--motion-smooth),
-    visibility var(--motion-smooth),
-    background var(--motion-smooth),
-    border-color var(--motion-smooth),
-    box-shadow var(--motion-smooth);
+    opacity 0.24s ease,
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0.24s ease,
+    background 0.28s ease,
+    border-color 0.28s ease,
+    box-shadow 0.28s ease;
 }
 
 .hdr-confirm.is-open {
@@ -173,15 +182,16 @@ body.dark .hdr-icon:hover {
   cursor: pointer;
   font-weight: 700;
   transition:
-    transform var(--motion-fast),
-    opacity var(--motion-fast),
-    background var(--motion-smooth),
-    border-color var(--motion-smooth),
-    color var(--motion-smooth);
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease,
+    background 0.28s ease,
+    border-color 0.28s ease,
+    color 0.28s ease,
+    box-shadow 0.24s ease;
 }
 
 .hdr-confirm-btn:hover {
-  opacity: 0.9;
+  opacity: 0.94;
   transform: translateY(-1px);
 }
 
@@ -217,5 +227,18 @@ body.dark .hdr-icon:hover {
   .hdr-confirm {
     right: -10px;
     width: 210px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hdr,
+  .hdr-icon,
+  .hdr-svg,
+  .hdr-brand,
+  .hdr-badge,
+  .hdr-confirm,
+  .hdr-confirm-btn {
+    transition: none !important;
+    animation: none !important;
   }
 }
