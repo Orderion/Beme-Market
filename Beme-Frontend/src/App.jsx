@@ -1,4 +1,3 @@
-// src/App.jsx
 import { useEffect, useMemo, useState } from "react";
 import {
   Routes,
