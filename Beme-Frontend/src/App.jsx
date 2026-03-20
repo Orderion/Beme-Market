@@ -7,9 +7,8 @@ import {
   Navigate,
   useNavigate,
 } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
-import { CartProvider, useCart } from "./context/CartContext";
-import { ThemeProvider } from "./context/ThemeContext";
+import { useAuth } from "./context/AuthContext";
+import { useCart } from "./context/CartContext";
 import AdminRoute from "./components/AdminRoute";
 import RequireAdmin from "./components/auth/RequireAdmin";
 import Header from "./components/Header";
@@ -68,7 +67,12 @@ function CartAddedPopup({ onContinueShopping, onCheckout }) {
 
   return (
     <div className="cart-added-popup-backdrop" role="presentation">
-      <div className="cart-added-popup" role="dialog" aria-modal="true" aria-label={title}>
+      <div
+        className="cart-added-popup"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
         <button
           type="button"
           className="cart-added-popup__close"
@@ -154,7 +158,7 @@ function AppShell() {
 
   const handleCheckoutFromPopup = () => {
     hideCartPopup();
-    setCartOpen(true);
+    setCartOpen(false);
     navigate("/checkout");
   };
 
@@ -294,13 +298,5 @@ function AppShell() {
 }
 
 export default function App() {
-  return (
-    <ThemeProvider>
-      <AuthProvider>
-        <CartProvider>
-          <AppShell />
-        </CartProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  );
+  return <AppShell />;
 }
