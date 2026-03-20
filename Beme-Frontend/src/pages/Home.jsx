@@ -12,8 +12,8 @@ import techBanner from "../assets/tech-banner.png";
 import "./Home.css";
 
 const COLLECTION_NAME = "Products";
-const SEARCH_PREVIEW_LIMIT = 20;
-const SUGGESTION_LIMIT = 8;
+const SEARCH_PREVIEW_LIMIT = 80;
+const SUGGESTION_LIMIT = 10;
 
 const CATEGORY_CARDS = [
   {
@@ -71,8 +71,8 @@ const CATEGORY_KEYWORDS = [
       "samsung",
       "itel",
       "pixel",
-      "tablet",
       "ipad",
+      "tablet",
     ],
   },
   {
@@ -107,6 +107,8 @@ const CATEGORY_KEYWORDS = [
       "heels",
       "boots",
       "slippers",
+      "airforce",
+      "air force",
     ],
   },
   {
@@ -133,7 +135,16 @@ const CATEGORY_KEYWORDS = [
     label: "Kids",
     type: "category",
     value: "kids",
-    aliases: ["kids", "kid", "children", "child", "baby", "babies", "toddler"],
+    aliases: [
+      "kids",
+      "kid",
+      "children",
+      "child",
+      "baby",
+      "babies",
+      "toddler",
+      "infant",
+    ],
   },
   {
     label: "Accessories",
@@ -218,10 +229,10 @@ function buildSuggestions(products, term) {
   };
 
   for (const category of CATEGORY_KEYWORDS) {
-    const matched =
-      category.aliases.some((alias) => alias.includes(q)) || q.includes(category.value);
+    const aliasMatch = category.aliases.some((alias) => alias.includes(q));
+    const queryMatch = q.includes(category.value);
 
-    if (matched) {
+    if (aliasMatch || queryMatch) {
       pushSuggestion(category.label, category.type, category.value, 200);
     }
   }
@@ -236,7 +247,7 @@ function buildSuggestions(products, term) {
     const shop = product.shop;
     const homeSlot = product.homeSlot;
 
-    const source = [
+    const fullText = [
       name,
       description,
       shortDescription,
@@ -261,7 +272,7 @@ function buildSuggestions(products, term) {
     else if (nameLc.includes(q)) pushSuggestion(name, "product", name, 90);
 
     if (brandLc && brandLc.includes(q)) {
-      pushSuggestion(titleize(brand), "brand", brand, 82);
+      pushSuggestion(titleize(brand), "brand", brand, 84);
     }
 
     if (deptLc.startsWith(q)) {
@@ -271,13 +282,13 @@ function buildSuggestions(products, term) {
     }
 
     if (kindLc.startsWith(q)) {
-      pushSuggestion(titleize(kind), "type", titleize(kind), 66);
+      pushSuggestion(titleize(kind), "type", titleize(kind), 65);
     } else if (kindLc.includes(q)) {
-      pushSuggestion(titleize(kind), "type", titleize(kind), 56);
+      pushSuggestion(titleize(kind), "type", titleize(kind), 55);
     }
 
     if (slotLc && slotLc.includes(q)) {
-      pushSuggestion(titleize(homeSlot), "category", homeSlot, 76);
+      pushSuggestion(titleize(homeSlot), "category", homeSlot, 75);
     }
 
     if (shopLc.startsWith(q)) {
@@ -286,8 +297,8 @@ function buildSuggestions(products, term) {
       pushSuggestion(formatShopLabel(shop), "shop", `shop:${shop}`, 58);
     }
 
-    if (source.includes(q)) {
-      const words = source
+    if (fullText.includes(q)) {
+      const words = fullText
         .split(/[\s,.;:/()[\]-]+/)
         .map((w) => w.trim())
         .filter(Boolean);
@@ -338,9 +349,28 @@ function StoreCard({ image, chip, title, subtitle, onClick, ariaLabel }) {
 function CategoryIcon({ type }) {
   if (type === "phones") {
     return (
-      <svg viewBox="0 0 24 24" className="category-box-svg" xmlns="http://www.w3.org/2000/svg">
-        <rect x="7" y="2.5" width="10" height="19" rx="2.2" fill="none" stroke="currentColor" strokeWidth="1.7" />
-        <path d="M10 5.5h4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <svg
+        viewBox="0 0 24 24"
+        className="category-box-svg"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="7"
+          y="2.5"
+          width="10"
+          height="19"
+          rx="2.2"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+        />
+        <path
+          d="M10 5.5h4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+        />
         <circle cx="12" cy="18.2" r="0.9" fill="currentColor" />
       </svg>
     );
@@ -348,16 +378,39 @@ function CategoryIcon({ type }) {
 
   if (type === "laptops") {
     return (
-      <svg viewBox="0 0 24 24" className="category-box-svg" xmlns="http://www.w3.org/2000/svg">
-        <rect x="5" y="5" width="14" height="10" rx="1.6" fill="none" stroke="currentColor" strokeWidth="1.7" />
-        <path d="M3.5 18h17" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <svg
+        viewBox="0 0 24 24"
+        className="category-box-svg"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="5"
+          y="5"
+          width="14"
+          height="10"
+          rx="1.6"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+        />
+        <path
+          d="M3.5 18h17"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+        />
       </svg>
     );
   }
 
   if (type === "shoes") {
     return (
-      <svg viewBox="0 0 24 24" className="category-box-svg" xmlns="http://www.w3.org/2000/svg">
+      <svg
+        viewBox="0 0 24 24"
+        className="category-box-svg"
+        xmlns="http://www.w3.org/2000/svg"
+      >
         <path
           d="M4 15.5c2.2 0 3.3-1.2 4.4-2.4l1.2-1.3c.4 1.8 1.6 3.1 4 3.7l3 .8c1.8.5 2.4 1 2.4 2.2V20H4v-4.5Z"
           fill="none"
@@ -371,7 +424,11 @@ function CategoryIcon({ type }) {
 
   if (type === "clothing") {
     return (
-      <svg viewBox="0 0 24 24" className="category-box-svg" xmlns="http://www.w3.org/2000/svg">
+      <svg
+        viewBox="0 0 24 24"
+        className="category-box-svg"
+        xmlns="http://www.w3.org/2000/svg"
+      >
         <path
           d="M9 4l3 2 3-2 3 3-2 3v9H8v-9L6 7l3-3Z"
           fill="none"
@@ -385,8 +442,19 @@ function CategoryIcon({ type }) {
 
   if (type === "kids") {
     return (
-      <svg viewBox="0 0 24 24" className="category-box-svg" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="8" r="3" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <svg
+        viewBox="0 0 24 24"
+        className="category-box-svg"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <circle
+          cx="12"
+          cy="8"
+          r="3"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+        />
         <path
           d="M7.5 19v-2.2A3.8 3.8 0 0 1 11.3 13h1.4a3.8 3.8 0 0 1 3.8 3.8V19"
           fill="none"
@@ -399,9 +467,28 @@ function CategoryIcon({ type }) {
   }
 
   return (
-    <svg viewBox="0 0 24 24" className="category-box-svg" xmlns="http://www.w3.org/2000/svg">
-      <rect x="4" y="5" width="16" height="14" rx="2.4" fill="none" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M8 9h8M8 12h8M8 15h5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    <svg
+      viewBox="0 0 24 24"
+      className="category-box-svg"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect
+        x="4"
+        y="5"
+        width="16"
+        height="14"
+        rx="2.4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M8 9h8M8 12h8M8 15h5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -432,33 +519,6 @@ function CategoryQuickCard({ item, onClick }) {
   );
 }
 
-function DeferredSection({ children, rootMargin = "500px 0px" }) {
-  const [visible, setVisible] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (visible) return;
-    if (!ref.current) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const first = entries[0];
-        if (first?.isIntersecting) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { root: null, rootMargin, threshold: 0.01 }
-    );
-
-    observer.observe(ref.current);
-
-    return () => observer.disconnect();
-  }, [visible, rootMargin]);
-
-  return <div ref={ref}>{visible ? children : null}</div>;
-}
-
 export default function Home() {
   const navigate = useNavigate();
 
@@ -469,7 +529,6 @@ export default function Home() {
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const searchWrapRef = useRef(null);
-  const closeSuggestionsTimerRef = useRef(null);
 
   const storeCards = useMemo(
     () => [
@@ -529,10 +588,14 @@ export default function Home() {
       setLoadingSuggestions(true);
 
       try {
-        const qRef = query(collection(db, COLLECTION_NAME), limit(SEARCH_PREVIEW_LIMIT));
-        const snap = await getDocs(qRef);
+        const qRef = query(
+          collection(db, COLLECTION_NAME),
+          limit(SEARCH_PREVIEW_LIMIT)
+        );
 
+        const snap = await getDocs(qRef);
         if (!alive) return;
+
         setProducts(snap.docs.map(normalizeProduct));
       } catch (error) {
         console.error("Search preview fetch error:", error);
@@ -554,11 +617,8 @@ export default function Home() {
     const onPointerDown = (event) => {
       if (!searchWrapRef.current) return;
       if (!searchWrapRef.current.contains(event.target)) {
-        window.clearTimeout(closeSuggestionsTimerRef.current);
-        closeSuggestionsTimerRef.current = window.setTimeout(() => {
-          setSuggestionsOpen(false);
-          setActiveIndex(-1);
-        }, 80);
+        setSuggestionsOpen(false);
+        setActiveIndex(-1);
       }
     };
 
@@ -568,7 +628,6 @@ export default function Home() {
     return () => {
       document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("touchstart", onPointerDown);
-      window.clearTimeout(closeSuggestionsTimerRef.current);
     };
   }, []);
 
@@ -616,10 +675,7 @@ export default function Home() {
   };
 
   const handleInputFocus = () => {
-    if (search.trim()) {
-      window.clearTimeout(closeSuggestionsTimerRef.current);
-      setSuggestionsOpen(true);
-    }
+    if (search.trim()) setSuggestionsOpen(true);
   };
 
   const handleKeyDown = (e) => {
@@ -753,7 +809,7 @@ export default function Home() {
       <section className="section">
         <div className="section-header">
           <h3>What’s new on Beme Market</h3>
-          <button className="see-all-btn" onClick={goToShop} type="button">
+          <button className="see-all-btn" onClick={goToShop}>
             View all
           </button>
         </div>
@@ -783,7 +839,6 @@ export default function Home() {
           <button
             className="see-all-btn"
             onClick={() => navigate("/shop?featured=1")}
-            type="button"
           >
             See featured
           </button>
@@ -796,22 +851,20 @@ export default function Home() {
         />
       </section>
 
-      <DeferredSection>
-        <section className="section">
-          <div className="section-header">
-            <h3>Continue shopping</h3>
-            <button className="see-all-btn" onClick={goToShop} type="button">
-              See all
-            </button>
-          </div>
+      <section className="section">
+        <div className="section-header">
+          <h3>Continue shopping</h3>
+          <button className="see-all-btn" onClick={goToShop}>
+            See all
+          </button>
+        </div>
 
-          <ProductGrid
-            sortBy="new"
-            filter={{ featuredOnly: false }}
-            infinite={false}
-          />
-        </section>
-      </DeferredSection>
+        <ProductGrid
+          sortBy="new"
+          filter={{ featuredOnly: false }}
+          infinite={false}
+        />
+      </section>
     </div>
   );
 }
