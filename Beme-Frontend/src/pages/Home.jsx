@@ -21,42 +21,36 @@ const CATEGORY_CARDS = [
     label: "Phones",
     subtitle: "Smartphones and mobile essentials",
     query: "phone",
-    slot: "phones",
   },
   {
     key: "laptops",
     label: "Laptops",
     subtitle: "Portable power for work and study",
     query: "laptop",
-    slot: "laptops",
   },
   {
     key: "shoes",
     label: "Shoes",
     subtitle: "Sneakers, formal pairs, and daily comfort",
     query: "shoes",
-    slot: "shoes",
   },
   {
     key: "clothing",
     label: "Clothing",
     subtitle: "Fresh fits and wardrobe staples",
     query: "clothing",
-    slot: "clothing",
   },
   {
     key: "kids",
     label: "Kids",
     subtitle: "Everyday picks for little ones",
     query: "kids",
-    slot: "kids",
   },
   {
     key: "others",
     label: "Others",
     subtitle: "Accessories, extras, and more",
     query: "accessories",
-    slot: "others",
   },
 ];
 
@@ -381,6 +375,7 @@ export default function Home() {
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const searchWrapRef = useRef(null);
+  const closeSuggestionsTimerRef = useRef(null);
 
   const storeCards = useMemo(
     () => [
@@ -469,8 +464,11 @@ export default function Home() {
     const onPointerDown = (event) => {
       if (!searchWrapRef.current) return;
       if (!searchWrapRef.current.contains(event.target)) {
-        setSuggestionsOpen(false);
-        setActiveIndex(-1);
+        window.clearTimeout(closeSuggestionsTimerRef.current);
+        closeSuggestionsTimerRef.current = window.setTimeout(() => {
+          setSuggestionsOpen(false);
+          setActiveIndex(-1);
+        }, 80);
       }
     };
 
@@ -480,6 +478,7 @@ export default function Home() {
     return () => {
       document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("touchstart", onPointerDown);
+      window.clearTimeout(closeSuggestionsTimerRef.current);
     };
   }, []);
 
@@ -527,7 +526,10 @@ export default function Home() {
   };
 
   const handleInputFocus = () => {
-    if (search.trim()) setSuggestionsOpen(true);
+    if (search.trim()) {
+      window.clearTimeout(closeSuggestionsTimerRef.current);
+      setSuggestionsOpen(true);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -550,12 +552,7 @@ export default function Home() {
   };
 
   const goToCategory = (item) => {
-    const next = new URLSearchParams();
-
-    if (item.slot) next.set("slot", item.slot);
-    if (item.query) next.set("q", item.query);
-
-    navigate(`/shop?${next.toString()}`);
+    navigate(`/shop?q=${encodeURIComponent(item.query)}`);
   };
 
   return (
@@ -666,7 +663,7 @@ export default function Home() {
       <section className="section">
         <div className="section-header">
           <h3>What’s new on Beme Market</h3>
-          <button className="see-all-btn" onClick={goToShop}>
+          <button className="see-all-btn" onClick={goToShop} type="button">
             View all
           </button>
         </div>
@@ -696,6 +693,7 @@ export default function Home() {
           <button
             className="see-all-btn"
             onClick={() => navigate("/shop?featured=1")}
+            type="button"
           >
             See featured
           </button>
@@ -711,7 +709,7 @@ export default function Home() {
       <section className="section">
         <div className="section-header">
           <h3>Continue shopping</h3>
-          <button className="see-all-btn" onClick={goToShop}>
+          <button className="see-all-btn" onClick={goToShop} type="button">
             See all
           </button>
         </div>
