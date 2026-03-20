@@ -1,837 +1,644 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useTheme } from "../context/ThemeContext";
-import { useAuth } from "../context/AuthContext";
-import { DEFAULT_KIND_BY_DEPT } from "../constants/catalog";
-import "./Sidebar.css";
-
-function titleize(value) {
-  return String(value || "")
-    .replace(/[-_]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (m) => m.toUpperCase());
+.side-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
 }
 
-function IconHome() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+.side-shell.is-open {
+  pointer-events: auto;
 }
 
-function IconShop() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M5 8h14l-1 11H6L5 8z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9 8V6a3 3 0 0 1 6 0v2"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 17, 17, 0.28);
+  opacity: 0;
+  backdrop-filter: blur(0px);
+  transition:
+    opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    backdrop-filter 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 999;
 }
 
-function IconGrid() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <rect
-        x="4"
-        y="4"
-        width="7"
-        height="7"
-        rx="1.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <rect
-        x="13"
-        y="4"
-        width="7"
-        height="7"
-        rx="1.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <rect
-        x="4"
-        y="13"
-        width="7"
-        height="7"
-        rx="1.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <rect
-        x="13"
-        y="13"
-        width="7"
-        height="7"
-        rx="1.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-    </svg>
-  );
+.overlay.is-open {
+  opacity: 1;
+  backdrop-filter: blur(4px);
 }
 
-function IconLayers() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="m12 4 8 4-8 4-8-4 8-4Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path
-        d="m4 12 8 4 8-4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path
-        d="m4 16 8 4 8-4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+.side-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: min(340px, 88vw);
+  background: #fcfcfa;
+  border-right: 1px solid rgba(17, 17, 17, 0.06);
+  box-shadow:
+    0 24px 60px rgba(17, 17, 17, 0.12),
+    0 2px 10px rgba(17, 17, 17, 0.04);
+  transform: translateX(-108%);
+  opacity: 0.98;
+  transition:
+    transform 0.44s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.34s ease,
+    background 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
 }
 
-function IconMore() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <circle cx="6" cy="12" r="1.6" fill="currentColor" />
-      <circle cx="12" cy="12" r="1.6" fill="currentColor" />
-      <circle cx="18" cy="12" r="1.6" fill="currentColor" />
-    </svg>
-  );
+body.dark .side-panel {
+  background: #141414;
+  border-right-color: rgba(255, 255, 255, 0.07);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.4),
+    0 2px 10px rgba(0, 0, 0, 0.18);
 }
 
-function IconTag() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M20 13 11 22l-9-9V4h9l9 9Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <circle cx="7" cy="7" r="1.5" fill="currentColor" />
-    </svg>
-  );
+.side-panel.open {
+  transform: translateX(0);
+  opacity: 1;
 }
 
-function IconOrders() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M7 4.5h10a2 2 0 0 1 2 2V19a1 1 0 0 1-1.6.8L12 16l-5.4 3.8A1 1 0 0 1 5 19V6.5a2 2 0 0 1 2-2Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9 8.5h6M9 11.5h6"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
+.side-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 18px 14px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.06);
 }
 
-function IconLogin() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M10 17v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v1"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="M4 12h10"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="m11 9 3 3-3 3"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+body.dark .side-header {
+  border-bottom-color: rgba(255, 255, 255, 0.07);
 }
 
-function IconUserPlus() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M5 20a7 7 0 0 1 14 0"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="M19 8V4M17 6h4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
+.side-header-copy {
+  min-width: 0;
 }
 
-function IconLogout() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M10 7V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-1"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="M4 12h10"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="m7 9-3 3 3 3"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+.side-title {
+  margin: 0;
+  font-size: 1.32rem;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  font-weight: 800;
+  color: #111;
 }
 
-function IconSun() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <circle
-        cx="12"
-        cy="12"
-        r="4.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
+body.dark .side-title {
+  color: #f5f5f5;
 }
 
-function IconShield() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M12 3 19 6v5c0 5-2.8 8.5-7 10-4.2-1.5-7-5-7-10V6l7-3Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+.side-close {
+  width: 48px;
+  height: 48px;
+  border-radius: 18px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  background: #f0f0eb;
+  color: #111;
+  cursor: pointer;
+  font-size: 28px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  transition:
+    transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    opacity 0.22s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
-function IconAccount() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <circle
-        cx="12"
-        cy="8"
-        r="3.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M5 19a7 7 0 0 1 14 0"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="M18.5 5.5h2M19.5 4.5v2"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
+body.dark .side-close {
+  background: #1f1f1f;
+  color: #f5f5f5;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
 }
 
-function IconTools() {
-  return (
-    <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M14.5 6.5a4 4 0 0 0 4.9 4.9l-7.6 7.6a2 2 0 1 1-2.8-2.8l7.6-7.6a4 4 0 0 0-4.9-4.9l2.4 2.4-1.8 1.8-2.4-2.4Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+.side-close:hover {
+  transform: translateY(-1px) scale(1.02);
 }
 
-function Chevron({ open = false }) {
-  return (
-    <span className={`side-chevron ${open ? "open" : ""}`} aria-hidden="true">
-      <svg viewBox="0 0 24 24" className="side-chevron-svg">
-        <path
-          d="m8 10 4 4 4-4"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </span>
-  );
+.side-close:active {
+  transform: scale(0.96);
 }
 
-function SidebarRow({
-  icon,
-  label,
-  onClick,
-  danger = false,
-  expand = false,
-  open = false,
-}) {
-  return (
-    <button
-      className={`sidebar-link ${danger ? "sidebar-link--danger" : ""} ${
-        expand ? "sidebar-link--expand" : ""
-      } ${open ? "is-open" : ""}`}
-      onClick={onClick}
-      aria-expanded={expand ? open : undefined}
-      type="button"
-    >
-      <span className="side-link-content">
-        {icon}
-        <span>{label}</span>
-      </span>
-      {expand ? <Chevron open={open} /> : null}
-    </button>
-  );
+.side-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scroll-behavior: smooth;
 }
 
-export default function Sidebar({ isOpen, onClose }) {
-  const navigate = useNavigate();
-  const { darkMode, toggleTheme } = useTheme();
-  const { user, logout, isSuperAdmin, isShopAdmin, adminShop } = useAuth();
+.side-scroll::-webkit-scrollbar {
+  width: 8px;
+}
 
-  const [openSection, setOpenSection] = useState(null);
-  const [confirmLogout, setConfirmLogout] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [visible, setVisible] = useState(false);
+.side-scroll::-webkit-scrollbar-thumb {
+  background: rgba(17, 17, 17, 0.12);
+  border-radius: 999px;
+}
 
-  const offers = useMemo(() => [], []);
-  const shopLabel = useMemo(
-    () => (adminShop ? titleize(adminShop) : ""),
-    [adminShop]
-  );
+body.dark .side-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
 
-  useEffect(() => {
-    let timeoutId;
-    let rafId;
+.side-group {
+  border-top: 1px solid rgba(17, 17, 17, 0.07);
+  padding-top: 14px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.42s ease,
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.22s ease;
+}
 
-    if (isOpen) {
-      setMounted(true);
-      document.body.style.overflow = "hidden";
+.side-panel.open .side-group {
+  opacity: 1;
+  transform: translateY(0);
+}
 
-      rafId = window.requestAnimationFrame(() => {
-        rafId = window.requestAnimationFrame(() => {
-          setVisible(true);
-        });
-      });
-    } else {
-      setVisible(false);
-      document.body.style.overflow = "";
-      timeoutId = window.setTimeout(() => {
-        setMounted(false);
-      }, 460);
-    }
+.side-panel.open .side-group:nth-child(1) {
+  transition-delay: 0.04s;
+}
 
-    return () => {
-      document.body.style.overflow = "";
-      window.clearTimeout(timeoutId);
-      window.cancelAnimationFrame(rafId);
-    };
-  }, [isOpen]);
+.side-panel.open .side-group:nth-child(2) {
+  transition-delay: 0.07s;
+}
 
-  useEffect(() => {
-    if (!isOpen) {
-      setConfirmLogout(false);
-      setOpenSection(null);
-    }
-  }, [isOpen]);
+.side-panel.open .side-group:nth-child(3) {
+  transition-delay: 0.1s;
+}
 
-  useEffect(() => {
-    if (!mounted) return;
+.side-panel.open .side-group:nth-child(4) {
+  transition-delay: 0.13s;
+}
 
-    const onKeyDown = (event) => {
-      if (event.key === "Escape") {
-        onClose?.();
-      }
-    };
+.side-panel.open .side-group:nth-child(5) {
+  transition-delay: 0.16s;
+}
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [mounted, onClose]);
+body.dark .side-group {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
 
-  const go = (path) => {
-    setConfirmLogout(false);
-    navigate(path);
-    onClose?.();
-  };
+.side-group:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
 
-  const goDept = (dept) => {
-    const kind = DEFAULT_KIND_BY_DEPT[dept];
-    go(`/shop?dept=${dept}${kind ? `&kind=${kind}` : ""}`);
-  };
+.side-group-label {
+  margin-bottom: 10px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #8d8d85;
+  padding: 0 4px;
+}
 
-  const goCategory = (cat) => {
-    go(`/shop?q=${encodeURIComponent(cat)}`);
-  };
+body.dark .side-group-label {
+  color: #9a9a9a;
+}
 
-  const onOffersClick = () => {
-    if (!offers.length) {
-      alert("You have no offers yet.");
-      return;
-    }
-    onClose?.();
-  };
+.side-group-list {
+  display: grid;
+  gap: 10px;
+}
 
-  const onLogout = async () => {
-    try {
-      await logout();
-    } finally {
-      setConfirmLogout(false);
-      onClose?.();
-      navigate("/", { replace: true });
-    }
-  };
+.sidebar-link {
+  width: 100%;
+  text-align: left;
+  padding: 0 16px;
+  min-height: 64px;
+  border-radius: 20px;
+  background: #efefe9;
+  border: 1px solid transparent;
+  color: #111;
+  cursor: pointer;
+  transition:
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease,
+    background 0.24s ease,
+    border-color 0.24s ease,
+    box-shadow 0.24s ease,
+    color 0.24s ease,
+    filter 0.24s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
 
-  const toggleSection = (name) => {
-    setOpenSection((prev) => (prev === name ? null : name));
-  };
+body.dark .sidebar-link {
+  background: #1d1d1d;
+  color: #f3f3f3;
+  box-shadow: none;
+}
 
-  if (!mounted) return null;
+.sidebar-link:hover {
+  transform: translateY(-1px);
+  background: #ebebe4;
+}
 
-  return (
-    <div
-      className={`side-shell ${visible ? "is-open" : ""}`}
-      aria-hidden={!visible}
-    >
-      <div
-        className={`overlay ${visible ? "is-open" : ""}`}
-        onClick={onClose}
-      />
+body.dark .sidebar-link:hover {
+  background: #242424;
+}
 
-      <aside
-        className={`side-panel ${visible ? "open" : ""}`}
-        aria-label="Sidebar menu"
-      >
-        <div className="side-header">
-          <div className="side-header-copy">
-            <h3 className="side-title">Menu</h3>
-          </div>
+.sidebar-link:active {
+  transform: scale(0.988);
+}
 
-          <button
-            onClick={onClose}
-            aria-label="Close menu"
-            className="side-close"
-            type="button"
-          >
-            ×
-          </button>
-        </div>
+.sidebar-link.is-open {
+  background: #e9e9e1;
+}
 
-        <div className="side-scroll">
-          <section className="side-group side-group--intro">
-            <div className="side-group-list">
-              <SidebarRow
-                icon={<IconHome />}
-                label="Home"
-                onClick={() => go("/")}
-              />
-              <SidebarRow
-                icon={<IconShop />}
-                label="Shop"
-                onClick={() => go("/shop")}
-              />
-              {user ? (
-                <SidebarRow
-                  icon={<IconOrders />}
-                  label="Orders"
-                  onClick={() => go("/orders")}
-                />
-              ) : null}
-            </div>
-          </section>
+body.dark .sidebar-link.is-open {
+  background: #222;
+}
 
-          {isSuperAdmin ? (
-            <section className="side-group">
-              <div className="side-group-label">Admin</div>
-              <div className="side-group-list">
-                <SidebarRow
-                  icon={<IconShield />}
-                  label="Product Manager"
-                  onClick={() => go("/admin")}
-                />
-                <SidebarRow
-                  icon={<IconOrders />}
-                  label="Marketplace Orders"
-                  onClick={() => go("/admin-orders")}
-                />
-                <SidebarRow
-                  icon={<IconGrid />}
-                  label="Analytics"
-                  onClick={() => go("/analytics")}
-                />
-                <SidebarRow
-                  icon={<IconTag />}
-                  label="Payout Requests"
-                  onClick={() => go("/payout-requests")}
-                />
-                <SidebarRow
-                  icon={<IconLayers />}
-                  label="Shop Applications"
-                  onClick={() => go("/shop-applications")}
-                />
-                <SidebarRow
-                  icon={<IconAccount />}
-                  label="Account Management"
-                  onClick={() => go("/account-management")}
-                />
-                <SidebarRow
-                  icon={<IconTools />}
-                  label="Own a Shop"
-                  onClick={() => go("/own-a-shop")}
-                />
-              </div>
-            </section>
-          ) : null}
+.side-link-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  font-size: 0.94rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
 
-          {isShopAdmin ? (
-            <section className="side-group">
-              <div className="side-group-label">
-                Shop Admin{shopLabel ? ` • ${shopLabel}` : ""}
-              </div>
-              <div className="side-group-list">
-                <SidebarRow
-                  icon={<IconShield />}
-                  label="Product Manager"
-                  onClick={() => go("/admin")}
-                />
-                <SidebarRow
-                  icon={<IconOrders />}
-                  label="Shop Orders"
-                  onClick={() => go("/admin-orders")}
-                />
-                <SidebarRow
-                  icon={<IconGrid />}
-                  label="Analytics"
-                  onClick={() => go("/analytics")}
-                />
-                <SidebarRow
-                  icon={<IconTag />}
-                  label="Payout Requests"
-                  onClick={() => go("/payout-requests")}
-                />
-                <SidebarRow
-                  icon={<IconAccount />}
-                  label="Account Management"
-                  onClick={() => go("/account-management")}
-                />
-              </div>
-            </section>
-          ) : null}
+.side-link-content span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-          <section className="side-group">
-            <div className="side-group-list">
-              <SidebarRow
-                icon={<IconGrid />}
-                label="Categories"
-                onClick={() => toggleSection("categories")}
-                expand
-                open={openSection === "categories"}
-              />
+.side-svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  color: currentColor;
+  transition:
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s ease;
+}
 
-              <div
-                className={`side-submenu-wrap ${
-                  openSection === "categories" ? "is-open" : ""
-                }`}
-              >
-                <div className="side-submenu">
-                  <button
-                    className="side-subitem"
-                    onClick={() => goCategory("tech")}
-                    type="button"
-                  >
-                    Tech
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => goCategory("fashion")}
-                    type="button"
-                  >
-                    Fashion
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => goCategory("accessories")}
-                    type="button"
-                  >
-                    Accessories
-                  </button>
-                </div>
-              </div>
+.sidebar-link:hover .side-svg {
+  transform: scale(1.04);
+}
 
-              <SidebarRow
-                icon={<IconLayers />}
-                label="Departments"
-                onClick={() => toggleSection("departments")}
-                expand
-                open={openSection === "departments"}
-              />
+.sidebar-link--expand {
+  justify-content: space-between;
+}
 
-              <div
-                className={`side-submenu-wrap ${
-                  openSection === "departments" ? "is-open" : ""
-                }`}
-              >
-                <div className="side-submenu">
-                  <button
-                    className="side-subitem"
-                    onClick={() => goDept("men")}
-                    type="button"
-                  >
-                    Men
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => goDept("women")}
-                    type="button"
-                  >
-                    Women
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => goDept("unisex")}
-                    type="button"
-                  >
-                    Unisex
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => goDept("kids")}
-                    type="button"
-                  >
-                    Kids
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => goDept("accessories")}
-                    type="button"
-                  >
-                    Accessories
-                  </button>
-                </div>
-              </div>
+.side-chevron {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.72;
+  transition:
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s ease;
+  flex: 0 0 auto;
+}
 
-              <SidebarRow
-                icon={<IconMore />}
-                label="More"
-                onClick={() => toggleSection("more")}
-                expand
-                open={openSection === "more"}
-              />
+.side-chevron.open {
+  transform: rotate(180deg);
+  opacity: 1;
+}
 
-              <div
-                className={`side-submenu-wrap ${
-                  openSection === "more" ? "is-open" : ""
-                }`}
-              >
-                <div className="side-submenu">
-                  <button
-                    className="side-subitem"
-                    onClick={() => go("/about")}
-                    type="button"
-                  >
-                    About us
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => go("/support")}
-                    type="button"
-                  >
-                    Support us
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => go("/contact")}
-                    type="button"
-                  >
-                    Contact
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => go("/faq")}
-                    type="button"
-                  >
-                    FAQ
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => go("/shipping&returns")}
-                    type="button"
-                  >
-                    Shipping & Returns
-                  </button>
-                </div>
-              </div>
+.side-chevron-svg {
+  width: 16px;
+  height: 16px;
+}
 
-              <SidebarRow
-                icon={<IconTag />}
-                label="Offers"
-                onClick={onOffersClick}
-              />
-            </div>
-          </section>
+.side-submenu-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    grid-template-rows 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.26s ease,
+    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
 
-          <section className="side-group">
-            <div className="side-group-list">
-              {!user ? (
-                <>
-                  <SidebarRow
-                    icon={<IconLogin />}
-                    label="Login"
-                    onClick={() => go("/login")}
-                  />
-                  <SidebarRow
-                    icon={<IconUserPlus />}
-                    label="Sign up"
-                    onClick={() => go("/signup")}
-                  />
-                </>
-              ) : !confirmLogout ? (
-                <SidebarRow
-                  icon={<IconLogout />}
-                  label="Logout"
-                  onClick={() => setConfirmLogout(true)}
-                  danger
-                />
-              ) : (
-                <div className="side-confirm">
-                  <p className="side-confirm-text">
-                    Are you sure you want to log out?
-                  </p>
-                  <div className="side-confirm-actions">
-                    <button
-                      className="side-confirm-btn"
-                      onClick={() => setConfirmLogout(false)}
-                      type="button"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      className="side-confirm-btn side-confirm-btn--danger"
-                      onClick={onLogout}
-                      type="button"
-                    >
-                      Log out
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
+.side-submenu-wrap.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: translateY(0);
+}
 
-          <section className="side-group side-group--toggle">
-            <div className="sidebar-toggle-row">
-              <div className="side-link-content">
-                <IconSun />
-                <span>{darkMode ? "Light mode" : "Dark mode"}</span>
-              </div>
+.side-submenu {
+  overflow: hidden;
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 2px 0 2px 14px;
+  border-left: 1px solid rgba(17, 17, 17, 0.08);
+}
 
-              <button
-                type="button"
-                className={`theme-toggle ${darkMode ? "active" : ""}`}
-                onClick={toggleTheme}
-                aria-label="Toggle theme"
-                aria-pressed={darkMode}
-              >
-                <span className="theme-toggle-track">
-                  <span className="theme-toggle-thumb" />
-                </span>
-              </button>
-            </div>
-          </section>
-        </div>
-      </aside>
-    </div>
-  );
+body.dark .side-submenu {
+  border-left-color: rgba(255, 255, 255, 0.08);
+}
+
+.side-subitem {
+  text-align: left;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(17, 17, 17, 0.06);
+  background: #f8f8f4;
+  color: #5e5e59;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition:
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.22s ease,
+    border-color 0.22s ease,
+    color 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+body.dark .side-subitem {
+  background: #181818;
+  color: #c7c7c7;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.side-subitem:hover {
+  background: #f0f0eb;
+  color: #111;
+  transform: translateX(3px);
+}
+
+body.dark .side-subitem:hover {
+  background: #202020;
+  color: #fff;
+}
+
+.side-confirm {
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  background: #f3f3ee;
+  border-radius: 20px;
+  padding: 14px;
+  box-shadow: 0 8px 24px rgba(17, 17, 17, 0.05);
+  animation: fadeUpSoft 0.28s ease;
+}
+
+body.dark .side-confirm {
+  background: #1b1b1b;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+.side-confirm-text {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #4f4f4b;
+  font-weight: 600;
+}
+
+body.dark .side-confirm-text {
+  color: #d0d0d0;
+}
+
+.side-confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.side-confirm-btn {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  background: #fff;
+  color: #111;
+  cursor: pointer;
+  font-weight: 700;
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.22s ease,
+    border-color 0.22s ease,
+    color 0.22s ease,
+    opacity 0.2s ease;
+}
+
+body.dark .side-confirm-btn {
+  background: #242424;
+  color: #f5f5f5;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.side-confirm-btn:hover {
+  transform: translateY(-1px);
+}
+
+.side-confirm-btn:active {
+  transform: scale(0.985);
+}
+
+.side-confirm-btn--danger,
+.sidebar-link--danger {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+
+body.dark .side-confirm-btn--danger,
+body.dark .sidebar-link--danger {
+  background: #f3f3f3;
+  color: #111;
+  border-color: #f3f3f3;
+}
+
+.side-group--toggle {
+  margin-top: auto;
+}
+
+.sidebar-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 70px;
+  padding: 0 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(17, 17, 17, 0.07);
+  background: #efefe9;
+  transition:
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.22s ease,
+    border-color 0.22s ease;
+}
+
+body.dark .sidebar-toggle-row {
+  background: #1d1d1d;
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+.sidebar-toggle-row:hover {
+  transform: translateY(-1px);
+}
+
+.theme-toggle {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.theme-toggle-track {
+  width: 58px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  background: #fff;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+  transition:
+    background 0.28s ease,
+    border-color 0.28s ease,
+    box-shadow 0.28s ease;
+}
+
+body.dark .theme-toggle-track {
+  background: #121212;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.theme-toggle-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #111;
+  transition:
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.24s ease;
+  transform: translateX(0);
+}
+
+body.dark .theme-toggle-thumb {
+  background: #fff;
+}
+
+.theme-toggle.active .theme-toggle-thumb {
+  transform: translateX(24px);
+}
+
+@media (max-width: 640px) {
+  .side-panel {
+    width: min(330px, 88vw);
+  }
+
+  .side-header {
+    padding: 18px 14px 14px;
+  }
+
+  .side-title {
+    font-size: 1.24rem;
+  }
+
+  .side-close {
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+    font-size: 26px;
+  }
+
+  .side-scroll {
+    padding: 12px 14px 20px;
+    gap: 12px;
+  }
+
+  .side-group {
+    padding-top: 12px;
+  }
+
+  .sidebar-link {
+    min-height: 58px;
+    padding: 0 14px;
+    border-radius: 18px;
+  }
+
+  .side-link-content {
+    gap: 12px;
+    font-size: 0.91rem;
+  }
+
+  .side-svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .side-submenu {
+    padding-left: 12px;
+  }
+
+  .side-subitem {
+    min-height: 44px;
+    border-radius: 14px;
+    font-size: 0.84rem;
+  }
+
+  .sidebar-toggle-row {
+    min-height: 64px;
+    border-radius: 18px;
+    padding: 0 14px;
+  }
+
+  .theme-toggle-track {
+    width: 54px;
+    height: 32px;
+  }
+
+  .theme-toggle-thumb {
+    width: 22px;
+    height: 22px;
+  }
+
+  .theme-toggle.active .theme-toggle-thumb {
+    transform: translateX(22px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .side-panel,
+  .side-group,
+  .sidebar-link,
+  .side-svg,
+  .side-chevron,
+  .side-submenu-wrap,
+  .side-subitem,
+  .side-confirm-btn,
+  .sidebar-toggle-row,
+  .theme-toggle-track,
+  .theme-toggle-thumb,
+  .side-close {
+    transition: none !important;
+    animation: none !important;
+  }
 }
