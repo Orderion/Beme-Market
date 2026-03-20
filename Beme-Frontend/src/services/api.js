@@ -1,4 +1,3 @@
-// src/services/api.js
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -88,18 +87,10 @@ async function request(path, options = {}, authRequired = false) {
   return toJson(res);
 }
 
-/**
- * Get signed-in user's orders
- * returns: { success, orders }
- */
 export async function getMyOrders() {
   return request("/api/orders", {}, true);
 }
 
-/**
- * Create COD order
- * payload: { customer, items, shops, primaryShop, pricing, paymentMethod, paymentStatus, status, source }
- */
 export async function createCodOrder(payload) {
   const safePayload = {
     customer: {
@@ -179,10 +170,6 @@ export async function createCodOrder(payload) {
   );
 }
 
-/**
- * Initialize Paystack checkout
- * payload: { email, cartItems, pricing, customer }
- */
 export async function paystackInit(payload) {
   const safePayload = {
     email: String(payload?.email || "").trim().toLowerCase(),
@@ -251,10 +238,6 @@ export async function paystackInit(payload) {
   );
 }
 
-/**
- * Verify payment
- * returns: { ok, status, orderId, reference }
- */
 export async function paystackVerify(reference) {
   const safeReference = String(reference || "").trim();
 
@@ -267,6 +250,32 @@ export async function paystackVerify(reference) {
       safeReference
     )}`,
     {},
-    false
+    true
+  );
+}
+
+export async function getAdminOrders() {
+  return request("/api/admin/orders", {}, true);
+}
+
+export async function updateAdminOrderStatus(orderId, payload) {
+  const safeOrderId = String(orderId || "").trim();
+  if (!safeOrderId) {
+    throw new Error("Missing order ID.");
+  }
+
+  return request(
+    `/api/admin/orders/${encodeURIComponent(safeOrderId)}/status`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        status: String(payload?.status || "").trim().toLowerCase(),
+        reviewNotes: String(payload?.reviewNotes || "").trim(),
+      }),
+    },
+    true
   );
 }
