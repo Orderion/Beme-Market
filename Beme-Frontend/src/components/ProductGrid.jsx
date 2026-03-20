@@ -283,11 +283,13 @@ function buildSearchAliases(product) {
   const aliases = [];
 
   if (
-    /\b(phone|phones|iphone|android|mobile|smartphone|tecno|infinix|samsung|itel|pixel|tablet|ipad)\b/.test(
+    /\b(phone|phones|iphone|android|mobile|smartphone|tecno|infinix|samsung|itel|pixel|ipad|tablet)\b/.test(
       source
     )
   ) {
-    aliases.push("phone phones iphone android mobile smartphone tablet ipad");
+    aliases.push(
+      "phone phones iphone android mobile smartphone tecno infinix samsung itel pixel ipad tablet"
+    );
   }
 
   if (
@@ -295,38 +297,48 @@ function buildSearchAliases(product) {
       source
     )
   ) {
-    aliases.push("laptop laptops macbook notebook computer pc");
+    aliases.push(
+      "laptop laptops macbook notebook computer pc dell hp lenovo acer asus"
+    );
   }
 
   if (
-    /\b(shoe|shoes|sneaker|sneakers|slides|sandals|heels|boots|slippers|airforce|air force)\b/.test(
+    /\b(shoe|shoes|sneaker|sneakers|slides|sandals|heels|boots|slippers|loafer|loafers)\b/.test(
       source
     )
   ) {
-    aliases.push("shoe shoes sneaker sneakers slides sandals heels boots slippers");
+    aliases.push(
+      "shoe shoes sneaker sneakers slides sandals heels boots slippers loafer loafers"
+    );
   }
 
   if (
-    /\b(clothing|clothes|fashion|shirt|shirts|dress|dresses|hoodie|hoodies|trousers|jeans|top|tops)\b/.test(
+    /\b(clothing|clothes|fashion|shirt|shirts|dress|dresses|hoodie|hoodies|trousers|jeans|top|tops|skirt|skirts|shorts)\b/.test(
       source
     )
   ) {
-    aliases.push("clothing clothes fashion shirt dress hoodie trousers jeans top");
+    aliases.push(
+      "clothing clothes fashion shirt shirts dress dresses hoodie hoodies trousers jeans top tops skirt skirts shorts"
+    );
   }
 
   if (
-    /\b(kids|kid|children|child|baby|babies|toddler|infant)\b/.test(source)
+    /\b(kids|kid|children|child|baby|babies|toddler|infant|youth)\b/.test(
+      source
+    )
   ) {
-    aliases.push("kids kid children child baby babies toddler infant");
+    aliases.push("kids kid children child baby babies toddler infant youth");
   }
 
   if (
     product.homeSlot === "others" ||
-    /\b(other|others|accessory|accessories|watch|bag|bags|power bank|speaker|perfume|cosmetics)\b/.test(
+    /\b(other|others|accessory|accessories|watch|bag|bags|speaker|power bank|powerbank|perfume|cosmetics)\b/.test(
       source
     )
   ) {
-    aliases.push("other others accessory accessories watch bag bags power bank speaker perfume cosmetics");
+    aliases.push(
+      "others other accessory accessories watch bag bags speaker power bank powerbank perfume cosmetics"
+    );
   }
 
   return aliases.join(" ");
@@ -358,7 +370,7 @@ function matchesSearch(product, term) {
   const tokens = String(term)
     .toLowerCase()
     .split(/\s+/)
-    .map((token) => token.trim())
+    .map((t) => t.trim())
     .filter(Boolean);
 
   return tokens.every((token) => haystack.includes(token));
@@ -411,8 +423,6 @@ export default function ProductGrid({
     () => (sortBy || f.sort || "new").toLowerCase(),
     [sortBy, f.sort]
   );
-
-  const hasTextSearch = !!f.q;
 
   const signature = useMemo(() => {
     return JSON.stringify({
@@ -519,8 +529,7 @@ export default function ProductGrid({
       const { colRef, wheres, ord } = baseQueryParts;
 
       try {
-        const effectiveLimit = hasTextSearch ? PAGE_SIZE * 3 : PAGE_SIZE;
-        const qIdeal = query(colRef, ...wheres, ord, limit(effectiveLimit));
+        const qIdeal = query(colRef, ...wheres, ord, limit(PAGE_SIZE));
         const snap = await getDocs(qIdeal);
 
         if (!alive) return;
@@ -528,14 +537,13 @@ export default function ProductGrid({
         const normalized = snap.docs.map(normalizeDoc);
         setProducts(normalized);
         setLastDoc(snap.docs[snap.docs.length - 1] || null);
-        setHasMore(!hasTextSearch && snap.docs.length === PAGE_SIZE);
+        setHasMore(snap.docs.length === PAGE_SIZE);
         setPagesLoaded(1);
         setLoadingFirst(false);
         return;
       } catch {
         try {
-          const effectiveLimit = hasTextSearch ? PAGE_SIZE * 3 : PAGE_SIZE;
-          const qFallback = query(colRef, ...wheres, limit(effectiveLimit));
+          const qFallback = query(colRef, ...wheres, limit(PAGE_SIZE));
           const snap2 = await getDocs(qFallback);
 
           if (!alive) return;
@@ -545,7 +553,7 @@ export default function ProductGrid({
 
           setProducts(sorted);
           setLastDoc(snap2.docs[snap2.docs.length - 1] || null);
-          setHasMore(!hasTextSearch && snap2.docs.length === PAGE_SIZE);
+          setHasMore(snap2.docs.length === PAGE_SIZE);
           setPagesLoaded(1);
           setLoadingFirst(false);
         } catch (e2) {
@@ -563,10 +571,9 @@ export default function ProductGrid({
     return () => {
       alive = false;
     };
-  }, [baseQueryParts, sortKey, signature, hasTextSearch]);
+  }, [baseQueryParts, sortKey, signature]);
 
   const loadMore = async () => {
-    if (hasTextSearch) return;
     if (loadingFirst || loadingMore || !hasMore) return;
     if (!lastDoc) return;
     if (pagesLoaded >= MAX_PAGES) {
@@ -638,7 +645,7 @@ export default function ProductGrid({
   };
 
   useEffect(() => {
-    if (!infinite || hasTextSearch) return;
+    if (!infinite) return;
     if (!sentinelRef.current) return;
 
     const el = sentinelRef.current;
@@ -652,10 +659,8 @@ export default function ProductGrid({
 
     io.observe(el);
     return () => io.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     infinite,
-    hasTextSearch,
     hasMore,
     lastDoc,
     loadingFirst,
