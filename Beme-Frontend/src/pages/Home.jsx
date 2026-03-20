@@ -12,7 +12,7 @@ import techBanner from "../assets/tech-banner.png";
 import "./Home.css";
 
 const COLLECTION_NAME = "Products";
-const SEARCH_PREVIEW_LIMIT = 40;
+const SEARCH_PREVIEW_LIMIT = 20;
 const SUGGESTION_LIMIT = 8;
 
 const CATEGORY_CARDS = [
@@ -54,6 +54,106 @@ const CATEGORY_CARDS = [
   },
 ];
 
+const CATEGORY_KEYWORDS = [
+  {
+    label: "Phones",
+    type: "category",
+    value: "phone",
+    aliases: [
+      "phone",
+      "phones",
+      "iphone",
+      "android",
+      "mobile",
+      "smartphone",
+      "tecno",
+      "infinix",
+      "samsung",
+      "itel",
+      "pixel",
+      "tablet",
+      "ipad",
+    ],
+  },
+  {
+    label: "Laptops",
+    type: "category",
+    value: "laptop",
+    aliases: [
+      "laptop",
+      "laptops",
+      "macbook",
+      "notebook",
+      "computer",
+      "pc",
+      "dell",
+      "hp",
+      "lenovo",
+      "acer",
+      "asus",
+    ],
+  },
+  {
+    label: "Shoes",
+    type: "category",
+    value: "shoes",
+    aliases: [
+      "shoe",
+      "shoes",
+      "sneaker",
+      "sneakers",
+      "slides",
+      "sandals",
+      "heels",
+      "boots",
+      "slippers",
+    ],
+  },
+  {
+    label: "Clothing",
+    type: "category",
+    value: "clothing",
+    aliases: [
+      "clothing",
+      "clothes",
+      "fashion",
+      "shirt",
+      "shirts",
+      "dress",
+      "dresses",
+      "hoodie",
+      "hoodies",
+      "trousers",
+      "jeans",
+      "top",
+      "tops",
+    ],
+  },
+  {
+    label: "Kids",
+    type: "category",
+    value: "kids",
+    aliases: ["kids", "kid", "children", "child", "baby", "babies", "toddler"],
+  },
+  {
+    label: "Accessories",
+    type: "category",
+    value: "accessories",
+    aliases: [
+      "accessories",
+      "accessory",
+      "watch",
+      "bag",
+      "bags",
+      "power bank",
+      "speaker",
+      "perfume",
+      "cosmetics",
+      "others",
+    ],
+  },
+];
+
 function normalizeProduct(docSnap) {
   const d = docSnap.data() || {};
 
@@ -61,9 +161,18 @@ function normalizeProduct(docSnap) {
     id: docSnap.id,
     name: String(d.name || "").trim(),
     description: String(d.description || "").trim(),
+    shortDescription: String(
+      d.shortDescription || d.short_description || ""
+    ).trim(),
+    brand: String(d.brand || "").trim(),
     dept: String(d.dept || "").trim(),
     kind: String(d.kind || "").trim(),
     shop: String(d.shop || "").trim().toLowerCase(),
+    homeSlot: String(
+      d.homeSlot || d.home_filter || d.homeFilter || d.slot || ""
+    )
+      .trim()
+      .toLowerCase(),
   };
 }
 
@@ -108,21 +217,52 @@ function buildSuggestions(products, term) {
     });
   };
 
+  for (const category of CATEGORY_KEYWORDS) {
+    const matched =
+      category.aliases.some((alias) => alias.includes(q)) || q.includes(category.value);
+
+    if (matched) {
+      pushSuggestion(category.label, category.type, category.value, 200);
+    }
+  }
+
   for (const product of products) {
     const name = product.name;
     const description = product.description;
+    const shortDescription = product.shortDescription;
+    const brand = product.brand;
     const dept = product.dept;
     const kind = product.kind;
     const shop = product.shop;
+    const homeSlot = product.homeSlot;
+
+    const source = [
+      name,
+      description,
+      shortDescription,
+      brand,
+      dept,
+      kind,
+      shop,
+      homeSlot,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
 
     const nameLc = name.toLowerCase();
-    const descLc = description.toLowerCase();
+    const brandLc = brand.toLowerCase();
     const deptLc = dept.toLowerCase();
     const kindLc = kind.toLowerCase();
     const shopLc = shop.toLowerCase();
+    const slotLc = homeSlot.toLowerCase();
 
     if (nameLc.startsWith(q)) pushSuggestion(name, "product", name, 100);
     else if (nameLc.includes(q)) pushSuggestion(name, "product", name, 90);
+
+    if (brandLc && brandLc.includes(q)) {
+      pushSuggestion(titleize(brand), "brand", brand, 82);
+    }
 
     if (deptLc.startsWith(q)) {
       pushSuggestion(titleize(dept), "department", titleize(dept), 70);
@@ -131,9 +271,13 @@ function buildSuggestions(products, term) {
     }
 
     if (kindLc.startsWith(q)) {
-      pushSuggestion(titleize(kind), "type", titleize(kind), 65);
+      pushSuggestion(titleize(kind), "type", titleize(kind), 66);
     } else if (kindLc.includes(q)) {
-      pushSuggestion(titleize(kind), "type", titleize(kind), 55);
+      pushSuggestion(titleize(kind), "type", titleize(kind), 56);
+    }
+
+    if (slotLc && slotLc.includes(q)) {
+      pushSuggestion(titleize(homeSlot), "category", homeSlot, 76);
     }
 
     if (shopLc.startsWith(q)) {
@@ -142,16 +286,15 @@ function buildSuggestions(products, term) {
       pushSuggestion(formatShopLabel(shop), "shop", `shop:${shop}`, 58);
     }
 
-    if (descLc.includes(q)) {
-      const words = description
+    if (source.includes(q)) {
+      const words = source
         .split(/[\s,.;:/()[\]-]+/)
         .map((w) => w.trim())
         .filter(Boolean);
 
       for (const word of words) {
-        const wlc = word.toLowerCase();
-        if (wlc.length < 3) continue;
-        if (!wlc.includes(q)) continue;
+        if (word.length < 3) continue;
+        if (!word.includes(q)) continue;
         pushSuggestion(titleize(word), "keyword", word, 40);
       }
     }
@@ -195,28 +338,9 @@ function StoreCard({ image, chip, title, subtitle, onClick, ariaLabel }) {
 function CategoryIcon({ type }) {
   if (type === "phones") {
     return (
-      <svg
-        viewBox="0 0 24 24"
-        className="category-box-svg"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <rect
-          x="7"
-          y="2.5"
-          width="10"
-          height="19"
-          rx="2.2"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.7"
-        />
-        <path
-          d="M10 5.5h4"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.7"
-          strokeLinecap="round"
-        />
+      <svg viewBox="0 0 24 24" className="category-box-svg" xmlns="http://www.w3.org/2000/svg">
+        <rect x="7" y="2.5" width="10" height="19" rx="2.2" fill="none" stroke="currentColor" strokeWidth="1.7" />
+        <path d="M10 5.5h4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
         <circle cx="12" cy="18.2" r="0.9" fill="currentColor" />
       </svg>
     );
@@ -224,39 +348,16 @@ function CategoryIcon({ type }) {
 
   if (type === "laptops") {
     return (
-      <svg
-        viewBox="0 0 24 24"
-        className="category-box-svg"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <rect
-          x="5"
-          y="5"
-          width="14"
-          height="10"
-          rx="1.6"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.7"
-        />
-        <path
-          d="M3.5 18h17"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.7"
-          strokeLinecap="round"
-        />
+      <svg viewBox="0 0 24 24" className="category-box-svg" xmlns="http://www.w3.org/2000/svg">
+        <rect x="5" y="5" width="14" height="10" rx="1.6" fill="none" stroke="currentColor" strokeWidth="1.7" />
+        <path d="M3.5 18h17" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
       </svg>
     );
   }
 
   if (type === "shoes") {
     return (
-      <svg
-        viewBox="0 0 24 24"
-        className="category-box-svg"
-        xmlns="http://www.w3.org/2000/svg"
-      >
+      <svg viewBox="0 0 24 24" className="category-box-svg" xmlns="http://www.w3.org/2000/svg">
         <path
           d="M4 15.5c2.2 0 3.3-1.2 4.4-2.4l1.2-1.3c.4 1.8 1.6 3.1 4 3.7l3 .8c1.8.5 2.4 1 2.4 2.2V20H4v-4.5Z"
           fill="none"
@@ -270,11 +371,7 @@ function CategoryIcon({ type }) {
 
   if (type === "clothing") {
     return (
-      <svg
-        viewBox="0 0 24 24"
-        className="category-box-svg"
-        xmlns="http://www.w3.org/2000/svg"
-      >
+      <svg viewBox="0 0 24 24" className="category-box-svg" xmlns="http://www.w3.org/2000/svg">
         <path
           d="M9 4l3 2 3-2 3 3-2 3v9H8v-9L6 7l3-3Z"
           fill="none"
@@ -288,19 +385,8 @@ function CategoryIcon({ type }) {
 
   if (type === "kids") {
     return (
-      <svg
-        viewBox="0 0 24 24"
-        className="category-box-svg"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle
-          cx="12"
-          cy="8"
-          r="3"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.7"
-        />
+      <svg viewBox="0 0 24 24" className="category-box-svg" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="8" r="3" fill="none" stroke="currentColor" strokeWidth="1.7" />
         <path
           d="M7.5 19v-2.2A3.8 3.8 0 0 1 11.3 13h1.4a3.8 3.8 0 0 1 3.8 3.8V19"
           fill="none"
@@ -313,28 +399,9 @@ function CategoryIcon({ type }) {
   }
 
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className="category-box-svg"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <rect
-        x="4"
-        y="5"
-        width="16"
-        height="14"
-        rx="2.4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M8 9h8M8 12h8M8 15h5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
+    <svg viewBox="0 0 24 24" className="category-box-svg" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4" y="5" width="16" height="14" rx="2.4" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M8 9h8M8 12h8M8 15h5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -363,6 +430,33 @@ function CategoryQuickCard({ item, onClick }) {
       <div className="category-box-label">{item.label}</div>
     </div>
   );
+}
+
+function DeferredSection({ children, rootMargin = "500px 0px" }) {
+  const [visible, setVisible] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (visible) return;
+    if (!ref.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first?.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { root: null, rootMargin, threshold: 0.01 }
+    );
+
+    observer.observe(ref.current);
+
+    return () => observer.disconnect();
+  }, [visible, rootMargin]);
+
+  return <div ref={ref}>{visible ? children : null}</div>;
 }
 
 export default function Home() {
@@ -435,14 +529,10 @@ export default function Home() {
       setLoadingSuggestions(true);
 
       try {
-        const qRef = query(
-          collection(db, COLLECTION_NAME),
-          limit(SEARCH_PREVIEW_LIMIT)
-        );
-
+        const qRef = query(collection(db, COLLECTION_NAME), limit(SEARCH_PREVIEW_LIMIT));
         const snap = await getDocs(qRef);
-        if (!alive) return;
 
+        if (!alive) return;
         setProducts(snap.docs.map(normalizeProduct));
       } catch (error) {
         console.error("Search preview fetch error:", error);
@@ -706,20 +796,22 @@ export default function Home() {
         />
       </section>
 
-      <section className="section">
-        <div className="section-header">
-          <h3>Continue shopping</h3>
-          <button className="see-all-btn" onClick={goToShop} type="button">
-            See all
-          </button>
-        </div>
+      <DeferredSection>
+        <section className="section">
+          <div className="section-header">
+            <h3>Continue shopping</h3>
+            <button className="see-all-btn" onClick={goToShop} type="button">
+              See all
+            </button>
+          </div>
 
-        <ProductGrid
-          sortBy="new"
-          filter={{ featuredOnly: false }}
-          infinite={false}
-        />
-      </section>
+          <ProductGrid
+            sortBy="new"
+            filter={{ featuredOnly: false }}
+            infinite={false}
+          />
+        </section>
+      </DeferredSection>
     </div>
   );
 }
