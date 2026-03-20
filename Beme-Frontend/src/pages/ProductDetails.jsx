@@ -1115,7 +1115,8 @@ export default function ProductDetails() {
 
           <div className="pd-note">
             <span className="pd-note-icon">⏱</span>
-            Buy it now, get it in 1–5 days (Ghana).
+            Buy it now, get it in 1–3 days (Ghana).
+            but may take a week when Shipped
           </div>
         </div>
       </div>
