@@ -78,8 +78,6 @@ export default function CartDrawer({ isOpen, onClose }) {
   } = useCart();
 
   const [cartMessage, setCartMessage] = useState("");
-  const [mounted, setMounted] = useState(false);
-  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     if (!cartMessage) return;
@@ -92,35 +90,15 @@ export default function CartDrawer({ isOpen, onClose }) {
   }, [cartMessage]);
 
   useEffect(() => {
-    let timeoutId;
-    let rafId;
-
-    if (isOpen) {
-      setMounted(true);
-      document.body.style.overflow = "hidden";
-
-      rafId = window.requestAnimationFrame(() => {
-        rafId = window.requestAnimationFrame(() => {
-          setVisible(true);
-        });
-      });
-    } else {
-      setVisible(false);
-      document.body.style.overflow = "";
-      timeoutId = window.setTimeout(() => {
-        setMounted(false);
-      }, 460);
-    }
+    document.body.style.overflow = isOpen ? "hidden" : "";
 
     return () => {
       document.body.style.overflow = "";
-      window.clearTimeout(timeoutId);
-      window.cancelAnimationFrame(rafId);
     };
   }, [isOpen]);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!isOpen) return;
 
     const onKeyDown = (event) => {
       if (event.key === "Escape") {
@@ -130,7 +108,7 @@ export default function CartDrawer({ isOpen, onClose }) {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [mounted, onClose]);
+  }, [isOpen, onClose]);
 
   const unavailableCount = useMemo(() => {
     return cartItems.filter((item) => getUnavailableReason(item)).length;
@@ -180,10 +158,8 @@ export default function CartDrawer({ isOpen, onClose }) {
     }
   };
 
-  if (!mounted) return null;
-
   return (
-    <div className={`cd ${visible ? "cd--open" : ""}`} aria-hidden={!visible}>
+    <div className={`cd ${isOpen ? "cd--open" : ""}`} aria-hidden={!isOpen}>
       <div className="cd-overlay" onClick={onClose} />
 
       <aside className="cd-panel" role="dialog" aria-modal="true">
