@@ -12,8 +12,8 @@ import techBanner from "../assets/tech-banner.png";
 import "./Home.css";
 
 const COLLECTION_NAME = "Products";
-const SEARCH_PREVIEW_LIMIT = 80;
-const SUGGESTION_LIMIT = 10;
+const SEARCH_PREVIEW_LIMIT = 30;
+const SUGGESTION_LIMIT = 8;
 
 const CATEGORY_CARDS = [
   {
@@ -54,115 +54,13 @@ const CATEGORY_CARDS = [
   },
 ];
 
-const CATEGORY_KEYWORDS = [
-  {
-    label: "Phones",
-    type: "category",
-    value: "phone",
-    aliases: [
-      "phone",
-      "phones",
-      "iphone",
-      "android",
-      "mobile",
-      "smartphone",
-      "tecno",
-      "infinix",
-      "samsung",
-      "itel",
-      "pixel",
-      "ipad",
-      "tablet",
-    ],
-  },
-  {
-    label: "Laptops",
-    type: "category",
-    value: "laptop",
-    aliases: [
-      "laptop",
-      "laptops",
-      "macbook",
-      "notebook",
-      "computer",
-      "pc",
-      "dell",
-      "hp",
-      "lenovo",
-      "acer",
-      "asus",
-    ],
-  },
-  {
-    label: "Shoes",
-    type: "category",
-    value: "shoes",
-    aliases: [
-      "shoe",
-      "shoes",
-      "sneaker",
-      "sneakers",
-      "slides",
-      "sandals",
-      "heels",
-      "boots",
-      "slippers",
-      "airforce",
-      "air force",
-    ],
-  },
-  {
-    label: "Clothing",
-    type: "category",
-    value: "clothing",
-    aliases: [
-      "clothing",
-      "clothes",
-      "fashion",
-      "shirt",
-      "shirts",
-      "dress",
-      "dresses",
-      "hoodie",
-      "hoodies",
-      "trousers",
-      "jeans",
-      "top",
-      "tops",
-    ],
-  },
-  {
-    label: "Kids",
-    type: "category",
-    value: "kids",
-    aliases: [
-      "kids",
-      "kid",
-      "children",
-      "child",
-      "baby",
-      "babies",
-      "toddler",
-      "infant",
-    ],
-  },
-  {
-    label: "Accessories",
-    type: "category",
-    value: "accessories",
-    aliases: [
-      "accessories",
-      "accessory",
-      "watch",
-      "bag",
-      "bags",
-      "power bank",
-      "speaker",
-      "perfume",
-      "cosmetics",
-      "others",
-    ],
-  },
+const QUICK_CATEGORY_SUGGESTIONS = [
+  { label: "Phones", type: "category", value: "phone" },
+  { label: "Laptops", type: "category", value: "laptop" },
+  { label: "Shoes", type: "category", value: "shoes" },
+  { label: "Clothing", type: "category", value: "clothing" },
+  { label: "Kids", type: "category", value: "kids" },
+  { label: "Accessories", type: "category", value: "accessories" },
 ];
 
 function normalizeProduct(docSnap) {
@@ -228,12 +126,12 @@ function buildSuggestions(products, term) {
     });
   };
 
-  for (const category of CATEGORY_KEYWORDS) {
-    const aliasMatch = category.aliases.some((alias) => alias.includes(q));
-    const queryMatch = q.includes(category.value);
-
-    if (aliasMatch || queryMatch) {
-      pushSuggestion(category.label, category.type, category.value, 200);
+  for (const item of QUICK_CATEGORY_SUGGESTIONS) {
+    if (
+      item.label.toLowerCase().includes(q) ||
+      item.value.toLowerCase().includes(q)
+    ) {
+      pushSuggestion(item.label, item.type, item.value, 120);
     }
   }
 
@@ -272,29 +170,23 @@ function buildSuggestions(products, term) {
     else if (nameLc.includes(q)) pushSuggestion(name, "product", name, 90);
 
     if (brandLc && brandLc.includes(q)) {
-      pushSuggestion(titleize(brand), "brand", brand, 84);
+      pushSuggestion(titleize(brand), "brand", brand, 80);
     }
 
-    if (deptLc.startsWith(q)) {
-      pushSuggestion(titleize(dept), "department", titleize(dept), 70);
-    } else if (deptLc.includes(q)) {
-      pushSuggestion(titleize(dept), "department", titleize(dept), 60);
+    if (deptLc && deptLc.includes(q)) {
+      pushSuggestion(titleize(dept), "department", dept, 60);
     }
 
-    if (kindLc.startsWith(q)) {
-      pushSuggestion(titleize(kind), "type", titleize(kind), 65);
-    } else if (kindLc.includes(q)) {
-      pushSuggestion(titleize(kind), "type", titleize(kind), 55);
+    if (kindLc && kindLc.includes(q)) {
+      pushSuggestion(titleize(kind), "type", kind, 58);
     }
 
     if (slotLc && slotLc.includes(q)) {
-      pushSuggestion(titleize(homeSlot), "category", homeSlot, 75);
+      pushSuggestion(titleize(homeSlot), "category", homeSlot, 62);
     }
 
-    if (shopLc.startsWith(q)) {
+    if (shopLc.startsWith(q) || shopLc.includes(q)) {
       pushSuggestion(formatShopLabel(shop), "shop", `shop:${shop}`, 68);
-    } else if (shopLc.includes(q)) {
-      pushSuggestion(formatShopLabel(shop), "shop", `shop:${shop}`, 58);
     }
 
     if (fullText.includes(q)) {
@@ -306,7 +198,7 @@ function buildSuggestions(products, term) {
       for (const word of words) {
         if (word.length < 3) continue;
         if (!word.includes(q)) continue;
-        pushSuggestion(titleize(word), "keyword", word, 40);
+        pushSuggestion(titleize(word), "keyword", word, 35);
       }
     }
   }
