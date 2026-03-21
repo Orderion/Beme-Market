@@ -2,6 +2,15 @@ import express from "express";
 import crypto from "crypto";
 import { adminDb, firebaseAdmin } from "../firebaseAdmin.js";
 import { sendOrderPaidEmails } from "../services/email.js";
+import {
+  createInitialPaidState,
+  createInitialPaystackPendingState,
+} from "../modules/dropship/orderStates.js";
+import {
+  buildReviewPricing,
+  summarizeReviewFlags,
+  summarizeStockState,
+} from "../modules/dropship/orderCalculations.js";
 
 const router = express.Router();
 
@@ -63,6 +72,10 @@ function normalizeShopKey(value) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40);
+}
+
+function normalizeSupplierType(value) {
+  return safeTrim(value).toLowerCase().slice(0, 80);
 }
 
 function isAllowedShop(value) {
@@ -228,6 +241,11 @@ function buildOrderFingerprint({ email, customer, items, userId }) {
       selectedOptions: item.selectedOptions,
       selectedOptionsLabel: item.selectedOptionsLabel,
       selectedOptionDetails: item.selectedOptionDetails,
+      supplierId: item.supplierId,
+      supplierProductId: item.supplierProductId,
+      supplierSku: item.supplierSku,
+      supplierVariantId: item.supplierVariantId,
+      supplierApiType: item.supplierApiType,
     })),
   };
 
@@ -302,6 +320,19 @@ function normalizeIncomingItems(items) {
           item?.oldPrice !== ""
             ? Math.max(0, toNumber(item?.oldPrice, 0))
             : null,
+
+        supplierId: sanitizeOptionalText(item?.supplierId, 120),
+        supplierProductId: sanitizeOptionalText(item?.supplierProductId, 120),
+        supplierSku: sanitizeOptionalText(item?.supplierSku, 120),
+        supplierVariantId: sanitizeOptionalText(item?.supplierVariantId, 120),
+        supplierCost: Math.max(0, toNumber(item?.supplierCost, 0)),
+        supplierShippingEstimate: Math.max(
+          0,
+          toNumber(item?.supplierShippingEstimate, 0)
+        ),
+        shipsFrom: sanitizeOptionalText(item?.shipsFrom, 120),
+        supplierApiType: normalizeSupplierType(item?.supplierApiType),
+        syncEnabled: item?.syncEnabled !== false,
       };
     })
     .filter((item) => item.id)
@@ -379,6 +410,51 @@ async function buildCheckoutFromItems(items) {
       throw new Error(`Invalid shop for product: ${item.id}`);
     }
 
+    const productSupplierMapping =
+      product?.supplierMapping && typeof product.supplierMapping === "object"
+        ? product.supplierMapping
+        : null;
+
+    const supplierId = sanitizeOptionalText(
+      item.supplierId || productSupplierMapping?.supplierId,
+      120
+    );
+    const supplierProductId = sanitizeOptionalText(
+      item.supplierProductId || productSupplierMapping?.supplierProductId,
+      120
+    );
+    const supplierSku = sanitizeOptionalText(
+      item.supplierSku || productSupplierMapping?.supplierSku,
+      120
+    );
+    const supplierVariantId = sanitizeOptionalText(
+      item.supplierVariantId || productSupplierMapping?.supplierVariantId,
+      120
+    );
+    const supplierCost = Math.max(
+      0,
+      toNumber(item.supplierCost, productSupplierMapping?.supplierCost ?? 0)
+    );
+    const supplierShippingEstimate = Math.max(
+      0,
+      toNumber(
+        item.supplierShippingEstimate,
+        productSupplierMapping?.supplierShippingEstimate ??
+          item.abroadDeliveryFee ??
+          0
+      )
+    );
+    const shipsFrom = sanitizeOptionalText(
+      item.shipsFrom || productSupplierMapping?.shipsFrom,
+      120
+    );
+    const supplierApiType = normalizeSupplierType(
+      item.supplierApiType || productSupplierMapping?.supplierApiType
+    );
+    const syncEnabled =
+      item.syncEnabled !== false &&
+      productSupplierMapping?.syncEnabled !== false;
+
     subtotal += finalUnitPrice * item.qty;
 
     lineItems.push({
@@ -404,6 +480,16 @@ async function buildCheckoutFromItems(items) {
       abroadDeliveryFee: Math.max(0, toNumber(item.abroadDeliveryFee, 0)),
       stock: productStock,
       inStock: product.inStock !== false,
+
+      supplierId,
+      supplierProductId,
+      supplierSku,
+      supplierVariantId,
+      supplierCost,
+      supplierShippingEstimate,
+      shipsFrom,
+      supplierApiType,
+      syncEnabled,
     });
   }
 
@@ -462,6 +548,8 @@ async function finalizeFailedOrder(orderRef, existing, status = "failed", extra 
     paid: false,
     paymentStatus: "failed",
     status: "payment_failed",
+    fulfillmentStatus: "failed",
+    supplierPushStatus: existing?.supplierPushStatus || "not_sent",
     verifyLock: false,
     updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
     paystack: {
@@ -591,6 +679,42 @@ router.post("/checkout/init", async (req, res) => {
       new Set(lineItems.map((item) => normalizeShopKey(item.shop)).filter(Boolean))
     );
 
+    const rawPricing = {
+      currency: "GHS",
+      subtotal: safeSubtotal,
+      deliveryFee,
+      total,
+    };
+
+    const enrichedPricing = buildReviewPricing(rawPricing, lineItems);
+    const initialState = createInitialPaystackPendingState();
+    const reviewFlags = summarizeReviewFlags({
+      items: lineItems,
+      pricing: enrichedPricing,
+      customer: {
+        email,
+        firstName: sanitizeText(customer.firstName, 80),
+        lastName: sanitizeText(customer.lastName, 80),
+        phone: normalizePhone(customer.phone),
+        network: sanitizeOptionalText(customer.network, 40),
+        country: "Ghana",
+        address: sanitizeText(customer.address, 300),
+        region,
+        city: sanitizeText(customer.city, 80),
+        area: sanitizeOptionalText(customer.area, 120),
+        notes: sanitizeOptionalText(customer.notes, 500),
+      },
+    });
+    const stockCheckSummary = summarizeStockState(lineItems);
+    const firstSupplierMappedItem = lineItems.find(
+      (item) =>
+        item.supplierApiType ||
+        item.supplierId ||
+        item.supplierProductId ||
+        item.supplierSku ||
+        item.supplierVariantId
+    );
+
     await orderRef.set({
       status: "pending_payment",
       paymentMethod: "paystack",
@@ -602,12 +726,8 @@ router.post("/checkout/init", async (req, res) => {
       userId,
       orderFingerprint: fingerprint,
       verifyLock: false,
-      pricing: {
-        currency: "GHS",
-        subtotal: safeSubtotal,
-        deliveryFee,
-        total,
-      },
+
+      pricing: enrichedPricing,
       customer: {
         email,
         firstName: sanitizeText(customer.firstName, 80),
@@ -624,6 +744,33 @@ router.post("/checkout/init", async (req, res) => {
       items: lineItems,
       shops,
       primaryShop: shops[0] || "main",
+
+      fulfillmentStatus: initialState.fulfillmentStatus,
+      supplierPushStatus: initialState.supplierPushStatus,
+      adminReviewed: initialState.adminReviewed,
+      adminApproved: initialState.adminApproved,
+      approvedBy: "",
+      approvedAt: null,
+      rejectedBy: "",
+      rejectedAt: null,
+      heldBy: "",
+      heldAt: null,
+      reviewNotes: "",
+
+      supplierId: firstSupplierMappedItem?.supplierId || "",
+      supplierApiType: firstSupplierMappedItem?.supplierApiType || "",
+      supplierOrderId: "",
+      supplierStatus: "",
+      syncAttempts: 0,
+      lastSyncError: "",
+      supplierTrackingNumber: "",
+      supplierTrackingUrl: "",
+      supplierPushKey: "",
+      supplierPushResponseSummary: null,
+
+      reviewFlags,
+      stockCheckSummary,
+
       createdAt: now,
       updatedAt: now,
     });
@@ -663,6 +810,11 @@ router.post("/checkout/init", async (req, res) => {
               selectedOptions: item.selectedOptions || {},
               selectedOptionsLabel: item.selectedOptionsLabel || "",
               selectedOptionDetails: item.selectedOptionDetails || [],
+              supplierId: item.supplierId || "",
+              supplierProductId: item.supplierProductId || "",
+              supplierSku: item.supplierSku || "",
+              supplierVariantId: item.supplierVariantId || "",
+              supplierApiType: item.supplierApiType || "",
             })),
           },
         }),
@@ -675,6 +827,7 @@ router.post("/checkout/init", async (req, res) => {
       await orderRef.update({
         status: "paystack_init_failed",
         paymentStatus: "failed",
+        fulfillmentStatus: "failed",
         updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
         paystack: { initError: initData },
       });
@@ -802,10 +955,16 @@ async function verifyOrderAndUpdate(reference) {
     }
 
     if (status === "success") {
+      const paidState = createInitialPaidState();
+
       await orderRef.update({
         paid: true,
         paymentStatus: "paid",
         status: "paid",
+        fulfillmentStatus: paidState.fulfillmentStatus,
+        supplierPushStatus: paidState.supplierPushStatus,
+        adminReviewed: paidState.adminReviewed,
+        adminApproved: paidState.adminApproved,
         verifyLock: false,
         updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
         paystack: {
