@@ -22,6 +22,16 @@ import "./Admin.css";
 
 const COLLECTION_NAME = "Products";
 
+const MAIN_ADMIN_TABS = [
+  { key: "manual", label: "Manual Add Product" },
+  { key: "csv", label: "CSV Imports" },
+];
+
+const CSV_IMPORT_TABS = [
+  { key: "standard", label: "Standard CSV Imports" },
+  { key: "cj", label: "CJ Imports" },
+];
+
 const HOME_FILTER_OPTIONS = [
   { key: "phones", label: "Phones" },
   { key: "laptops", label: "Laptops" },
@@ -30,6 +40,62 @@ const HOME_FILTER_OPTIONS = [
   { key: "kids", label: "Kids" },
   { key: "others", label: "Others" },
 ];
+
+const STANDARD_IMPORT_REQUIRED_HEADERS = ["title", "category", "price"];
+const STANDARD_IMPORT_ALLOWED_HEADERS = [
+  "title",
+  "category",
+  "brand",
+  "price",
+  "stock",
+  "abroadDeliveryFee",
+  "key_features",
+  "target_customer",
+  "customizations",
+  "description",
+  "oldPrice",
+  "image",
+  "images",
+  "featured",
+  "inStock",
+  "shipsFromAbroad",
+];
+
+const CJ_IMPORT_REQUIRED_HEADERS = [
+  "product_name",
+  "category",
+  "price_ghs",
+  "stock",
+];
+const CJ_IMPORT_ALLOWED_HEADERS = [
+  "product_name",
+  "category",
+  "brand",
+  "price_ghs",
+  "stock",
+  "abroad_delivery_fee",
+  "key_features",
+  "target_customer",
+  "customization_options",
+  "short_description",
+  "ships_from_abroad",
+  "in_stock",
+  "featured",
+  "image",
+  "images",
+  "old_price",
+  "product_sku",
+  "cj_product_id",
+  "variant",
+];
+
+const STANDARD_IMPORT_SAMPLE = `product_name,category,brand,price_ghs,stock,abroad_delivery_fee,key_features,target_customer,customization_options,short_description,ships_from_abroad,in_stock,featured
+Samsung Galaxy S23,Phone,Samsung,7500,12,45,"8GB RAM, 128GB–256GB storage, AMOLED display","Smartphone users, professionals","Storage: 128GB(+0)|256GB(+600); Color: Black(+0)|Green(+0)|Cream(+0)","Samsung Galaxy S23 offers powerful flagship performance with a bright AMOLED display and fast processing for work, entertainment, and daily use.",yes,yes,no
+Apple MacBook Air M2,Laptop,Apple,11000,8,0,"8GB–16GB RAM, 256GB–512GB SSD, Apple M2 chip","Students, professionals, creators","RAM: 8GB(+0)|16GB(+1200); Storage: 256GB(+0)|512GB(+1800); Color: Silver(+0)|Space Gray(+0)|Midnight(+0)","Apple MacBook Air M2 delivers smooth everyday performance in a slim and lightweight design.",no,yes,yes
+Apple AirPods Pro 2,Accessory,Apple,3200,20,0,"Active noise cancellation, spatial audio","Apple device users","Color: White(+0)","Apple AirPods Pro 2 combine premium sound, comfort, and wireless convenience for everyday listening.",no,yes,no`;
+
+const CJ_IMPORT_SAMPLE = `product_name,category,brand,price_ghs,stock,abroad_delivery_fee,key_features,target_customer,customization_options,short_description,ships_from_abroad,in_stock,featured,cj_product_id,product_sku,variant,image
+iPhone 15 Pro Max,Phone,Apple,13500,5,120,"A17 Pro chip, premium build, strong camera system","Premium smartphone buyers","Storage: 256GB(+0)|512GB(+1800); Condition: Brand New(+0)|UK Used(-900)","CJ product prepared for future supplier automation and reviewed import workflow.",yes,yes,yes,CJ-APPLE-15PM,APL-15PM-256,256GB Brand New,https://example.com/iphone15promax.jpg`;
 
 const makeOptionValue = () => ({
   id: crypto.randomUUID(),
@@ -63,10 +129,14 @@ const initial = {
   customizations: [],
 };
 
-const BULK_IMPORT_SAMPLE = `product_name,category,brand,price_ghs,stock,abroad_delivery_fee,key_features,target_customer,customization_options,short_description,ships_from_abroad,in_stock,featured
-Samsung Galaxy S23,Phone,Samsung,7500,12,45,"8GB RAM, 128GB–256GB storage, AMOLED display","Smartphone users, professionals","Storage: 128GB(+0)|256GB(+600); Color: Black(+0)|Green(+0)|Cream(+0)","Samsung Galaxy S23 offers powerful flagship performance with a bright AMOLED display and fast processing for work, entertainment, and daily use.",yes,yes,no
-Apple MacBook Air M2,Laptop,Apple,11000,8,0,"8GB–16GB RAM, 256GB–512GB SSD, Apple M2 chip","Students, professionals, creators","RAM: 8GB(+0)|16GB(+1200); Storage: 256GB(+0)|512GB(+1800); Color: Silver(+0)|Space Gray(+0)|Midnight(+0)","Apple MacBook Air M2 delivers smooth everyday performance in a slim and lightweight design.",no,yes,yes
-Apple AirPods Pro 2,Accessory,Apple,3200,20,0,"Active noise cancellation, spatial audio","Apple device users","Color: White(+0)","Apple AirPods Pro 2 combine premium sound, comfort, and wireless convenience for everyday listening.",no,yes,no`;
+const initialImportMeta = {
+  sourceType: "standard",
+  totalRows: 0,
+  validRows: 0,
+  skippedRows: 0,
+  headerErrors: [],
+  rowErrors: [],
+};
 
 function makeEditableValuesFromLegacy(values) {
   const safeValues = Array.isArray(values) ? values : [];
@@ -128,7 +198,7 @@ function normalizeCustomizationGroups(groups) {
         : [];
 
       return {
-        id: group.id,
+        id: group.id || crypto.randomUUID(),
         name: String(group.name || "").trim(),
         type: group.type === "select" ? "select" : "buttons",
         required: !!group.required,
@@ -142,7 +212,7 @@ function toEditableCustomizationGroups(groups) {
   if (!Array.isArray(groups)) return [];
 
   return groups.map((group, index) => ({
-    id: group?.id || crypto.randomUUID() || `option-${index}`,
+    id: group?.id || `option-${index}-${crypto.randomUUID()}`,
     name: String(group?.name || "").trim(),
     type: group?.type === "select" ? "select" : "buttons",
     required: group?.required !== false,
@@ -345,9 +415,30 @@ function normalizeImportHeader(header) {
     ships_from_abroad: "shipsFromAbroad",
     shipsfromabroad: "shipsFromAbroad",
     imported: "shipsFromAbroad",
+    cj_product_id: "cj_product_id",
+    product_sku: "product_sku",
+    sku: "product_sku",
+    variant: "variant",
   };
 
   return map[key] || key;
+}
+
+function rawHeaderKey(header) {
+  return String(header || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+}
+
+function getCsvHeaders(text) {
+  const raw = String(text || "").trim();
+  if (!raw) return [];
+
+  const firstLine = raw.split(/\r?\n/).find((line) => String(line).trim());
+  if (!firstLine) return [];
+
+  return parseCsvLine(firstLine).map((header) => String(header || "").trim());
 }
 
 function parseCsvText(text) {
@@ -365,9 +456,11 @@ function parseCsvText(text) {
     normalizeImportHeader(header)
   );
 
-  return lines.slice(1).map((line) => {
+  return lines.slice(1).map((line, rowIndex) => {
     const values = parseCsvLine(line);
-    const row = {};
+    const row = {
+      __rowNumber: rowIndex + 2,
+    };
 
     headers.forEach((header, index) => {
       row[header] = values[index] ?? "";
@@ -422,7 +515,9 @@ function parseOptionValueToken(token, fallbackIndex = 0) {
     };
   }
 
-  const plusMatch = raw.match(/^(.*?)\s*\(\s*\+?\s*([+-]?\d+(?:\.\d+)?)\s*\)\s*$/);
+  const plusMatch = raw.match(
+    /^(.*?)\s*\(\s*\+?\s*([+-]?\d+(?:\.\d+)?)\s*\)\s*$/
+  );
   if (plusMatch) {
     return {
       id: `bulk-option-value-${fallbackIndex}-${crypto.randomUUID()}`,
@@ -641,6 +736,121 @@ function importRowMatchesSearch(row, term) {
   return haystack.includes(q);
 }
 
+function getHeaderValidation(sourceType, headers) {
+  const normalizedHeaders =
+    sourceType === "cj"
+      ? headers.map((header) => rawHeaderKey(header))
+      : headers.map((header) => normalizeImportHeader(header));
+
+  const requiredHeaders =
+    sourceType === "cj"
+      ? CJ_IMPORT_REQUIRED_HEADERS
+      : STANDARD_IMPORT_REQUIRED_HEADERS;
+
+  const allowedHeaders =
+    sourceType === "cj"
+      ? CJ_IMPORT_ALLOWED_HEADERS
+      : STANDARD_IMPORT_ALLOWED_HEADERS;
+
+  const missingRequired = requiredHeaders.filter(
+    (header) => !normalizedHeaders.includes(header)
+  );
+
+  const unsupportedHeaders = normalizedHeaders.filter(
+    (header) => !allowedHeaders.includes(header)
+  );
+
+  return {
+    normalizedHeaders,
+    missingRequired,
+    unsupportedHeaders,
+    isValid: !missingRequired.length && !unsupportedHeaders.length,
+  };
+}
+
+function validateStandardImportRows(rows) {
+  const rowErrors = [];
+
+  rows.forEach((row) => {
+    const rowNumber = row.__rowNumber || "?";
+    const title = String(row.title || "").trim();
+    const category = String(row.category || "").trim();
+    const rawPrice = String(row.price || "").trim();
+
+    if (!title) {
+      rowErrors.push(`Row ${rowNumber}: product name is required.`);
+    }
+
+    if (!category) {
+      rowErrors.push(`Row ${rowNumber}: category is required.`);
+    }
+
+    if (!rawPrice) {
+      rowErrors.push(`Row ${rowNumber}: price is required.`);
+    } else if (!Number.isFinite(parseNumberish(rawPrice, NaN))) {
+      rowErrors.push(`Row ${rowNumber}: price format is invalid.`);
+    }
+
+    if (
+      String(row.stock || "").trim() !== "" &&
+      !Number.isFinite(parseNumberish(row.stock, NaN))
+    ) {
+      rowErrors.push(`Row ${rowNumber}: stock format is invalid.`);
+    }
+
+    if (
+      String(row.abroadDeliveryFee || "").trim() !== "" &&
+      !Number.isFinite(parseNumberish(row.abroadDeliveryFee, NaN))
+    ) {
+      rowErrors.push(`Row ${rowNumber}: abroad delivery fee format is invalid.`);
+    }
+
+    if (
+      String(row.oldPrice || "").trim() !== "" &&
+      !Number.isFinite(parseNumberish(row.oldPrice, NaN))
+    ) {
+      rowErrors.push(`Row ${rowNumber}: old price format is invalid.`);
+    }
+  });
+
+  return rowErrors;
+}
+
+function validateCjImportRows(rows) {
+  const rowErrors = [];
+
+  rows.forEach((row) => {
+    const rowNumber = row.__rowNumber || "?";
+    const productName =
+      String(row.product_name || row.title || "").trim();
+    const category = String(row.category || "").trim();
+    const rawPrice = String(row.price_ghs || "").trim();
+    const rawStock = String(row.stock || "").trim();
+
+    if (!productName) {
+      rowErrors.push(`Row ${rowNumber}: CJ product_name is required.`);
+    }
+
+    if (!category) {
+      rowErrors.push(`Row ${rowNumber}: CJ category is required.`);
+    }
+
+    if (!rawPrice) {
+      rowErrors.push(`Row ${rowNumber}: CJ price_ghs is required.`);
+    } else if (!Number.isFinite(parseNumberish(rawPrice, NaN))) {
+      rowErrors.push(`Row ${rowNumber}: CJ price_ghs format is invalid.`);
+    }
+
+    if (!rawStock) {
+      rowErrors.push(`Row ${rowNumber}: CJ stock is required.`);
+    } else if (!Number.isFinite(parseNumberish(rawStock, NaN))) {
+      rowErrors.push(`Row ${rowNumber}: CJ stock format is invalid.`);
+    }
+  });
+
+  return rowErrors;
+}
+
 function StatusFlags({ inStock, featured, shipsFromAbroad }) {
   return (
     <div className="admin-product-flags">
@@ -711,7 +921,11 @@ function OptionValuesEditor({
   compact = false,
 }) {
   return (
-    <div className={`admin-option-values${compact ? " admin-option-values--compact" : ""}`}>
+    <div
+      className={`admin-option-values${
+        compact ? " admin-option-values--compact" : ""
+      }`}
+    >
       {values.map((value, index) => (
         <div className="admin-option-value-row" key={value.id}>
           <label className="admin-field">
@@ -766,6 +980,9 @@ export default function Admin() {
     reauthenticate,
   } = useAuth();
 
+  const [activeMainTab, setActiveMainTab] = useState("manual");
+  const [activeCsvTab, setActiveCsvTab] = useState("standard");
+
   const [form, setForm] = useState(initial);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -803,19 +1020,31 @@ export default function Admin() {
   const [editError, setEditError] = useState("");
   const [editMsg, setEditMsg] = useState("");
 
-  const [bulkImportText, setBulkImportText] = useState("");
-  const [bulkImporting, setBulkImporting] = useState(false);
-  const [bulkImportMsg, setBulkImportMsg] = useState("");
+  const [standardImportText, setStandardImportText] = useState("");
+  const [standardImporting, setStandardImporting] = useState(false);
+  const [standardImportMsg, setStandardImportMsg] = useState("");
+  const [standardImportMeta, setStandardImportMeta] =
+    useState(initialImportMeta);
+
+  const [cjImportText, setCjImportText] = useState("");
+  const [cjImportMsg, setCjImportMsg] = useState("");
+  const [cjImportMeta, setCjImportMeta] = useState({
+    ...initialImportMeta,
+    sourceType: "cj",
+  });
 
   const [importPreviewRows, setImportPreviewRows] = useState([]);
   const [importSearchTerm, setImportSearchTerm] = useState("");
   const [importPreviewMsg, setImportPreviewMsg] = useState("");
+
   const [editingPreviewId, setEditingPreviewId] = useState("");
   const [previewRowToEdit, setPreviewRowToEdit] = useState(null);
   const [previewEditForm, setPreviewEditForm] = useState(initial);
   const [previewEditImageFiles, setPreviewEditImageFiles] = useState([]);
   const [previewEditImagePreviews, setPreviewEditImagePreviews] = useState([]);
-  const [previewEditUploadedImages, setPreviewEditUploadedImages] = useState([]);
+  const [previewEditUploadedImages, setPreviewEditUploadedImages] = useState(
+    []
+  );
   const [previewEditUploadingImage, setPreviewEditUploadingImage] =
     useState(false);
   const [previewEditError, setPreviewEditError] = useState("");
@@ -947,8 +1176,7 @@ export default function Admin() {
       });
     };
   }, [previewEditImagePreviews]);
-
-  const setField = (key) => (e) => {
+    const setField = (key) => (e) => {
     const value =
       e?.target?.type === "checkbox" ? e.target.checked : e.target.value;
 
@@ -1037,14 +1265,23 @@ export default function Admin() {
         group.id === groupId
           ? {
               ...group,
-              values: [...(Array.isArray(group.values) ? group.values : []), makeOptionValue()],
+              values: [
+                ...(Array.isArray(group.values) ? group.values : []),
+                makeOptionValue(),
+              ],
             }
           : group
       ),
     }));
   };
 
-  const updateOptionValueInGroup = (groupId, valueId, key, value, scope = "create") => {
+  const updateOptionValueInGroup = (
+    groupId,
+    valueId,
+    key,
+    value,
+    scope = "create"
+  ) => {
     const setter =
       scope === "edit"
         ? setEditForm
@@ -1058,8 +1295,8 @@ export default function Admin() {
         group.id === groupId
           ? {
               ...group,
-              values: (Array.isArray(group.values) ? group.values : []).map((item) =>
-                item.id === valueId ? { ...item, [key]: value } : item
+              values: (Array.isArray(group.values) ? group.values : []).map(
+                (item) => (item.id === valueId ? { ...item, [key]: value } : item)
               ),
             }
           : group
@@ -1067,7 +1304,11 @@ export default function Admin() {
     }));
   };
 
-  const removeOptionValueFromGroup = (groupId, valueId, scope = "create") => {
+  const removeOptionValueFromGroup = (
+    groupId,
+    valueId,
+    scope = "create"
+  ) => {
     const setter =
       scope === "edit"
         ? setEditForm
@@ -1079,9 +1320,10 @@ export default function Admin() {
       ...prev,
       customizations: prev.customizations.map((group) => {
         if (group.id !== groupId) return group;
-        const nextValues = (Array.isArray(group.values) ? group.values : []).filter(
-          (item) => item.id !== valueId
-        );
+        const nextValues = (
+          Array.isArray(group.values) ? group.values : []
+        ).filter((item) => item.id !== valueId);
+
         return {
           ...group,
           values: nextValues.length ? nextValues : [makeOptionValue()],
@@ -1493,9 +1735,12 @@ export default function Admin() {
       }
     }
 
-    if (!deptOptions.includes(editForm.dept))
+    if (!deptOptions.includes(editForm.dept)) {
       return "Invalid department selected.";
-    if (!kindOptions.includes(editForm.kind)) return "Invalid type selected.";
+    }
+    if (!kindOptions.includes(editForm.kind)) {
+      return "Invalid type selected.";
+    }
     if (!availableShops.includes(normalizeShopKey(editForm.shop))) {
       return "Invalid shop selected.";
     }
@@ -1601,8 +1846,11 @@ export default function Admin() {
         form.stock !== "" && Number.isFinite(Number(form.stock))
           ? Number(form.stock)
           : null;
+
       const normalizedInStock =
-        stockValue !== null ? stockValue > 0 && form.inStock !== false : form.inStock !== false;
+        stockValue !== null
+          ? stockValue > 0 && form.inStock !== false
+          : form.inStock !== false;
 
       const payload = {
         name: form.name.trim(),
@@ -1646,6 +1894,7 @@ export default function Admin() {
 
       if (form.oldPrice !== "") payload.oldPrice = Number(form.oldPrice);
       if (stockValue !== null) payload.stock = stockValue;
+
       if (
         form.abroadDeliveryFee !== "" &&
         Number.isFinite(Number(form.abroadDeliveryFee))
@@ -1684,7 +1933,7 @@ export default function Admin() {
     }
   };
 
-  const buildPreviewRowsFromCsv = (rows) => {
+  const buildPreviewRowsFromCsv = (rows, sourceType = "standard") => {
     const sellerName = resolveCurrentSellerName(user, profile);
     const fallbackShop =
       isShopAdmin && normalizedAdminShop
@@ -1693,21 +1942,35 @@ export default function Admin() {
 
     const prepared = [];
     const skipped = [];
+    const rowErrors = [];
 
     rows.forEach((row, index) => {
-      const title = String(row.title || "").trim();
-      const price = parseNumberish(row.price, NaN);
+      const rowNumber = row.__rowNumber || index + 2;
+
+      const title =
+        sourceType === "cj"
+          ? String(row.title || row.product_name || "").trim()
+          : String(row.title || "").trim();
+
+      const price =
+        sourceType === "cj"
+          ? parseNumberish(row.price || row.price_ghs, NaN)
+          : parseNumberish(row.price, NaN);
 
       if (!title || !Number.isFinite(price)) {
-        skipped.push(`Row ${index + 2}: missing valid product name or price`);
+        const message = `Row ${rowNumber}: missing valid product name or price`;
+        skipped.push(message);
+        rowErrors.push(message);
         return;
       }
 
+      const stockSource = sourceType === "cj" ? row.stock : row.stock;
+
       const stockNumber =
-        row.stock !== undefined &&
-        row.stock !== null &&
-        String(row.stock).trim() !== ""
-          ? parseNumberish(row.stock, 0)
+        stockSource !== undefined &&
+        stockSource !== null &&
+        String(stockSource).trim() !== ""
+          ? parseNumberish(stockSource, 0)
           : null;
 
       const oldPrice =
@@ -1719,15 +1982,34 @@ export default function Admin() {
 
       const category = String(row.category || "").trim();
       const images = parseImageList(row);
-      const customizations = parseCustomizationsFromText(row.customizations);
-      const description = buildImportDescription(row);
 
+      const customizationSource =
+        sourceType === "cj"
+          ? row.customizations || row.customization_options
+          : row.customizations;
+
+      const customizations = parseCustomizationsFromText(customizationSource);
+
+      const description = buildImportDescription(row);
       const resolvedShop = inferShopFromCategory(category, SHOPS, fallbackShop);
       const resolvedKind = findValidKind(category, kindOptions, form.kind);
       const resolvedDept = findValidDept(category, deptOptions, form.dept);
 
       prepared.push({
         id: crypto.randomUUID(),
+        sourceType,
+        source:
+          sourceType === "cj"
+            ? "cj-import"
+            : "standard-csv-import",
+        cjMeta:
+          sourceType === "cj"
+            ? {
+                cjProductId: String(row.cj_product_id || "").trim(),
+                productSku: String(row.product_sku || "").trim(),
+                variant: String(row.variant || "").trim(),
+              }
+            : null,
         name: title,
         brand: String(row.brand || "").trim(),
         price,
@@ -1767,40 +2049,116 @@ export default function Admin() {
         images,
         imageMeta: null,
         imageMetaList: [],
-        source: "csv",
       });
     });
 
-    return { prepared, skipped };
+    return { prepared, skipped, rowErrors };
   };
 
-  const handlePreviewImport = () => {
-    setBulkImportMsg("");
-    setImportPreviewMsg("");
+  const handlePreviewImport = (sourceType = "standard") => {
+    const isCjImport = sourceType === "cj";
+    const text = isCjImport ? cjImportText : standardImportText;
 
-    if (!String(bulkImportText || "").trim()) {
-      setBulkImportMsg("❌ Paste your CSV first.");
+    setImportPreviewMsg("");
+    setImportPreviewRows([]);
+
+    if (isCjImport) {
+      setCjImportMsg("");
+      setCjImportMeta({
+        ...initialImportMeta,
+        sourceType: "cj",
+      });
+    } else {
+      setStandardImportMsg("");
+      setStandardImportMeta(initialImportMeta);
+    }
+
+    if (!String(text || "").trim()) {
+      if (isCjImport) {
+        setCjImportMsg("❌ Paste your CJ CSV first.");
+      } else {
+        setStandardImportMsg("❌ Paste your CSV first.");
+      }
       return;
     }
 
     if (!user?.uid) {
-      setBulkImportMsg("❌ No authenticated admin session found.");
+      if (isCjImport) {
+        setCjImportMsg("❌ No authenticated admin session found.");
+      } else {
+        setStandardImportMsg("❌ No authenticated admin session found.");
+      }
       return;
     }
 
     if (!availableShops.length) {
-      setBulkImportMsg("❌ No valid shop available for this account.");
+      if (isCjImport) {
+        setCjImportMsg("❌ No valid shop available for this account.");
+      } else {
+        setStandardImportMsg("❌ No valid shop available for this account.");
+      }
       return;
     }
 
     try {
-      const rows = parseCsvText(bulkImportText);
+      const headers = getCsvHeaders(text);
+      const headerValidation = getHeaderValidation(sourceType, headers);
+
+      const headerErrors = [];
+      if (headerValidation.missingRequired.length) {
+        headerErrors.push(
+          `Missing required columns: ${headerValidation.missingRequired.join(
+            ", "
+          )}`
+        );
+      }
+      if (headerValidation.unsupportedHeaders.length) {
+        headerErrors.push(
+          `Unsupported columns: ${headerValidation.unsupportedHeaders.join(", ")}`
+        );
+      }
+
+      const rows = parseCsvText(text);
 
       if (!rows.length) {
         throw new Error("No valid CSV rows found.");
       }
 
-      const { prepared, skipped } = buildPreviewRowsFromCsv(rows);
+      const rowErrors =
+        sourceType === "cj"
+          ? validateCjImportRows(rows)
+          : validateStandardImportRows(rows);
+
+      const { prepared, skipped } = buildPreviewRowsFromCsv(rows, sourceType);
+
+      const metaPayload = {
+        sourceType,
+        totalRows: rows.length,
+        validRows: prepared.length,
+        skippedRows: skipped.length,
+        headerErrors,
+        rowErrors,
+      };
+
+      if (isCjImport) {
+        setCjImportMeta(metaPayload);
+      } else {
+        setStandardImportMeta(metaPayload);
+      }
+
+      if (headerErrors.length) {
+        const firstError = headerErrors[0];
+        if (isCjImport) {
+          setCjImportMsg(`❌ ${firstError}`);
+        } else {
+          setStandardImportMsg(`❌ ${firstError}`);
+        }
+        return;
+      }
+
+      if (rowErrors.length && !prepared.length) {
+        throw new Error(rowErrors[0]);
+      }
 
       if (!prepared.length) {
         throw new Error(
@@ -1812,66 +2170,110 @@ export default function Admin() {
 
       setImportPreviewRows(prepared);
       setImportPreviewMsg(
-        `✅ Preview ready for ${prepared.length} product${
+        `✅ ${
+          sourceType === "cj" ? "CJ" : "Standard"
+        } preview ready for ${prepared.length} product${
           prepared.length > 1 ? "s" : ""
         }.${skipped.length ? ` Skipped ${skipped.length} invalid row(s).` : ""}`
       );
+
+      if (isCjImport) {
+        setCjImportMsg(
+          "✅ CJ import preview prepared. Review carefully before future automation."
+        );
+      } else {
+        setStandardImportMsg(
+          "✅ Standard CSV preview prepared. Review rows before import."
+        );
+      }
     } catch (error) {
       console.error("Preview import error:", error);
-      setBulkImportMsg(`❌ ${error.message || "CSV preview failed."}`);
+      if (isCjImport) {
+        setCjImportMsg(`❌ ${error.message || "CJ CSV preview failed."}`);
+      } else {
+        setStandardImportMsg(`❌ ${error.message || "CSV preview failed."}`);
+      }
     }
   };
 
   const handleBulkImport = async () => {
-    setBulkImportMsg("");
+    const isCjImport = activeCsvTab === "cj";
+
+    if (isCjImport) {
+      setCjImportMsg("");
+    } else {
+      setStandardImportMsg("");
+    }
 
     if (!importPreviewRows.length) {
-      setBulkImportMsg("❌ Preview and review products before importing.");
+      if (isCjImport) {
+        setCjImportMsg("❌ Preview and review CJ products before importing.");
+      } else {
+        setStandardImportMsg(
+          "❌ Preview and review products before importing."
+        );
+      }
       return;
     }
 
     if (!user?.uid) {
-      setBulkImportMsg("❌ No authenticated admin session found.");
+      if (isCjImport) {
+        setCjImportMsg("❌ No authenticated admin session found.");
+      } else {
+        setStandardImportMsg("❌ No authenticated admin session found.");
+      }
       return;
     }
 
-    setBulkImporting(true);
+    setStandardImporting(true);
 
     try {
       const prepared = importPreviewRows.map((row) => {
-           const payload = {
-  name: String(row.name || "").trim(),
-  brand: String(row.brand || "").trim(),
-  price: Number(row.price || 0),
-  description: String(row.description || "").trim(),
-  dept: row.dept,
-  kind: row.kind,
-  shop:
-    isShopAdmin && normalizedAdminShop
-      ? normalizedAdminShop
-      : normalizeShopKey(row.shop),
-  homeSlot: String(row.homeSlot || "others").trim().toLowerCase(),
-  ownerId: String(row.ownerId || user?.uid || "").trim(),
-  ownerEmail: String(
-    row.ownerEmail || user?.email || profile?.email || ""
-  ).trim(),
-  ownerName: String(row.ownerName || row.sellerName || "").trim(),
-  sellerName: String(row.sellerName || row.ownerName || "").trim(),
-  inStock: !!row.inStock,
-  featured: !!row.featured,
-  shipsFromAbroad: !!row.shipsFromAbroad,
-  customizations: normalizeCustomizationGroups(
-    Array.isArray(row.customizations) ? row.customizations : []
-  ),
-  abroadDeliveryFee:
-    row.abroadDeliveryFee !== null &&
-    row.abroadDeliveryFee !== undefined &&
-    row.abroadDeliveryFee !== ""
-      ? Number(row.abroadDeliveryFee) || 0
-      : 0,
-  createdAt: serverTimestamp(),
-  updatedAt: serverTimestamp(),
-};
+        const payload = {
+          name: String(row.name || "").trim(),
+          brand: String(row.brand || "").trim(),
+          price: Number(row.price || 0),
+          description: String(row.description || "").trim(),
+          dept: row.dept,
+          kind: row.kind,
+          shop:
+            isShopAdmin && normalizedAdminShop
+              ? normalizedAdminShop
+              : normalizeShopKey(row.shop),
+          homeSlot: String(row.homeSlot || "others").trim().toLowerCase(),
+          ownerId: String(row.ownerId || user?.uid || "").trim(),
+          ownerEmail: String(
+            row.ownerEmail || user?.email || profile?.email || ""
+          ).trim(),
+          ownerName: String(row.ownerName || row.sellerName || "").trim(),
+          sellerName: String(row.sellerName || row.ownerName || "").trim(),
+          inStock: !!row.inStock,
+          featured: !!row.featured,
+          shipsFromAbroad: !!row.shipsFromAbroad,
+          customizations: normalizeCustomizationGroups(
+            Array.isArray(row.customizations) ? row.customizations : []
+          ),
+          abroadDeliveryFee:
+            row.abroadDeliveryFee !== null &&
+            row.abroadDeliveryFee !== undefined &&
+            row.abroadDeliveryFee !== ""
+              ? Number(row.abroadDeliveryFee) || 0
+              : 0,
+          importSource:
+            row.sourceType === "cj" ? "cj-import" : "standard-csv-import",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        };
+
+        if (row.sourceType === "cj" && row.cjMeta) {
+          payload.cjMeta = {
+            cjProductId: String(row.cjMeta.cjProductId || "").trim(),
+            productSku: String(row.cjMeta.productSku || "").trim(),
+            variant: String(row.cjMeta.variant || "").trim(),
+            status: "prepared",
+          };
+        }
+
         if (
           row.stock !== null &&
           row.stock !== undefined &&
@@ -1928,62 +2330,79 @@ export default function Admin() {
         await batch.commit();
       }
 
-      setBulkImportMsg(
-        `✅ Imported ${prepared.length} product${
-          prepared.length > 1 ? "s" : ""
-        } successfully.`
-      );
-      setBulkImportText("");
+      const successMessage = `✅ Imported ${prepared.length} product${
+        prepared.length > 1 ? "s" : ""
+      } successfully.`;
+
+      if (isCjImport) {
+        setCjImportMsg(successMessage);
+        setCjImportText("");
+        setCjImportMeta({
+          ...initialImportMeta,
+          sourceType: "cj",
+        });
+      } else {
+        setStandardImportMsg(successMessage);
+        setStandardImportText("");
+        setStandardImportMeta(initialImportMeta);
+      }
+
       setImportPreviewRows([]);
       setImportSearchTerm("");
       setImportPreviewMsg("");
       await loadProducts();
     } catch (error) {
       console.error("Bulk import error:", error);
-      setBulkImportMsg(`❌ ${error.message || "Bulk import failed."}`);
+      if (isCjImport) {
+        setCjImportMsg(`❌ ${error.message || "CJ import failed."}`);
+      } else {
+        setStandardImportMsg(`❌ ${error.message || "Bulk import failed."}`);
+      }
     } finally {
-      setBulkImporting(false);
+      setStandardImporting(false);
     }
   };
 
   const startPreviewEdit = (row) => {
-  setPreviewRowToEdit(row);
-  setPreviewEditForm({
-    name: row.name || "",
-    brand: row.brand || "",
-    price: row.price ?? "",
-    oldPrice:
-      row.oldPrice !== null && row.oldPrice !== undefined && row.oldPrice !== ""
-        ? String(row.oldPrice)
-        : "",
-    description: row.description || "",
-    dept: row.dept || "men",
-    kind: row.kind || "fashion",
-    shop:
-      isShopAdmin && normalizedAdminShop
-        ? normalizedAdminShop
-        : row.shop || "fashion",
-    homeSlot: row.homeSlot || "others",
-    inStock: !!row.inStock,
-    featured: !!row.featured,
-    shipsFromAbroad: !!row.shipsFromAbroad,
-    stock:
-      row.stock !== null && row.stock !== undefined && row.stock !== ""
-        ? String(row.stock)
-        : "",
-    abroadDeliveryFee:
-      row.abroadDeliveryFee !== null &&
-      row.abroadDeliveryFee !== undefined &&
-      row.abroadDeliveryFee !== ""
-        ? String(row.abroadDeliveryFee)
-        : "",
-    customizations: toEditableCustomizationGroups(row.customizations),
-  });
-  setPreviewEditError("");
-  setPreviewEditMsg("");
-  resetPreviewEditImageState();
-  window.scrollTo({ top: 0, behavior: "smooth" });
-};
+    setPreviewRowToEdit(row);
+    setPreviewEditForm({
+      name: row.name || "",
+      brand: row.brand || "",
+      price: row.price ?? "",
+      oldPrice:
+        row.oldPrice !== null &&
+        row.oldPrice !== undefined &&
+        row.oldPrice !== ""
+          ? String(row.oldPrice)
+          : "",
+      description: row.description || "",
+      dept: row.dept || "men",
+      kind: row.kind || "fashion",
+      shop:
+        isShopAdmin && normalizedAdminShop
+          ? normalizedAdminShop
+          : row.shop || "fashion",
+      homeSlot: row.homeSlot || "others",
+      inStock: !!row.inStock,
+      featured: !!row.featured,
+      shipsFromAbroad: !!row.shipsFromAbroad,
+      stock:
+        row.stock !== null && row.stock !== undefined && row.stock !== ""
+          ? String(row.stock)
+          : "",
+      abroadDeliveryFee:
+        row.abroadDeliveryFee !== null &&
+        row.abroadDeliveryFee !== undefined &&
+        row.abroadDeliveryFee !== ""
+          ? String(row.abroadDeliveryFee)
+          : "",
+      customizations: toEditableCustomizationGroups(row.customizations),
+    });
+    setPreviewEditError("");
+    setPreviewEditMsg("");
+    resetPreviewEditImageState();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handleSavePreviewEdit = async () => {
     if (!previewRowToEdit?.id) return;
@@ -2040,8 +2459,10 @@ export default function Admin() {
         dept: previewEditForm.dept,
         kind: previewEditForm.kind,
         shop: shopValue,
-        homeSlot: String(previewEditForm.homeSlot || "others").trim().toLowerCase(),
-        inStock: 
+        homeSlot: String(previewEditForm.homeSlot || "others")
+          .trim()
+          .toLowerCase(),
+        inStock:
           nextStock !== null
             ? nextStock > 0 && !!previewEditForm.inStock
             : !!previewEditForm.inStock,
@@ -2057,28 +2478,28 @@ export default function Admin() {
       };
 
       if (nextImagePayloads?.length) {
-  const imageUrls = nextImagePayloads.map((item) => item.url).filter(Boolean);
+        const imageUrls = nextImagePayloads.map((item) => item.url).filter(Boolean);
 
-  nextRow.image = imageUrls[0] || "";
-  nextRow.images = imageUrls;
-  nextRow.imageMeta = {
-    publicId: nextImagePayloads[0]?.publicId || "",
-    width: nextImagePayloads[0]?.width || null,
-    height: nextImagePayloads[0]?.height || null,
-    format: nextImagePayloads[0]?.format || "",
-    bytes: nextImagePayloads[0]?.bytes || 0,
-    originalFilename: nextImagePayloads[0]?.originalFilename || "",
-  };
-  nextRow.imageMetaList = nextImagePayloads.map((item) => ({
-    publicId: item.publicId || "",
-    width: item.width || null,
-    height: item.height || null,
-    format: item.format || "",
-    bytes: item.bytes || 0,
-    originalFilename: item.originalFilename || "",
-    url: item.url || "",
-  }));
-}
+        nextRow.image = imageUrls[0] || "";
+        nextRow.images = imageUrls;
+        nextRow.imageMeta = {
+          publicId: nextImagePayloads[0]?.publicId || "",
+          width: nextImagePayloads[0]?.width || null,
+          height: nextImagePayloads[0]?.height || null,
+          format: nextImagePayloads[0]?.format || "",
+          bytes: nextImagePayloads[0]?.bytes || 0,
+          originalFilename: nextImagePayloads[0]?.originalFilename || "",
+        };
+        nextRow.imageMetaList = nextImagePayloads.map((item) => ({
+          publicId: item.publicId || "",
+          width: item.width || null,
+          height: item.height || null,
+          format: item.format || "",
+          bytes: item.bytes || 0,
+          originalFilename: item.originalFilename || "",
+          url: item.url || "",
+        }));
+      }
 
       setImportPreviewRows((prev) =>
         prev.map((row) => (row.id === previewRowToEdit.id ? nextRow : row))
@@ -2088,7 +2509,9 @@ export default function Admin() {
       cancelPreviewEdit();
     } catch (error) {
       console.error("Preview row update error:", error);
-      setPreviewEditError(`❌ ${error.message || "Failed to update preview row."}`);
+      setPreviewEditError(
+        `❌ ${error.message || "Failed to update preview row."}`
+      );
     } finally {
       setEditingPreviewId("");
     }
@@ -2106,7 +2529,8 @@ export default function Admin() {
     setBulkDeleteError("");
   };
 
-  const isProductSelected = (productId) => selectedProductIds.includes(productId);
+  const isProductSelected = (productId) =>
+    selectedProductIds.includes(productId);
 
   const toggleProductSelection = (product) => {
     if (!canCurrentUserDeleteProduct(product)) return;
@@ -2143,8 +2567,7 @@ export default function Admin() {
     const set = new Set(selectedProductIds);
     return products.filter((product) => set.has(product.id));
   }, [products, selectedProductIds]);
-
-  const startBulkDelete = () => {
+    const startBulkDelete = () => {
     if (!selectedProducts.length) {
       setMsg("❌ Select at least one product first.");
       return;
@@ -2155,7 +2578,9 @@ export default function Admin() {
     );
 
     if (unauthorized) {
-      setMsg("❌ One or more selected products cannot be deleted from this account.");
+      setMsg(
+        "❌ One or more selected products cannot be deleted from this account."
+      );
       return;
     }
 
@@ -2202,7 +2627,9 @@ export default function Admin() {
 
       const removedIds = new Set(selectedProducts.map((product) => product.id));
 
-      setProducts((prev) => prev.filter((product) => !removedIds.has(product.id)));
+      setProducts((prev) =>
+        prev.filter((product) => !removedIds.has(product.id))
+      );
       setSelectedProductIds([]);
       setMultiSelectMode(false);
       setBulkDeleteMode(false);
@@ -2215,7 +2642,9 @@ export default function Admin() {
       await loadProducts();
     } catch (error) {
       console.error("Bulk delete products error:", error);
-      setBulkDeleteError(`❌ ${error?.message || "Failed to delete selected products."}`);
+      setBulkDeleteError(
+        `❌ ${error?.message || "Failed to delete selected products."}`
+      );
     } finally {
       setBulkDeleting(false);
     }
@@ -2252,7 +2681,9 @@ export default function Admin() {
       featured: !!product.featured,
       shipsFromAbroad: !!product.shipsFromAbroad,
       stock:
-        product.stock !== null && product.stock !== undefined && product.stock !== ""
+        product.stock !== null &&
+        product.stock !== undefined &&
+        product.stock !== ""
           ? String(product.stock)
           : "",
       abroadDeliveryFee:
@@ -2314,43 +2745,45 @@ export default function Admin() {
           ? normalizedAdminShop
           : normalizeShopKey(editForm.shop);
 
-      const customizations = normalizeCustomizationGroups(editForm.customizations);
+      const customizations = normalizeCustomizationGroups(
+        editForm.customizations
+      );
       const nextStock =
         editForm.stock !== "" && Number.isFinite(Number(editForm.stock))
           ? Number(editForm.stock)
           : null;
 
-const updatePayload = {
-  name: String(editForm.name || "").trim(),
-  brand: String(editForm.brand || "").trim(),
-  description: String(editForm.description || "").trim(),
-  price: Number(editForm.price),
-  dept: editForm.dept,
-  kind: editForm.kind,
-  shop: shopValue,
-  homeSlot: String(editForm.homeSlot || "others").trim().toLowerCase(),
-  inStock:
-    nextStock !== null
-      ? nextStock > 0 && !!editForm.inStock
-      : !!editForm.inStock,
-  featured: !!editForm.featured,
-  shipsFromAbroad: !!editForm.shipsFromAbroad,
-  abroadDeliveryFee:
-    editForm.abroadDeliveryFee !== "" &&
-    Number.isFinite(Number(editForm.abroadDeliveryFee))
-      ? Number(editForm.abroadDeliveryFee)
-      : 0,
-  customizations,
-  updatedAt: serverTimestamp(),
-};
+      const updatePayload = {
+        name: String(editForm.name || "").trim(),
+        brand: String(editForm.brand || "").trim(),
+        description: String(editForm.description || "").trim(),
+        price: Number(editForm.price),
+        dept: editForm.dept,
+        kind: editForm.kind,
+        shop: shopValue,
+        homeSlot: String(editForm.homeSlot || "others").trim().toLowerCase(),
+        inStock:
+          nextStock !== null
+            ? nextStock > 0 && !!editForm.inStock
+            : !!editForm.inStock,
+        featured: !!editForm.featured,
+        shipsFromAbroad: !!editForm.shipsFromAbroad,
+        abroadDeliveryFee:
+          editForm.abroadDeliveryFee !== "" &&
+          Number.isFinite(Number(editForm.abroadDeliveryFee))
+            ? Number(editForm.abroadDeliveryFee)
+            : 0,
+        customizations,
+        updatedAt: serverTimestamp(),
+      };
 
-const sellerName = resolveCurrentSellerName(user, profile);
+      const sellerName = resolveCurrentSellerName(user, profile);
 
-updatePayload.ownerEmail = String(
-  user?.email || profile?.email || ""
-).trim();
-updatePayload.ownerName = sellerName;
-updatePayload.sellerName = sellerName;
+      updatePayload.ownerEmail = String(
+        user?.email || profile?.email || ""
+      ).trim();
+      updatePayload.ownerName = sellerName;
+      updatePayload.sellerName = sellerName;
 
       if (nextStock !== null) {
         updatePayload.stock = nextStock;
@@ -2366,31 +2799,32 @@ updatePayload.sellerName = sellerName;
 
       if (!updatePayload.description) delete updatePayload.description;
       if (!updatePayload.brand) delete updatePayload.brand;
-      if (!updatePayload.customizations.length) delete updatePayload.customizations;
+      if (!updatePayload.customizations.length)
+        delete updatePayload.customizations;
 
       if (nextImagePayloads?.length) {
-  const imageUrls = nextImagePayloads.map((item) => item.url).filter(Boolean);
+        const imageUrls = nextImagePayloads.map((item) => item.url).filter(Boolean);
 
-  updatePayload.image = imageUrls[0] || "";
-  updatePayload.images = imageUrls;
-  updatePayload.imageMeta = {
-    publicId: nextImagePayloads[0]?.publicId || "",
-    width: nextImagePayloads[0]?.width || null,
-    height: nextImagePayloads[0]?.height || null,
-    format: nextImagePayloads[0]?.format || "",
-    bytes: nextImagePayloads[0]?.bytes || 0,
-    originalFilename: nextImagePayloads[0]?.originalFilename || "",
-  };
-  updatePayload.imageMetaList = nextImagePayloads.map((item) => ({
-    publicId: item.publicId || "",
-    width: item.width || null,
-    height: item.height || null,
-    format: item.format || "",
-    bytes: item.bytes || 0,
-    originalFilename: item.originalFilename || "",
-    url: item.url || "",
-  }));
-}
+        updatePayload.image = imageUrls[0] || "";
+        updatePayload.images = imageUrls;
+        updatePayload.imageMeta = {
+          publicId: nextImagePayloads[0]?.publicId || "",
+          width: nextImagePayloads[0]?.width || null,
+          height: nextImagePayloads[0]?.height || null,
+          format: nextImagePayloads[0]?.format || "",
+          bytes: nextImagePayloads[0]?.bytes || 0,
+          originalFilename: nextImagePayloads[0]?.originalFilename || "",
+        };
+        updatePayload.imageMetaList = nextImagePayloads.map((item) => ({
+          publicId: item.publicId || "",
+          width: item.width || null,
+          height: item.height || null,
+          format: item.format || "",
+          bytes: item.bytes || 0,
+          originalFilename: item.originalFilename || "",
+          url: item.url || "",
+        }));
+      }
 
       await updateDoc(doc(db, COLLECTION_NAME, productToEdit.id), updatePayload);
       setMsg(`✅ "${updatePayload.name}" updated successfully.`);
@@ -2457,7 +2891,9 @@ updatePayload.sellerName = sellerName;
   };
 
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => productMatchesSearch(product, searchTerm));
+    return products.filter((product) =>
+      productMatchesSearch(product, searchTerm)
+    );
   }, [products, searchTerm]);
 
   const filteredImportPreviewRows = useMemo(() => {
@@ -2489,13 +2925,18 @@ updatePayload.sellerName = sellerName;
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [filteredProducts]);
 
+  const activeImportMeta = activeCsvTab === "cj" ? cjImportMeta : standardImportMeta;
+  const activeImportMsg = activeCsvTab === "cj" ? cjImportMsg : standardImportMsg;
+
   const pageTitle = isSuperAdmin
     ? "Product Manager"
     : `${formatShopLabel(normalizedAdminShop)} Product Manager`;
 
   const pageSub = isSuperAdmin
     ? "Create products from this super admin account and review products across every shop. Other shops remain visible here but are read-only."
-    : `Manage only products belonging to ${formatShopLabel(normalizedAdminShop)}.`;
+    : `Manage only products belonging to ${formatShopLabel(
+        normalizedAdminShop
+      )}.`;
 
   if (!user) {
     return (
@@ -2524,7 +2965,7 @@ updatePayload.sellerName = sellerName;
       </div>
     );
   }
-  
+
   if (previewRowToEdit) {
     return (
       <div className="admin-page">
@@ -3181,9 +3622,9 @@ updatePayload.sellerName = sellerName;
         </div>
 
         {productToDelete ? (
-          <div className="admin-card" style={{ marginBottom: 20 }}>
+          <div className="admin-card admin-card--nested">
             <div className="admin-head">
-              <h3 className="admin-title" style={{ fontSize: "1.1rem" }}>
+              <h3 className="admin-title admin-title--small">
                 Confirm product deletion
               </h3>
               <p className="admin-sub">
@@ -3227,9 +3668,9 @@ updatePayload.sellerName = sellerName;
         ) : null}
 
         {bulkDeleteMode ? (
-          <div className="admin-card" style={{ marginBottom: 20 }}>
+          <div className="admin-card admin-card--nested">
             <div className="admin-head">
-              <h3 className="admin-title" style={{ fontSize: "1.1rem" }}>
+              <h3 className="admin-title admin-title--small">
                 Delete selected products
               </h3>
               <p className="admin-sub">
@@ -3277,519 +3718,698 @@ updatePayload.sellerName = sellerName;
           </div>
         ) : null}
 
-        <div className="admin-upload-card" style={{ marginBottom: 20 }}>
-          <div className="admin-upload-head">
-            <div>
-              <h3 className="admin-upload-title">Bulk import products</h3>
-              <p className="admin-upload-sub">
-                Paste CSV here, preview the imported rows, edit anything you
-                want, then import reviewed products into Firestore.
-              </p>
-            </div>
+        <div className="admin-tabs-shell">
+          <div className="admin-tabs">
+            {MAIN_ADMIN_TABS.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                className={`admin-tab${
+                  activeMainTab === tab.key ? " admin-tab--active" : ""
+                }`}
+                onClick={() => setActiveMainTab(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-
-          <label className="admin-field">
-            <span>CSV data</span>
-            <textarea
-              value={bulkImportText}
-              onChange={(e) => setBulkImportText(e.target.value)}
-              placeholder={BULK_IMPORT_SAMPLE}
-              rows={10}
-              style={{ fontFamily: "monospace" }}
-            />
-          </label>
-
-          <div
-            className="admin-upload-actions"
-            style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
-          >
-            <button
-              type="button"
-              className="admin-secondary-btn"
-              onClick={() => setBulkImportText(BULK_IMPORT_SAMPLE)}
-            >
-              Use sample header
-            </button>
-            <button
-              type="button"
-              className="admin-secondary-btn admin-secondary-btn--ghost"
-              onClick={() => setBulkImportText("")}
-            >
-              Clear CSV
-            </button>
-            <button
-              type="button"
-              className="admin-secondary-btn"
-              onClick={handlePreviewImport}
-            >
-              Preview import
-            </button>
-            <button
-              type="button"
-              className="admin-btn"
-              onClick={handleBulkImport}
-              disabled={!importPreviewRows.length || bulkImporting}
-            >
-              {bulkImporting ? "Importing…" : "Import reviewed products"}
-            </button>
-          </div>
-
-          {bulkImportMsg ? <div className="admin-msg">{bulkImportMsg}</div> : null}
-          {importPreviewMsg ? (
-            <div className="admin-msg">{importPreviewMsg}</div>
-          ) : null}
-
-          {importPreviewRows.length ? (
-            <div className="admin-import-preview-card">
-              <div className="admin-import-preview-head">
-                <div>
-                  <h3 className="admin-import-preview-title">
-                    Import preview list
-                  </h3>
-                  <p className="admin-import-preview-sub">
-                    Review status, image coverage, and product details before
-                    import.
-                  </p>
-                </div>
-
-                <div className="admin-import-preview-tools">
-                  <label className="admin-field admin-field--compact">
-                    <span>Search preview rows</span>
-                    <input
-                      value={importSearchTerm}
-                      onChange={(e) => setImportSearchTerm(e.target.value)}
-                      placeholder="Search preview rows..."
-                    />
-                  </label>
-                </div>
-              </div>
-
-              <div className="admin-import-preview-list">
-                {filteredImportPreviewRows.length ? (
-                  filteredImportPreviewRows.map((row) => (
-                    <div className="admin-import-row" key={row.id}>
-                      <div className="admin-import-row-media">
-                        {row.image ? (
-                          <img
-                            src={row.image}
-                            alt={row.name}
-                            className="admin-import-row-image"
-                          />
-                        ) : (
-                          <div className="admin-import-row-image admin-import-row-image--empty">
-                            No image
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="admin-import-row-content">
-                        <div className="admin-import-row-top">
-                          <div>
-                            <h3 className="admin-import-row-name">{row.name}</h3>
-                            <div className="admin-import-row-meta">
-                              <span>{formatShopLabel(row.shop)}</span>
-                              <span>{titleize(row.kind)}</span>
-                              <span>{titleize(row.dept)}</span>
-                              {row.brand ? <span>{row.brand}</span> : null}
-                              {row.stock !== null ? (
-                                <span>Stock: {row.stock}</span>
-                              ) : null}
-                            </div>
-                          </div>
-                          <div className="admin-product-price">
-                            {formatMoney(row.price)}
-                          </div>
-                        </div>
-
-                        <StatusFlags
-                          inStock={row.inStock}
-                          featured={row.featured}
-                          shipsFromAbroad={row.shipsFromAbroad}
-                        />
-
-                        {row.description ? (
-                          <p className="admin-import-row-desc">
-                            {row.description}
-                          </p>
-                        ) : null}
-
-                        <div className="admin-import-row-actions">
-                          <button
-                            type="button"
-                            className="admin-secondary-btn"
-                            onClick={() => startPreviewEdit(row)}
-                          >
-                            Edit row
-                          </button>
-                          <button
-                            type="button"
-                            className="admin-danger-btn"
-                            onClick={() => handleDeletePreviewRow(row.id)}
-                          >
-                            Remove row
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="admin-products-empty">
-                    No preview rows match your search.
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : null}
         </div>
 
-        <form className="admin-form" onSubmit={onSubmit}>
-          <label className="admin-field">
-            <span>Name</span>
-            <input
-              value={form.name}
-              onChange={setField("name")}
-              autoComplete="off"
-            />
-          </label>
-
-          <label className="admin-field">
-            <span>Brand (optional)</span>
-            <input
-              value={form.brand}
-              onChange={setField("brand")}
-              autoComplete="off"
-            />
-          </label>
-
-          <div className="admin-row">
-            <label className="admin-field">
-              <span>Base price (GHS)</span>
-              <input
-                value={form.price}
-                onChange={setField("price")}
-                inputMode="decimal"
-              />
-            </label>
-
-            <label className="admin-field">
-              <span>Old price (optional)</span>
-              <input
-                value={form.oldPrice}
-                onChange={setField("oldPrice")}
-                inputMode="decimal"
-              />
-            </label>
-          </div>
-
-          <div className="admin-row">
-            <label className="admin-field">
-              <span>Stock quantity</span>
-              <input
-                value={form.stock}
-                onChange={setField("stock")}
-                inputMode="numeric"
-                placeholder="e.g. 12"
-              />
-            </label>
-
-            <label className="admin-field">
-              <span>Abroad delivery fee (GHS)</span>
-              <input
-                value={form.abroadDeliveryFee}
-                onChange={setField("abroadDeliveryFee")}
-                inputMode="decimal"
-                placeholder="0"
-              />
-            </label>
-          </div>
-
-          <label className="admin-field">
-            <span>Description</span>
-            <textarea
-              value={form.description}
-              onChange={setField("description")}
-              rows={5}
-            />
-          </label>
-
-          <div className="admin-row">
-            <label className="admin-field">
-              <span>Department</span>
-              <select value={form.dept} onChange={setField("dept")}>
-                {DEPARTMENTS.map((d) => (
-                  <option key={d.key} value={d.key}>
-                    {d.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="admin-field">
-              <span>Type</span>
-              <select value={form.kind} onChange={setField("kind")}>
-                {KINDS.map((k) => (
-                  <option key={k.key} value={k.key}>
-                    {k.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <label className="admin-field">
-            <span>Shop</span>
-            <select
-              value={form.shop}
-              onChange={setField("shop")}
-              disabled={isShopAdmin}
-            >
-              {availableShops.map((shopKey) => (
-                <option key={shopKey} value={shopKey}>
-                  {formatShopLabel(shopKey)}
-                </option>
+        {activeMainTab === "csv" ? (
+          <div className="admin-imports-shell">
+            <div className="admin-subtabs">
+              {CSV_IMPORT_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  className={`admin-subtab${
+                    activeCsvTab === tab.key ? " admin-subtab--active" : ""
+                  }`}
+                  onClick={() => {
+                    setActiveCsvTab(tab.key);
+                    setImportPreviewRows([]);
+                    setImportPreviewMsg("");
+                    setImportSearchTerm("");
+                  }}
+                >
+                  {tab.label}
+                </button>
               ))}
-            </select>
-          </label>
+            </div>
 
-         <label className="admin-field">
-            <span>Home / Shop filter placement</span>
-            <select value={form.homeSlot} onChange={setField("homeSlot")}>
-              {HOME_FILTER_OPTIONS.map((item) => (
-                <option key={item.key} value={item.key}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
+            {activeCsvTab === "standard" ? (
+              <div className="admin-upload-card admin-upload-card--import">
+                <div className="admin-upload-head">
+                  <div>
+                    <h3 className="admin-upload-title">Standard CSV Imports</h3>
+                    <p className="admin-upload-sub">
+                      Use this for your regular local product uploads and normal
+                      marketplace stock imports.
+                    </p>
+                  </div>
+                </div>
 
-          <div className="admin-upload-card">
-            <div className="admin-upload-head">
-              <div>
-                <h3 className="admin-upload-title">Product images</h3>
-                <p className="admin-upload-sub">
-                  Upload at least one image before saving the product.
-                </p>
+                <label className="admin-field">
+                  <span>Standard CSV data</span>
+                  <textarea
+                    value={standardImportText}
+                    onChange={(e) => setStandardImportText(e.target.value)}
+                    placeholder={STANDARD_IMPORT_SAMPLE}
+                    rows={10}
+                    className="admin-code-textarea"
+                  />
+                </label>
+
+                <div className="admin-upload-actions admin-upload-actions--wrap">
+                  <button
+                    type="button"
+                    className="admin-secondary-btn"
+                    onClick={() => setStandardImportText(STANDARD_IMPORT_SAMPLE)}
+                  >
+                    Use sample header
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-secondary-btn admin-secondary-btn--ghost"
+                    onClick={() => {
+                      setStandardImportText("");
+                      setStandardImportMsg("");
+                      setStandardImportMeta(initialImportMeta);
+                      setImportPreviewRows([]);
+                      setImportPreviewMsg("");
+                    }}
+                  >
+                    Clear CSV
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-secondary-btn"
+                    onClick={() => handlePreviewImport("standard")}
+                  >
+                    Preview import
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-btn"
+                    onClick={handleBulkImport}
+                    disabled={!importPreviewRows.length || standardImporting}
+                  >
+                    {standardImporting ? "Importing…" : "Import reviewed products"}
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="admin-upload-card admin-upload-card--import">
+                <div className="admin-upload-head">
+                  <div>
+                    <h3 className="admin-upload-title">CJ Imports</h3>
+                    <p className="admin-upload-sub">
+                      This CJ area is separated for dropshipping supplier imports,
+                      CJ-compatible validation, and future supplier automation.
+                    </p>
+                  </div>
+                </div>
 
-            <label className="admin-field">
-              <span>Select images</span>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                multiple
-                onChange={handleImageChange}
-              />
-            </label>
+                <div className="admin-cj-note">
+                  <strong>CJ preparation notice:</strong> this section validates
+                  CJ-style import structure and stores preview-ready data without
+                  auto-submitting anything to a supplier.
+                </div>
 
-            <div className="admin-upload-actions">
-              <button
-                type="button"
-                className="admin-secondary-btn"
-                onClick={handleUploadImage}
-                disabled={!imageFiles.length || uploadingImage}
-              >
-                {uploadingImage ? "Uploading…" : "Upload images"}
-              </button>
-              <button
-                type="button"
-                className="admin-secondary-btn admin-secondary-btn--ghost"
-                onClick={resetImageState}
-                disabled={!imageFiles.length && !uploadedImages.length}
-              >
-                Clear images
-              </button>
-            </div>
+                <label className="admin-field">
+                  <span>CJ CSV data</span>
+                  <textarea
+                    value={cjImportText}
+                    onChange={(e) => setCjImportText(e.target.value)}
+                    placeholder={CJ_IMPORT_SAMPLE}
+                    rows={10}
+                    className="admin-code-textarea"
+                  />
+                </label>
 
-            {imagePreviews.length ? (
-              <div className="admin-image-preview-grid">
-                {imagePreviews.map((item, index) => (
-                  <div className="admin-image-preview-wrap" key={item.key}>
-                    <img
-                      src={item.preview}
-                      alt={`Selected ${index + 1}`}
-                      className="admin-image-preview"
-                    />
-                    <div className="admin-image-preview-overlay">
-                      <span className="admin-image-index">{index + 1}</span>
-                      <button
-                        type="button"
-                        className="admin-image-remove-btn"
-                        onClick={() => removeSelectedImage(index)}
-                        aria-label={`Remove image ${index + 1}`}
-                      >
-                        ×
-                      </button>
+                <div className="admin-upload-actions admin-upload-actions--wrap">
+                  <button
+                    type="button"
+                    className="admin-secondary-btn"
+                    onClick={() => setCjImportText(CJ_IMPORT_SAMPLE)}
+                  >
+                    Use CJ sample
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-secondary-btn admin-secondary-btn--ghost"
+                    onClick={() => {
+                      setCjImportText("");
+                      setCjImportMsg("");
+                      setCjImportMeta({
+                        ...initialImportMeta,
+                        sourceType: "cj",
+                      });
+                      setImportPreviewRows([]);
+                      setImportPreviewMsg("");
+                    }}
+                  >
+                    Clear CJ CSV
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-secondary-btn"
+                    onClick={() => handlePreviewImport("cj")}
+                  >
+                    Preview CJ import
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-btn"
+                    onClick={handleBulkImport}
+                    disabled={!importPreviewRows.length || standardImporting}
+                  >
+                    {standardImporting ? "Importing…" : "Import reviewed CJ products"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {activeImportMsg ? <div className="admin-msg">{activeImportMsg}</div> : null}
+
+            {(activeImportMeta.headerErrors.length ||
+              activeImportMeta.rowErrors.length) ? (
+              <div className="admin-import-validation">
+                {activeImportMeta.headerErrors.length ? (
+                  <div className="admin-import-validation-block">
+                    <h4 className="admin-import-validation-title">
+                      Header validation
+                    </h4>
+                    <div className="admin-validation-list">
+                      {activeImportMeta.headerErrors.map((item, index) => (
+                        <div key={`${item}-${index}`} className="admin-validation-item">
+                          {item}
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
+                ) : null}
+
+                {activeImportMeta.rowErrors.length ? (
+                  <div className="admin-import-validation-block">
+                    <h4 className="admin-import-validation-title">
+                      Row validation
+                    </h4>
+                    <div className="admin-validation-list">
+                      {activeImportMeta.rowErrors.slice(0, 8).map((item, index) => (
+                        <div key={`${item}-${index}`} className="admin-validation-item">
+                          {item}
+                        </div>
+                      ))}
+                      {activeImportMeta.rowErrors.length > 8 ? (
+                        <div className="admin-validation-item">
+                          +{activeImportMeta.rowErrors.length - 8} more issue(s)
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
-            {uploadedImages.length ? (
-              <div className="admin-upload-success-wrap">
-                <div className="admin-upload-success">
-                  <span className="admin-upload-badge">Uploaded</span>
-                  <span className="admin-upload-count">
-                    {uploadedImages.length} image
-                    {uploadedImages.length === 1 ? "" : "s"} ready
-                  </span>
+            {activeImportMeta.totalRows > 0 ? (
+              <div className="admin-import-stats">
+                <div className="admin-import-stat">
+                  <span className="admin-import-stat-label">Rows</span>
+                  <strong>{activeImportMeta.totalRows}</strong>
+                </div>
+                <div className="admin-import-stat">
+                  <span className="admin-import-stat-label">Valid</span>
+                  <strong>{activeImportMeta.validRows}</strong>
+                </div>
+                <div className="admin-import-stat">
+                  <span className="admin-import-stat-label">Skipped</span>
+                  <strong>{activeImportMeta.skippedRows}</strong>
+                </div>
+              </div>
+            ) : null}
+
+            {importPreviewMsg ? (
+              <div className="admin-msg">{importPreviewMsg}</div>
+            ) : null}
+
+            {importPreviewRows.length ? (
+              <div className="admin-import-preview-card">
+                <div className="admin-import-preview-head">
+                  <div>
+                    <h3 className="admin-import-preview-title">
+                      {activeCsvTab === "cj" ? "CJ import preview list" : "Import preview list"}
+                    </h3>
+                    <p className="admin-import-preview-sub">
+                      Review status, image coverage, and product details before
+                      import.
+                    </p>
+                  </div>
+
+                  <div className="admin-import-preview-tools">
+                    <label className="admin-field admin-field--compact">
+                      <span>Search preview rows</span>
+                      <input
+                        value={importSearchTerm}
+                        onChange={(e) => setImportSearchTerm(e.target.value)}
+                        placeholder="Search preview rows..."
+                      />
+                    </label>
+                  </div>
                 </div>
 
-                <div className="admin-uploaded-grid">
-                  {uploadedImages.map((item, index) => (
-                    <div
-                      className="admin-uploaded-thumb"
-                      key={item.publicId || item.url || index}
-                    >
+                <div className="admin-import-preview-list">
+                  {filteredImportPreviewRows.length ? (
+                    filteredImportPreviewRows.map((row) => (
+                      <div className="admin-import-row" key={row.id}>
+                        <div className="admin-import-row-media">
+                          {row.image ? (
+                            <img
+                              src={row.image}
+                              alt={row.name}
+                              className="admin-import-row-image"
+                            />
+                          ) : (
+                            <div className="admin-import-row-image admin-import-row-image--empty">
+                              No image
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="admin-import-row-content">
+                          <div className="admin-import-row-top">
+                            <div>
+                              <h3 className="admin-import-row-name">{row.name}</h3>
+                              <div className="admin-import-row-meta">
+                                <span>{formatShopLabel(row.shop)}</span>
+                                <span>{titleize(row.kind)}</span>
+                                <span>{titleize(row.dept)}</span>
+                                {row.brand ? <span>{row.brand}</span> : null}
+                                {row.stock !== null ? (
+                                  <span>Stock: {row.stock}</span>
+                                ) : null}
+                                {row.sourceType === "cj" && row.cjMeta?.productSku ? (
+                                  <span>SKU: {row.cjMeta.productSku}</span>
+                                ) : null}
+                              </div>
+                            </div>
+                            <div className="admin-product-price">
+                              {formatMoney(row.price)}
+                            </div>
+                          </div>
+
+                          <StatusFlags
+                            inStock={row.inStock}
+                            featured={row.featured}
+                            shipsFromAbroad={row.shipsFromAbroad}
+                          />
+
+                          {row.description ? (
+                            <p className="admin-import-row-desc">
+                              {row.description}
+                            </p>
+                          ) : null}
+
+                          <div className="admin-import-row-actions">
+                            <button
+                              type="button"
+                              className="admin-secondary-btn"
+                              onClick={() => startPreviewEdit(row)}
+                            >
+                              Edit row
+                            </button>
+                            <button
+                              type="button"
+                              className="admin-danger-btn"
+                              onClick={() => handleDeletePreviewRow(row.id)}
+                            >
+                              Remove row
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="admin-products-empty">
+                      No preview rows match your search.
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+                {activeMainTab === "manual" ? (
+          <form className="admin-form" onSubmit={onSubmit}>
+            <label className="admin-field">
+              <span>Name</span>
+              <input
+                value={form.name}
+                onChange={setField("name")}
+                autoComplete="off"
+              />
+            </label>
+
+            <label className="admin-field">
+              <span>Brand (optional)</span>
+              <input
+                value={form.brand}
+                onChange={setField("brand")}
+                autoComplete="off"
+              />
+            </label>
+
+            <div className="admin-row">
+              <label className="admin-field">
+                <span>Base price (GHS)</span>
+                <input
+                  value={form.price}
+                  onChange={setField("price")}
+                  inputMode="decimal"
+                />
+              </label>
+
+              <label className="admin-field">
+                <span>Old price (optional)</span>
+                <input
+                  value={form.oldPrice}
+                  onChange={setField("oldPrice")}
+                  inputMode="decimal"
+                />
+              </label>
+            </div>
+
+            <div className="admin-row">
+              <label className="admin-field">
+                <span>Stock quantity</span>
+                <input
+                  value={form.stock}
+                  onChange={setField("stock")}
+                  inputMode="numeric"
+                  placeholder="e.g. 12"
+                />
+              </label>
+
+              <label className="admin-field">
+                <span>Abroad delivery fee (GHS)</span>
+                <input
+                  value={form.abroadDeliveryFee}
+                  onChange={setField("abroadDeliveryFee")}
+                  inputMode="decimal"
+                  placeholder="0"
+                />
+              </label>
+            </div>
+
+            <label className="admin-field">
+              <span>Description</span>
+              <textarea
+                value={form.description}
+                onChange={setField("description")}
+                rows={5}
+              />
+            </label>
+
+            <div className="admin-row">
+              <label className="admin-field">
+                <span>Department</span>
+                <select value={form.dept} onChange={setField("dept")}>
+                  {DEPARTMENTS.map((d) => (
+                    <option key={d.key} value={d.key}>
+                      {d.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="admin-field">
+                <span>Type</span>
+                <select value={form.kind} onChange={setField("kind")}>
+                  {KINDS.map((k) => (
+                    <option key={k.key} value={k.key}>
+                      {k.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <label className="admin-field">
+              <span>Shop</span>
+              <select
+                value={form.shop}
+                onChange={setField("shop")}
+                disabled={isShopAdmin}
+              >
+                {availableShops.map((shopKey) => (
+                  <option key={shopKey} value={shopKey}>
+                    {formatShopLabel(shopKey)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="admin-field">
+              <span>Home / Shop filter placement</span>
+              <select value={form.homeSlot} onChange={setField("homeSlot")}>
+                {HOME_FILTER_OPTIONS.map((item) => (
+                  <option key={item.key} value={item.key}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="admin-upload-card">
+              <div className="admin-upload-head">
+                <div>
+                  <h3 className="admin-upload-title">Product images</h3>
+                  <p className="admin-upload-sub">
+                    Upload at least one image before saving the product.
+                  </p>
+                </div>
+              </div>
+
+              <label className="admin-field">
+                <span>Select images</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  multiple
+                  onChange={handleImageChange}
+                />
+              </label>
+
+              <div className="admin-upload-actions">
+                <button
+                  type="button"
+                  className="admin-secondary-btn"
+                  onClick={handleUploadImage}
+                  disabled={!imageFiles.length || uploadingImage}
+                >
+                  {uploadingImage ? "Uploading…" : "Upload images"}
+                </button>
+                <button
+                  type="button"
+                  className="admin-secondary-btn admin-secondary-btn--ghost"
+                  onClick={resetImageState}
+                  disabled={!imageFiles.length && !uploadedImages.length}
+                >
+                  Clear images
+                </button>
+              </div>
+
+              {imagePreviews.length ? (
+                <div className="admin-image-preview-grid">
+                  {imagePreviews.map((item, index) => (
+                    <div className="admin-image-preview-wrap" key={item.key}>
                       <img
-                        src={item.url}
-                        alt={`Uploaded ${index + 1}`}
-                        className="admin-uploaded-thumb-img"
+                        src={item.preview}
+                        alt={`Selected ${index + 1}`}
+                        className="admin-image-preview"
                       />
-                      <span className="admin-uploaded-badge">
-                        {index === 0 ? "Cover" : `Image ${index + 1}`}
-                      </span>
+                      <div className="admin-image-preview-overlay">
+                        <span className="admin-image-index">{index + 1}</span>
+                        <button
+                          type="button"
+                          className="admin-image-remove-btn"
+                          onClick={() => removeSelectedImage(index)}
+                          aria-label={`Remove image ${index + 1}`}
+                        >
+                          ×
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            ) : null}
-          </div>
+              ) : null}
 
-          <div className="admin-toggles">
-            <label className="admin-switch admin-switch--stock">
-              <input
-                type="checkbox"
-                checked={form.inStock}
-                onChange={setField("inStock")}
-              />
-              <span className="admin-switch-ui" />
-              <span className="admin-switch-label">In stock</span>
-            </label>
+              {uploadedImages.length ? (
+                <div className="admin-upload-success-wrap">
+                  <div className="admin-upload-success">
+                    <span className="admin-upload-badge">Uploaded</span>
+                    <span className="admin-upload-count">
+                      {uploadedImages.length} image
+                      {uploadedImages.length === 1 ? "" : "s"} ready
+                    </span>
+                  </div>
 
-            <label className="admin-switch admin-switch--featured">
-              <input
-                type="checkbox"
-                checked={form.featured}
-                onChange={setField("featured")}
-              />
-              <span className="admin-switch-ui" />
-              <span className="admin-switch-label">Featured</span>
-            </label>
-
-            <label className="admin-switch admin-switch--abroad">
-              <input
-                type="checkbox"
-                checked={form.shipsFromAbroad}
-                onChange={setField("shipsFromAbroad")}
-              />
-              <span className="admin-switch-ui" />
-              <span className="admin-switch-label">Ships from abroad</span>
-            </label>
-          </div>
-
-          <div className="admin-options-card">
-            <div className="admin-options-head">
-              <h3 className="admin-options-title">Customizations</h3>
-              <button
-                type="button"
-                className="admin-options-add"
-                onClick={addCustomizationGroup}
-              >
-                + Add option group
-              </button>
+                  <div className="admin-uploaded-grid">
+                    {uploadedImages.map((item, index) => (
+                      <div
+                        className="admin-uploaded-thumb"
+                        key={item.publicId || item.url || index}
+                      >
+                        <img
+                          src={item.url}
+                          alt={`Uploaded ${index + 1}`}
+                          className="admin-uploaded-thumb-img"
+                        />
+                        <span className="admin-uploaded-badge">
+                          {index === 0 ? "Cover" : `Image ${index + 1}`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
-            {form.customizations.length ? (
-              form.customizations.map((group, index) => (
-                <div className="admin-option-group" key={group.id}>
-                  <div className="admin-option-group-head">
-                    <strong>Option group {index + 1}</strong>
-                    <button
-                      type="button"
-                      className="admin-option-remove"
-                      onClick={() => removeCustomizationGroup(group.id)}
-                    >
-                      Remove
-                    </button>
-                  </div>
+            <div className="admin-toggles">
+              <label className="admin-switch admin-switch--stock">
+                <input
+                  type="checkbox"
+                  checked={form.inStock}
+                  onChange={setField("inStock")}
+                />
+                <span className="admin-switch-ui" />
+                <span className="admin-switch-label">In stock</span>
+              </label>
 
-                  <div className="admin-row">
-                    <label className="admin-field">
-                      <span>Label</span>
-                      <input
-                        value={group.name}
-                        onChange={(e) =>
-                          updateCustomizationGroup(
-                            group.id,
-                            "name",
-                            e.target.value
-                          )
-                        }
-                      />
-                    </label>
+              <label className="admin-switch admin-switch--featured">
+                <input
+                  type="checkbox"
+                  checked={form.featured}
+                  onChange={setField("featured")}
+                />
+                <span className="admin-switch-ui" />
+                <span className="admin-switch-label">Featured</span>
+              </label>
 
-                    <label className="admin-field">
-                      <span>Style</span>
-                      <select
-                        value={group.type}
-                        onChange={(e) =>
-                          updateCustomizationGroup(
-                            group.id,
-                            "type",
-                            e.target.value
-                          )
-                        }
-                      >
-                        <option value="buttons">Buttons</option>
-                        <option value="select">Dropdown</option>
-                      </select>
-                    </label>
-                  </div>
+              <label className="admin-switch admin-switch--abroad">
+                <input
+                  type="checkbox"
+                  checked={form.shipsFromAbroad}
+                  onChange={setField("shipsFromAbroad")}
+                />
+                <span className="admin-switch-ui" />
+                <span className="admin-switch-label">Ships from abroad</span>
+              </label>
+            </div>
 
-                  <OptionValuesEditor
-                    values={group.values}
-                    onChange={(valueId, key, value) =>
-                      updateOptionValueInGroup(
-                        group.id,
-                        valueId,
-                        key,
-                        value,
-                        "create"
-                      )
-                    }
-                    onAdd={() => addOptionValueToGroup(group.id, "create")}
-                    onRemove={(valueId) =>
-                      removeOptionValueFromGroup(group.id, valueId, "create")
-                    }
-                  />
-                </div>
-              ))
-            ) : (
-              <div className="admin-options-empty">
-                No customization groups added yet.
+            <div className="admin-options-card">
+              <div className="admin-options-head">
+                <h3 className="admin-options-title">Customizations</h3>
+                <button
+                  type="button"
+                  className="admin-options-add"
+                  onClick={addCustomizationGroup}
+                >
+                  + Add option group
+                </button>
               </div>
-            )}
-          </div>
 
-          {msg ? <div className="admin-msg">{msg}</div> : null}
+              {form.customizations.length ? (
+                form.customizations.map((group, index) => (
+                  <div className="admin-option-group" key={group.id}>
+                    <div className="admin-option-group-head">
+                      <strong>Option group {index + 1}</strong>
+                      <button
+                        type="button"
+                        className="admin-option-remove"
+                        onClick={() => removeCustomizationGroup(group.id)}
+                      >
+                        Remove
+                      </button>
+                    </div>
 
-          <button
-            className="admin-btn"
-            type="submit"
-            disabled={submitting || uploadingImage}
-          >
-            {submitting ? "Adding…" : "Add product"}
-          </button>
-        </form>
+                    <div className="admin-row">
+                      <label className="admin-field">
+                        <span>Label</span>
+                        <input
+                          value={group.name}
+                          onChange={(e) =>
+                            updateCustomizationGroup(
+                              group.id,
+                              "name",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </label>
+
+                      <label className="admin-field">
+                        <span>Style</span>
+                        <select
+                          value={group.type}
+                          onChange={(e) =>
+                            updateCustomizationGroup(
+                              group.id,
+                              "type",
+                              e.target.value
+                            )
+                          }
+                        >
+                          <option value="buttons">Buttons</option>
+                          <option value="select">Dropdown</option>
+                        </select>
+                      </label>
+                    </div>
+
+                    <OptionValuesEditor
+                      values={group.values}
+                      onChange={(valueId, key, value) =>
+                        updateOptionValueInGroup(
+                          group.id,
+                          valueId,
+                          key,
+                          value,
+                          "create"
+                        )
+                      }
+                      onAdd={() => addOptionValueToGroup(group.id, "create")}
+                      onRemove={(valueId) =>
+                        removeOptionValueFromGroup(group.id, valueId, "create")
+                      }
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className="admin-options-empty">
+                  No customization groups added yet.
+                </div>
+              )}
+            </div>
+
+            {msg ? <div className="admin-msg">{msg}</div> : null}
+
+            <button
+              className="admin-btn"
+              type="submit"
+              disabled={submitting || uploadingImage}
+            >
+              {submitting ? "Adding…" : "Add product"}
+            </button>
+          </form>
+        ) : null}
       </div>
 
       <div className="admin-card admin-card--manager">
         <div className="admin-head">
           <h2 className="admin-title">Manage Products</h2>
           <p className="admin-sub">
-            Editing now opens as a full page instead of a modal.
+            Editing opens as a full page. CSV imports and manual product creation
+            are now separated.
           </p>
         </div>
 
@@ -3804,15 +4424,7 @@ updatePayload.sellerName = sellerName;
           </label>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: 10,
-            flexWrap: "wrap",
-            alignItems: "center",
-            marginBottom: 16,
-          }}
-        >
+        <div className="admin-manager-toolbar">
           <button
             type="button"
             className="admin-secondary-btn"
@@ -3846,12 +4458,12 @@ updatePayload.sellerName = sellerName;
         ) : productsError ? (
           <div className="admin-msg">{productsError}</div>
         ) : groupedProducts.length ? (
-          <div style={{ display: "grid", gap: 18 }}>
+          <div className="admin-groups-list">
             {groupedProducts.map((group) => (
-              <div key={group.shop} style={{ display: "grid", gap: 12 }}>
-                <div className="admin-head" style={{ marginBottom: 0 }}>
+              <div key={group.shop} className="admin-group-block">
+                <div className="admin-head admin-head--group">
                   <div>
-                    <h3 className="admin-title" style={{ fontSize: "1.05rem" }}>
+                    <h3 className="admin-title admin-title--small">
                       {group.label}
                     </h3>
                     <p className="admin-sub">
@@ -3861,7 +4473,7 @@ updatePayload.sellerName = sellerName;
                   </div>
 
                   {multiSelectMode ? (
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <div className="admin-group-actions">
                       <button
                         type="button"
                         className="admin-secondary-btn"
@@ -3881,19 +4493,11 @@ updatePayload.sellerName = sellerName;
                 </div>
 
                 {multiSelectMode ? (
-                  <div style={{ display: "grid", gap: 10 }}>
+                  <div className="admin-multiselect-list">
                     {group.items.map((product) => (
                       <label
                         key={product.id}
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "auto 1fr auto",
-                          gap: 12,
-                          alignItems: "center",
-                          padding: "14px 16px",
-                          border: "1px solid var(--border)",
-                          borderRadius: 14,
-                        }}
+                        className="admin-multiselect-item"
                       >
                         <input
                           type="checkbox"
@@ -3902,12 +4506,14 @@ updatePayload.sellerName = sellerName;
                           onChange={() => toggleProductSelection(product)}
                         />
                         <div>
-                          <div style={{ fontWeight: 700 }}>{product.name}</div>
-                          <div style={{ opacity: 0.72, fontSize: 13 }}>
+                          <div className="admin-multiselect-name">
+                            {product.name}
+                          </div>
+                          <div className="admin-multiselect-meta">
                             {formatShopLabel(product.shop)}
                           </div>
                         </div>
-                        <div style={{ fontWeight: 700 }}>
+                        <div className="admin-multiselect-price">
                           {formatMoney(product.price)}
                         </div>
                       </label>
@@ -3965,10 +4571,7 @@ updatePayload.sellerName = sellerName;
                               </p>
                             ) : null}
 
-                            <div
-                              className="admin-product-actions"
-                              style={{ display: "flex", gap: 10, flexWrap: "wrap" }}
-                            >
+                            <div className="admin-product-actions">
                               <button
                                 type="button"
                                 className="admin-secondary-btn"
