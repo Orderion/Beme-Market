@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 import { DEFAULT_KIND_BY_DEPT } from "../constants/catalog";
@@ -394,12 +394,13 @@ function SidebarRow({
   danger = false,
   expand = false,
   open = false,
+  active = false,
 }) {
   return (
     <button
       className={`sidebar-link ${danger ? "sidebar-link--danger" : ""} ${
         expand ? "sidebar-link--expand" : ""
-      } ${open ? "is-open" : ""}`}
+      } ${open ? "is-open" : ""} ${active ? "is-active" : ""}`}
       onClick={onClick}
       aria-expanded={expand ? open : undefined}
       type="button"
@@ -415,6 +416,7 @@ function SidebarRow({
 
 export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { darkMode, toggleTheme } = useTheme();
   const { user, logout, isSuperAdmin, isShopAdmin, adminShop } = useAuth();
 
@@ -426,6 +428,11 @@ export default function Sidebar({ isOpen, onClose }) {
     () => (adminShop ? titleize(adminShop) : ""),
     [adminShop]
   );
+
+  const isRouteActive = (path) => {
+    if (!path) return false;
+    return location.pathname === path;
+  };
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
@@ -524,17 +531,20 @@ export default function Sidebar({ isOpen, onClose }) {
                 icon={<IconHome />}
                 label="Home"
                 onClick={() => go("/")}
+                active={isRouteActive("/")}
               />
               <SidebarRow
                 icon={<IconShop />}
                 label="Shop"
                 onClick={() => go("/shop")}
+                active={isRouteActive("/shop")}
               />
               {user ? (
                 <SidebarRow
                   icon={<IconOrders />}
                   label="Orders"
                   onClick={() => go("/orders")}
+                  active={isRouteActive("/orders")}
                 />
               ) : null}
             </div>
@@ -542,47 +552,55 @@ export default function Sidebar({ isOpen, onClose }) {
 
           {isSuperAdmin ? (
             <section className="side-group">
-              <div className="side-group-label">Admin</div>
+              <div className="side-group-label">Admin Controls</div>
               <div className="side-group-list">
                 <SidebarRow
                   icon={<IconShield />}
                   label="Product Manager"
                   onClick={() => go("/admin")}
+                  active={isRouteActive("/admin")}
                 />
                 <SidebarRow
                   icon={<IconReviewQueue />}
                   label="Admin Review Queue"
                   onClick={() => go("/admin-review-queue")}
+                  active={isRouteActive("/admin-review-queue")}
                 />
                 <SidebarRow
                   icon={<IconOrders />}
                   label="Marketplace Orders"
                   onClick={() => go("/admin-orders")}
+                  active={isRouteActive("/admin-orders")}
                 />
                 <SidebarRow
                   icon={<IconGrid />}
                   label="Analytics"
                   onClick={() => go("/analytics")}
+                  active={isRouteActive("/analytics")}
                 />
                 <SidebarRow
                   icon={<IconTag />}
                   label="Payout Requests"
                   onClick={() => go("/payout-requests")}
+                  active={isRouteActive("/payout-requests")}
                 />
                 <SidebarRow
                   icon={<IconLayers />}
                   label="Shop Applications"
                   onClick={() => go("/shop-applications")}
+                  active={isRouteActive("/shop-applications")}
                 />
                 <SidebarRow
                   icon={<IconAccount />}
                   label="Account Management"
                   onClick={() => go("/account-management")}
+                  active={isRouteActive("/account-management")}
                 />
                 <SidebarRow
                   icon={<IconTools />}
                   label="Own a Shop"
                   onClick={() => go("/own-a-shop")}
+                  active={isRouteActive("/own-a-shop")}
                 />
               </div>
             </section>
@@ -591,38 +609,44 @@ export default function Sidebar({ isOpen, onClose }) {
           {isShopAdmin ? (
             <section className="side-group">
               <div className="side-group-label">
-                Shop Admin{shopLabel ? ` • ${shopLabel}` : ""}
+                Shop Admin Controls{shopLabel ? ` • ${shopLabel}` : ""}
               </div>
               <div className="side-group-list">
                 <SidebarRow
                   icon={<IconShield />}
                   label="Product Manager"
                   onClick={() => go("/admin")}
+                  active={isRouteActive("/admin")}
                 />
                 <SidebarRow
                   icon={<IconReviewQueue />}
                   label="Review Queue"
                   onClick={() => go("/admin-review-queue")}
+                  active={isRouteActive("/admin-review-queue")}
                 />
                 <SidebarRow
                   icon={<IconOrders />}
                   label="Shop Orders"
                   onClick={() => go("/admin-orders")}
+                  active={isRouteActive("/admin-orders")}
                 />
                 <SidebarRow
                   icon={<IconGrid />}
                   label="Analytics"
                   onClick={() => go("/analytics")}
+                  active={isRouteActive("/analytics")}
                 />
                 <SidebarRow
                   icon={<IconTag />}
                   label="Payout Requests"
                   onClick={() => go("/payout-requests")}
+                  active={isRouteActive("/payout-requests")}
                 />
                 <SidebarRow
                   icon={<IconAccount />}
                   label="Account Management"
                   onClick={() => go("/account-management")}
+                  active={isRouteActive("/account-management")}
                 />
               </div>
             </section>
@@ -788,11 +812,13 @@ export default function Sidebar({ isOpen, onClose }) {
                     icon={<IconLogin />}
                     label="Login"
                     onClick={() => go("/login")}
+                    active={isRouteActive("/login")}
                   />
                   <SidebarRow
                     icon={<IconUserPlus />}
                     label="Sign up"
                     onClick={() => go("/signup")}
+                    active={isRouteActive("/signup")}
                   />
                 </>
               ) : !confirmLogout ? (
