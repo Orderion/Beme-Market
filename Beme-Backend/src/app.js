@@ -1,106 +1,48 @@
 import express from "express";
 import cors from "cors";
-import morgan from "morgan";
-import dotenv from "dotenv";
 
-import { errorHandler } from "./middlewares/errorMiddleware.js";
-
-import authRoutes from "./routes/authRoutes.js";
-import productRoutes from "./routes/productRoutes.js";
-import cartRoutes from "./routes/cartRoutes.js";
-import orderRoutes from "./routes/orderRoutes.js";
-import paystackRoutes from "./routes/paystack.js";
-import adminReviewRoutes from "./routes/adminReview.js";
-
-dotenv.config();
+import ordersRouter from "./routes/orders.js";
+import paystackRouter from "./routes/paystack.js";
+import adminReviewRouter from "./routes/adminReview.js";
 
 const app = express();
 
-app.set("trust proxy", 1);
-
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  "http://localhost:5173",
-].filter(Boolean);
-
-/* ===============================
-   MIDDLEWARES
-================================ */
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(new Error("Not allowed by CORS"));
-    },
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: false,
-  })
-);
-
+/* ===== MIDDLEWARE ===== */
+app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
-if (process.env.NODE_ENV === "development") {
-  app.use(morgan("dev"));
-}
-
-/* ===============================
-   HEALTH CHECK ROUTES
-================================ */
-
-app.get("/", (_req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Beme API running 🚀",
-    environment: process.env.NODE_ENV,
+/* ===== HEALTH CHECK ===== */
+app.get("/api/health", (_req, res) => {
+  return res.json({
+    ok: true,
+    service: "beme-backend",
+    time: new Date().toISOString(),
   });
 });
 
-app.get("/health", (_req, res) => {
-  res.status(200).json({ ok: true });
-});
+/* ===== ROUTES ===== */
+app.use("/api/orders", ordersRouter);
+app.use("/api/paystack", paystackRouter);
 
-/* ===============================
-   API ROUTES
-================================ */
+/* 🔥 NEW: ADMIN REVIEW (core dropshipping engine) */
+app.use("/api/admin", adminReviewRouter);
 
-app.use("/api/auth", authRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/cart", cartRoutes);
-app.use("/api/orders", orderRoutes);
-app.use("/api/paystack", paystackRoutes);
-app.use("/api/admin", adminReviewRoutes);
-
-/* ===============================
-   404 HANDLER
-================================ */
-
-app.use((req, res) => {
-  res.status(404).json({
+/* ===== NOT FOUND ===== */
+app.use((_req, res) => {
+  return res.status(404).json({
     success: false,
-    message: `Route not found: ${req.method} ${req.originalUrl}`,
+    error: "Route not found.",
   });
 });
 
-/* ===============================
-   ERROR HANDLER
-================================ */
+/* ===== ERROR HANDLER ===== */
+app.use((err, _req, res, _next) => {
+  console.error("Global error:", err);
 
-app.use((err, _req, res, next) => {
-  if (err?.message === "Not allowed by CORS") {
-    return res.status(403).json({
-      success: false,
-      message: "CORS blocked this origin",
-    });
-  }
-
-  return errorHandler(err, _req, res, next);
+  return res.status(err?.statusCode || 500).json({
+    success: false,
+    error: err?.message || "Internal server error.",
+  });
 });
 
 export default app;

@@ -1,15 +1,46 @@
 import express from "express";
 import { adminDb, firebaseAdmin } from "../firebaseAdmin.js";
+import {
+  validateAdminActionStatus,
+  validateAdminReviewEligibility,
+  validateApproveAndSendEligibility,
+  validateReviewNotes,
+} from "../modules/dropship/orderValidators.js";
+import {
+  buildReviewPricing,
+  summarizeReviewFlags,
+  summarizeStockState,
+} from "../modules/dropship/orderCalculations.js";
+import {
+  getAllOrders,
+  getOrderById,
+  updateOrder,
+  appendAdminActionLog,
+  appendFulfillmentLog,
+} from "../modules/dropship/orderRepository.js";
+import {
+  createHeldState,
+  createRejectedState,
+  createApprovedForSupplierState,
+  createSupplierSentState,
+  createSupplierFailedState,
+  canTransitionFulfillment,
+  normalizeStatus,
+} from "../modules/dropship/orderStates.js";
+import {
+  logAdminReviewAction,
+  logSupplierPushQueued,
+  logSupplierPushAttempt,
+  logSupplierPushSuccess,
+  logSupplierPushFailure,
+} from "../modules/dropship/orderAudit.js";
+import {
+  createSupplierPushKey,
+  assertSupplierPushNotDuplicated,
+} from "../modules/dropship/idempotency.js";
+import { getSupplierAdapterForOrder } from "../modules/suppliers/supplierRegistry.js";
 
 const router = express.Router();
-
-const ADMIN_UPDATE_STATUSES = new Set([
-  "approved",
-  "held",
-  "rejected",
-  "awaiting_admin_review",
-  "approved_for_supplier",
-]);
 
 function safeTrim(value) {
   return String(value ?? "").trim();
@@ -19,8 +50,16 @@ function sanitizeText(value, max = 500) {
   return safeTrim(value).slice(0, max);
 }
 
-function normalizeStatus(value) {
-  return sanitizeText(value, 60).toLowerCase();
+function normalizeShop(value) {
+  return (
+    String(value || "main")
+      .trim()
+      .toLowerCase()
+      .replace(/['"]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "main"
+  );
 }
 
 function getSortableTime(value) {
@@ -78,18 +117,6 @@ async function getUserRoleProfile(uid) {
   };
 }
 
-function normalizeShop(value) {
-  return (
-    String(value || "main")
-      .trim()
-      .toLowerCase()
-      .replace(/['"]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 60) || "main"
-  );
-}
-
 function orderMatchesShop(order, adminShop) {
   if (!adminShop) return false;
 
@@ -108,11 +135,35 @@ function orderMatchesShop(order, adminShop) {
   return items.some((item) => normalizeShop(item?.shop) === normalizedAdminShop);
 }
 
-function sanitizeOrderForResponse(docSnap) {
-  const data = docSnap.data() || {};
+function mapSupplierFieldsFromItems(items = []) {
+  const list = Array.isArray(items) ? items : [];
+  const firstMapped = list.find(
+    (item) =>
+      safeTrim(item?.supplierApiType) ||
+      safeTrim(item?.supplierId) ||
+      safeTrim(item?.supplierProductId) ||
+      safeTrim(item?.supplierSku) ||
+      safeTrim(item?.supplierVariantId)
+  );
+
+  if (!firstMapped) {
+    return {
+      supplierId: "",
+      supplierApiType: "",
+    };
+  }
 
   return {
-    id: docSnap.id,
+    supplierId: safeTrim(firstMapped?.supplierId),
+    supplierApiType: safeTrim(firstMapped?.supplierApiType).toLowerCase(),
+  };
+}
+
+function sanitizeOrderForResponse(record) {
+  const data = record?.data || record || {};
+
+  return {
+    id: record?.id || data?.id || "",
     userId: data.userId || "",
     status: data.status || "pending",
     paymentMethod: data.paymentMethod || "",
@@ -146,112 +197,46 @@ function sanitizeOrderForResponse(docSnap) {
     supplierTrackingUrl: data.supplierTrackingUrl || "",
     syncAttempts: Number(data.syncAttempts || 0) || 0,
     lastSyncError: data.lastSyncError || "",
+    reviewFlags: Array.isArray(data.reviewFlags) ? data.reviewFlags : [],
+    stockCheckSummary: data.stockCheckSummary || null,
+    supplierPushKey: data.supplierPushKey || "",
+    supplierPushResponseSummary: data.supplierPushResponseSummary || null,
   };
 }
 
-function buildStatusPatch({
-  status,
-  reviewNotes,
-  adminUid,
-}) {
-  const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
-
-  if (status === "held") {
-    return {
-      status: "held",
-      fulfillmentStatus: "held",
-      supplierPushStatus: "not_sent",
-      adminReviewed: true,
-      adminApproved: false,
-      heldBy: adminUid,
-      heldAt: now,
-      reviewNotes,
-      updatedAt: now,
-    };
+function ensureShopAdminCanAccessOrder(profile, order) {
+  if (!profile?.isShopAdmin) return true;
+  if (!profile?.shop) {
+    const error = new Error("No assigned shop found for this shop admin.");
+    error.statusCode = 403;
+    throw error;
   }
 
-  if (status === "rejected") {
-    return {
-      status: "rejected",
-      fulfillmentStatus: "rejected",
-      supplierPushStatus: "not_sent",
-      adminReviewed: true,
-      adminApproved: false,
-      rejectedBy: adminUid,
-      rejectedAt: now,
-      reviewNotes,
-      updatedAt: now,
-    };
+  if (!orderMatchesShop(order, profile.shop)) {
+    const error = new Error("You can only access orders belonging to your shop.");
+    error.statusCode = 403;
+    throw error;
   }
 
-  if (status === "approved" || status === "approved_for_supplier") {
-    return {
-      status: "approved",
-      fulfillmentStatus: "approved_for_supplier",
-      supplierPushStatus: "queued",
-      adminReviewed: true,
-      adminApproved: true,
-      approvedBy: adminUid,
-      approvedAt: now,
-      reviewNotes,
-      updatedAt: now,
-    };
-  }
+  return true;
+}
+
+function buildBaseReviewPatch(order, reviewNotes) {
+  const pricing = buildReviewPricing(order?.pricing || {}, order?.items || []);
+  const reviewFlags = summarizeReviewFlags({
+    ...order,
+    pricing,
+  });
+  const stockCheckSummary = summarizeStockState(order?.items || []);
+  const supplierFields = mapSupplierFieldsFromItems(order?.items || []);
 
   return {
-    status: "awaiting_admin_review",
-    fulfillmentStatus: "awaiting_admin_review",
-    supplierPushStatus: "not_sent",
-    adminReviewed: true,
-    adminApproved: false,
+    pricing,
+    reviewFlags,
+    stockCheckSummary,
     reviewNotes,
-    updatedAt: now,
+    ...supplierFields,
   };
-}
-
-async function createAdminActionLog({
-  orderId,
-  adminUid,
-  action,
-  notes,
-  before,
-  after,
-}) {
-  try {
-    await adminDb.collection("adminActions").add({
-      orderId: String(orderId || ""),
-      adminUid: String(adminUid || ""),
-      action: String(action || ""),
-      notes: String(notes || ""),
-      before: before || null,
-      after: after || null,
-      createdAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
-    });
-  } catch (error) {
-    console.error("Failed to write admin action log:", error);
-  }
-}
-
-async function createFulfillmentLog({
-  orderId,
-  actorId,
-  action,
-  message,
-  meta,
-}) {
-  try {
-    await adminDb.collection("fulfillmentLogs").add({
-      orderId: String(orderId || ""),
-      actorType: "admin",
-      actorId: String(actorId || ""),
-      action: String(action || ""),
-      message: String(message || ""),
-      meta: meta || null,
-      createdAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
-    });
-  } catch (error) {
-    console.error("Failed to write fulfillment log:", error);
-  }
 }
 
 router.get("/orders", async (req, res) => {
@@ -266,10 +251,10 @@ router.get("/orders", async (req, res) => {
       });
     }
 
-    const snap = await adminDb.collection("orders").get();
+    const rows = await getAllOrders();
 
-    let orders = snap.docs
-      .map(sanitizeOrderForResponse)
+    let orders = rows
+      .map((row) => sanitizeOrderForResponse(row))
       .sort((a, b) => getSortableTime(b.createdAt) - getSortableTime(a.createdAt));
 
     if (profile.isShopAdmin && profile.shop) {
@@ -302,94 +287,368 @@ router.patch("/orders/:orderId/status", async (req, res) => {
     }
 
     const orderId = sanitizeText(req.params?.orderId, 200);
-    const nextStatus = normalizeStatus(req.body?.status);
-    const reviewNotes = sanitizeText(req.body?.reviewNotes, 2000);
+    const nextStatus = validateAdminActionStatus(req.body?.status);
+    const reviewNotes = validateReviewNotes(req.body?.reviewNotes);
 
-    if (!orderId) {
-      return res.status(400).json({
-        success: false,
-        error: "Missing order ID.",
-      });
-    }
-
-    if (!ADMIN_UPDATE_STATUSES.has(nextStatus)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid admin review status.",
-      });
-    }
-
-    const orderRef = adminDb.collection("orders").doc(orderId);
-    const snap = await orderRef.get();
-
-    if (!snap.exists) {
+    const record = await getOrderById(orderId);
+    if (!record) {
       return res.status(404).json({
         success: false,
         error: "Order not found.",
       });
     }
 
-    const existing = snap.data() || {};
+    const order = record.data || {};
+    ensureShopAdminCanAccessOrder(profile, order);
+    validateAdminReviewEligibility(order);
 
-    if (profile.isShopAdmin && profile.shop && !orderMatchesShop(existing, profile.shop)) {
-      return res.status(403).json({
-        success: false,
-        error: "You can only review orders belonging to your shop.",
+    const before = {
+      status: order?.status || "",
+      fulfillmentStatus: order?.fulfillmentStatus || "",
+      supplierPushStatus: order?.supplierPushStatus || "",
+      adminReviewed: order?.adminReviewed === true,
+      adminApproved: order?.adminApproved === true,
+    };
+
+    const basePatch = buildBaseReviewPatch(order, reviewNotes);
+    const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
+
+    let patch = {};
+    let action = "";
+
+    if (nextStatus === "held") {
+      if (
+        !canTransitionFulfillment(
+          order?.fulfillmentStatus || "awaiting_admin_review",
+          "held"
+        )
+      ) {
+        return res.status(409).json({
+          success: false,
+          error: "Order cannot be moved to held from its current state.",
+        });
+      }
+
+      patch = {
+        ...basePatch,
+        status: "held",
+        ...createHeldState({
+          heldBy: authUser.uid,
+          heldAt: now,
+          reviewNotes,
+        }),
+      };
+      action = "review_held";
+    } else if (nextStatus === "rejected") {
+      if (
+        !canTransitionFulfillment(
+          order?.fulfillmentStatus || "awaiting_admin_review",
+          "rejected"
+        )
+      ) {
+        return res.status(409).json({
+          success: false,
+          error: "Order cannot be rejected from its current state.",
+        });
+      }
+
+      patch = {
+        ...basePatch,
+        status: "rejected",
+        ...createRejectedState({
+          rejectedBy: authUser.uid,
+          rejectedAt: now,
+          reviewNotes,
+        }),
+      };
+      action = "review_rejected";
+    } else if (
+      nextStatus === "approved" ||
+      nextStatus === "approved_for_supplier"
+    ) {
+      validateApproveAndSendEligibility(order);
+      assertSupplierPushNotDuplicated(order);
+
+      if (
+        !canTransitionFulfillment(
+          order?.fulfillmentStatus || "awaiting_admin_review",
+          "approved_for_supplier"
+        )
+      ) {
+        return res.status(409).json({
+          success: false,
+          error: "Order cannot be approved from its current state.",
+        });
+      }
+
+      const supplierPushKey = createSupplierPushKey({
+        id: record.id,
+        ...order,
       });
+
+      patch = {
+        ...basePatch,
+        status: "approved",
+        supplierPushKey,
+        ...createApprovedForSupplierState({
+          approvedBy: authUser.uid,
+          approvedAt: now,
+          reviewNotes,
+        }),
+      };
+      action = "review_approved";
+    } else {
+      patch = {
+        ...basePatch,
+        status: "awaiting_admin_review",
+        fulfillmentStatus: "awaiting_admin_review",
+        supplierPushStatus: "not_sent",
+        adminReviewed: true,
+        adminApproved: false,
+      };
+      action = "review_reset";
     }
 
-    const patch = buildStatusPatch({
-      status: nextStatus,
-      reviewNotes,
-      adminUid: authUser.uid,
-    });
+    const updatedRecord = await updateOrder(orderId, patch);
+    const updatedOrder = updatedRecord.data || {};
 
-    await orderRef.update(patch);
+    const after = {
+      status: updatedOrder?.status || "",
+      fulfillmentStatus: updatedOrder?.fulfillmentStatus || "",
+      supplierPushStatus: updatedOrder?.supplierPushStatus || "",
+      adminReviewed: updatedOrder?.adminReviewed === true,
+      adminApproved: updatedOrder?.adminApproved === true,
+    };
 
-    const updatedSnap = await orderRef.get();
-    const updated = updatedSnap.data() || {};
-
-    await createAdminActionLog({
+    await logAdminReviewAction({
       orderId,
       adminUid: authUser.uid,
-      action: `review_${nextStatus}`,
+      action,
       notes: reviewNotes,
-      before: {
-        status: existing?.status || "",
-        fulfillmentStatus: existing?.fulfillmentStatus || "",
-        supplierPushStatus: existing?.supplierPushStatus || "",
-        adminReviewed: existing?.adminReviewed === true,
-        adminApproved: existing?.adminApproved === true,
-      },
-      after: {
-        status: updated?.status || "",
-        fulfillmentStatus: updated?.fulfillmentStatus || "",
-        supplierPushStatus: updated?.supplierPushStatus || "",
-        adminReviewed: updated?.adminReviewed === true,
-        adminApproved: updated?.adminApproved === true,
-      },
+      before,
+      after,
     });
 
-    await createFulfillmentLog({
-      orderId,
-      actorId: authUser.uid,
-      action: `review_${nextStatus}`,
-      message: `Order moved to ${nextStatus} by admin.`,
-      meta: {
+    if (
+      nextStatus === "approved" ||
+      nextStatus === "approved_for_supplier"
+    ) {
+      await logSupplierPushQueued({
+        orderId,
+        actorId: authUser.uid,
+        supplier: updatedOrder?.supplierApiType || "cj",
         reviewNotes,
-      },
-    });
+      });
+
+      const adapter = getSupplierAdapterForOrder({
+        id: updatedRecord.id,
+        ...updatedOrder,
+      });
+
+      await logSupplierPushAttempt({
+        orderId,
+        actorId: authUser.uid,
+        supplier: adapter?.key || updatedOrder?.supplierApiType || "cj",
+        payloadSummary:
+          typeof adapter?.summarizePayload === "function"
+            ? adapter.summarizePayload(
+                adapter.buildOrderPayload({
+                  id: updatedRecord.id,
+                  ...updatedOrder,
+                })
+              )
+            : null,
+      });
+
+      try {
+        const supplierResult = await adapter.createSupplierOrder({
+          id: updatedRecord.id,
+          ...updatedOrder,
+        });
+
+        const sentPatch = {
+          status: "approved",
+          supplierPushResponseSummary: supplierResult?.raw || null,
+          lastSyncError: "",
+          syncAttempts: Number(updatedOrder?.syncAttempts || 0) + 1,
+          ...createSupplierSentState({
+            supplierOrderId: supplierResult?.supplierOrderId || "",
+            supplierStatus: supplierResult?.supplierStatus || "submitted",
+            lastSupplierPushAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+          }),
+        };
+
+        const sentRecord = await updateOrder(orderId, sentPatch);
+
+        await logSupplierPushSuccess({
+          orderId,
+          actorId: authUser.uid,
+          supplier: adapter?.key || "cj",
+          supplierOrderId: supplierResult?.supplierOrderId || "",
+          supplierStatus: supplierResult?.supplierStatus || "",
+          responseSummary: supplierResult?.raw || null,
+        });
+
+        return res.json({
+          success: true,
+          message: "Order approved and sent to supplier successfully.",
+          order: sanitizeOrderForResponse(sentRecord),
+        });
+      } catch (supplierError) {
+        const failedPatch = {
+          status: "approved",
+          syncAttempts: Number(updatedOrder?.syncAttempts || 0) + 1,
+          supplierPushResponseSummary: supplierError?.meta || null,
+          ...createSupplierFailedState({
+            lastSyncError: supplierError?.message || "Supplier push failed.",
+            syncAttempts: Number(updatedOrder?.syncAttempts || 0) + 1,
+            lastSupplierSyncAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+          }),
+        };
+
+        const failedRecord = await updateOrder(orderId, failedPatch);
+
+        await logSupplierPushFailure({
+          orderId,
+          actorId: authUser.uid,
+          supplier:
+            updatedOrder?.supplierApiType ||
+            adapter?.key ||
+            "cj",
+          errorMessage: supplierError?.message || "Supplier push failed.",
+          responseSummary: supplierError?.meta || null,
+        });
+
+        return res.status(supplierError?.statusCode || 502).json({
+          success: false,
+          error: supplierError?.message || "Supplier push failed.",
+          order: sanitizeOrderForResponse(failedRecord),
+        });
+      }
+    }
 
     return res.json({
       success: true,
       message: "Order review status updated successfully.",
-      order: sanitizeOrderForResponse(updatedSnap),
+      order: sanitizeOrderForResponse(updatedRecord),
     });
   } catch (error) {
     console.error("Admin review PATCH order status error:", error);
     return res.status(error?.statusCode || 500).json({
       success: false,
       error: error?.message || "Failed to update order status.",
+    });
+  }
+});
+
+router.post("/orders/:orderId/retry-push", async (req, res) => {
+  try {
+    const authUser = await requireAuthUser(req);
+    const profile = await getUserRoleProfile(authUser.uid);
+
+    if (!profile?.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        error: "Admin access required.",
+      });
+    }
+
+    const orderId = sanitizeText(req.params?.orderId, 200);
+    const record = await getOrderById(orderId);
+
+    if (!record) {
+      return res.status(404).json({
+        success: false,
+        error: "Order not found.",
+      });
+    }
+
+    ensureShopAdminCanAccessOrder(profile, record.data || {});
+    validateApproveAndSendEligibility(record.data || {});
+    assertSupplierPushNotDuplicated(record.data || {});
+
+    const adapter = getSupplierAdapterForOrder({
+      id: record.id,
+      ...record.data,
+    });
+
+    await logSupplierPushAttempt({
+      orderId,
+      actorId: authUser.uid,
+      supplier: adapter?.key || record?.data?.supplierApiType || "cj",
+      payloadSummary:
+        typeof adapter?.summarizePayload === "function"
+          ? adapter.summarizePayload(
+              adapter.buildOrderPayload({
+                id: record.id,
+                ...record.data,
+              })
+            )
+          : null,
+    });
+
+    try {
+      const supplierResult = await adapter.createSupplierOrder({
+        id: record.id,
+        ...record.data,
+      });
+
+      const sentRecord = await updateOrder(orderId, {
+        status: "approved",
+        supplierPushResponseSummary: supplierResult?.raw || null,
+        lastSyncError: "",
+        syncAttempts: Number(record?.data?.syncAttempts || 0) + 1,
+        ...createSupplierSentState({
+          supplierOrderId: supplierResult?.supplierOrderId || "",
+          supplierStatus: supplierResult?.supplierStatus || "submitted",
+          lastSupplierPushAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        }),
+      });
+
+      await logSupplierPushSuccess({
+        orderId,
+        actorId: authUser.uid,
+        supplier: adapter?.key || "cj",
+        supplierOrderId: supplierResult?.supplierOrderId || "",
+        supplierStatus: supplierResult?.supplierStatus || "",
+        responseSummary: supplierResult?.raw || null,
+      });
+
+      return res.json({
+        success: true,
+        message: "Supplier push retried successfully.",
+        order: sanitizeOrderForResponse(sentRecord),
+      });
+    } catch (supplierError) {
+      const failedRecord = await updateOrder(orderId, {
+        syncAttempts: Number(record?.data?.syncAttempts || 0) + 1,
+        supplierPushResponseSummary: supplierError?.meta || null,
+        ...createSupplierFailedState({
+          lastSyncError: supplierError?.message || "Supplier push retry failed.",
+          syncAttempts: Number(record?.data?.syncAttempts || 0) + 1,
+          lastSupplierSyncAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        }),
+      });
+
+      await logSupplierPushFailure({
+        orderId,
+        actorId: authUser.uid,
+        supplier: adapter?.key || record?.data?.supplierApiType || "cj",
+        errorMessage: supplierError?.message || "Supplier push retry failed.",
+        responseSummary: supplierError?.meta || null,
+      });
+
+      return res.status(supplierError?.statusCode || 502).json({
+        success: false,
+        error: supplierError?.message || "Supplier push retry failed.",
+        order: sanitizeOrderForResponse(failedRecord),
+      });
+    }
+  } catch (error) {
+    console.error("Admin review retry push error:", error);
+    return res.status(error?.statusCode || 500).json({
+      success: false,
+      error: error?.message || "Failed to retry supplier push.",
     });
   }
 });
