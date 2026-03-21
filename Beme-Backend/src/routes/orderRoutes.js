@@ -1,5 +1,13 @@
 import express from "express";
 import { adminDb, firebaseAdmin } from "../firebaseAdmin.js";
+import {
+  createInitialCodState,
+} from "../modules/dropship/orderStates.js";
+import {
+  buildReviewPricing,
+  summarizeReviewFlags,
+  summarizeStockState,
+} from "../modules/dropship/orderCalculations.js";
 
 const router = express.Router();
 
@@ -39,6 +47,10 @@ function normalizeShopKey(value) {
       .replace(/^-+|-+$/g, "")
       .slice(0, 60) || "main"
   );
+}
+
+function normalizeSupplierType(value) {
+  return sanitizeText(value, 80).toLowerCase();
 }
 
 function toNumber(value, fallback = 0) {
@@ -276,6 +288,19 @@ function normalizeIncomingItems(items) {
         customizations: sanitizeCustomizations(item?.customizations),
         shipsFromAbroad: item?.shipsFromAbroad === true,
         abroadDeliveryFee: Math.max(0, toNumber(item?.abroadDeliveryFee, 0)),
+
+        supplierId: sanitizeOptionalText(item?.supplierId, 120),
+        supplierProductId: sanitizeOptionalText(item?.supplierProductId, 120),
+        supplierSku: sanitizeOptionalText(item?.supplierSku, 120),
+        supplierVariantId: sanitizeOptionalText(item?.supplierVariantId, 120),
+        supplierCost: Math.max(0, toNumber(item?.supplierCost, 0)),
+        supplierShippingEstimate: Math.max(
+          0,
+          toNumber(item?.supplierShippingEstimate, 0)
+        ),
+        shipsFrom: sanitizeOptionalText(item?.shipsFrom, 120),
+        supplierApiType: normalizeSupplierType(item?.supplierApiType),
+        syncEnabled: item?.syncEnabled !== false,
       };
     })
     .filter((item) => item.id)
@@ -346,6 +371,49 @@ async function buildValidatedOrderItems(items) {
     const image = sanitizeOptionalText(item.image || product.image || "", 500);
     const abroadDeliveryFee = Math.max(0, toNumber(item.abroadDeliveryFee, 0));
 
+    const productSupplierMapping =
+      product?.supplierMapping && typeof product.supplierMapping === "object"
+        ? product.supplierMapping
+        : null;
+
+    const supplierId = sanitizeOptionalText(
+      item.supplierId || productSupplierMapping?.supplierId,
+      120
+    );
+    const supplierProductId = sanitizeOptionalText(
+      item.supplierProductId || productSupplierMapping?.supplierProductId,
+      120
+    );
+    const supplierSku = sanitizeOptionalText(
+      item.supplierSku || productSupplierMapping?.supplierSku,
+      120
+    );
+    const supplierVariantId = sanitizeOptionalText(
+      item.supplierVariantId || productSupplierMapping?.supplierVariantId,
+      120
+    );
+    const supplierCost = Math.max(
+      0,
+      toNumber(item.supplierCost, productSupplierMapping?.supplierCost ?? 0)
+    );
+    const supplierShippingEstimate = Math.max(
+      0,
+      toNumber(
+        item.supplierShippingEstimate,
+        productSupplierMapping?.supplierShippingEstimate ?? abroadDeliveryFee
+      )
+    );
+    const shipsFrom = sanitizeOptionalText(
+      item.shipsFrom || productSupplierMapping?.shipsFrom,
+      120
+    );
+    const supplierApiType = normalizeSupplierType(
+      item.supplierApiType || productSupplierMapping?.supplierApiType
+    );
+    const syncEnabled =
+      item.syncEnabled !== false &&
+      productSupplierMapping?.syncEnabled !== false;
+
     subtotal += finalUnitPrice * item.qty;
     abroadDeliveryFeeTotal += abroadDeliveryFee * item.qty;
 
@@ -371,6 +439,16 @@ async function buildValidatedOrderItems(items) {
         : [],
       shipsFromAbroad: item.shipsFromAbroad === true,
       abroadDeliveryFee,
+
+      supplierId,
+      supplierProductId,
+      supplierSku,
+      supplierVariantId,
+      supplierCost,
+      supplierShippingEstimate,
+      shipsFrom,
+      supplierApiType,
+      syncEnabled,
     });
   }
 
@@ -382,7 +460,10 @@ async function buildValidatedOrderItems(items) {
 }
 
 function sanitizePricing(pricing = {}, computedSubtotal = 0, computedDelivery = 0) {
-  const requestedSubtotal = Math.max(0, toNumber(pricing.subtotal, computedSubtotal));
+  const requestedSubtotal = Math.max(
+    0,
+    toNumber(pricing.subtotal, computedSubtotal)
+  );
   const requestedDeliveryFee = Math.max(
     0,
     toNumber(pricing.deliveryFee, computedDelivery)
@@ -428,6 +509,26 @@ function sanitizeOrderForResponse(docSnap) {
     items: Array.isArray(data.items) ? data.items : [],
     createdAt: data.createdAt || null,
     updatedAt: data.updatedAt || null,
+
+    fulfillmentStatus: data.fulfillmentStatus || "",
+    supplierPushStatus: data.supplierPushStatus || "",
+    adminReviewed: data.adminReviewed === true,
+    adminApproved: data.adminApproved === true,
+    approvedBy: data.approvedBy || "",
+    approvedAt: data.approvedAt || null,
+    rejectedBy: data.rejectedBy || "",
+    rejectedAt: data.rejectedAt || null,
+    heldBy: data.heldBy || "",
+    heldAt: data.heldAt || null,
+    reviewNotes: data.reviewNotes || "",
+    supplierOrderId: data.supplierOrderId || "",
+    supplierStatus: data.supplierStatus || "",
+    syncAttempts: Number(data.syncAttempts || 0) || 0,
+    lastSyncError: data.lastSyncError || "",
+    supplierTrackingNumber: data.supplierTrackingNumber || "",
+    supplierTrackingUrl: data.supplierTrackingUrl || "",
+    reviewFlags: Array.isArray(data.reviewFlags) ? data.reviewFlags : [],
+    stockCheckSummary: data.stockCheckSummary || null,
   };
 }
 
@@ -507,17 +608,34 @@ router.post("/", async (req, res) => {
       toNumber(req.body?.pricing?.deliveryFee, abroadDeliveryFeeTotal)
     );
 
-    const pricing = sanitizePricing(
+    const rawPricing = sanitizePricing(
       req.body?.pricing || {},
       subtotal,
       requestedDeliveryFee
     );
 
+    const pricing = buildReviewPricing(rawPricing, lineItems);
     const shops = Array.from(
       new Set(lineItems.map((item) => normalizeShopKey(item.shop)).filter(Boolean))
     );
 
     const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
+    const initialState = createInitialCodState();
+    const reviewFlags = summarizeReviewFlags({
+      items: lineItems,
+      pricing,
+      customer,
+    });
+    const stockCheckSummary = summarizeStockState(lineItems);
+
+    const firstSupplierMappedItem = lineItems.find(
+      (item) =>
+        item.supplierApiType ||
+        item.supplierId ||
+        item.supplierProductId ||
+        item.supplierSku ||
+        item.supplierVariantId
+    );
 
     const payload = {
       userId: authUser.uid,
@@ -533,6 +651,33 @@ router.post("/", async (req, res) => {
       emailSent: false,
       reference: "",
       source,
+
+      fulfillmentStatus: initialState.fulfillmentStatus,
+      supplierPushStatus: initialState.supplierPushStatus,
+      adminReviewed: initialState.adminReviewed,
+      adminApproved: initialState.adminApproved,
+      approvedBy: "",
+      approvedAt: null,
+      rejectedBy: "",
+      rejectedAt: null,
+      heldBy: "",
+      heldAt: null,
+      reviewNotes: "",
+
+      supplierId: firstSupplierMappedItem?.supplierId || "",
+      supplierApiType: firstSupplierMappedItem?.supplierApiType || "",
+      supplierOrderId: "",
+      supplierStatus: "",
+      syncAttempts: 0,
+      lastSyncError: "",
+      supplierTrackingNumber: "",
+      supplierTrackingUrl: "",
+      supplierPushKey: "",
+      supplierPushResponseSummary: null,
+
+      reviewFlags,
+      stockCheckSummary,
+
       createdAt: now,
       updatedAt: now,
     };
