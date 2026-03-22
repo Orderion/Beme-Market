@@ -16,6 +16,7 @@ const CITY_MAP = {
     "East Legon",
     "Madina",
     "Adenta",
+    "Dodowa",
     "Tema",
     "Teshie",
     "Nungua",
@@ -43,6 +44,41 @@ const DEFAULT_OTHER_CITIES = ["Other"];
 const CHECKOUT_DURATION_SECONDS = 10 * 60;
 const OUTSIDE_ACCRA_DELIVERY_FEE = 50;
 
+/* Delivery setup */
+const DELIVERY_METHODS = {
+  MALL_PICKUP: "mall_pickup",
+  HOME_DELIVERY: "home_delivery",
+};
+
+const ACCRA_MALL_PICKUP_OPTIONS = [
+  {
+    id: "accra-mall",
+    label: "Accra Mall Pickup",
+    area: "Tetteh Quarshie / Spintex",
+    fee: 0,
+  },
+  {
+    id: "achimota-mall",
+    label: "Achimota Mall Pickup",
+    area: "Achimota",
+    fee: 5,
+  },
+  {
+    id: "marina-mall",
+    label: "Marina Mall Pickup",
+    area: "Airport",
+    fee: 10,
+  },
+  {
+    id: "west-hills-mall",
+    label: "West Hills Mall Pickup",
+    area: "Weija",
+    fee: 15,
+  },
+];
+
+const ACCRA_HOME_DELIVERY_FEE = 20;
+
 const INITIAL_FORM = {
   email: "",
   firstName: "",
@@ -53,6 +89,11 @@ const INITIAL_FORM = {
   city: "",
   area: "",
   notes: "",
+};
+
+const INITIAL_DELIVERY = {
+  method: "",
+  mallId: "",
 };
 
 function isValidEmail(email) {
@@ -449,6 +490,7 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [loadingMode, setLoadingMode] = useState("");
   const [form, setForm] = useState(INITIAL_FORM);
+  const [delivery, setDelivery] = useState(INITIAL_DELIVERY);
   const [touched, setTouched] = useState({});
   const [errors, setErrors] = useState({});
   const [timeLeft, setTimeLeft] = useState(CHECKOUT_DURATION_SECONDS);
@@ -550,35 +592,20 @@ export default function Checkout() {
     }, 0);
   }, [safeCartItems]);
 
-  const regionalDeliveryFeeUI = useMemo(() => {
-    if (!form.region) return 0;
-    return FREE_DELIVERY_REGIONS.has(form.region)
-      ? 0
-      : OUTSIDE_ACCRA_DELIVERY_FEE;
-  }, [form.region]);
-
-  const abroadDeliveryFeeUI = useMemo(() => {
-    return safeCartItems.reduce((sum, item) => {
-      const qty = Number(item.qty) || 0;
-      const fee = getItemAbroadDeliveryFee(item);
-      return sum + fee * qty;
-    }, 0);
-  }, [safeCartItems]);
-
-  const deliveryFeeUI = useMemo(
-    () => regionalDeliveryFeeUI + abroadDeliveryFeeUI,
-    [regionalDeliveryFeeUI, abroadDeliveryFeeUI]
-  );
-
-  const totalUI = useMemo(
-    () => subtotalUI + deliveryFeeUI,
-    [subtotalUI, deliveryFeeUI]
-  );
-
   const citiesForRegion = useMemo(() => {
     if (!form.region) return [];
     return CITY_MAP[form.region] || DEFAULT_OTHER_CITIES;
   }, [form.region]);
+
+  const mallPickupOptions = useMemo(() => {
+    return form.region === "Greater Accra" ? ACCRA_MALL_PICKUP_OPTIONS : [];
+  }, [form.region]);
+
+  const selectedMallOption = useMemo(() => {
+    return (
+      mallPickupOptions.find((option) => option.id === delivery.mallId) || null
+    );
+  }, [mallPickupOptions, delivery.mallId]);
 
   const normalizedPhone = useMemo(
     () => normalizeGhanaPhone(form.phone),
@@ -635,6 +662,51 @@ export default function Checkout() {
   const inputsDisabled = loading || sessionExpired;
   const formattedTimeLeft = formatTime(timeLeft);
 
+  const regionalBaseDeliveryFeeUI = useMemo(() => {
+    if (!form.region) return 0;
+    return FREE_DELIVERY_REGIONS.has(form.region)
+      ? 0
+      : OUTSIDE_ACCRA_DELIVERY_FEE;
+  }, [form.region]);
+
+  const selectedDeliveryMethodFeeUI = useMemo(() => {
+    if (!delivery.method) return 0;
+
+    if (delivery.method === DELIVERY_METHODS.HOME_DELIVERY) {
+      if (form.region === "Greater Accra") {
+        return ACCRA_HOME_DELIVERY_FEE;
+      }
+      return 0;
+    }
+
+    if (delivery.method === DELIVERY_METHODS.MALL_PICKUP) {
+      return Number(selectedMallOption?.fee || 0);
+    }
+
+    return 0;
+  }, [delivery.method, form.region, selectedMallOption]);
+
+  const abroadDeliveryFeeUI = useMemo(() => {
+    return safeCartItems.reduce((sum, item) => {
+      const qty = Number(item.qty) || 0;
+      const fee = getItemAbroadDeliveryFee(item);
+      return sum + fee * qty;
+    }, 0);
+  }, [safeCartItems]);
+
+  const deliveryFeeUI = useMemo(
+    () =>
+      regionalBaseDeliveryFeeUI +
+      selectedDeliveryMethodFeeUI +
+      abroadDeliveryFeeUI,
+    [regionalBaseDeliveryFeeUI, selectedDeliveryMethodFeeUI, abroadDeliveryFeeUI]
+  );
+
+  const totalUI = useMemo(
+    () => subtotalUI + deliveryFeeUI,
+    [subtotalUI, deliveryFeeUI]
+  );
+
   const selectedMethodMeta = useMemo(() => {
     if (!method) return null;
 
@@ -659,11 +731,62 @@ export default function Checkout() {
     };
   }, [method, isCODBlocked, codDisabledReason]);
 
+  const selectedDeliverySummary = useMemo(() => {
+    if (!delivery.method) return null;
+
+    if (delivery.method === DELIVERY_METHODS.HOME_DELIVERY) {
+      return {
+        title: "Home Delivery",
+        note:
+          form.region === "Greater Accra"
+            ? `Home delivery in Greater Accra (+GHS ${ACCRA_HOME_DELIVERY_FEE.toFixed(
+                2
+              )})`
+            : `Outside Accra home delivery (base regional fee applies)`,
+      };
+    }
+
+    if (delivery.method === DELIVERY_METHODS.MALL_PICKUP && selectedMallOption) {
+      return {
+        title: selectedMallOption.label,
+        note: `${selectedMallOption.area}${
+          selectedMallOption.fee > 0
+            ? ` (+GHS ${selectedMallOption.fee.toFixed(2)})`
+            : " (Free pickup)"
+        }`,
+      };
+    }
+
+    return null;
+  }, [delivery.method, form.region, selectedMallOption]);
+
   useEffect(() => {
     if (isCODBlocked && method === "cod") {
       setMethod("");
     }
   }, [isCODBlocked, method]);
+
+  useEffect(() => {
+    if (form.region !== "Greater Accra") {
+      setDelivery((prev) => {
+        if (prev.method === DELIVERY_METHODS.MALL_PICKUP || prev.mallId) {
+          return {
+            method: prev.method === DELIVERY_METHODS.MALL_PICKUP
+              ? DELIVERY_METHODS.HOME_DELIVERY
+              : prev.method,
+            mallId: "",
+          };
+        }
+        return prev;
+      });
+    }
+  }, [form.region]);
+
+  useEffect(() => {
+    if (delivery.method !== DELIVERY_METHODS.MALL_PICKUP && delivery.mallId) {
+      setDelivery((prev) => ({ ...prev, mallId: "" }));
+    }
+  }, [delivery.method, delivery.mallId]);
 
   useEffect(() => {
     if (sessionExpired) return;
@@ -693,12 +816,43 @@ export default function Checkout() {
         region: value,
         city: "",
       }));
+      setDelivery(INITIAL_DELIVERY);
       return;
     }
 
     setForm((prev) => ({
       ...prev,
       [key]: value,
+    }));
+  };
+
+  const setDeliveryMethod = (nextMethod) => {
+    if (sessionExpired || loading) return;
+
+    setDelivery((prev) => ({
+      method: nextMethod,
+      mallId:
+        nextMethod === DELIVERY_METHODS.MALL_PICKUP ? prev.mallId : "",
+    }));
+
+    setTouched((prev) => ({
+      ...prev,
+      deliveryMethod: true,
+    }));
+  };
+
+  const setMallPickup = (mallId) => {
+    if (sessionExpired || loading) return;
+
+    setDelivery({
+      method: DELIVERY_METHODS.MALL_PICKUP,
+      mallId,
+    });
+
+    setTouched((prev) => ({
+      ...prev,
+      deliveryMethod: true,
+      mallId: true,
     }));
   };
 
@@ -747,6 +901,17 @@ export default function Checkout() {
         "Some items in your cart are out of stock or exceed available stock. Update your cart before checkout.";
     }
 
+    if (!delivery.method) {
+      next.deliveryMethod = "Please select a delivery option.";
+    }
+
+    if (
+      delivery.method === DELIVERY_METHODS.MALL_PICKUP &&
+      !delivery.mallId
+    ) {
+      next.mallId = "Please select a pickup mall.";
+    }
+
     if (!method) {
       next.paymentMethod = "Please select a payment method.";
     }
@@ -773,6 +938,8 @@ export default function Checkout() {
     normalizedPhone,
     network,
     method,
+    delivery.method,
+    delivery.mallId,
   ]);
 
   const showError = (key) => touched[key] && errors[key];
@@ -795,6 +962,8 @@ export default function Checkout() {
       region: true,
       city: true,
       area: true,
+      deliveryMethod: true,
+      mallId: true,
       paymentMethod: true,
     });
 
@@ -806,6 +975,7 @@ export default function Checkout() {
       ...INITIAL_FORM,
       email: user?.email || "",
     });
+    setDelivery(INITIAL_DELIVERY);
     setTouched({});
     setErrors({});
     setMethod("");
@@ -827,6 +997,45 @@ export default function Checkout() {
       },
       { replace: true }
     );
+  };
+
+  const buildDeliveryPayload = () => {
+    const mallLabel = selectedMallOption?.label || "";
+    const mallArea = selectedMallOption?.area || "";
+
+    const label =
+      delivery.method === DELIVERY_METHODS.HOME_DELIVERY
+        ? "Home Delivery"
+        : delivery.method === DELIVERY_METHODS.MALL_PICKUP
+        ? mallLabel || "Mall Pickup"
+        : "";
+
+    return {
+      method: delivery.method,
+      label,
+      fee: deliveryFeeUI,
+      breakdown: {
+        regionalBaseFee: regionalBaseDeliveryFeeUI,
+        methodFee: selectedDeliveryMethodFeeUI,
+        abroadFee: abroadDeliveryFeeUI,
+      },
+      mallPickup:
+        delivery.method === DELIVERY_METHODS.MALL_PICKUP
+          ? {
+              id: delivery.mallId,
+              label: mallLabel,
+              area: mallArea,
+              fee: Number(selectedMallOption?.fee || 0),
+            }
+          : null,
+      homeDelivery:
+        delivery.method === DELIVERY_METHODS.HOME_DELIVERY
+          ? {
+              label: "Home Delivery",
+              fee: form.region === "Greater Accra" ? ACCRA_HOME_DELIVERY_FEE : 0,
+            }
+          : null,
+    };
   };
 
   const buildOrderPayload = (paymentMethod) => {
@@ -873,6 +1082,7 @@ export default function Checkout() {
         network,
         userId: user?.uid || "",
       },
+      delivery: buildDeliveryPayload(),
       items,
       shops,
       primaryShop: shops[0] || "main",
@@ -972,6 +1182,7 @@ export default function Checkout() {
           inStock: item.inStock !== false,
           stock: getNumericStock(item),
         })),
+        delivery: buildDeliveryPayload(),
         pricing: {
           subtotal: subtotalUI,
           deliveryFee: deliveryFeeUI,
@@ -1255,6 +1466,103 @@ export default function Checkout() {
                 disabled={inputsDisabled}
               />
 
+              <h3>Delivery options</h3>
+
+              <div className="delivery-methods">
+                <button
+                  type="button"
+                  className={`delivery-method-card ${
+                    delivery.method === DELIVERY_METHODS.MALL_PICKUP ? "is-active" : ""
+                  }`}
+                  onClick={() => setDeliveryMethod(DELIVERY_METHODS.MALL_PICKUP)}
+                  disabled={inputsDisabled || form.region !== "Greater Accra"}
+                >
+                  <strong>Mall Pickup</strong>
+                  <span>
+                    {form.region === "Greater Accra"
+                      ? "Pick up from a selected mall in Accra."
+                      : "Available only in Greater Accra."}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`delivery-method-card ${
+                    delivery.method === DELIVERY_METHODS.HOME_DELIVERY ? "is-active" : ""
+                  }`}
+                  onClick={() => setDeliveryMethod(DELIVERY_METHODS.HOME_DELIVERY)}
+                  disabled={inputsDisabled}
+                >
+                  <strong>Home Delivery</strong>
+                  <span>
+                    {form.region === "Greater Accra"
+                      ? `Delivered to your address in Accra (+GHS ${ACCRA_HOME_DELIVERY_FEE.toFixed(
+                          2
+                        )})`
+                      : "Delivered to your address. Regional delivery fee applies."}
+                  </span>
+                </button>
+              </div>
+
+              {showError("deliveryMethod") ? (
+                <div className="field-error">{errors.deliveryMethod}</div>
+              ) : null}
+
+              {delivery.method === DELIVERY_METHODS.MALL_PICKUP ? (
+                <div className="delivery-mall-options">
+                  <label className="delivery-section-label">
+                    Select pickup mall
+                  </label>
+
+                  <div className="delivery-mall-grid">
+                    {mallPickupOptions.map((mall) => (
+                      <button
+                        key={mall.id}
+                        type="button"
+                        className={`delivery-mall-card ${
+                          delivery.mallId === mall.id ? "is-active" : ""
+                        }`}
+                        onClick={() => setMallPickup(mall.id)}
+                        disabled={inputsDisabled}
+                      >
+                        <strong>{mall.label}</strong>
+                        <span>{mall.area}</span>
+                        <small>
+                          {mall.fee > 0
+                            ? `Pickup fee: GHS ${mall.fee.toFixed(2)}`
+                            : "Free pickup"}
+                        </small>
+                      </button>
+                    ))}
+                  </div>
+
+                  {showError("mallId") ? (
+                    <div className="field-error">{errors.mallId}</div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {selectedDeliverySummary ? (
+                <div className="payment-selection-review payment-selection-review--delivery">
+                  <div className="payment-selection-review__top">
+                    <span className="payment-selection-review__eyebrow">
+                      Delivery selected
+                    </span>
+                    <span className="payment-selection-review__badge">
+                      GHS {selectedDeliveryMethodFeeUI.toFixed(2)}
+                    </span>
+                  </div>
+
+                  <strong className="payment-selection-review__title">
+                    {selectedDeliverySummary.title}
+                  </strong>
+
+                  <p className="payment-selection-review__text">
+                    {selectedDeliverySummary.note}
+                  </p>
+                </div>
+              ) : null}
+
               <h3>Payment method</h3>
 
               <div className="payment-dropdown-wrap">
@@ -1499,12 +1807,12 @@ export default function Checkout() {
 
               <div className="summary-line">
                 <span>
-                  Regional delivery
+                  Regional base delivery
                   {form.region ? (
                     <small className="summary-line-sub">
                       {FREE_DELIVERY_REGIONS.has(form.region)
-                        ? "Greater Accra delivery"
-                        : "Outside Accra delivery (+50)"}
+                        ? "Greater Accra base delivery"
+                        : "Outside Accra base delivery (+50)"}
                     </small>
                   ) : (
                     <small className="summary-line-sub">
@@ -1512,7 +1820,19 @@ export default function Checkout() {
                     </small>
                   )}
                 </span>
-                <span>GHS {regionalDeliveryFeeUI.toFixed(2)}</span>
+                <span>GHS {regionalBaseDeliveryFeeUI.toFixed(2)}</span>
+              </div>
+
+              <div className="summary-line">
+                <span>
+                  Delivery option
+                  <small className="summary-line-sub">
+                    {selectedDeliverySummary
+                      ? selectedDeliverySummary.title
+                      : "Select delivery option"}
+                  </small>
+                </span>
+                <span>GHS {selectedDeliveryMethodFeeUI.toFixed(2)}</span>
               </div>
 
               <div className="summary-line">
@@ -1531,7 +1851,7 @@ export default function Checkout() {
                 <span>
                   Total delivery
                   <small className="summary-line-sub">
-                    Regional + abroad delivery
+                    Base + selected option + abroad delivery
                   </small>
                 </span>
                 <span>GHS {deliveryFeeUI.toFixed(2)}</span>
