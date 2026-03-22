@@ -41,6 +41,41 @@ const ORDER_SOURCE = "web";
 const MAX_ITEM_QTY = 20;
 const MAX_CART_ITEMS = 100;
 
+/* Locked backend delivery rules */
+const DELIVERY_METHODS = {
+  MALL_PICKUP: "mall_pickup",
+  HOME_DELIVERY: "home_delivery",
+};
+
+const LOCKED_HOME_DELIVERY_FEE = 150;
+
+const ACCRA_MALL_PICKUP_OPTIONS = [
+  {
+    id: "accra-mall",
+    label: "Accra Mall Pickup",
+    area: "Tetteh Quarshie / Spintex",
+    fee: 0,
+  },
+  {
+    id: "achimota-mall",
+    label: "Achimota Mall Pickup",
+    area: "Achimota",
+    fee: 5,
+  },
+  {
+    id: "marina-mall",
+    label: "Marina Mall Pickup",
+    area: "Airport",
+    fee: 10,
+  },
+  {
+    id: "west-hills-mall",
+    label: "West Hills Mall Pickup",
+    area: "Weija",
+    fee: 15,
+  },
+];
+
 async function safeFetch(...args) {
   if (typeof fetch !== "undefined") return fetch(...args);
   const mod = await import("node-fetch");
@@ -82,7 +117,7 @@ function isAllowedShop(value) {
   return ALLOWED_SHOPS.has(normalizeShopKey(value));
 }
 
-function computeDeliveryFee(region) {
+function computeRegionalBaseDeliveryFee(region) {
   if (!region) return 0;
   return SPECIAL_REGIONS.has(region) ? 0 : 50;
 }
@@ -204,6 +239,97 @@ function sanitizeCustomizations(source) {
     .slice(0, 40);
 }
 
+function sanitizeDeliveryInput(source) {
+  const method = sanitizeText(source?.method, 40).toLowerCase();
+  const mallPickupId = sanitizeText(
+    source?.mallPickup?.id || source?.mallId,
+    80
+  );
+
+  return {
+    method,
+    mallPickupId,
+  };
+}
+
+function computeAbroadDeliveryFee(lineItems = []) {
+  return lineItems.reduce((sum, item) => {
+    const qty = Math.max(1, toNumber(item?.qty, 1));
+    const fee = Math.max(0, toNumber(item?.abroadDeliveryFee, 0));
+    return sum + fee * qty;
+  }, 0);
+}
+
+function computeTrustedDelivery({ delivery, customerRegion, lineItems }) {
+  const region = sanitizeText(customerRegion, 80);
+  const cleanDelivery = sanitizeDeliveryInput(delivery);
+  const regionalBaseFee = computeRegionalBaseDeliveryFee(region);
+  const abroadFee = computeAbroadDeliveryFee(lineItems);
+
+  if (!cleanDelivery.method) {
+    throw new Error("A delivery option is required.");
+  }
+
+  if (
+    cleanDelivery.method !== DELIVERY_METHODS.MALL_PICKUP &&
+    cleanDelivery.method !== DELIVERY_METHODS.HOME_DELIVERY
+  ) {
+    throw new Error("Invalid delivery option selected.");
+  }
+
+  let methodFee = 0;
+  let label = "";
+  let mallPickup = null;
+  let homeDelivery = null;
+
+  if (cleanDelivery.method === DELIVERY_METHODS.HOME_DELIVERY) {
+    methodFee = LOCKED_HOME_DELIVERY_FEE;
+    label = "Home Delivery";
+    homeDelivery = {
+      label: "Home Delivery",
+      fee: LOCKED_HOME_DELIVERY_FEE,
+    };
+  }
+
+  if (cleanDelivery.method === DELIVERY_METHODS.MALL_PICKUP) {
+    if (region !== "Greater Accra") {
+      throw new Error("Mall pickup is only available in Greater Accra.");
+    }
+
+    const selectedMall = ACCRA_MALL_PICKUP_OPTIONS.find(
+      (mall) => mall.id === cleanDelivery.mallPickupId
+    );
+
+    if (!selectedMall) {
+      throw new Error("Invalid mall pickup option selected.");
+    }
+
+    methodFee = Math.max(0, toNumber(selectedMall.fee, 0));
+    label = selectedMall.label;
+    mallPickup = {
+      id: selectedMall.id,
+      label: selectedMall.label,
+      area: selectedMall.area,
+      fee: methodFee,
+    };
+  }
+
+  const totalFee = regionalBaseFee + methodFee + abroadFee;
+
+  return {
+    method: cleanDelivery.method,
+    label,
+    fee: totalFee,
+    breakdown: {
+      regionalBaseFee,
+      methodFee,
+      abroadFee,
+    },
+    mallPickup,
+    homeDelivery,
+  };
+}
+
 async function requireAuthUser(req) {
   const authHeader = String(req.headers.authorization || "");
   const match = authHeader.match(/^Bearer\s+(.+)$/i);
@@ -224,7 +350,7 @@ async function requireAuthUser(req) {
   return decoded;
 }
 
-function buildOrderFingerprint({ email, customer, items, userId }) {
+function buildOrderFingerprint({ email, customer, items, userId, delivery }) {
   const basis = {
     userId: sanitizeText(userId, 128),
     email: normalizeEmail(email),
@@ -234,6 +360,10 @@ function buildOrderFingerprint({ email, customer, items, userId }) {
     address: sanitizeText(customer?.address, 300),
     region: sanitizeText(customer?.region, 80),
     city: sanitizeText(customer?.city, 80),
+    delivery: {
+      method: sanitizeText(delivery?.method, 40).toLowerCase(),
+      mallPickupId: sanitizeText(delivery?.mallPickup?.id, 80),
+    },
     items: normalizeIncomingItems(items).map((item) => ({
       id: item.id,
       qty: item.qty,
@@ -543,7 +673,12 @@ async function verifyPaystackReference(reference) {
   return data?.data || {};
 }
 
-async function finalizeFailedOrder(orderRef, existing, status = "failed", extra = {}) {
+async function finalizeFailedOrder(
+  orderRef,
+  existing,
+  status = "failed",
+  extra = {}
+) {
   await orderRef.update({
     paid: false,
     paymentStatus: "failed",
@@ -568,6 +703,7 @@ router.post("/checkout/init", async (req, res) => {
     const email = normalizeEmail(req.body?.email);
     const items = req.body?.items || [];
     const customer = req.body?.customer || {};
+    const delivery = req.body?.delivery || {};
     const pricing = req.body?.pricing || {};
     const userId = authUser.uid;
 
@@ -584,18 +720,17 @@ router.post("/checkout/init", async (req, res) => {
     }
 
     const region = sanitizeText(customer.region, 80);
-    const fallbackDeliveryFee = computeDeliveryFee(region);
-    const requestedDeliveryFee = toNumber(
-      pricing?.deliveryFee,
-      fallbackDeliveryFee
-    );
-    const deliveryFee =
-      requestedDeliveryFee >= 0 ? requestedDeliveryFee : fallbackDeliveryFee;
 
     const { subtotal, lineItems } = await buildCheckoutFromItems(items);
     if (!lineItems.length) {
       return res.status(400).json({ error: "Cart items invalid" });
     }
+
+    const trustedDelivery = computeTrustedDelivery({
+      delivery,
+      customerRegion: region,
+      lineItems,
+    });
 
     const requestedSubtotal = toNumber(pricing?.subtotal, subtotal);
     const safeSubtotal =
@@ -603,6 +738,7 @@ router.post("/checkout/init", async (req, res) => {
         ? requestedSubtotal
         : subtotal;
 
+    const deliveryFee = trustedDelivery.fee;
     const total = safeSubtotal + deliveryFee;
 
     if (total <= 0) {
@@ -615,6 +751,7 @@ router.post("/checkout/init", async (req, res) => {
       customer,
       items,
       userId,
+      delivery: trustedDelivery,
     });
 
     const existingPendingOrder = await findExistingRecentPendingOrder({
@@ -728,6 +865,7 @@ router.post("/checkout/init", async (req, res) => {
       verifyLock: false,
 
       pricing: enrichedPricing,
+      delivery: trustedDelivery,
       customer: {
         email,
         firstName: sanitizeText(customer.firstName, 80),
@@ -796,7 +934,10 @@ router.post("/checkout/init", async (req, res) => {
             orderId: orderRef.id,
             userId,
             fingerprint,
+            deliveryMethod: trustedDelivery.method,
+            deliveryLabel: trustedDelivery.label,
             deliveryFee,
+            deliveryBreakdown: trustedDelivery.breakdown,
             subtotal: safeSubtotal,
             total,
             itemCount: lineItems.reduce((sum, item) => sum + item.qty, 0),
