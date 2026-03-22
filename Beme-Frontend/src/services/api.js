@@ -87,6 +87,46 @@ async function request(path, options = {}, authRequired = false) {
   return toJson(res);
 }
 
+function sanitizeDelivery(payload) {
+  const method = String(payload?.method || "").trim().toLowerCase();
+  const label = String(payload?.label || "").trim();
+
+  const regionalBaseFee =
+    Number(payload?.breakdown?.regionalBaseFee || 0) || 0;
+  const methodFee = Number(payload?.breakdown?.methodFee || 0) || 0;
+  const abroadFee = Number(payload?.breakdown?.abroadFee || 0) || 0;
+  const totalFee = Number(payload?.fee || 0) || 0;
+
+  const mallPickup = payload?.mallPickup
+    ? {
+        id: String(payload.mallPickup.id || "").trim(),
+        label: String(payload.mallPickup.label || "").trim(),
+        area: String(payload.mallPickup.area || "").trim(),
+        fee: Number(payload.mallPickup.fee || 0) || 0,
+      }
+    : null;
+
+  const homeDelivery = payload?.homeDelivery
+    ? {
+        label: String(payload.homeDelivery.label || "").trim(),
+        fee: Number(payload.homeDelivery.fee || 0) || 0,
+      }
+    : null;
+
+  return {
+    method,
+    label,
+    fee: totalFee,
+    breakdown: {
+      regionalBaseFee,
+      methodFee,
+      abroadFee,
+    },
+    mallPickup,
+    homeDelivery,
+  };
+}
+
 export async function getMyOrders() {
   return request("/api/orders", {}, true);
 }
@@ -108,6 +148,7 @@ export async function createCodOrder(payload) {
       country:
         String(payload?.customer?.country || "Ghana").trim() || "Ghana",
     },
+    delivery: sanitizeDelivery(payload?.delivery),
     items: Array.isArray(payload?.items)
       ? payload.items.map((item) => ({
           id: String(item?.id || item?.productId || "").trim(),
@@ -203,6 +244,7 @@ export async function paystackInit(payload) {
             Number.isFinite(Number(item?.stock)) ? Number(item.stock) : null,
         }))
       : [],
+    delivery: sanitizeDelivery(payload?.delivery),
     pricing: {
       subtotal: Number(payload?.pricing?.subtotal || 0) || 0,
       deliveryFee: Number(payload?.pricing?.deliveryFee || 0) || 0,
