@@ -1,8 +1,6 @@
 import express from "express";
 import { adminDb, firebaseAdmin } from "../firebaseAdmin.js";
-import {
-  createInitialCodState,
-} from "../modules/dropship/orderStates.js";
+import { createInitialCodState } from "../modules/dropship/orderStates.js";
 import {
   buildReviewPricing,
   summarizeReviewFlags,
@@ -16,6 +14,42 @@ const ALLOWED_CREATE_STATUS = new Set(["pending"]);
 const ALLOWED_PAYMENT_STATUS = new Set(["pending"]);
 const MAX_CART_ITEMS = 100;
 const MAX_ITEM_QTY = 20;
+
+/* Secure backend delivery config */
+const DELIVERY_METHODS = {
+  MALL_PICKUP: "mall_pickup",
+  HOME_DELIVERY: "home_delivery",
+};
+
+const OUTSIDE_ACCRA_DELIVERY_FEE = 50;
+const HOME_DELIVERY_FLAT_FEE = 150;
+
+const ACCRA_MALL_PICKUP_OPTIONS = {
+  "accra-mall": {
+    id: "accra-mall",
+    label: "Accra Mall Pickup",
+    area: "Tetteh Quarshie / Spintex",
+    fee: 0,
+  },
+  "achimota-mall": {
+    id: "achimota-mall",
+    label: "Achimota Mall Pickup",
+    area: "Achimota",
+    fee: 5,
+  },
+  "marina-mall": {
+    id: "marina-mall",
+    label: "Marina Mall Pickup",
+    area: "Airport",
+    fee: 10,
+  },
+  "west-hills-mall": {
+    id: "west-hills-mall",
+    label: "West Hills Mall Pickup",
+    area: "Weija",
+    fee: 15,
+  },
+};
 
 function safeTrim(value) {
   return String(value ?? "").trim();
@@ -253,6 +287,70 @@ function sanitizeCustomer(customer = {}) {
   };
 }
 
+function sanitizeDelivery(delivery = {}, customer = {}, abroadDeliveryFeeTotal = 0) {
+  const method = sanitizeText(delivery?.method, 40).toLowerCase();
+  const customerRegion = sanitizeText(customer?.region, 80);
+  const isGreaterAccra = customerRegion === "Greater Accra";
+
+  let regionalBaseFee = isGreaterAccra ? 0 : OUTSIDE_ACCRA_DELIVERY_FEE;
+  let methodFee = 0;
+  let label = "";
+
+  let mallPickup = null;
+  let homeDelivery = null;
+
+  if (!method) {
+    throw new Error("Delivery method is required.");
+  }
+
+  if (method === DELIVERY_METHODS.HOME_DELIVERY) {
+    methodFee = HOME_DELIVERY_FLAT_FEE;
+    label = "Home Delivery";
+    homeDelivery = {
+      label: "Home Delivery",
+      fee: HOME_DELIVERY_FLAT_FEE,
+    };
+  } else if (method === DELIVERY_METHODS.MALL_PICKUP) {
+    if (!isGreaterAccra) {
+      throw new Error("Mall pickup is only available in Greater Accra.");
+    }
+
+    const mallId = sanitizeText(delivery?.mallPickup?.id || delivery?.mallId, 80);
+    const safeMall = ACCRA_MALL_PICKUP_OPTIONS[mallId];
+
+    if (!safeMall) {
+      throw new Error("Invalid mall pickup option selected.");
+    }
+
+    methodFee = safeMall.fee;
+    label = safeMall.label;
+    mallPickup = {
+      id: safeMall.id,
+      label: safeMall.label,
+      area: safeMall.area,
+      fee: safeMall.fee,
+    };
+  } else {
+    throw new Error("Invalid delivery method.");
+  }
+
+  const abroadFee = Math.max(0, toNumber(abroadDeliveryFeeTotal, 0));
+  const totalFee = regionalBaseFee + methodFee + abroadFee;
+
+  return {
+    method,
+    label,
+    fee: totalFee,
+    breakdown: {
+      regionalBaseFee,
+      methodFee,
+      abroadFee,
+    },
+    mallPickup,
+    homeDelivery,
+  };
+}
+
 function normalizeIncomingItems(items) {
   if (!Array.isArray(items)) return [];
 
@@ -460,25 +558,8 @@ async function buildValidatedOrderItems(items) {
 }
 
 function sanitizePricing(pricing = {}, computedSubtotal = 0, computedDelivery = 0) {
-  const requestedSubtotal = Math.max(
-    0,
-    toNumber(pricing.subtotal, computedSubtotal)
-  );
-  const requestedDeliveryFee = Math.max(
-    0,
-    toNumber(pricing.deliveryFee, computedDelivery)
-  );
-
-  const subtotal =
-    Math.abs(requestedSubtotal - computedSubtotal) < 0.01
-      ? requestedSubtotal
-      : computedSubtotal;
-
-  const deliveryFee =
-    Math.abs(requestedDeliveryFee - computedDelivery) < 0.01
-      ? requestedDeliveryFee
-      : computedDelivery;
-
+  const subtotal = computedSubtotal;
+  const deliveryFee = computedDelivery;
   const total = subtotal + deliveryFee;
 
   return {
@@ -506,6 +587,7 @@ function sanitizeOrderForResponse(docSnap) {
     primaryShop: data.primaryShop || "main",
     pricing: data.pricing || null,
     customer: data.customer || null,
+    delivery: data.delivery || null,
     items: Array.isArray(data.items) ? data.items : [],
     createdAt: data.createdAt || null,
     updatedAt: data.updatedAt || null,
@@ -603,15 +685,16 @@ router.post("/", async (req, res) => {
     const { lineItems, subtotal, abroadDeliveryFeeTotal } =
       await buildValidatedOrderItems(req.body?.items || []);
 
-    const requestedDeliveryFee = Math.max(
-      0,
-      toNumber(req.body?.pricing?.deliveryFee, abroadDeliveryFeeTotal)
+    const delivery = sanitizeDelivery(
+      req.body?.delivery || {},
+      customer,
+      abroadDeliveryFeeTotal
     );
 
     const rawPricing = sanitizePricing(
       req.body?.pricing || {},
       subtotal,
-      requestedDeliveryFee
+      delivery.fee
     );
 
     const pricing = buildReviewPricing(rawPricing, lineItems);
@@ -640,6 +723,7 @@ router.post("/", async (req, res) => {
     const payload = {
       userId: authUser.uid,
       customer,
+      delivery,
       items: lineItems,
       shops,
       primaryShop: shops[0] || "main",
