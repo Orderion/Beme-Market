@@ -77,7 +77,8 @@ const ACCRA_MALL_PICKUP_OPTIONS = [
   },
 ];
 
-const ACCRA_HOME_DELIVERY_FEE = 20;
+/* Flat fee for all home deliveries */
+const HOME_DELIVERY_FEE = 150;
 
 const INITIAL_FORM = {
   email: "",
@@ -673,10 +674,7 @@ export default function Checkout() {
     if (!delivery.method) return 0;
 
     if (delivery.method === DELIVERY_METHODS.HOME_DELIVERY) {
-      if (form.region === "Greater Accra") {
-        return ACCRA_HOME_DELIVERY_FEE;
-      }
-      return 0;
+      return HOME_DELIVERY_FEE;
     }
 
     if (delivery.method === DELIVERY_METHODS.MALL_PICKUP) {
@@ -684,7 +682,7 @@ export default function Checkout() {
     }
 
     return 0;
-  }, [delivery.method, form.region, selectedMallOption]);
+  }, [delivery.method, selectedMallOption]);
 
   const abroadDeliveryFeeUI = useMemo(() => {
     return safeCartItems.reduce((sum, item) => {
@@ -737,12 +735,9 @@ export default function Checkout() {
     if (delivery.method === DELIVERY_METHODS.HOME_DELIVERY) {
       return {
         title: "Home Delivery",
-        note:
-          form.region === "Greater Accra"
-            ? `Home delivery in Greater Accra (+GHS ${ACCRA_HOME_DELIVERY_FEE.toFixed(
-                2
-              )})`
-            : `Outside Accra home delivery (base regional fee applies)`,
+        note: `Flat home delivery fee for all products (+GHS ${HOME_DELIVERY_FEE.toFixed(
+          2
+        )})`,
       };
     }
 
@@ -758,7 +753,7 @@ export default function Checkout() {
     }
 
     return null;
-  }, [delivery.method, form.region, selectedMallOption]);
+  }, [delivery.method, selectedMallOption]);
 
   useEffect(() => {
     if (isCODBlocked && method === "cod") {
@@ -771,9 +766,10 @@ export default function Checkout() {
       setDelivery((prev) => {
         if (prev.method === DELIVERY_METHODS.MALL_PICKUP || prev.mallId) {
           return {
-            method: prev.method === DELIVERY_METHODS.MALL_PICKUP
-              ? DELIVERY_METHODS.HOME_DELIVERY
-              : prev.method,
+            method:
+              prev.method === DELIVERY_METHODS.MALL_PICKUP
+                ? DELIVERY_METHODS.HOME_DELIVERY
+                : prev.method,
             mallId: "",
           };
         }
@@ -831,8 +827,7 @@ export default function Checkout() {
 
     setDelivery((prev) => ({
       method: nextMethod,
-      mallId:
-        nextMethod === DELIVERY_METHODS.MALL_PICKUP ? prev.mallId : "",
+      mallId: nextMethod === DELIVERY_METHODS.MALL_PICKUP ? prev.mallId : "",
     }));
 
     setTouched((prev) => ({
@@ -905,10 +900,7 @@ export default function Checkout() {
       next.deliveryMethod = "Please select a delivery option.";
     }
 
-    if (
-      delivery.method === DELIVERY_METHODS.MALL_PICKUP &&
-      !delivery.mallId
-    ) {
+    if (delivery.method === DELIVERY_METHODS.MALL_PICKUP && !delivery.mallId) {
       next.mallId = "Please select a pickup mall.";
     }
 
@@ -1032,7 +1024,7 @@ export default function Checkout() {
         delivery.method === DELIVERY_METHODS.HOME_DELIVERY
           ? {
               label: "Home Delivery",
-              fee: form.region === "Greater Accra" ? ACCRA_HOME_DELIVERY_FEE : 0,
+              fee: HOME_DELIVERY_FEE,
             }
           : null,
     };
@@ -1494,13 +1486,9 @@ export default function Checkout() {
                   disabled={inputsDisabled}
                 >
                   <strong>Home Delivery</strong>
-                  <span>
-                    {form.region === "Greater Accra"
-                      ? `Delivered to your address in Accra (+GHS ${ACCRA_HOME_DELIVERY_FEE.toFixed(
-                          2
-                        )})`
-                      : "Delivered to your address. Regional delivery fee applies."}
-                  </span>
+                  <span>{`Delivered to your address (+GHS ${HOME_DELIVERY_FEE.toFixed(
+                    2
+                  )})`}</span>
                 </button>
               </div>
 
