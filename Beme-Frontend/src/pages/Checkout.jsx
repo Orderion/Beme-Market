@@ -823,40 +823,41 @@ export default function Checkout() {
   };
 
   const setDeliveryMethod = (nextMethod) => {
-    if (sessionExpired || loading) return;
+  if (sessionExpired || loading) return;
 
-    setDelivery((prev) => ({
-      method: nextMethod,
-      mallId: nextMethod === DELIVERY_METHODS.MALL_PICKUP ? prev.mallId : "",
-    }));
-
+  if (
+    nextMethod === DELIVERY_METHODS.MALL_PICKUP &&
+    form.region !== "Greater Accra"
+  ) {
     setTouched((prev) => ({
       ...prev,
       deliveryMethod: true,
+      region: true,
     }));
-  };
 
-  const setMallPickup = (mallId) => {
-    if (sessionExpired || loading) return;
-
-    setDelivery({
-      method: DELIVERY_METHODS.MALL_PICKUP,
-      mallId,
-    });
-
-    setTouched((prev) => ({
+    setErrors((prev) => ({
       ...prev,
-      deliveryMethod: true,
-      mallId: true,
+      deliveryMethod: "Mall pickup is only available in Greater Accra.",
     }));
-  };
+    return;
+  }
 
-  const markTouched = (key) => () => {
-    setTouched((prev) => ({
-      ...prev,
-      [key]: true,
-    }));
-  };
+  setDelivery((prev) => ({
+    method: nextMethod,
+    mallId:
+      nextMethod === DELIVERY_METHODS.MALL_PICKUP ? prev.mallId : "",
+  }));
+
+  setTouched((prev) => ({
+    ...prev,
+    deliveryMethod: true,
+  }));
+
+  setErrors((prev) => ({
+    ...prev,
+    deliveryMethod: "",
+  }));
+};
 
   const validate = (v) => {
     const next = {};
@@ -900,13 +901,24 @@ export default function Checkout() {
       next.deliveryMethod = "Please select a delivery option.";
     }
 
-    if (delivery.method === DELIVERY_METHODS.MALL_PICKUP && !delivery.mallId) {
-      next.mallId = "Please select a pickup mall.";
-    }
+    if (!delivery.method) {
+  next.deliveryMethod = "Please select a delivery option.";
+}
 
-    if (!method) {
-      next.paymentMethod = "Please select a payment method.";
-    }
+if (
+  delivery.method === DELIVERY_METHODS.MALL_PICKUP &&
+  v.region !== "Greater Accra"
+) {
+  next.deliveryMethod = "Mall pickup is only available in Greater Accra.";
+}
+
+if (
+  delivery.method === DELIVERY_METHODS.MALL_PICKUP &&
+  v.region === "Greater Accra" &&
+  !delivery.mallId
+) {
+  next.mallId = "Please select a pickup mall.";
+}
 
     return next;
   };
@@ -1461,14 +1473,14 @@ export default function Checkout() {
               <h3>Delivery options</h3>
 
               <div className="delivery-methods">
-                <button
-                  type="button"
-                  className={`delivery-method-card ${
-                    delivery.method === DELIVERY_METHODS.MALL_PICKUP ? "is-active" : ""
-                  }`}
-                  onClick={() => setDeliveryMethod(DELIVERY_METHODS.MALL_PICKUP)}
-                  disabled={inputsDisabled || form.region !== "Greater Accra"}
-                >
+               <button
+                type="button"
+                 className={`delivery-method-card ${
+                 delivery.method === DELIVERY_METHODS.MALL_PICKUP ? "is-active" : ""
+                 }`}
+                onClick={() => setDeliveryMethod(DELIVERY_METHODS.MALL_PICKUP)}
+                disabled={inputsDisabled}
+               >
                   <strong>Mall Pickup</strong>
                   <span>
                     {form.region === "Greater Accra"
