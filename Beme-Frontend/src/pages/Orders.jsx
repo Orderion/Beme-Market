@@ -22,9 +22,7 @@ function getVisualStatus(status, paymentStatus, paid) {
   const normalizedPaymentStatus = normalizeStatus(paymentStatus);
 
   if (paid === true || normalizedPaymentStatus === "paid") {
-    if (
-      ["processing", "shipped", "delivered"].includes(normalizedStatus)
-    ) {
+    if (["processing", "shipped", "delivered"].includes(normalizedStatus)) {
       return normalizedStatus;
     }
     return "paid";
@@ -203,6 +201,49 @@ function extractItemOptions(item) {
   return collected;
 }
 
+function getDeliverySummary(delivery) {
+  if (!delivery || typeof delivery !== "object") return null;
+
+  const method = String(delivery.method || "").trim().toLowerCase();
+  const label = String(delivery.label || "").trim();
+  const fee = Number(delivery.fee || 0) || 0;
+
+  if (method === "mall_pickup") {
+    const mallLabel = String(delivery?.mallPickup?.label || "").trim();
+    const mallArea = String(delivery?.mallPickup?.area || "").trim();
+    const pickupFee = Number(delivery?.mallPickup?.fee || 0) || 0;
+
+    return {
+      title: "Mall Pickup",
+      label: mallLabel || label || "Mall Pickup",
+      note: mallArea || "Pickup at selected mall",
+      fee: pickupFee || fee,
+    };
+  }
+
+  if (method === "home_delivery") {
+    const homeLabel = String(delivery?.homeDelivery?.label || "").trim();
+
+    return {
+      title: "Home Delivery",
+      label: homeLabel || label || "Home Delivery",
+      note: "Delivered to your address",
+      fee,
+    };
+  }
+
+  if (label) {
+    return {
+      title: "Delivery",
+      label,
+      note: "",
+      fee,
+    };
+  }
+
+  return null;
+}
+
 async function getAuthHeaders() {
   const auth = getAuth();
   const currentUser = auth.currentUser;
@@ -370,6 +411,7 @@ export default function Orders() {
               const total = order.pricing?.total ?? order.amounts?.total ?? 0;
               const createdAt = formatDate(order.createdAt);
               const items = Array.isArray(order.items) ? order.items : [];
+              const deliverySummary = getDeliverySummary(order.delivery);
               const badgeText =
                 rawStatus === "payment_failed"
                   ? "Payment Failed"
@@ -432,6 +474,48 @@ export default function Orders() {
                       );
                     })}
                   </div>
+
+                  {deliverySummary ? (
+                    <div className="orders-delivery-box">
+                      <div className="orders-delivery-top">
+                        <span className="orders-delivery-label">Delivery</span>
+                        <strong className="orders-delivery-fee">
+                          {formatMoney(deliverySummary.fee)}
+                        </strong>
+                      </div>
+
+                      <div className="orders-delivery-title">
+                        {deliverySummary.title}
+                      </div>
+
+                      <div className="orders-delivery-text">
+                        {deliverySummary.label}
+                      </div>
+
+                      {deliverySummary.note ? (
+                        <div className="orders-delivery-subtext">
+                          {deliverySummary.note}
+                        </div>
+                      ) : null}
+
+                      {order?.delivery?.breakdown ? (
+                        <div className="orders-delivery-breakdown">
+                          <span>
+                            Base:{" "}
+                            {formatMoney(order.delivery.breakdown.regionalBaseFee)}
+                          </span>
+                          <span>
+                            Method:{" "}
+                            {formatMoney(order.delivery.breakdown.methodFee)}
+                          </span>
+                          <span>
+                            Abroad:{" "}
+                            {formatMoney(order.delivery.breakdown.abroadFee)}
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   <div className="orders-items-preview">
                     {items.slice(0, 3).map((item, index) => {
