@@ -13,20 +13,13 @@ function titleize(value) {
     .replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
-/* ---------------- ICONS ---------------- */
+/* ICONS */
 
 function Arrow() {
   return (
     <span className="side-arrow">
       <svg viewBox="0 0 24 24">
-        <path
-          d="M9 6l6 6-6 6"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+        <path d="M9 6l6 6-6 6" stroke="currentColor" fill="none" />
       </svg>
     </span>
   );
@@ -35,14 +28,7 @@ function Arrow() {
 function BackIcon() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg">
-      <path
-        d="M15 6l-6 6 6 6"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M15 6l-6 6 6 6" stroke="currentColor" fill="none" />
     </svg>
   );
 }
@@ -55,32 +41,16 @@ function IconSun() {
   );
 }
 
-/* ---------------- ROW ---------------- */
+/* ROW */
 
-function SidebarRow({
-  label,
-  onClick,
-  showArrow = false,
-  active = false,
-  danger = false,
-}) {
+function SidebarRow({ label, onClick, showArrow = false }) {
   return (
-    <button
-      className={`sidebar-link ${active ? "is-active" : ""} ${
-        danger ? "sidebar-link--danger" : ""
-      }`}
-      onClick={onClick}
-      type="button"
-    >
-      <span className="side-link-content">
-        <span>{label}</span>
-      </span>
+    <button className="sidebar-link" onClick={onClick}>
+      <span>{label}</span>
       {showArrow && <Arrow />}
     </button>
   );
 }
-
-/* ---------------- MAIN COMPONENT ---------------- */
 
 export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
@@ -92,14 +62,10 @@ export default function Sidebar({ isOpen, onClose }) {
   const [menuStack, setMenuStack] = useState(["main"]);
   const [confirmLogout, setConfirmLogout] = useState(false);
 
-  const currentMenu = menuStack[menuStack.length - 1];
-
   const shopLabel = useMemo(
     () => (adminShop ? titleize(adminShop) : ""),
     [adminShop]
   );
-
-  const isRouteActive = (path) => location.pathname === path;
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
@@ -113,7 +79,7 @@ export default function Sidebar({ isOpen, onClose }) {
     }
   }, [isOpen]);
 
-  /* -------- NAVIGATION -------- */
+  /* NAVIGATION */
 
   const go = (path) => {
     navigate(path);
@@ -138,15 +104,22 @@ export default function Sidebar({ isOpen, onClose }) {
   };
 
   const onLogout = async () => {
-    try {
-      await logout();
-    } finally {
-      onClose?.();
-      navigate("/", { replace: true });
-    }
+    await logout();
+    onClose?.();
+    navigate("/");
   };
 
-  /* ---------------- UI ---------------- */
+  /* INDEX FOR SLIDE */
+  const menuIndexMap = {
+    main: 0,
+    categories: 1,
+    departments: 2,
+    more: 3,
+    admin: 4,
+    shopAdmin: 5,
+  };
+
+  const currentIndex = menuIndexMap[menuStack[menuStack.length - 1]];
 
   return (
     <div className={`side-shell ${isOpen ? "is-open" : ""}`}>
@@ -158,44 +131,30 @@ export default function Sidebar({ isOpen, onClose }) {
           {menuStack.length > 1 && (
             <button onClick={popMenu} className="side-back">
               <BackIcon />
-              <span>Back</span>
+              Back
             </button>
           )}
 
-          <h3 className="side-title">
-            {currentMenu === "main"
-              ? "Menu"
-              : titleize(currentMenu)}
-          </h3>
+          <h3 className="side-title">Menu</h3>
 
           <button onClick={onClose} className="side-close">
             ×
           </button>
         </div>
 
-        {/* CONTENT */}
+        {/* STACK */}
         <div className="side-scroll">
-
-          {/* MAIN MENU */}
-          {currentMenu === "main" && (
-            <>
-              <SidebarRow
-                label="Home"
-                onClick={() => go("/")}
-                active={isRouteActive("/")}
-              />
-
-              <SidebarRow
-                label="Shop"
-                onClick={() => go("/shop")}
-                active={isRouteActive("/shop")}
-              />
+          <div
+            className="menu-stack"
+            style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+          >
+            {/* MAIN */}
+            <div className="menu-view">
+              <SidebarRow label="Home" onClick={() => go("/")} />
+              <SidebarRow label="Shop" onClick={() => go("/shop")} />
 
               {user && (
-                <SidebarRow
-                  label="Orders"
-                  onClick={() => go("/orders")}
-                />
+                <SidebarRow label="Orders" onClick={() => go("/orders")} />
               )}
 
               <SidebarRow
@@ -223,94 +182,53 @@ export default function Sidebar({ isOpen, onClose }) {
                   showArrow
                 />
               )}
+            </div>
 
-              {isShopAdmin && (
-                <SidebarRow
-                  label={`Shop Admin${shopLabel ? ` • ${shopLabel}` : ""}`}
-                  onClick={() => pushMenu("shopAdmin")}
-                  showArrow
-                />
-              )}
-            </>
-          )}
-
-          {/* CATEGORIES */}
-          {currentMenu === "categories" && (
-            <>
+            {/* CATEGORIES */}
+            <div className="menu-view">
               <SidebarRow label="Tech" onClick={() => goCategory("tech")} />
               <SidebarRow label="Fashion" onClick={() => goCategory("fashion")} />
               <SidebarRow label="Accessories" onClick={() => goCategory("accessories")} />
-            </>
-          )}
+            </div>
 
-          {/* DEPARTMENTS */}
-          {currentMenu === "departments" && (
-            <>
+            {/* DEPARTMENTS */}
+            <div className="menu-view">
               <SidebarRow label="Men" onClick={() => goDept("men")} />
               <SidebarRow label="Women" onClick={() => goDept("women")} />
               <SidebarRow label="Unisex" onClick={() => goDept("unisex")} />
               <SidebarRow label="Kids" onClick={() => goDept("kids")} />
-            </>
-          )}
+            </div>
 
-          {/* MORE */}
-          {currentMenu === "more" && (
-            <>
+            {/* MORE */}
+            <div className="menu-view">
               <SidebarRow label="About Us" onClick={() => go("/about")} />
               <SidebarRow label="Support" onClick={() => go("/support")} />
               <SidebarRow label="Contact" onClick={() => go("/contact")} />
               <SidebarRow label="FAQ" onClick={() => go("/faq")} />
-              <SidebarRow label="Shipping & Returns" onClick={() => go("/shipping&returns")} />
-            </>
-          )}
+            </div>
 
-          {/* SUPER ADMIN */}
-          {currentMenu === "admin" && (
-            <>
+            {/* ADMIN */}
+            <div className="menu-view">
               <SidebarRow label="Product Manager" onClick={() => go("/admin")} />
-              <SidebarRow label="Review Queue" onClick={() => go("/admin-review-queue")} />
-              <SidebarRow label="Marketplace Orders" onClick={() => go("/admin-orders")} />
-              <SidebarRow label="Analytics" onClick={() => go("/analytics")} />
-              <SidebarRow label="Payout Requests" onClick={() => go("/payout-requests")} />
-            </>
-          )}
+              <SidebarRow label="Orders" onClick={() => go("/admin-orders")} />
+            </div>
 
-          {/* SHOP ADMIN */}
-          {currentMenu === "shopAdmin" && (
-            <>
-              <SidebarRow label="Product Manager" onClick={() => go("/admin")} />
-              <SidebarRow label="Review Queue" onClick={() => go("/admin-review-queue")} />
-              <SidebarRow label="Shop Orders" onClick={() => go("/admin-orders")} />
-              <SidebarRow label="Analytics" onClick={() => go("/analytics")} />
-              <SidebarRow label="Payout Requests" onClick={() => go("/payout-requests")} />
-            </>
-          )}
+            {/* FOOTER PAGE */}
+            <div className="menu-view">
+              {!user ? (
+                <>
+                  <SidebarRow label="Login" onClick={() => go("/login")} />
+                  <SidebarRow label="Sign Up" onClick={() => go("/signup")} />
+                </>
+              ) : (
+                <SidebarRow label="Logout" onClick={onLogout} />
+              )}
 
-          {/* FOOTER */}
-          <div className="side-footer">
-            {!user ? (
-              <>
-                <SidebarRow label="Login" onClick={() => go("/login")} />
-                <SidebarRow label="Sign Up" onClick={() => go("/signup")} />
-              </>
-            ) : !confirmLogout ? (
-              <SidebarRow
-                label="Logout"
-                onClick={() => setConfirmLogout(true)}
-                danger
-              />
-            ) : (
-              <div className="side-confirm">
-                <p>Confirm logout?</p>
-                <button onClick={() => setConfirmLogout(false)}>Cancel</button>
-                <button onClick={onLogout}>Logout</button>
-              </div>
-            )}
-
-            <button onClick={toggleTheme} className="theme-toggle-btn">
-              <IconSun />
-              {darkMode ? "Light Mode" : "Dark Mode"}
-            </button>
+              <button onClick={toggleTheme} className="theme-toggle-btn">
+                <IconSun />
+                {darkMode ? "Light Mode" : "Dark Mode"}
+              </button>
+            </div>
           </div>
         </div>
       </aside>
