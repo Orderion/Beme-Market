@@ -5,124 +5,41 @@ import { useAuth } from "../context/AuthContext";
 import { DEFAULT_KIND_BY_DEPT } from "../constants/catalog";
 import "./Sidebar.css";
 
-function titleize(value) {
-  return String(value || "")
-    .replace(/[-_]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (m) => m.toUpperCase());
-}
-
+// --- Icons ---
 function IconHome() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
+      <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
     </svg>
   );
 }
-
 function IconShop() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M5 8h14l-1 11H6L5 8z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9 8V6a3 3 0 0 1 6 0v2"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
+      <path d="M5 8h14l-1 11H6L5 8z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
-
 function IconGrid() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <rect
-        x="4"
-        y="4"
-        width="7"
-        height="7"
-        rx="1.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <rect
-        x="13"
-        y="4"
-        width="7"
-        height="7"
-        rx="1.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <rect
-        x="4"
-        y="13"
-        width="7"
-        height="7"
-        rx="1.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <rect
-        x="13"
-        y="13"
-        width="7"
-        height="7"
-        rx="1.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
+      <rect x="4" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <rect x="13" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <rect x="4" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <rect x="13" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
     </svg>
   );
 }
-
 function IconLayers() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="m12 4 8 4-8 4-8-4 8-4Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path
-        d="m4 12 8 4 8-4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path
-        d="m4 16 8 4 8-4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
+      <path d="m12 4 8 4-8 4-8-4 8-4Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="m4 12 8 4 8-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="m4 16 8 4 8-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
     </svg>
   );
 }
-
 function IconMore() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
@@ -132,259 +49,115 @@ function IconMore() {
     </svg>
   );
 }
-
 function IconTag() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M20 13 11 22l-9-9V4h9l9 9Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
+      <path d="M20 13 11 22l-9-9V4h9l9 9Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
       <circle cx="7" cy="7" r="1.5" fill="currentColor" />
     </svg>
   );
 }
-
 function IconOrders() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M7 4.5h10a2 2 0 0 1 2 2V19a1 1 0 0 1-1.6.8L12 16l-5.4 3.8A1 1 0 0 1 5 19V6.5a2 2 0 0 1 2-2Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9 8.5h6M9 11.5h6"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
+      <path d="M7 4.5h10a2 2 0 0 1 2 2V19a1 1 0 0 1-1.6.8L12 16l-5.4 3.8A1 1 0 0 1 5 19V6.5a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M9 8.5h6M9 11.5h6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
-
 function IconReviewQueue() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M6 5.5h9a2 2 0 0 1 2 2V18a1 1 0 0 1-1.6.8L12 16.5l-3.4 2.3A1 1 0 0 1 7 18V6.5a1 1 0 0 0-1-1Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9 9.2h5.5M9 12.2h4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <circle
-        cx="18"
-        cy="17.5"
-        r="3"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="m19.8 19.3 1.7 1.7"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
+      <path d="M6 5.5h9a2 2 0 0 1 2 2V18a1 1 0 0 1-1.6.8L12 16.5l-3.4 2.3A1 1 0 0 1 7 18V6.5a1 1 0 0 0-1-1Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M9 9.2h5.5M9 12.2h4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <circle cx="18" cy="17.5" r="3" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path d="m19.8 19.3 1.7 1.7" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
-
 function IconLogin() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M10 17v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v1"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="M4 12h10"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="m11 9 3 3-3 3"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M10 17v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v1" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M4 12h10" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="m11 9 3 3-3 3" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
-
 function IconUserPlus() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M5 20a7 7 0 0 1 14 0"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="M19 8V4M17 6h4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
+      <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M5 20a7 7 0 0 1 14 0" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M19 8V4M17 6h4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
-
 function IconLogout() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M10 7V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-1"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="M4 12h10"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="m7 9-3 3 3 3"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M10 7V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-1" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M4 12h10" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="m7 9-3 3 3 3" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
-
 function IconSun() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <circle
-        cx="12"
-        cy="12"
-        r="4.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
+      <circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
-
 function IconShield() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M12 3 19 6v5c0 5-2.8 8.5-7 10-4.2-1.5-7-5-7-10V6l7-3Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
+      <path d="M12 3 19 6v5c0 5-2.8 8.5-7 10-4.2-1.5-7-5-7-10V6l7-3Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
     </svg>
   );
 }
-
 function IconAccount() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <circle
-        cx="12"
-        cy="8"
-        r="3.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M5 19a7 7 0 0 1 14 0"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="M18.5 5.5h2M19.5 4.5v2"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
+      <circle cx="12" cy="8" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M5 19a7 7 0 0 1 14 0" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M18.5 5.5h2M19.5 4.5v2" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
-
 function IconTools() {
   return (
     <svg viewBox="0 0 24 24" className="side-svg" aria-hidden="true">
-      <path
-        d="M14.5 6.5a4 4 0 0 0 4.9 4.9l-7.6 7.6a2 2 0 1 1-2.8-2.8l7.6-7.6a4 4 0 0 0-4.9-4.9l2.4 2.4-1.8 1.8-2.4-2.4Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M14.5 6.5a4 4 0 0 0 4.9 4.9l-7.6 7.6a2 2 0 1 1-2.8-2.8l7.6-7.6a4 4 0 0 0-4.9-4.9l2.4 2.4-1.8 1.8-2.4-2.4Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
-function Chevron({ open = false }) {
+function ChevronRight() {
   return (
-    <span className={`side-chevron ${open ? "open" : ""}`} aria-hidden="true">
+    <span className="side-chevron" aria-hidden="true">
       <svg viewBox="0 0 24 24" className="side-chevron-svg">
-        <path
-          d="m8 10 4 4 4-4"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+        <path d="m9 18 6-6-6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </span>
   );
+}
+
+function IconBack() {
+  return (
+    <svg viewBox="0 0 24 24" className="side-back-icon" aria-hidden="true">
+      <path d="m15 18-6-6 6-6" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function titleize(value) {
+  return String(value || "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
 function SidebarRow({
@@ -392,24 +165,20 @@ function SidebarRow({
   label,
   onClick,
   danger = false,
-  expand = false,
-  open = false,
+  hasSubmenu = false,
   active = false,
 }) {
   return (
     <button
-      className={`sidebar-link ${danger ? "sidebar-link--danger" : ""} ${
-        expand ? "sidebar-link--expand" : ""
-      } ${open ? "is-open" : ""} ${active ? "is-active" : ""}`}
+      className={`sidebar-link ${danger ? "sidebar-link--danger" : ""} ${active ? "is-active" : ""}`}
       onClick={onClick}
-      aria-expanded={expand ? open : undefined}
       type="button"
     >
       <span className="side-link-content">
         {icon}
-        <span>{label}</span>
+        <span className="side-label">{label}</span>
       </span>
-      {expand ? <Chevron open={open} /> : null}
+      {hasSubmenu && <ChevronRight />}
     </button>
   );
 }
@@ -420,46 +189,28 @@ export default function Sidebar({ isOpen, onClose }) {
   const { darkMode, toggleTheme } = useTheme();
   const { user, logout, isSuperAdmin, isShopAdmin, adminShop } = useAuth();
 
-  const [openSection, setOpenSection] = useState(null);
+  // 'main' or 'sub' (based on MongoDB logic)
+  const [view, setView] = useState("main"); 
+  const [activeSubmenu, setActiveSubmenu] = useState(null);
   const [confirmLogout, setConfirmLogout] = useState(false);
 
   const offers = useMemo(() => [], []);
-  const shopLabel = useMemo(
-    () => (adminShop ? titleize(adminShop) : ""),
-    [adminShop]
-  );
+  const shopLabel = useMemo(() => (adminShop ? titleize(adminShop) : ""), [adminShop]);
 
-  const isRouteActive = (path) => {
-    if (!path) return false;
-    return location.pathname === path;
-  };
+  const isRouteActive = (path) => path && location.pathname === path;
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
+    return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
       setConfirmLogout(false);
-      setOpenSection(null);
+      setView("main");
+      setActiveSubmenu(null);
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const onKeyDown = (event) => {
-      if (event.key === "Escape") {
-        onClose?.();
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isOpen, onClose]);
 
   const go = (path) => {
     setConfirmLogout(false);
@@ -467,21 +218,14 @@ export default function Sidebar({ isOpen, onClose }) {
     onClose?.();
   };
 
-  const goDept = (dept) => {
-    const kind = DEFAULT_KIND_BY_DEPT[dept];
-    go(`/shop?dept=${dept}${kind ? `&kind=${kind}` : ""}`);
+  const openSubmenu = (menuId) => {
+    setActiveSubmenu(menuId);
+    setView("sub");
   };
 
-  const goCategory = (cat) => {
-    go(`/shop?q=${encodeURIComponent(cat)}`);
-  };
-
-  const onOffersClick = () => {
-    if (!offers.length) {
-      alert("You have no offers yet.");
-      return;
-    }
-    onClose?.();
+  const goBack = () => {
+    setView("main");
+    setActiveSubmenu(null);
   };
 
   const onLogout = async () => {
@@ -494,386 +238,131 @@ export default function Sidebar({ isOpen, onClose }) {
     }
   };
 
-  const toggleSection = (name) => {
-    setOpenSection((prev) => (prev === name ? null : name));
-  };
-
   return (
-    <div
-      className={`side-shell ${isOpen ? "is-open" : ""}`}
-      aria-hidden={!isOpen}
-    >
+    <div className={`side-shell ${isOpen ? "is-open" : ""}`} aria-hidden={!isOpen}>
       <div className={`overlay ${isOpen ? "is-open" : ""}`} onClick={onClose} />
 
-      <aside
-        className={`side-panel ${isOpen ? "open" : ""}`}
-        aria-label="Sidebar menu"
-      >
+      <aside className={`side-panel ${isOpen ? "open" : ""}`} aria-label="Sidebar menu">
+        
+        {/* Dynamic Header based on View */}
         <div className="side-header">
-          <div className="side-header-copy">
-            <h3 className="side-title">Menu</h3>
-          </div>
-
-          <button
-            onClick={onClose}
-            aria-label="Close menu"
-            className="side-close"
-            type="button"
-          >
-            ×
-          </button>
+          {view === "sub" ? (
+            <button className="side-back-btn" onClick={goBack}>
+              <IconBack />
+              <span>Back</span>
+            </button>
+          ) : (
+            <div className="side-header-copy">
+              <h3 className="side-title">Menu</h3>
+            </div>
+          )}
+          <button onClick={onClose} aria-label="Close menu" className="side-close" type="button">×</button>
         </div>
 
         <div className="side-scroll">
-          <section className="side-group side-group--intro">
-            <div className="side-group-list">
-              <SidebarRow
-                icon={<IconHome />}
-                label="Home"
-                onClick={() => go("/")}
-                active={isRouteActive("/")}
-              />
-              <SidebarRow
-                icon={<IconShop />}
-                label="Shop"
-                onClick={() => go("/shop")}
-                active={isRouteActive("/shop")}
-              />
-              {user ? (
-                <SidebarRow
-                  icon={<IconOrders />}
-                  label="Orders"
-                  onClick={() => go("/orders")}
-                  active={isRouteActive("/orders")}
-                />
-              ) : null}
-            </div>
-          </section>
-
-          {isSuperAdmin ? (
+          {/* VIEW 1: MAIN MENU */}
+          <div className={`side-view-container ${view === "main" ? "active" : "inactive-left"}`}>
+            
             <section className="side-group">
-              <div className="side-group-label">Admin Controls</div>
+              <div className="side-group-label">PLATFORM</div>
               <div className="side-group-list">
-                <SidebarRow
-                  icon={<IconShield />}
-                  label="Product Manager"
-                  onClick={() => go("/admin")}
-                  active={isRouteActive("/admin")}
-                />
-                <SidebarRow
-                  icon={<IconReviewQueue />}
-                  label="Admin Review Queue"
-                  onClick={() => go("/admin-review-queue")}
-                  active={isRouteActive("/admin-review-queue")}
-                />
-                <SidebarRow
-                  icon={<IconOrders />}
-                  label="Marketplace Orders"
-                  onClick={() => go("/admin-orders")}
-                  active={isRouteActive("/admin-orders")}
-                />
-                <SidebarRow
-                  icon={<IconGrid />}
-                  label="Analytics"
-                  onClick={() => go("/analytics")}
-                  active={isRouteActive("/analytics")}
-                />
-                <SidebarRow
-                  icon={<IconTag />}
-                  label="Payout Requests"
-                  onClick={() => go("/payout-requests")}
-                  active={isRouteActive("/payout-requests")}
-                />
-                <SidebarRow
-                  icon={<IconLayers />}
-                  label="Shop Applications"
-                  onClick={() => go("/shop-applications")}
-                  active={isRouteActive("/shop-applications")}
-                />
-                <SidebarRow
-                  icon={<IconAccount />}
-                  label="Account Management"
-                  onClick={() => go("/account-management")}
-                  active={isRouteActive("/account-management")}
-                />
-                <SidebarRow
-                  icon={<IconTools />}
-                  label="Own a Shop"
-                  onClick={() => go("/own-a-shop")}
-                  active={isRouteActive("/own-a-shop")}
-                />
+                <SidebarRow icon={<IconHome />} label="Home" onClick={() => go("/")} active={isRouteActive("/")} />
+                <SidebarRow icon={<IconShop />} label="Shop" onClick={() => go("/shop")} active={isRouteActive("/shop")} />
+                {user && <SidebarRow icon={<IconOrders />} label="Orders" onClick={() => go("/orders")} active={isRouteActive("/orders")} />}
               </div>
             </section>
-          ) : null}
 
-          {isShopAdmin ? (
             <section className="side-group">
-              <div className="side-group-label">
-                Shop Admin Controls{shopLabel ? ` • ${shopLabel}` : ""}
-              </div>
+              <div className="side-group-label">BROWSE</div>
               <div className="side-group-list">
-                <SidebarRow
-                  icon={<IconShield />}
-                  label="Product Manager"
-                  onClick={() => go("/admin")}
-                  active={isRouteActive("/admin")}
-                />
-                <SidebarRow
-                  icon={<IconReviewQueue />}
-                  label="Review Queue"
-                  onClick={() => go("/admin-review-queue")}
-                  active={isRouteActive("/admin-review-queue")}
-                />
-                <SidebarRow
-                  icon={<IconOrders />}
-                  label="Shop Orders"
-                  onClick={() => go("/admin-orders")}
-                  active={isRouteActive("/admin-orders")}
-                />
-                <SidebarRow
-                  icon={<IconGrid />}
-                  label="Analytics"
-                  onClick={() => go("/analytics")}
-                  active={isRouteActive("/analytics")}
-                />
-                <SidebarRow
-                  icon={<IconTag />}
-                  label="Payout Requests"
-                  onClick={() => go("/payout-requests")}
-                  active={isRouteActive("/payout-requests")}
-                />
-                <SidebarRow
-                  icon={<IconAccount />}
-                  label="Account Management"
-                  onClick={() => go("/account-management")}
-                  active={isRouteActive("/account-management")}
-                />
+                <SidebarRow icon={<IconGrid />} label="Categories" onClick={() => openSubmenu("categories")} hasSubmenu />
+                <SidebarRow icon={<IconLayers />} label="Departments" onClick={() => openSubmenu("departments")} hasSubmenu />
+                <SidebarRow icon={<IconMore />} label="More" onClick={() => openSubmenu("more")} hasSubmenu />
+                <SidebarRow icon={<IconTag />} label="Offers" onClick={() => !offers.length ? alert("No offers yet.") : onClose()} />
               </div>
             </section>
-          ) : null}
 
-          <section className="side-group">
-            <div className="side-group-list">
-              <SidebarRow
-                icon={<IconGrid />}
-                label="Categories"
-                onClick={() => toggleSection("categories")}
-                expand
-                open={openSection === "categories"}
-              />
-
-              <div
-                className={`side-submenu-wrap ${
-                  openSection === "categories" ? "is-open" : ""
-                }`}
-              >
-                <div className="side-submenu">
-                  <button
-                    className="side-subitem"
-                    onClick={() => goCategory("tech")}
-                    type="button"
-                  >
-                    Tech
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => goCategory("fashion")}
-                    type="button"
-                  >
-                    Fashion
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => goCategory("accessories")}
-                    type="button"
-                  >
-                    Accessories
-                  </button>
+            {(isSuperAdmin || isShopAdmin) && (
+              <section className="side-group">
+                <div className="side-group-label">ADMINISTRATION {shopLabel && `• ${shopLabel}`}</div>
+                <div className="side-group-list">
+                  <SidebarRow icon={<IconShield />} label="Product Manager" onClick={() => go("/admin")} active={isRouteActive("/admin")} />
+                  <SidebarRow icon={<IconReviewQueue />} label="Review Queue" onClick={() => go("/admin-review-queue")} active={isRouteActive("/admin-review-queue")} />
+                  <SidebarRow icon={<IconOrders />} label="Management Orders" onClick={() => go("/admin-orders")} active={isRouteActive("/admin-orders")} />
+                  <SidebarRow icon={<IconGrid />} label="Analytics" onClick={() => go("/analytics")} active={isRouteActive("/analytics")} />
                 </div>
+              </section>
+            )}
+
+            <section className="side-group">
+               <div className="side-group-label">ACCOUNT</div>
+               <div className="side-group-list">
+                {!user ? (
+                  <>
+                    <SidebarRow icon={<IconLogin />} label="Login" onClick={() => go("/login")} />
+                    <SidebarRow icon={<IconUserPlus />} label="Sign up" onClick={() => go("/signup")} />
+                  </>
+                ) : (
+                  !confirmLogout ? (
+                    <SidebarRow icon={<IconLogout />} label="Logout" onClick={() => setConfirmLogout(true)} danger />
+                  ) : (
+                    <div className="side-confirm">
+                      <p>Logout?</p>
+                      <button onClick={onLogout} className="side-confirm-btn--danger">Yes</button>
+                      <button onClick={() => setConfirmLogout(false)}>No</button>
+                    </div>
+                  )
+                )}
+               </div>
+            </section>
+
+            <section className="side-group side-group--toggle">
+              <div className="sidebar-toggle-row">
+                <div className="side-link-content"><IconSun /><span>{darkMode ? "Light mode" : "Dark mode"}</span></div>
+                <button type="button" className={`theme-toggle ${darkMode ? "active" : ""}`} onClick={toggleTheme}>
+                  <span className="theme-toggle-track"><span className="theme-toggle-thumb" /></span>
+                </button>
               </div>
+            </section>
+          </div>
 
-              <SidebarRow
-                icon={<IconLayers />}
-                label="Departments"
-                onClick={() => toggleSection("departments")}
-                expand
-                open={openSection === "departments"}
-              />
-
-              <div
-                className={`side-submenu-wrap ${
-                  openSection === "departments" ? "is-open" : ""
-                }`}
-              >
-                <div className="side-submenu">
-                  <button
-                    className="side-subitem"
-                    onClick={() => goDept("men")}
-                    type="button"
-                  >
-                    Men
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => goDept("women")}
-                    type="button"
-                  >
-                    Women
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => goDept("unisex")}
-                    type="button"
-                  >
-                    Unisex
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => goDept("kids")}
-                    type="button"
-                  >
-                    Kids
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => goDept("accessories")}
-                    type="button"
-                  >
-                    Accessories
-                  </button>
+          {/* VIEW 2: SUBMENU (SLIDES IN) */}
+          <div className={`side-view-container ${view === "sub" ? "active" : "inactive-right"}`}>
+            
+            {activeSubmenu === "categories" && (
+              <section className="side-group">
+                <div className="side-group-label">ALL CATEGORIES</div>
+                <div className="side-group-list">
+                  {["Tech", "Fashion", "Accessories"].map(cat => (
+                    <button key={cat} className="side-sub-link" onClick={() => go(`/shop?q=${cat.toLowerCase()}`)}>{cat}</button>
+                  ))}
                 </div>
-              </div>
+              </section>
+            )}
 
-              <SidebarRow
-                icon={<IconMore />}
-                label="More"
-                onClick={() => toggleSection("more")}
-                expand
-                open={openSection === "more"}
-              />
-
-              <div
-                className={`side-submenu-wrap ${
-                  openSection === "more" ? "is-open" : ""
-                }`}
-              >
-                <div className="side-submenu">
-                  <button
-                    className="side-subitem"
-                    onClick={() => go("/about")}
-                    type="button"
-                  >
-                    About us
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => go("/support")}
-                    type="button"
-                  >
-                    Support us
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => go("/contact")}
-                    type="button"
-                  >
-                    Contact
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => go("/faq")}
-                    type="button"
-                  >
-                    FAQ
-                  </button>
-                  <button
-                    className="side-subitem"
-                    onClick={() => go("/shipping&returns")}
-                    type="button"
-                  >
-                    Shipping & Returns
-                  </button>
+            {activeSubmenu === "departments" && (
+              <section className="side-group">
+                <div className="side-group-label">STORE DEPARTMENTS</div>
+                <div className="side-group-list">
+                  {["Men", "Women", "Unisex", "Kids", "Accessories"].map(dept => (
+                    <button key={dept} className="side-sub-link" onClick={() => go(`/shop?dept=${dept.toLowerCase()}`)}>{dept}</button>
+                  ))}
                 </div>
-              </div>
+              </section>
+            )}
 
-              <SidebarRow
-                icon={<IconTag />}
-                label="Offers"
-                onClick={onOffersClick}
-              />
-            </div>
-          </section>
-
-          <section className="side-group">
-            <div className="side-group-list">
-              {!user ? (
-                <>
-                  <SidebarRow
-                    icon={<IconLogin />}
-                    label="Login"
-                    onClick={() => go("/login")}
-                    active={isRouteActive("/login")}
-                  />
-                  <SidebarRow
-                    icon={<IconUserPlus />}
-                    label="Sign up"
-                    onClick={() => go("/signup")}
-                    active={isRouteActive("/signup")}
-                  />
-                </>
-              ) : !confirmLogout ? (
-                <SidebarRow
-                  icon={<IconLogout />}
-                  label="Logout"
-                  onClick={() => setConfirmLogout(true)}
-                  danger
-                />
-              ) : (
-                <div className="side-confirm">
-                  <p className="side-confirm-text">
-                    Are you sure you want to log out?
-                  </p>
-                  <div className="side-confirm-actions">
-                    <button
-                      className="side-confirm-btn"
-                      onClick={() => setConfirmLogout(false)}
-                      type="button"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      className="side-confirm-btn side-confirm-btn--danger"
-                      onClick={onLogout}
-                      type="button"
-                    >
-                      Log out
-                    </button>
-                  </div>
+            {activeSubmenu === "more" && (
+              <section className="side-group">
+                <div className="side-group-label">RESOURCES</div>
+                <div className="side-group-list">
+                  {["About", "Support", "Contact", "FAQ", "Shipping & Returns"].map(link => (
+                    <button key={link} className="side-sub-link" onClick={() => go(`/${link.toLowerCase().replace(/ /g, '')}`)}>{link}</button>
+                  ))}
                 </div>
-              )}
-            </div>
-          </section>
+              </section>
+            )}
+          </div>
 
-          <section className="side-group side-group--toggle">
-            <div className="sidebar-toggle-row">
-              <div className="side-link-content">
-                <IconSun />
-                <span>{darkMode ? "Light mode" : "Dark mode"}</span>
-              </div>
-
-              <button
-                type="button"
-                className={`theme-toggle ${darkMode ? "active" : ""}`}
-                onClick={toggleTheme}
-                aria-label="Toggle theme"
-                aria-pressed={darkMode}
-              >
-                <span className="theme-toggle-track">
-                  <span className="theme-toggle-thumb" />
-                </span>
-              </button>
-            </div>
-          </section>
         </div>
       </aside>
     </div>
