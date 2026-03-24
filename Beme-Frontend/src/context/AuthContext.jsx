@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   EmailAuthProvider,
   createUserWithEmailAndPassword,
@@ -11,27 +11,6 @@ import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 
 const AuthContext = createContext(null);
-
-// Global loader control (shared across the app)
-let globalLoaderTimeout = null;
-let setGlobalShowLoader = null;
-
-export function setGlobalLoading(show) {
-  if (setGlobalShowLoader) {
-    if (show) {
-      // Short delay to avoid flashing on quick actions (premium feel)
-      globalLoaderTimeout = setTimeout(() => {
-        setGlobalShowLoader(true);
-      }, 350);
-    } else {
-      if (globalLoaderTimeout) {
-        clearTimeout(globalLoaderTimeout);
-        globalLoaderTimeout = null;
-      }
-      setGlobalShowLoader(false);
-    }
-  }
-}
 
 function normalizeRole(value) {
   const role = String(value || "").trim().toLowerCase();
@@ -110,16 +89,6 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(buildInitialState().profile);
   const [loading, setLoading] = useState(buildInitialState().loading);
 
-  // Global loader state for this provider
-  const [showLoader, setShowLoader] = useState(false);
-
-  useEffect(() => {
-    setGlobalShowLoader = setShowLoader;
-    return () => {
-      setGlobalShowLoader = null;
-    };
-  }, []);
-
   const clearAuthState = () => {
     setUser(null);
     setRole("guest");
@@ -139,7 +108,6 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setLoading(true);
-      setGlobalLoading(true);
 
       try {
         if (!u) {
@@ -158,7 +126,6 @@ export function AuthProvider({ children }) {
         setProfile(null);
       } finally {
         setLoading(false);
-        setGlobalLoading(false);
       }
     });
 
@@ -166,80 +133,66 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (email, password) => {
-    setGlobalLoading(true);
-    try {
-      const cred = await signInWithEmailAndPassword(auth, email, password);
-      const resolved = await resolveProfile(cred.user.uid);
-      applyResolvedProfile(cred.user, resolved);
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    const resolved = await resolveProfile(cred.user.uid);
 
-      return {
-        user: cred.user,
-        role: resolved.role,
-        shop: resolved.shop,
-        capabilities: resolved.capabilities,
-        profile: resolved.profile,
-      };
-    } finally {
-      setGlobalLoading(false);
-    }
+    applyResolvedProfile(cred.user, resolved);
+
+    return {
+      user: cred.user,
+      role: resolved.role,
+      shop: resolved.shop,
+      capabilities: resolved.capabilities,
+      profile: resolved.profile,
+    };
   };
 
   const signup = async (email, password) => {
-    setGlobalLoading(true);
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
 
-      await setDoc(
-        doc(db, "users", cred.user.uid),
-        {
-          role: "customer",
-          shop: null,
-          capabilities: [],
-          email: String(email || "").trim().toLowerCase(),
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      const resolved = {
+    await setDoc(
+      doc(db, "users", cred.user.uid),
+      {
         role: "customer",
         shop: null,
         capabilities: [],
-        profile: {
-          id: cred.user.uid,
-          role: "customer",
-          shop: null,
-          capabilities: [],
-          email: String(email || "").trim().toLowerCase(),
-        },
-      };
+        email: String(email || "").trim().toLowerCase(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
 
-      applyResolvedProfile(cred.user, resolved);
+    const resolved = {
+      role: "customer",
+      shop: null,
+      capabilities: [],
+      profile: {
+        id: cred.user.uid,
+        role: "customer",
+        shop: null,
+        capabilities: [],
+        email: String(email || "").trim().toLowerCase(),
+      },
+    };
 
-      return {
-        user: cred.user,
-        role: resolved.role,
-        shop: resolved.shop,
-        capabilities: resolved.capabilities,
-        profile: resolved.profile,
-      };
-    } finally {
-      setGlobalLoading(false);
-    }
+    applyResolvedProfile(cred.user, resolved);
+
+    return {
+      user: cred.user,
+      role: resolved.role,
+      shop: resolved.shop,
+      capabilities: resolved.capabilities,
+      profile: resolved.profile,
+    };
   };
 
   const refreshProfile = async () => {
     if (!auth.currentUser?.uid) return null;
 
-    setGlobalLoading(true);
-    try {
-      const resolved = await resolveProfile(auth.currentUser.uid);
-      applyResolvedProfile(auth.currentUser, resolved);
-      return resolved;
-    } finally {
-      setGlobalLoading(false);
-    }
+    const resolved = await resolveProfile(auth.currentUser.uid);
+    applyResolvedProfile(auth.currentUser, resolved);
+    return resolved;
   };
 
   const reauthenticate = async (password) => {
@@ -257,17 +210,14 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    setGlobalLoading(true);
-    try {
-      await signOut(auth);
-      clearAuthState();
-    } finally {
-      setGlobalLoading(false);
-    }
+    await signOut(auth);
+    clearAuthState();
   };
 
   const value = useMemo(() => {
     const isSuperAdmin = role === "super_admin";
+
+    const isShopAdmin = false;
     const isAdmin = isSuperAdmin;
 
     const hasCapability = (capability) => {
@@ -286,7 +236,7 @@ export function AuthProvider({ children }) {
       loading,
       isAdmin,
       isSuperAdmin,
-      isShopAdmin: false,
+      isShopAdmin,
       hasCapability,
       login,
       signup,
@@ -296,17 +246,7 @@ export function AuthProvider({ children }) {
     };
   }, [user, role, adminShop, capabilities, profile, loading]);
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-      {/* Global premium loader - appears for login/logout/etc. */}
-      <LoaderOverlay 
-        show={showLoader} 
-        label="Please wait" 
-        subtext="Beme Market" 
-      />
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
