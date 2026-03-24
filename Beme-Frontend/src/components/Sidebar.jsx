@@ -1,4 +1,4 @@
-Import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
@@ -831,7 +831,7 @@ export default function Sidebar({ isOpen, onClose }) {
               ) : (
                 <div className="side-confirm">
                   <p className="side-confirm-text">
-                    Are you really sure you want to log out?
+                    Are you sure you want to log out?
                   </p>
                   <div className="side-confirm-actions">
                     <button
