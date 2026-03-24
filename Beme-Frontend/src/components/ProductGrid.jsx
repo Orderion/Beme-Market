@@ -1,8 +1,6 @@
-// FULL PRODUCTION VERSION (BEME MARKET SAFE)
-
-import { useEffect, useMemo, useRef, useState } from "react";
 import {
   collection,
+  getCountFromServer,
   getDocs,
   limit,
   orderBy,
@@ -14,224 +12,792 @@ import { db } from "../firebase";
 import ProductCard from "./ProductCard";
 import "./ProductGrid.css";
 
-/* ---------------- CONFIG ---------------- */
-
-const COLLECTION = "Products";
+const COLLECTION_NAME = "Products";
 const PAGE_SIZE = 24;
 const MAX_PAGES = 8;
+const SKELETON_COUNT = 8;
 
-/* ---------------- HELPERS ---------------- */
+function parseBooleanish(value, fallback = false) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value > 0;
 
-function normalizeFilter(f) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return fallback;
+
+  if (
+    [
+      "true",
+      "yes",
+      "1",
+      "in stock",
+      "instock",
+      "available",
+      "active",
+      "featured",
+      "abroad",
+      "imported",
+      "international",
+      "overseas",
+    ].includes(raw)
+  ) {
+    return true;
+  }
+
+  if (
+    [
+      "false",
+      "no",
+      "0",
+      "out of stock",
+      "outofstock",
+      "unavailable",
+      "inactive",
+      "local",
+    ].includes(raw)
+  ) {
+    return false;
+  }
+
+  return fallback;
+}
+
+function getNumericStock(value) {
+  if (value === "" || value === null || value === undefined) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeFilter(filter) {
+  if (!filter) {
+    return {
+      dept: null,
+      kind: null,
+      shop: null,
+      slot: null,
+      q: "",
+      priceMin: null,
+      priceMax: null,
+      inStockOnly: false,
+      featuredOnly: false,
+      sort: "new",
+    };
+  }
+
+  if (typeof filter === "string") {
+    return {
+      dept: filter.toLowerCase(),
+      kind: null,
+      shop: null,
+      slot: null,
+      q: "",
+      priceMin: null,
+      priceMax: null,
+      inStockOnly: false,
+      featuredOnly: false,
+      sort: "new",
+    };
+  }
+
   return {
-    dept: f?.dept || null,
-    kind: f?.kind || null,
-    shop: f?.shop || null,
-    slot: f?.slot || null,
-    q: (f?.q || "").toLowerCase().trim(),
-    priceMin: f?.priceMin ?? null,
-    priceMax: f?.priceMax ?? null,
-    inStockOnly: !!f?.inStockOnly,
-    featuredOnly: !!f?.featuredOnly,
-    sort: (f?.sort || "new").toLowerCase(),
+    dept: filter.dept ? String(filter.dept).toLowerCase().trim() : null,
+    kind: filter.kind ? String(filter.kind).toLowerCase().trim() : null,
+    shop: filter.shop ? String(filter.shop).toLowerCase().trim() : null,
+    slot: filter.slot ? String(filter.slot).toLowerCase().trim() : null,
+    q: filter.q ? String(filter.q).toLowerCase().trim() : "",
+    priceMin:
+      filter.priceMin != null && !Number.isNaN(Number(filter.priceMin))
+        ? Number(filter.priceMin)
+        : null,
+    priceMax:
+      filter.priceMax != null && !Number.isNaN(Number(filter.priceMax))
+        ? Number(filter.priceMax)
+        : null,
+    inStockOnly: !!filter.inStockOnly,
+    featuredOnly: !!filter.featuredOnly,
+    sort: (filter.sort || "new").toLowerCase(),
   };
 }
 
-function normalizeDoc(doc) {
-  const d = doc.data() || {};
+function normalizeImages(data) {
+  const list = Array.isArray(data?.images)
+    ? data.images.map((item) => String(item || "").trim()).filter(Boolean)
+    : [];
+
+  if (list.length) return list;
+
+  const single = String(data?.image || "").trim();
+  return single ? [single] : [];
+}
+
+function normalizeShippingSource(data) {
+  const candidates = [
+    data?.shippingSource,
+    data?.shippingType,
+    data?.shipFrom,
+    data?.ship_from,
+    data?.fulfillmentType,
+    data?.originType,
+    data?.shipping_origin,
+    data?.shipping_origin_type,
+  ];
+
+  for (const candidate of candidates) {
+    const value = String(candidate || "").trim().toLowerCase();
+    if (!value) continue;
+
+    if (
+      [
+        "abroad",
+        "ship from abroad",
+        "ships from abroad",
+        "international",
+        "imported",
+        "overseas",
+      ].includes(value)
+    ) {
+      return "abroad";
+    }
+
+    if (["uni", "unisex", "universal"].includes(value)) {
+      return "uni";
+    }
+
+    if (["local", "ghana", "domestic"].includes(value)) {
+      return "local";
+    }
+  }
+
+  if (
+    parseBooleanish(data?.shipFromAbroad, false) ||
+    parseBooleanish(data?.shipsFromAbroad, false)
+  ) {
+    return "abroad";
+  }
+
+  return "";
+}
+
+function normalizeDoc(docSnap) {
+  const d = docSnap.data() || {};
+
+  const price = Number(d.price ?? d.Price ?? 0) || 0;
+  const rawOldPrice = d.oldPrice ?? d.oldprice ?? null;
+
+  const dept = d.dept ?? d.Dept ?? null;
+  const kind = d.kind ?? d.Kind ?? null;
+  const shop = d.shop ?? d.Shop ?? "main";
+  const homeSlot =
+    d.homeSlot ??
+    d.home_filter ??
+    d.homeFilter ??
+    d.slot ??
+    d.discoveryCategory ??
+    "others";
+
+  const stock = getNumericStock(d.stock ?? d.Stock ?? d.quantity ?? d.qty);
+  const inStock = parseBooleanish(d.inStock ?? d.in_stock, true);
+  const featured = parseBooleanish(d.featured ?? d.Featured, false);
+
+  const images = normalizeImages(d);
+  const shippingSource = normalizeShippingSource(d);
+  const shipsFromAbroad =
+    shippingSource === "abroad" ||
+    parseBooleanish(d.shipFromAbroad, false) ||
+    parseBooleanish(d.shipsFromAbroad, false);
 
   return {
-    id: doc.id,
+    id: docSnap.id,
     ...d,
-    price: Number(d.price || 0),
-    shop: (d.shop || "main").toLowerCase(),
-    dept: d.dept?.toLowerCase() || null,
-    kind: d.kind?.toLowerCase() || null,
-    homeSlot: (d.homeSlot || "others").toLowerCase(),
-    featured: !!d.featured,
-    inStock: d.inStock !== false,
-    createdAt: d.createdAt || null,
+    price,
+    oldPrice:
+      rawOldPrice !== null && rawOldPrice !== undefined && rawOldPrice !== ""
+        ? Number(rawOldPrice) || rawOldPrice
+        : null,
+    dept: typeof dept === "string" ? dept.toLowerCase().trim() : dept,
+    kind: typeof kind === "string" ? kind.toLowerCase().trim() : kind,
+    shop: typeof shop === "string" ? shop.toLowerCase().trim() : shop,
+    homeSlot:
+      typeof homeSlot === "string" ? homeSlot.toLowerCase().trim() : "others",
+    stock,
+    inStock,
+    featured,
+    image: images[0] || "",
+    images,
+    shippingSource,
+    shipsFromAbroad,
+    createdAt: d.createdAt ?? null,
   };
 }
 
-function getTime(p) {
-  return p?.createdAt?.seconds
-    ? p.createdAt.seconds * 1000
-    : 0;
+function getCreatedAtMillis(item) {
+  if (typeof item?.createdAt?.toMillis === "function") {
+    return item.createdAt.toMillis();
+  }
+  if (typeof item?.createdAt?.seconds === "number") {
+    return item.createdAt.seconds * 1000;
+  }
+  return 0;
 }
 
-function sortList(list, sort) {
-  if (sort === "price-asc") return [...list].sort((a, b) => a.price - b.price);
-  if (sort === "price-desc") return [...list].sort((a, b) => b.price - a.price);
-  return [...list].sort((a, b) => getTime(b) - getTime(a));
+function clientSort(list, sortKey) {
+  const arr = [...list];
+
+  if (sortKey === "price-asc") {
+    return arr.sort((a, b) => (a.price || 0) - (b.price || 0));
+  }
+
+  if (sortKey === "price-desc") {
+    return arr.sort((a, b) => (b.price || 0) - (a.price || 0));
+  }
+
+  return arr.sort((a, b) => getCreatedAtMillis(b) - getCreatedAtMillis(a));
 }
 
-/* ---------------- COMPONENT ---------------- */
+function buildOrder(sortKey) {
+  if (sortKey === "price-asc") return orderBy("price", "asc");
+  if (sortKey === "price-desc") return orderBy("price", "desc");
+  return orderBy("createdAt", "desc");
+}
+
+function makeSkeleton(n = SKELETON_COUNT) {
+  return Array.from({ length: n }).map((_, i) => ({ id: `sk_${i}` }));
+}
+
+function buildSearchAliases(product) {
+  const source = [
+    product.name,
+    product.brand,
+    product.description,
+    product.shortDescription,
+    product.short_description,
+    product.dept,
+    product.kind,
+    product.shop,
+    product.homeSlot,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const aliases = [];
+
+  if (
+    /\b(phone|phones|iphone|android|mobile|smartphone|tecno|infinix|samsung|itel|pixel|ipad|tablet)\b/.test(
+      source
+    )
+  ) {
+    aliases.push(
+      "phone phones iphone android mobile smartphone tecno infinix samsung itel pixel ipad tablet"
+    );
+  }
+
+  if (
+    /\b(laptop|laptops|macbook|notebook|computer|pc|dell|hp|lenovo|acer|asus)\b/.test(
+      source
+    )
+  ) {
+    aliases.push(
+      "laptop laptops macbook notebook computer pc dell hp lenovo acer asus"
+    );
+  }
+
+  if (
+    /\b(shoe|shoes|sneaker|sneakers|slides|sandals|heels|boots|slippers|loafer|loafers)\b/.test(
+      source
+    )
+  ) {
+    aliases.push(
+      "shoe shoes sneaker sneakers slides sandals heels boots slippers loafer loafers"
+    );
+  }
+
+  if (
+    /\b(clothing|clothes|fashion|shirt|shirts|dress|dresses|hoodie|hoodies|trousers|jeans|top|tops|skirt|skirts|shorts)\b/.test(
+      source
+    )
+  ) {
+    aliases.push(
+      "clothing clothes fashion shirt shirts dress dresses hoodie hoodies trousers jeans top tops skirt skirts shorts"
+    );
+  }
+
+  if (
+    /\b(kids|kid|children|child|baby|babies|toddler|infant|youth)\b/.test(
+      source
+    )
+  ) {
+    aliases.push("kids kid children child baby babies toddler infant youth");
+  }
+
+  if (
+    product.homeSlot === "others" ||
+    /\b(other|others|accessory|accessories|watch|bag|bags|speaker|power bank|powerbank|perfume|cosmetics)\b/.test(
+      source
+    )
+  ) {
+    aliases.push(
+      "others other accessory accessories watch bag bags speaker power bank powerbank perfume cosmetics"
+    );
+  }
+
+  return aliases.join(" ");
+}
+
+function matchesSearch(product, term) {
+  if (!term) return true;
+
+  const haystack = [
+    product.name,
+    product.brand,
+    product.description,
+    product.shortDescription,
+    product.short_description,
+    product.dept,
+    product.kind,
+    product.shop,
+    product.homeSlot,
+    buildSearchAliases(product),
+    product.shipsFromAbroad
+      ? "ships from abroad imported international"
+      : "local",
+    product.inStock ? "in stock" : "out of stock",
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const tokens = String(term)
+    .toLowerCase()
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  return tokens.every((token) => haystack.includes(token));
+}
+
+function seededHash(input) {
+  let hash = 2166136261;
+
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
+function shouldRandomize(sortKey) {
+  return sortKey === "new" || sortKey === "";
+}
+
+function randomizedStableOrder(list, seedBase) {
+  return [...list].sort((a, b) => {
+    const aSeed = seededHash(`${seedBase}:${a.id}`);
+    const bSeed = seededHash(`${seedBase}:${b.id}`);
+
+    if (aSeed !== bSeed) return aSeed - bSeed;
+    return getCreatedAtMillis(b) - getCreatedAtMillis(a);
+  });
+}
 
 export default function ProductGrid({
-  filter,
-  sortBy,
+  filter = null,
+  sortBy = "new",
   withCount = false,
   infinite = true,
 }) {
   const [products, setProducts] = useState([]);
-  const [lastDoc, setLastDoc] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingFirst, setLoadingFirst] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [pagesLoaded, setPagesLoaded] = useState(0);
+  const [lastDoc, setLastDoc] = useState(null);
+  const [err, setErr] = useState("");
+  const [serverCount, setServerCount] = useState(null);
 
   const sentinelRef = useRef(null);
 
   const f = useMemo(() => normalizeFilter(filter), [filter]);
-  const sortKey = (sortBy || f.sort || "new").toLowerCase();
+  const sortKey = useMemo(
+    () => (sortBy || f.sort || "new").toLowerCase(),
+    [sortBy, f.sort]
+  );
 
-  /* ---------------- QUERY ---------------- */
+  const signature = useMemo(() => {
+    return JSON.stringify({
+      dept: f.dept,
+      kind: f.kind,
+      shop: f.shop,
+      slot: f.slot,
+      q: f.q,
+      inStockOnly: f.inStockOnly,
+      sortKey,
+      priceMin: f.priceMin,
+      priceMax: f.priceMax,
+      featuredOnly: f.featuredOnly,
+    });
+  }, [
+    f.dept,
+    f.kind,
+    f.shop,
+    f.slot,
+    f.q,
+    f.inStockOnly,
+    f.priceMin,
+    f.priceMax,
+    f.featuredOnly,
+    sortKey,
+  ]);
 
-  const baseQuery = useMemo(() => {
-    const col = collection(db, COLLECTION);
-    const conditions = [];
+  const randomSeedBase = useMemo(() => {
+    return [
+      "beme-market",
+      f.dept || "all",
+      f.kind || "all",
+      f.shop || "all",
+      f.slot || "all",
+      f.q || "none",
+      f.featuredOnly ? "featured" : "not-featured",
+      f.inStockOnly ? "in-stock" : "stock-any",
+      f.priceMin ?? "min-any",
+      f.priceMax ?? "max-any",
+    ].join("|");
+  }, [
+    f.dept,
+    f.kind,
+    f.shop,
+    f.slot,
+    f.q,
+    f.featuredOnly,
+    f.inStockOnly,
+    f.priceMin,
+    f.priceMax,
+  ]);
 
-    if (f.dept) conditions.push(where("dept", "==", f.dept));
-    if (f.kind) conditions.push(where("kind", "==", f.kind));
+  const baseQueryParts = useMemo(() => {
+    const colRef = collection(db, COLLECTION_NAME);
+    const wheres = [];
 
-    // ✅ FIX: ALL STORES SUPPORT
-    if (f.shop !== null) {
-      conditions.push(where("shop", "==", f.shop));
-    }
+    if (f.dept) wheres.push(where("dept", "==", f.dept));
+    if (f.kind) wheres.push(where("kind", "==", f.kind));
+    if (f.shop) wheres.push(where("shop", "==", f.shop));
+    if (f.inStockOnly) wheres.push(where("inStock", "==", true));
 
-    if (f.inStockOnly) {
-      conditions.push(where("inStock", "==", true));
-    }
-
-    return query(
-      col,
-      ...conditions,
-      orderBy("createdAt", "desc"),
-      limit(PAGE_SIZE)
-    );
-  }, [f.dept, f.kind, f.shop, f.inStockOnly]);
-
-  /* ---------------- FETCH FIRST ---------------- */
+    const ord = buildOrder(sortKey);
+    return { colRef, wheres, ord };
+  }, [f.dept, f.kind, f.shop, f.inStockOnly, sortKey]);
 
   useEffect(() => {
-    let active = true;
+    let alive = true;
 
-    async function run() {
-      setLoading(true);
+    async function runCount() {
+      if (!withCount) return;
 
-      const snap = await getDocs(baseQuery);
-      if (!active) return;
+      try {
+        const { colRef, wheres } = baseQueryParts;
+        const qCount = query(colRef, ...wheres);
+        const snap = await getCountFromServer(qCount);
 
-      const data = snap.docs.map(normalizeDoc);
-
-      setProducts(data);
-      setLastDoc(snap.docs[snap.docs.length - 1] || null);
-      setHasMore(snap.docs.length === PAGE_SIZE);
-      setLoading(false);
+        if (!alive) return;
+        setServerCount(snap.data().count);
+      } catch {
+        if (!alive) return;
+        setServerCount(null);
+      }
     }
 
-    run();
-    return () => (active = false);
-  }, [baseQuery]);
+    runCount();
 
-  /* ---------------- LOAD MORE ---------------- */
+    return () => {
+      alive = false;
+    };
+  }, [withCount, baseQueryParts, signature]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function fetchFirst() {
+      setErr("");
+      setLoadingFirst(true);
+      setLoadingMore(false);
+      setProducts([]);
+      setHasMore(true);
+      setPagesLoaded(0);
+      setLastDoc(null);
+
+      const { colRef, wheres, ord } = baseQueryParts;
+
+      try {
+        const qIdeal = query(colRef, ...wheres, ord, limit(PAGE_SIZE));
+        const snap = await getDocs(qIdeal);
+
+        if (!alive) return;
+
+        const normalized = snap.docs.map(normalizeDoc);
+        setProducts(normalized);
+        setLastDoc(snap.docs[snap.docs.length - 1] || null);
+        setHasMore(snap.docs.length === PAGE_SIZE);
+        setPagesLoaded(1);
+        setLoadingFirst(false);
+        return;
+      } catch {
+        try {
+          const qFallback = query(colRef, ...wheres, limit(PAGE_SIZE));
+          const snap2 = await getDocs(qFallback);
+
+          if (!alive) return;
+
+          const normalized2 = snap2.docs.map(normalizeDoc);
+          const sorted = clientSort(normalized2, sortKey);
+
+          setProducts(sorted);
+          setLastDoc(snap2.docs[snap2.docs.length - 1] || null);
+          setHasMore(snap2.docs.length === PAGE_SIZE);
+          setPagesLoaded(1);
+          setLoadingFirst(false);
+        } catch (e2) {
+          if (!alive) return;
+          console.error("❌ Failed to fetch products:", e2);
+          setErr("Failed to load products.");
+          setLoadingFirst(false);
+          setHasMore(false);
+        }
+      }
+    }
+
+    fetchFirst();
+
+    return () => {
+      alive = false;
+    };
+  }, [baseQueryParts, sortKey, signature]);
 
   const loadMore = async () => {
-    if (!hasMore || loadingMore || !lastDoc) return;
+    if (loadingFirst || loadingMore || !hasMore) return;
+    if (!lastDoc) return;
+    if (pagesLoaded >= MAX_PAGES) {
+      setHasMore(false);
+      return;
+    }
 
     setLoadingMore(true);
+    setErr("");
 
-    const snap = await getDocs(
-      query(baseQuery, startAfter(lastDoc))
-    );
+    const { colRef, wheres, ord } = baseQueryParts;
 
-    const data = snap.docs.map(normalizeDoc);
+    try {
+      const qMore = query(
+        colRef,
+        ...wheres,
+        ord,
+        startAfter(lastDoc),
+        limit(PAGE_SIZE)
+      );
+      const snap = await getDocs(qMore);
 
-    setProducts((prev) => [...prev, ...data]);
-    setLastDoc(snap.docs[snap.docs.length - 1] || lastDoc);
-    setHasMore(snap.docs.length === PAGE_SIZE);
+      const normalized = snap.docs.map(normalizeDoc);
 
-    setLoadingMore(false);
+      setProducts((prev) => {
+        const seen = new Set(prev.map((p) => p.id));
+        const merged = [...prev];
+        for (const p of normalized) {
+          if (!seen.has(p.id)) merged.push(p);
+        }
+        return merged;
+      });
+
+      setLastDoc(snap.docs[snap.docs.length - 1] || lastDoc);
+      setHasMore(snap.docs.length === PAGE_SIZE);
+      setPagesLoaded((p) => p + 1);
+      setLoadingMore(false);
+    } catch {
+      try {
+        const qMore2 = query(
+          colRef,
+          ...wheres,
+          startAfter(lastDoc),
+          limit(PAGE_SIZE)
+        );
+        const snap2 = await getDocs(qMore2);
+        const normalized2 = snap2.docs.map(normalizeDoc);
+
+        setProducts((prev) => {
+          const seen = new Set(prev.map((p) => p.id));
+          const merged = [...prev];
+          for (const p of normalized2) {
+            if (!seen.has(p.id)) merged.push(p);
+          }
+          return clientSort(merged, sortKey);
+        });
+
+        setLastDoc(snap2.docs[snap2.docs.length - 1] || lastDoc);
+        setHasMore(snap2.docs.length === PAGE_SIZE);
+        setPagesLoaded((p) => p + 1);
+        setLoadingMore(false);
+      } catch (e2) {
+        console.error("❌ Failed to load more:", e2);
+        setErr("Failed to load more products.");
+        setLoadingMore(false);
+        setHasMore(false);
+      }
+    }
   };
-
-  /* ---------------- SCROLL ---------------- */
 
   useEffect(() => {
     if (!infinite) return;
+    if (!sentinelRef.current) return;
 
     const el = sentinelRef.current;
-    if (!el) return;
-
     const io = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) loadMore();
+        const first = entries[0];
+        if (first?.isIntersecting) loadMore();
       },
-      { rootMargin: "600px" }
+      { root: null, rootMargin: "800px 0px", threshold: 0 }
     );
 
     io.observe(el);
     return () => io.disconnect();
-  }, [lastDoc, hasMore]);
-
-  /* ---------------- FINAL FILTER ---------------- */
+  }, [
+    infinite,
+    hasMore,
+    lastDoc,
+    loadingFirst,
+    loadingMore,
+    pagesLoaded,
+    signature,
+  ]);
 
   const finalList = useMemo(() => {
     let list = [...products];
 
     if (f.slot) {
-      list = list.filter((p) => p.homeSlot === f.slot);
-    }
-
-    if (f.featuredOnly) {
-      list = list.filter((p) => p.featured);
-    }
-
-    if (f.priceMin != null) {
-      list = list.filter((p) => p.price >= f.priceMin);
-    }
-
-    if (f.priceMax != null) {
-      list = list.filter((p) => p.price <= f.priceMax);
-    }
-
-    if (f.q) {
-      list = list.filter((p) =>
-        (p.name || "").toLowerCase().includes(f.q)
+      list = list.filter(
+        (p) => String(p.homeSlot || "others").toLowerCase().trim() === f.slot
       );
     }
 
-    return sortList(list, sortKey);
-  }, [products, f, sortKey]);
+    if (f.featuredOnly) {
+      list = list.filter((p) => !!p.featured);
+    }
 
-  /* ---------------- COUNT ---------------- */
+    if (f.priceMin != null) {
+      list = list.filter((p) => (Number(p.price) || 0) >= f.priceMin);
+    }
+
+    if (f.priceMax != null) {
+      list = list.filter((p) => (Number(p.price) || 0) <= f.priceMax);
+    }
+
+    if (f.q) {
+      list = list.filter((p) => matchesSearch(p, f.q));
+    }
+
+    if (shouldRandomize(sortKey)) {
+      return randomizedStableOrder(list, randomSeedBase);
+    }
+
+    return list;
+  }, [
+    products,
+    f.slot,
+    f.priceMin,
+    f.priceMax,
+    f.featuredOnly,
+    f.q,
+    sortKey,
+    randomSeedBase,
+  ]);
 
   if (withCount) {
-    return <>{finalList.length} items</>;
+    if (loadingFirst) return <>…</>;
+    if (err) return <>0 items</>;
+
+    const base = serverCount != null ? serverCount : finalList.length;
+    const clientFilteredActive =
+      !!f.slot ||
+      f.priceMin != null ||
+      f.priceMax != null ||
+      f.featuredOnly ||
+      !!f.q;
+
+    if (clientFilteredActive) return <>{finalList.length} items</>;
+    return <>{base} items</>;
   }
 
-  /* ---------------- UI ---------------- */
+  if (loadingFirst) {
+    return (
+      <div className="product-grid product-grid--loading">
+        {makeSkeleton().map((x) => (
+          <div key={x.id} className="product-skeleton" aria-hidden="true">
+            <div className="product-skeleton-media" />
+            <div className="product-skeleton-line" />
+            <div className="product-skeleton-line short" />
+            <div className="product-skeleton-line tiny" />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
-  if (loading) return <div className="product-grid">Loading...</div>;
+  if (err) {
+    return (
+      <div className="product-grid-empty">
+        <div className="product-grid-empty-title">Something went wrong</div>
+        <div className="product-grid-empty-sub">{err}</div>
+        <button
+          className="product-grid-empty-btn"
+          type="button"
+          onClick={() => window.location.reload()}
+        >
+          Refresh
+        </button>
+      </div>
+    );
+  }
 
   if (!finalList.length) {
-    return <div className="product-grid-empty">No products found</div>;
+    return (
+      <div className="product-grid-empty">
+        <div className="product-grid-empty-title">No products found</div>
+        <div className="product-grid-empty-sub">
+          Try another keyword or adjust your filters.
+        </div>
+        <button
+          className="product-grid-empty-btn"
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        >
+          Back to filters
+        </button>
+      </div>
+    );
   }
 
   return (
     <>
       <div className="product-grid">
-        {finalList.map((p) => (
-          <ProductCard key={p.id} product={p} />
+        {finalList.map((product) => (
+          <ProductCard key={product.id} product={product} />
         ))}
       </div>
 
       <div className="product-grid-footer">
-        {hasMore && (
-          <button onClick={loadMore}>
-            {loadingMore ? "Loading..." : "Load more"}
+        {loadingMore ? (
+          <div className="product-grid-footer-muted">Loading more…</div>
+        ) : hasMore ? (
+          <button
+            className="product-grid-loadmore"
+            type="button"
+            onClick={loadMore}
+          >
+            Load more
           </button>
+        ) : (
+          <div className="product-grid-footer-muted">End of results</div>
         )}
-        <div ref={sentinelRef} />
+
+        <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
     </>
   );
