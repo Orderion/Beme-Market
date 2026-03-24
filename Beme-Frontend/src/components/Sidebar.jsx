@@ -831,7 +831,7 @@ export default function Sidebar({ isOpen, onClose }) {
               ) : (
                 <div className="side-confirm">
                   <p className="side-confirm-text">
-                    Are you sure you want to log out?
+                    Are you really sure you want to log out?
                   </p>
                   <div className="side-confirm-actions">
                     <button
