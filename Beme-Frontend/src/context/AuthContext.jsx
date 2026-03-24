@@ -9,18 +9,18 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
-import LoaderOverlay from "../components/LoaderOverlay";   // ← Adjust path if your LoaderOverlay is in a different folder
+import LoaderOverlay from "../components/LoaderOverlay";   // ← CHANGE THIS PATH if your LoaderOverlay is in a different folder (e.g. ../ui/LoaderOverlay or ../components/ui/LoaderOverlay)
 
 const AuthContext = createContext(null);
 
-// Global loader control (shared across the app)
+// ====================== GLOBAL LOADER CONTROL ======================
 let globalLoaderTimeout = null;
 let setGlobalShowLoader = null;
 
 export function setGlobalLoading(show) {
   if (setGlobalShowLoader) {
     if (show) {
-      // 350ms delay for premium "late" feel - no flash on quick actions
+      // 350ms delay → premium "late response" feel (no flash on fast actions)
       globalLoaderTimeout = setTimeout(() => {
         setGlobalShowLoader(true);
       }, 350);
@@ -33,13 +33,13 @@ export function setGlobalLoading(show) {
     }
   }
 }
+// ===================================================================
 
 function normalizeRole(value) {
   const role = String(value || "").trim().toLowerCase();
 
   if (role === "super_admin") return "super_admin";
   if (role === "admin") return "super_admin";
-
   if (role === "shop_admin") return "shop_admin";
   if (role === "customer") return "customer";
 
@@ -53,7 +53,6 @@ function normalizeShop(value) {
 
 function normalizeCapabilities(value) {
   if (!Array.isArray(value)) return [];
-
   return value
     .map((item) => String(item || "").trim().toLowerCase())
     .filter(Boolean);
@@ -63,12 +62,7 @@ async function resolveProfile(uid) {
   const snap = await getDoc(doc(db, "users", uid));
 
   if (!snap.exists()) {
-    return {
-      role: "customer",
-      shop: null,
-      capabilities: [],
-      profile: null,
-    };
+    return { role: "customer", shop: null, capabilities: [], profile: null };
   }
 
   const data = snap.data() || {};
@@ -80,13 +74,7 @@ async function resolveProfile(uid) {
     role,
     shop,
     capabilities,
-    profile: {
-      id: snap.id,
-      ...data,
-      role,
-      shop,
-      capabilities,
-    },
+    profile: { id: snap.id, ...data, role, shop, capabilities },
   };
 }
 
@@ -105,20 +93,15 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(buildInitialState().user);
   const [role, setRole] = useState(buildInitialState().role);
   const [adminShop, setAdminShop] = useState(buildInitialState().adminShop);
-  const [capabilities, setCapabilities] = useState(
-    buildInitialState().capabilities
-  );
+  const [capabilities, setCapabilities] = useState(buildInitialState().capabilities);
   const [profile, setProfile] = useState(buildInitialState().profile);
   const [loading, setLoading] = useState(buildInitialState().loading);
 
-  // Global loader state
   const [showLoader, setShowLoader] = useState(false);
 
   useEffect(() => {
     setGlobalShowLoader = setShowLoader;
-    return () => {
-      setGlobalShowLoader = null;
-    };
+    return () => { setGlobalShowLoader = null; };
   }, []);
 
   const clearAuthState = () => {
@@ -147,7 +130,6 @@ export function AuthProvider({ children }) {
           clearAuthState();
           return;
         }
-
         const resolved = await resolveProfile(u.uid);
         applyResolvedProfile(u, resolved);
       } catch (error) {
@@ -172,14 +154,7 @@ export function AuthProvider({ children }) {
       const cred = await signInWithEmailAndPassword(auth, email, password);
       const resolved = await resolveProfile(cred.user.uid);
       applyResolvedProfile(cred.user, resolved);
-
-      return {
-        user: cred.user,
-        role: resolved.role,
-        shop: resolved.shop,
-        capabilities: resolved.capabilities,
-        profile: resolved.profile,
-      };
+      return { user: cred.user, role: resolved.role, shop: resolved.shop, capabilities: resolved.capabilities, profile: resolved.profile };
     } finally {
       setGlobalLoading(false);
     }
@@ -190,18 +165,14 @@ export function AuthProvider({ children }) {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
 
-      await setDoc(
-        doc(db, "users", cred.user.uid),
-        {
-          role: "customer",
-          shop: null,
-          capabilities: [],
-          email: String(email || "").trim().toLowerCase(),
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+      await setDoc(doc(db, "users", cred.user.uid), {
+        role: "customer",
+        shop: null,
+        capabilities: [],
+        email: String(email || "").trim().toLowerCase(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
 
       const resolved = {
         role: "customer",
@@ -217,14 +188,7 @@ export function AuthProvider({ children }) {
       };
 
       applyResolvedProfile(cred.user, resolved);
-
-      return {
-        user: cred.user,
-        role: resolved.role,
-        shop: resolved.shop,
-        capabilities: resolved.capabilities,
-        profile: resolved.profile,
-      };
+      return { user: cred.user, role: resolved.role, shop: resolved.shop, capabilities: resolved.capabilities, profile: resolved.profile };
     } finally {
       setGlobalLoading(false);
     }
@@ -232,7 +196,6 @@ export function AuthProvider({ children }) {
 
   const refreshProfile = async () => {
     if (!auth.currentUser?.uid) return null;
-
     setGlobalLoading(true);
     try {
       const resolved = await resolveProfile(auth.currentUser.uid);
@@ -244,15 +207,8 @@ export function AuthProvider({ children }) {
   };
 
   const reauthenticate = async (password) => {
-    if (!auth.currentUser?.email) {
-      throw new Error("No signed-in admin found.");
-    }
-
-    const credential = EmailAuthProvider.credential(
-      auth.currentUser.email,
-      String(password || "")
-    );
-
+    if (!auth.currentUser?.email) throw new Error("No signed-in admin found.");
+    const credential = EmailAuthProvider.credential(auth.currentUser.email, String(password || ""));
     await reauthenticateWithCredential(auth.currentUser, credential);
     return true;
   };
@@ -279,32 +235,16 @@ export function AuthProvider({ children }) {
     };
 
     return {
-      user,
-      role,
-      adminShop,
-      capabilities,
-      profile,
-      loading,
-      isAdmin,
-      isSuperAdmin,
-      isShopAdmin: false,
-      hasCapability,
-      login,
-      signup,
-      logout,
-      reauthenticate,
-      refreshProfile,
+      user, role, adminShop, capabilities, profile, loading,
+      isAdmin, isSuperAdmin, isShopAdmin: false, hasCapability,
+      login, signup, logout, reauthenticate, refreshProfile,
     };
   }, [user, role, adminShop, capabilities, profile, loading]);
 
   return (
     <AuthContext.Provider value={value}>
       {children}
-      <LoaderOverlay 
-        show={showLoader} 
-        label="Please wait" 
-        subtext="Beme Market" 
-      />
+      <LoaderOverlay show={showLoader} label="Please wait" subtext="Beme Market" />
     </AuthContext.Provider>
   );
 }
@@ -315,5 +255,5 @@ export function useAuth() {
   return ctx;
 }
 
-// Only ONE export for setGlobalLoading
+// ==================== ONLY ONE EXPORT ====================
 export { setGlobalLoading };
