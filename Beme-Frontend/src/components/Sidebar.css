@@ -4,7 +4,6 @@
   inset: 0;
   z-index: 1000;
   pointer-events: none;
-  width: 100%;
   visibility: hidden;
 }
 .side-shell.is-open {
@@ -26,8 +25,8 @@
 .side-panel {
   position: fixed;
   inset: 0;
-  width: 200%;
-  max-width: 200%;
+  width: 100%;
+  max-width: 100%;
   background: var(--bg, #fff);
   color: var(--text, #111);
   display: flex;
