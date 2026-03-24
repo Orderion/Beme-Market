@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   EmailAuthProvider,
   createUserWithEmailAndPassword,
@@ -9,6 +9,7 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
+import LoaderOverlay from "../components/LoaderOverlay";   // ← Adjust path if your LoaderOverlay is in a different folder
 
 const AuthContext = createContext(null);
 
@@ -19,7 +20,7 @@ let setGlobalShowLoader = null;
 export function setGlobalLoading(show) {
   if (setGlobalShowLoader) {
     if (show) {
-      // Short delay to avoid flashing on quick actions (premium feel)
+      // 350ms delay for premium "late" feel - no flash on quick actions
       globalLoaderTimeout = setTimeout(() => {
         setGlobalShowLoader(true);
       }, 350);
@@ -110,7 +111,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(buildInitialState().profile);
   const [loading, setLoading] = useState(buildInitialState().loading);
 
-  // Global loader state for this provider
+  // Global loader state
   const [showLoader, setShowLoader] = useState(false);
 
   useEffect(() => {
@@ -299,7 +300,6 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={value}>
       {children}
-      {/* Global premium loader - appears for login/logout/etc. */}
       <LoaderOverlay 
         show={showLoader} 
         label="Please wait" 
@@ -315,5 +315,5 @@ export function useAuth() {
   return ctx;
 }
 
-// Re-export the global loader helper for other files (orders, check-in, etc.)
+// Only ONE export for setGlobalLoading
 export { setGlobalLoading };
