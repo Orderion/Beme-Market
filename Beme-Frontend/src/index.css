@@ -30,9 +30,8 @@
   --motion-fast: 380ms var(--ease-premium);
   --motion-smooth: 650ms var(--ease-premium);
   --motion-slow: 920ms var(--ease-premium);
-  --drawer-motion: 1050ms var(--ease-premium);   /* smoother drawer slide */
+  --drawer-motion: 1050ms var(--ease-premium);
   --page-motion: 1100ms var(--ease-premium);
-  --micro-lift: translateY(-1px);
 
   /* Global delay for luxurious "late" response */
   --response-delay: 500ms;
@@ -105,7 +104,7 @@ body.dark ::selection {
 }
 
 /* =========================
-   TYPOGRAPHY SYSTEM
+   TYPOGRAPHY + DEFAULT ELEMENTS (unchanged)
 ========================= */
 
 h1, h2, h3, h4, h5, h6 {
@@ -140,10 +139,6 @@ button {
 }
 
 * { -webkit-tap-highlight-color: transparent; }
-
-/* =========================
-   DEFAULT ELEMENTS
-========================= */
 
 .card {
   background: var(--card);
@@ -192,16 +187,6 @@ input::placeholder, textarea::placeholder {
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes fadeInSoft {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes floatSoft {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-
 @keyframes cartPopupIn {
   from { opacity: 0; transform: translateY(14px) scale(0.975); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -209,7 +194,6 @@ input::placeholder, textarea::placeholder {
 
 .route-shell {
   animation: routeEnter var(--page-motion) var(--response-delay) both;
-  will-change: opacity, transform;
 }
 
 @keyframes routeEnter {
@@ -218,16 +202,14 @@ input::placeholder, textarea::placeholder {
 }
 
 /* =========================
-   PREMIUM DRAWERS (Side Menu from LEFT, Cart from RIGHT)
+   DRAWERS - Sidebar from LEFT, Cart from RIGHT
 ========================= */
 
+/* Sidebar (left) */
 .side-panel, .sidebar {
   position: fixed;
-  top: 0;
-  bottom: 0;
-  left: -100%;                    /* start off-screen left */
-  width: 92vw;
-  max-width: 420px;
+  top: 0; bottom: 0; left: -100%;
+  width: 92vw; max-width: 420px;
   background: var(--card);
   border-right: 1px solid var(--border);
   box-shadow: var(--shadow);
@@ -235,9 +217,7 @@ input::placeholder, textarea::placeholder {
   overflow-y: auto;
   transform: translateX(-100%);
   transition: transform var(--drawer-motion) var(--response-delay) var(--ease-premium),
-              opacity var(--motion-slow) var(--response-delay),
-              box-shadow var(--motion-slow) var(--response-delay);
-  will-change: transform;
+              opacity var(--motion-slow) var(--response-delay);
   opacity: 0;
 }
 
@@ -245,70 +225,71 @@ input::placeholder, textarea::placeholder {
   transform: translateX(0);
   opacity: 1;
   left: 0;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
 }
 
-.cart-drawer, .cd-panel {
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  right: -100%;                    /* start off-screen right */
-  width: 92vw;
-  max-width: 420px;
-  background: var(--card);
-  border-left: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  z-index: 1300;
-  overflow-y: auto;
-  transform: translateX(100%);
-  transition: transform var(--drawer-motion) var(--response-delay) var(--ease-premium),
-              opacity var(--motion-slow) var(--response-delay),
-              box-shadow var(--motion-slow) var(--response-delay);
-  will-change: transform;
-  opacity: 0;
-}
-
-.cart-drawer.open, .cd-panel.open {
-  transform: translateX(0);
-  opacity: 1;
-  right: 0;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
-}
-
-/* Closing animation for both */
-.side-panel.closing, .sidebar.closing,
-.cart-drawer.closing, .cd-panel.closing {
-  transition: transform var(--drawer-motion) var(--ease-premium),
-              opacity var(--motion-slow);
-  transform: translateX(-100%);   /* side menu slides back left */
-  opacity: 0;
-}
-
-.cart-drawer.closing, .cd-panel.closing {
-  transform: translateX(100%);    /* cart slides back right */
-}
-
-/* Backdrop */
-.drawer-backdrop, .side-backdrop, .cart-backdrop {
+/* Cart Drawer (right) - matches your .cd-panel + .cd--open */
+.cd, .cd-panel {
   position: fixed;
   inset: 0;
-  background: var(--overlay);
-  z-index: 1290;
-  opacity: 0;
+  z-index: 9999;
+  pointer-events: none;
   visibility: hidden;
-  transition: opacity var(--motion-slow) var(--response-delay),
-              visibility var(--motion-slow) var(--response-delay);
-  backdrop-filter: var(--backdrop-blur-light);
-  -webkit-backdrop-filter: var(--backdrop-blur-light);
 }
 
-.drawer-backdrop.open, .side-backdrop.open, .cart-backdrop.open {
-  opacity: 1;
+.cd.cd--open, .cd.open {
+  pointer-events: auto;
   visibility: visible;
 }
 
+.cd-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--overlay);
+  opacity: 0;
+  transition: opacity var(--motion-slow) var(--response-delay),
+              backdrop-filter var(--motion-slow) var(--response-delay);
+  backdrop-filter: blur(0);
+}
+
+.cd.cd--open .cd-overlay, .cd.open .cd-overlay {
+  opacity: 1;
+  backdrop-filter: var(--backdrop-blur-light);
+}
+
+.cd-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(420px, 92vw);
+  background: var(--card);
+  color: var(--text);
+  transform: translateX(100%);
+  opacity: 0;
+  transition: transform var(--drawer-motion) var(--response-delay) var(--ease-premium),
+              opacity var(--motion-slow) var(--response-delay),
+              box-shadow var(--motion-slow) var(--response-delay);
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  will-change: transform;
+}
+
+.cd.cd--open .cd-panel, .cd.open .cd-panel {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* Closing for cart */
+.cd.closing .cd-panel {
+  transform: translateX(100%);
+  transition: transform var(--drawer-motion) var(--ease-premium);
+  opacity: 0;
+}
+
 /* =========================
-   FIXED CART ADDED POPUP (matches your screenshot)
+   FIXED CART ADDED POPUP
 ========================= */
 
 .cart-added-popup {
@@ -321,24 +302,19 @@ input::placeholder, textarea::placeholder {
   border-radius: 22px;
   border: 1px solid var(--border);
   background: var(--card);
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.16),
-              0 8px 18px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.16), 0 8px 18px rgba(0, 0, 0, 0.06);
   backdrop-filter: var(--backdrop-blur);
-  -webkit-backdrop-filter: var(--backdrop-blur);
   animation: cartPopupIn 680ms var(--ease-premium) var(--response-delay) both;
 }
 
 body.dark .cart-added-popup {
   background: rgba(20, 23, 28, 0.96);
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.34);
 }
 
 .cart-added-popup__close {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 34px;
-  height: 34px;
+  top: 12px; right: 12px;
+  width: 34px; height: 34px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: transparent;
@@ -354,10 +330,6 @@ body.dark .cart-added-popup {
   background: rgba(17, 17, 17, 0.05);
 }
 
-body.dark .cart-added-popup__close:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
 .cart-added-popup__content {
   display: flex;
   gap: 16px;
@@ -365,8 +337,7 @@ body.dark .cart-added-popup__close:hover {
 }
 
 .cart-added-popup__media {
-  width: 72px;
-  height: 72px;
+  width: 72px; height: 72px;
   border-radius: 18px;
   border: 1px solid var(--border);
   overflow: hidden;
@@ -374,9 +345,7 @@ body.dark .cart-added-popup__close:hover {
 }
 
 .cart-added-popup__media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 100%; height: 100%; object-fit: cover;
 }
 
 .cart-added-popup__text h4 {
@@ -433,20 +402,15 @@ body.dark .cart-added-popup__close:hover {
 
 @media (max-width: 640px) {
   .cart-added-popup {
-    right: 12px;
-    left: 12px;
-    bottom: 14px;
-    padding: 16px;
+    right: 12px; left: 12px; bottom: 14px; padding: 16px;
   }
-  .cart-added-popup__content { gap: 12px; }
-  .cart-added-popup__media { width: 64px; height: 64px; }
 }
 
 /* =========================
    GLOBAL TRANSITIONS
 ========================= */
 
-.shop-page, .home, .header, .side-panel, .sidebar, .cart-drawer, .cd-panel,
+.shop-page, .home, .header, .side-panel, .sidebar, .cd, .cd-panel,
 .product-grid, .p-card, .product-card, .site-footer, .hdr, .order-success-card,
 .sidebar-link, .side-subitem, .theme-toggle-track, .theme-toggle-thumb,
 .hdr-icon, .hdr-confirm, .cd-item, .cd-qty, .cd-remove, .cd-checkout,
@@ -475,7 +439,7 @@ button, a, input, select, textarea, .card, .route-shell,
 }
 
 @media (max-width: 640px) {
-  .side-panel, .sidebar, .cart-drawer, .cd-panel {
+  .side-panel, .sidebar, .cd-panel {
     width: 100vw;
     max-width: none;
   }
