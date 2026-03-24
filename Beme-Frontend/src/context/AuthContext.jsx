@@ -12,25 +12,26 @@ import { auth, db } from "../firebase";
 
 const AuthContext = createContext(null);
 
-// Simple global loader state (used by LoaderOverlay)
+// Global loader control (shared across the app)
 let globalLoaderTimeout = null;
-let setGlobalShowLoader = null; // will be set from outside
+let setGlobalShowLoader = null;
 
 export function setGlobalLoading(show) {
   if (setGlobalShowLoader) {
     if (show) {
-      // Delay appearance so quick actions don't flash the loader
+      // Short delay to avoid flashing on quick actions (premium feel)
       globalLoaderTimeout = setTimeout(() => {
         setGlobalShowLoader(true);
       }, 350);
     } else {
-      if (globalLoaderTimeout) clearTimeout(globalLoaderTimeout);
+      if (globalLoaderTimeout) {
+        clearTimeout(globalLoaderTimeout);
+        globalLoaderTimeout = null;
+      }
       setGlobalShowLoader(false);
     }
   }
 }
-
-const AuthContext = createContext(null);
 
 function normalizeRole(value) {
   const role = String(value || "").trim().toLowerCase();
@@ -109,8 +110,9 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(buildInitialState().profile);
   const [loading, setLoading] = useState(buildInitialState().loading);
 
-  // Global loader state for this context
+  // Global loader state for this provider
   const [showLoader, setShowLoader] = useState(false);
+
   useEffect(() => {
     setGlobalShowLoader = setShowLoader;
     return () => {
@@ -137,7 +139,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setLoading(true);
-      setGlobalLoading(true);   // ← show premium loader
+      setGlobalLoading(true);
 
       try {
         if (!u) {
@@ -156,7 +158,7 @@ export function AuthProvider({ children }) {
         setProfile(null);
       } finally {
         setLoading(false);
-        setGlobalLoading(false);  // ← hide loader
+        setGlobalLoading(false);
       }
     });
 
@@ -297,7 +299,12 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={value}>
       {children}
-      <LoaderOverlay show={showLoader} label="Please wait" subtext="Beme Market" />
+      {/* Global premium loader - appears for login/logout/etc. */}
+      <LoaderOverlay 
+        show={showLoader} 
+        label="Please wait" 
+        subtext="Beme Market" 
+      />
     </AuthContext.Provider>
   );
 }
@@ -308,5 +315,5 @@ export function useAuth() {
   return ctx;
 }
 
-// Export the global loader control for other parts of the app
+// Re-export the global loader helper for other files (orders, check-in, etc.)
 export { setGlobalLoading };
