@@ -104,7 +104,7 @@ body.dark ::selection {
 }
 
 /* =========================
-   TYPOGRAPHY + DEFAULT ELEMENTS (unchanged)
+   TYPOGRAPHY + DEFAULT ELEMENTS
 ========================= */
 
 h1, h2, h3, h4, h5, h6 {
@@ -202,10 +202,10 @@ input::placeholder, textarea::placeholder {
 }
 
 /* =========================
-   DRAWERS - Sidebar from LEFT, Cart from RIGHT
+   DRAWERS
 ========================= */
 
-/* Sidebar (left) */
+/* Sidebar from LEFT */
 .side-panel, .sidebar {
   position: fixed;
   top: 0; bottom: 0; left: -100%;
@@ -227,8 +227,8 @@ input::placeholder, textarea::placeholder {
   left: 0;
 }
 
-/* Cart Drawer (right) - matches your .cd-panel + .cd--open */
-.cd, .cd-panel {
+/* Cart Drawer from RIGHT - matches your exact classes */
+.cd {
   position: fixed;
   inset: 0;
   z-index: 9999;
@@ -236,7 +236,7 @@ input::placeholder, textarea::placeholder {
   visibility: hidden;
 }
 
-.cd.cd--open, .cd.open {
+.cd.cd--open {
   pointer-events: auto;
   visibility: visible;
 }
@@ -251,7 +251,7 @@ input::placeholder, textarea::placeholder {
   backdrop-filter: blur(0);
 }
 
-.cd.cd--open .cd-overlay, .cd.open .cd-overlay {
+.cd.cd--open .cd-overlay {
   opacity: 1;
   backdrop-filter: var(--backdrop-blur-light);
 }
@@ -276,12 +276,12 @@ input::placeholder, textarea::placeholder {
   will-change: transform;
 }
 
-.cd.cd--open .cd-panel, .cd.open .cd-panel {
+.cd.cd--open .cd-panel {
   transform: translateX(0);
   opacity: 1;
 }
 
-/* Closing for cart */
+/* Closing animation for cart */
 .cd.closing .cd-panel {
   transform: translateX(100%);
   transition: transform var(--drawer-motion) var(--ease-premium);
@@ -289,7 +289,7 @@ input::placeholder, textarea::placeholder {
 }
 
 /* =========================
-   FIXED CART ADDED POPUP
+   CART ADDED POPUP (clean look from your screenshot)
 ========================= */
 
 .cart-added-popup {
@@ -360,12 +360,6 @@ body.dark .cart-added-popup {
   font-size: 14px;
   line-height: 1.5;
   opacity: 0.85;
-}
-
-.cart-added-popup__price {
-  font-size: 17px;
-  font-weight: 700;
-  margin-bottom: 16px;
 }
 
 .cart-added-popup__actions {
