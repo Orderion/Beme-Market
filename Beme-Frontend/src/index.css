@@ -25,12 +25,17 @@
 
   --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-soft: cubic-bezier(0.25, 0.9, 0.3, 1);
-  --motion-fast: 180ms var(--ease-premium);
-  --motion-smooth: 300ms var(--ease-premium);
-  --motion-slow: 420ms var(--ease-premium);
-  --drawer-motion: 440ms var(--ease-premium);
-  --page-motion: 520ms var(--ease-premium);
+
+  /* SLOWER PREMIUM MOTION - 0.5s delayed response */
+  --motion-fast: 380ms var(--ease-premium);
+  --motion-smooth: 650ms var(--ease-premium);
+  --motion-slow: 920ms var(--ease-premium);
+  --drawer-motion: 960ms var(--ease-premium);
+  --page-motion: 1100ms var(--ease-premium);
   --micro-lift: translateY(-1px);
+
+  /* New global delay for "late" luxurious response */
+  --response-delay: 500ms;
 }
 
 body.dark {
@@ -169,10 +174,10 @@ button {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   transition:
-    background var(--motion-slow),
-    border-color var(--motion-slow),
-    color var(--motion-slow),
-    box-shadow var(--motion-slow);
+    background var(--motion-slow) var(--response-delay),
+    border-color var(--motion-slow) var(--response-delay),
+    color var(--motion-slow) var(--response-delay),
+    box-shadow var(--motion-slow) var(--response-delay);
 }
 
 input,
@@ -186,11 +191,11 @@ textarea {
   font-family: var(--font-main);
   outline: none;
   transition:
-    border-color var(--motion-fast),
-    transform var(--motion-fast),
-    background var(--motion-smooth),
-    color var(--motion-smooth),
-    box-shadow var(--motion-smooth);
+    border-color var(--motion-fast) var(--response-delay),
+    transform var(--motion-fast) var(--response-delay),
+    background var(--motion-smooth) var(--response-delay),
+    color var(--motion-smooth) var(--response-delay),
+    box-shadow var(--motion-smooth) var(--response-delay);
 }
 
 input:focus,
@@ -287,7 +292,7 @@ textarea::placeholder {
 }
 
 .route-shell {
-  animation: routeEnter var(--page-motion);
+  animation: routeEnter var(--page-motion) var(--response-delay) both;
   will-change: opacity, transform;
 }
 
@@ -311,7 +316,7 @@ textarea::placeholder {
     0 18px 45px rgba(0, 0, 0, 0.16),
     0 8px 18px rgba(0, 0, 0, 0.06);
   backdrop-filter: blur(14px);
-  animation: cartPopupIn 0.34s var(--ease-premium);
+  animation: cartPopupIn 680ms var(--ease-premium) var(--response-delay) both;
 }
 
 body.dark .cart-added-popup {
@@ -339,11 +344,11 @@ body.dark .cart-added-popup {
   font-size: 20px;
   line-height: 1;
   transition:
-    transform var(--motion-fast),
-    background var(--motion-fast),
-    border-color var(--motion-fast),
-    opacity var(--motion-fast),
-    box-shadow var(--motion-fast);
+    transform var(--motion-fast) var(--response-delay),
+    background var(--motion-fast) var(--response-delay),
+    border-color var(--motion-fast) var(--response-delay),
+    opacity var(--motion-fast) var(--response-delay),
+    box-shadow var(--motion-fast) var(--response-delay);
 }
 
 .cart-added-popup__close:hover {
@@ -437,12 +442,12 @@ body.dark .cart-added-popup__close:hover {
   font-weight: 700;
   border: 1px solid var(--border);
   transition:
-    transform var(--motion-fast),
-    opacity var(--motion-fast),
-    box-shadow var(--motion-fast),
-    background var(--motion-fast),
-    color var(--motion-fast),
-    border-color var(--motion-fast);
+    transform var(--motion-fast) var(--response-delay),
+    opacity var(--motion-fast) var(--response-delay),
+    box-shadow var(--motion-fast) var(--response-delay),
+    background var(--motion-fast) var(--response-delay),
+    color var(--motion-fast) var(--response-delay),
+    border-color var(--motion-fast) var(--response-delay);
 }
 
 .cart-added-popup__btn:hover {
@@ -514,7 +519,7 @@ html:focus-within {
   }
 }
 
-/* Smooth theme transitions */
+/* Smooth theme transitions with added delay for premium feel */
 .shop-page,
 .home,
 .header,
@@ -547,14 +552,14 @@ textarea,
 .cart-added-popup__btn,
 .cart-added-popup__close {
   transition:
-    background var(--motion-slow),
-    color var(--motion-slow),
-    border-color var(--motion-slow),
-    box-shadow var(--motion-slow),
-    transform var(--motion-fast),
-    opacity var(--motion-fast),
-    filter var(--motion-fast),
-    backdrop-filter var(--motion-slow);
+    background var(--motion-slow) var(--response-delay),
+    color var(--motion-slow) var(--response-delay),
+    border-color var(--motion-slow) var(--response-delay),
+    box-shadow var(--motion-slow) var(--response-delay),
+    transform var(--motion-fast) var(--response-delay),
+    opacity var(--motion-fast) var(--response-delay),
+    filter var(--motion-fast) var(--response-delay),
+    backdrop-filter var(--motion-slow) var(--response-delay);
 }
 
 @media (max-width: 640px) {
