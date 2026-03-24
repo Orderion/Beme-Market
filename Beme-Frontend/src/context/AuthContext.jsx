@@ -9,18 +9,17 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
-import LoaderOverlay from "../components/LoaderOverlay";   // ← CHANGE THIS PATH if your LoaderOverlay is in a different folder (e.g. ../ui/LoaderOverlay or ../components/ui/LoaderOverlay)
+import LoaderOverlay from "../components/LoaderOverlay";   // ← CHANGE THIS IF YOUR LOADER IS IN ANOTHER FOLDER (e.g. "../ui/LoaderOverlay" or "../components/ui/LoaderOverlay")
 
 const AuthContext = createContext(null);
 
-// ====================== GLOBAL LOADER CONTROL ======================
+// ====================== GLOBAL LOADER ======================
 let globalLoaderTimeout = null;
 let setGlobalShowLoader = null;
 
 export function setGlobalLoading(show) {
   if (setGlobalShowLoader) {
     if (show) {
-      // 350ms delay → premium "late response" feel (no flash on fast actions)
       globalLoaderTimeout = setTimeout(() => {
         setGlobalShowLoader(true);
       }, 350);
@@ -33,38 +32,29 @@ export function setGlobalLoading(show) {
     }
   }
 }
-// ===================================================================
+// ========================================================
 
 function normalizeRole(value) {
   const role = String(value || "").trim().toLowerCase();
-
-  if (role === "super_admin") return "super_admin";
-  if (role === "admin") return "super_admin";
+  if (role === "super_admin" || role === "admin") return "super_admin";
   if (role === "shop_admin") return "shop_admin";
-  if (role === "customer") return "customer";
-
   return "customer";
 }
 
 function normalizeShop(value) {
-  const shop = String(value || "").trim().toLowerCase();
-  return shop || null;
+  return String(value || "").trim().toLowerCase() || null;
 }
 
 function normalizeCapabilities(value) {
   if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => String(item || "").trim().toLowerCase())
-    .filter(Boolean);
+  return value.map(item => String(item || "").trim().toLowerCase()).filter(Boolean);
 }
 
 async function resolveProfile(uid) {
   const snap = await getDoc(doc(db, "users", uid));
-
   if (!snap.exists()) {
     return { role: "customer", shop: null, capabilities: [], profile: null };
   }
-
   const data = snap.data() || {};
   const role = normalizeRole(data.role);
   const shop = normalizeShop(data.shop);
@@ -124,7 +114,6 @@ export function AuthProvider({ children }) {
     const unsub = onAuthStateChanged(auth, async (u) => {
       setLoading(true);
       setGlobalLoading(true);
-
       try {
         if (!u) {
           clearAuthState();
@@ -144,7 +133,6 @@ export function AuthProvider({ children }) {
         setGlobalLoading(false);
       }
     });
-
     return () => unsub();
   }, []);
 
@@ -164,7 +152,6 @@ export function AuthProvider({ children }) {
     setGlobalLoading(true);
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-
       await setDoc(doc(db, "users", cred.user.uid), {
         role: "customer",
         shop: null,
@@ -174,19 +161,7 @@ export function AuthProvider({ children }) {
         updatedAt: serverTimestamp(),
       }, { merge: true });
 
-      const resolved = {
-        role: "customer",
-        shop: null,
-        capabilities: [],
-        profile: {
-          id: cred.user.uid,
-          role: "customer",
-          shop: null,
-          capabilities: [],
-          email: String(email || "").trim().toLowerCase(),
-        },
-      };
-
+      const resolved = { role: "customer", shop: null, capabilities: [], profile: { id: cred.user.uid, role: "customer", shop: null, capabilities: [], email: String(email || "").trim().toLowerCase() }};
       applyResolvedProfile(cred.user, resolved);
       return { user: cred.user, role: resolved.role, shop: resolved.shop, capabilities: resolved.capabilities, profile: resolved.profile };
     } finally {
@@ -226,14 +201,12 @@ export function AuthProvider({ children }) {
   const value = useMemo(() => {
     const isSuperAdmin = role === "super_admin";
     const isAdmin = isSuperAdmin;
-
     const hasCapability = (capability) => {
       const key = String(capability || "").trim().toLowerCase();
       if (!key) return false;
       if (isSuperAdmin) return true;
       return capabilities.includes(key);
     };
-
     return {
       user, role, adminShop, capabilities, profile, loading,
       isAdmin, isSuperAdmin, isShopAdmin: false, hasCapability,
@@ -255,5 +228,5 @@ export function useAuth() {
   return ctx;
 }
 
-// ==================== ONLY ONE EXPORT ====================
+// ==================== SINGLE EXPORT ONLY ====================
 export { setGlobalLoading };
