@@ -14,6 +14,8 @@ import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import CartDrawer from "./components/CartDrawer";
 import Footer from "./components/Footer";
+import LoaderOverlay from "./components/LoaderOverlay"; // ✅ ADD THIS
+
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
 import Admin from "./pages/Admin";
@@ -67,17 +69,11 @@ function CartAddedPopup({ onContinueShopping, onCheckout }) {
 
   return (
     <div className="cart-added-popup-backdrop" role="presentation">
-      <div
-        className="cart-added-popup"
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-      >
+      <div className="cart-added-popup" role="dialog" aria-modal="true">
         <button
           type="button"
           className="cart-added-popup__close"
           onClick={hideCartPopup}
-          aria-label="Close cart popup"
         >
           ×
         </button>
@@ -87,44 +83,21 @@ function CartAddedPopup({ onContinueShopping, onCheckout }) {
             {image ? (
               <img src={image} alt={item.name || "Product"} />
             ) : (
-              <div className="cart-added-popup__media-empty">No image</div>
+              <div>No image</div>
             )}
           </div>
 
           <div className="cart-added-popup__text">
-            <span className="cart-added-popup__eyebrow">
-              {cartPopup?.firstAdd ? "First item added" : "Added to cart"}
-            </span>
             <h4>{title}</h4>
             <p>{message}</p>
-
-            <div className="cart-added-popup__product-meta">
-              <strong>{item.name}</strong>
-              <span>GHS {Number(item.price || 0).toFixed(2)}</span>
-            </div>
-
-            {item.selectedOptionsLabel ? (
-              <small>{item.selectedOptionsLabel}</small>
-            ) : null}
+            <strong>{item.name}</strong>
+            <span>GHS {Number(item.price || 0).toFixed(2)}</span>
           </div>
         </div>
 
         <div className="cart-added-popup__actions">
-          <button
-            type="button"
-            className="cart-added-popup__btn cart-added-popup__btn--ghost"
-            onClick={onContinueShopping}
-          >
-            Continue Shopping
-          </button>
-
-          <button
-            type="button"
-            className="cart-added-popup__btn cart-added-popup__btn--primary"
-            onClick={onCheckout}
-          >
-            Checkout
-          </button>
+          <button onClick={onContinueShopping}>Continue Shopping</button>
+          <button onClick={onCheckout}>Checkout</button>
         </div>
       </div>
     </div>
@@ -135,9 +108,12 @@ function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const { hideCartPopup } = useCart();
+  const { loading: authLoading } = useAuth(); // ✅ IMPORTANT
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+
+  const [routeLoading, setRouteLoading] = useState(false); // ✅ NEW
 
   const hideHeaderRoutes = useMemo(
     () => new Set(["/login", "/signup", "/admin-login"]),
@@ -145,6 +121,17 @@ function AppShell() {
   );
 
   const shouldHideHeader = hideHeaderRoutes.has(location.pathname);
+
+  // ✅ ROUTE LOADER (AUTO)
+  useEffect(() => {
+    setRouteLoading(true);
+
+    const timeout = setTimeout(() => {
+      setRouteLoading(false);
+    }, 500); // prevents flicker
+
+    return () => clearTimeout(timeout);
+  }, [location.pathname]);
 
   useEffect(() => {
     setSidebarOpen(false);
@@ -164,6 +151,9 @@ function AppShell() {
 
   return (
     <>
+      {/* ✅ GLOBAL LOADER */}
+      <LoaderOverlay isVisible={authLoading || routeLoading} />
+
       {!shouldHideHeader ? (
         <>
           <Header
@@ -209,10 +199,7 @@ function AppShell() {
             }
           />
 
-          <Route
-            path="/shop-payment-status"
-            element={<Navigate to="/" replace />}
-          />
+          <Route path="/shop-payment-status" element={<Navigate to="/" replace />} />
 
           <Route path="/about" element={<About />} />
           <Route path="/support" element={<Support />} />
@@ -275,7 +262,7 @@ function AppShell() {
                 <RequireAdmin>
                   <PayoutRequests />
                 </RequireAdmin>
-              </AdminRoute>
+              </RequireAdmin>
             }
           />
 
