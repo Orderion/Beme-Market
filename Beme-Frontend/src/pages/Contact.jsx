@@ -14,7 +14,7 @@ export default function Contact() {
         <h2>Customer Support</h2>
         <ul>
           <li>Email: Supportbememarket@gmailcom</li>
-          <li>Phone: 0xxxxxxxx0</li>
+          <li>Phone: 0xxxxxxxxx</li>
           <li>Response time: Within 24 hours (Monday–Friday)</li>
         </ul>
       </section>
