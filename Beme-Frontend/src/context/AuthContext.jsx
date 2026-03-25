@@ -14,13 +14,10 @@ const AuthContext = createContext(null);
 
 function normalizeRole(value) {
   const role = String(value || "").trim().toLowerCase();
-
   if (role === "super_admin") return "super_admin";
   if (role === "admin") return "super_admin";
-
   if (role === "shop_admin") return "shop_admin";
   if (role === "customer") return "customer";
-
   return "customer";
 }
 
@@ -31,7 +28,6 @@ function normalizeShop(value) {
 
 function normalizeCapabilities(value) {
   if (!Array.isArray(value)) return [];
-
   return value
     .map((item) => String(item || "").trim().toLowerCase())
     .filter(Boolean);
@@ -132,67 +128,85 @@ export function AuthProvider({ children }) {
     return () => unsub();
   }, []);
 
+  // ✅ LOGIN WITH LOADER
   const login = async (email, password) => {
-    const cred = await signInWithEmailAndPassword(auth, email, password);
-    const resolved = await resolveProfile(cred.user.uid);
+    setLoading(true);
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      const resolved = await resolveProfile(cred.user.uid);
 
-    applyResolvedProfile(cred.user, resolved);
+      applyResolvedProfile(cred.user, resolved);
 
-    return {
-      user: cred.user,
-      role: resolved.role,
-      shop: resolved.shop,
-      capabilities: resolved.capabilities,
-      profile: resolved.profile,
-    };
+      return {
+        user: cred.user,
+        role: resolved.role,
+        shop: resolved.shop,
+        capabilities: resolved.capabilities,
+        profile: resolved.profile,
+      };
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // ✅ SIGNUP WITH LOADER
   const signup = async (email, password) => {
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    setLoading(true);
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
 
-    await setDoc(
-      doc(db, "users", cred.user.uid),
-      {
+      await setDoc(
+        doc(db, "users", cred.user.uid),
+        {
+          role: "customer",
+          shop: null,
+          capabilities: [],
+          email: String(email || "").trim().toLowerCase(),
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      const resolved = {
         role: "customer",
         shop: null,
         capabilities: [],
-        email: String(email || "").trim().toLowerCase(),
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
+        profile: {
+          id: cred.user.uid,
+          role: "customer",
+          shop: null,
+          capabilities: [],
+          email: String(email || "").trim().toLowerCase(),
+        },
+      };
 
-    const resolved = {
-      role: "customer",
-      shop: null,
-      capabilities: [],
-      profile: {
-        id: cred.user.uid,
-        role: "customer",
-        shop: null,
-        capabilities: [],
-        email: String(email || "").trim().toLowerCase(),
-      },
-    };
+      applyResolvedProfile(cred.user, resolved);
 
-    applyResolvedProfile(cred.user, resolved);
-
-    return {
-      user: cred.user,
-      role: resolved.role,
-      shop: resolved.shop,
-      capabilities: resolved.capabilities,
-      profile: resolved.profile,
-    };
+      return {
+        user: cred.user,
+        role: resolved.role,
+        shop: resolved.shop,
+        capabilities: resolved.capabilities,
+        profile: resolved.profile,
+      };
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // ✅ REFRESH PROFILE LOADER
   const refreshProfile = async () => {
     if (!auth.currentUser?.uid) return null;
 
-    const resolved = await resolveProfile(auth.currentUser.uid);
-    applyResolvedProfile(auth.currentUser, resolved);
-    return resolved;
+    setLoading(true);
+    try {
+      const resolved = await resolveProfile(auth.currentUser.uid);
+      applyResolvedProfile(auth.currentUser, resolved);
+      return resolved;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const reauthenticate = async (password) => {
@@ -209,9 +223,15 @@ export function AuthProvider({ children }) {
     return true;
   };
 
+  // ✅ LOGOUT WITH LOADER
   const logout = async () => {
-    await signOut(auth);
-    clearAuthState();
+    setLoading(true);
+    try {
+      await signOut(auth);
+      clearAuthState();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const value = useMemo(() => {
