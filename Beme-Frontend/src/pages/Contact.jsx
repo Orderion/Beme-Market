@@ -3,30 +3,35 @@ import "./InfoPages.css";
 
 export default function Contact() {
   return (
-    <div className="contact-page">
+    <div className="info-page">
       <h1>Contact Us</h1>
-      <p className="intro">
+      <p className="muted">
         We are here to help. Whether you have an order question, product inquiry,
-        or simply want to say hello, our team is ready to assist.
+        or simply want to say hello, our team is ready to assist across Ghana.
       </p>
 
-      <section>
-        <h2>Customer Support</h2>
-        <ul>
-          <li>Email: Supportbememarket@gmailcom</li>
+      <div className="info-card">
+        <h3>Customer Support</h3>
+        <ul className="info-list">
+          <li>Email: supportbememarket@gmail.com</li>
           <li>Phone: 0xxxxxxxxx</li>
           <li>Response time: Within 24 hours (Monday–Friday)</li>
         </ul>
-      </section>
+      </div>
 
-      <section>
-        <h2>Send Us a Message</h2>
-        <p>Whatsapp Number: +233xxxxxxxxxx</p>
-      </section>
+      <div className="info-card">
+        <h3>Quick Contact</h3>
+        <ul className="info-list">
+          <li>WhatsApp: +233xxxxxxxxxx</li>
+        </ul>
+      </div>
 
-      <p className="cta">
-        We look forward to hearing from you. Get in touch with Beme Market today.
-      </p>
+      <div className="info-card">
+        <p>
+          We look forward to hearing from you. Get in touch with Beme Market
+          today.
+        </p>
+      </div>
     </div>
   );
 }
