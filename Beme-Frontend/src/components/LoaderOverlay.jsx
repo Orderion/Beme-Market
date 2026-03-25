@@ -7,34 +7,35 @@ export default function LoaderOverlay({
   label = "Loading",
   subtext = "Beme Market",
 }) {
-  // ✅ SUPPORT BOTH PROPS (NO BREAKING CHANGE)
+  // ✅ SUPPORT BOTH PROPS
   const visible = typeof isVisible !== "undefined" ? isVisible : show;
 
-  const [shouldRender, setShouldRender] = useState(false);
+  const [render, setRender] = useState(false);
 
-  // ✅ PREVENT FLICKER (VERY IMPORTANT UX)
   useEffect(() => {
     let timeout;
 
     if (visible) {
-      setShouldRender(true);
+      setRender(true);
     } else {
+      // ✅ WAIT FOR CSS TRANSITION TO FINISH BEFORE UNMOUNT
       timeout = setTimeout(() => {
-        setShouldRender(false);
-      }, 200); // smooth exit
+        setRender(false);
+      }, 400); // matches your --motion-slow feel
     }
 
     return () => clearTimeout(timeout);
   }, [visible]);
 
-  if (!shouldRender) return null;
+  // ✅ DO NOT RENDER UNTIL FIRST TRIGGER
+  if (!render) return null;
 
   return (
     <div
-      className={`loader-overlay ${visible ? "show" : "hide"}`}
+      className={`loader-overlay ${visible ? "show" : ""}`}
       role="status"
       aria-live="polite"
-      aria-busy="true"
+      aria-busy={visible}
     >
       <div className="loader-overlay-backdrop" />
 
