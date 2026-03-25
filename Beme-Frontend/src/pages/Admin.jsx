@@ -90,7 +90,7 @@ const CJ_IMPORT_ALLOWED_HEADERS = [
 ];
 
 const STANDARD_IMPORT_SAMPLE = `product_name,category,brand,price_ghs,stock,abroad_delivery_fee,key_features,target_customer,customization_options,short_description,ships_from_abroad,in_stock,featured
-Samsung Galaxy S23,Phone,Samsung,7500,12,45,"8GB RAM, 128GB–256GB storage, AMOLED display","Smartphone users, professionals","Storage: 128GB(+0)|256GB(+600); Color: Black(+0)|Green(+0)|Cream(+0)","Samsung Galaxy S23 offers powerful flagship performance with a bright AMOLED display and fast processing for work, entertainment, and daily use.",yes,yes,no
+Samsung Galaxy S24,Phone,Samsung,7500,12,45,"8GB RAM, 128GB–256GB storage, AMOLED display","Smartphone users, professionals","Storage: 128GB(+0)|256GB(+600); Color: Black(+0)|Green(+0)|Cream(+0)","Samsung Galaxy S23 offers powerful flagship performance with a bright AMOLED display and fast processing for work, entertainment, and daily use.",yes,yes,no
 Apple MacBook Air M2,Laptop,Apple,11000,8,0,"8GB–16GB RAM, 256GB–512GB SSD, Apple M2 chip","Students, professionals, creators","RAM: 8GB(+0)|16GB(+1200); Storage: 256GB(+0)|512GB(+1800); Color: Silver(+0)|Space Gray(+0)|Midnight(+0)","Apple MacBook Air M2 delivers smooth everyday performance in a slim and lightweight design.",no,yes,yes
 Apple AirPods Pro 2,Accessory,Apple,3200,20,0,"Active noise cancellation, spatial audio","Apple device users","Color: White(+0)","Apple AirPods Pro 2 combine premium sound, comfort, and wireless convenience for everyday listening.",no,yes,no`;
 
