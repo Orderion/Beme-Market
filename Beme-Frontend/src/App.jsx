@@ -14,7 +14,7 @@ import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import CartDrawer from "./components/CartDrawer";
 import Footer from "./components/Footer";
-import LoaderOverlay from "./components/LoaderOverlay"; // ✅ ADD THIS
+import LoaderOverlay from "./components/LoaderOverlay"; // 🔥 Global Loader
 
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
@@ -69,11 +69,17 @@ function CartAddedPopup({ onContinueShopping, onCheckout }) {
 
   return (
     <div className="cart-added-popup-backdrop" role="presentation">
-      <div className="cart-added-popup" role="dialog" aria-modal="true">
+      <div
+        className="cart-added-popup"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
         <button
           type="button"
           className="cart-added-popup__close"
           onClick={hideCartPopup}
+          aria-label="Close cart popup"
         >
           ×
         </button>
@@ -83,21 +89,44 @@ function CartAddedPopup({ onContinueShopping, onCheckout }) {
             {image ? (
               <img src={image} alt={item.name || "Product"} />
             ) : (
-              <div>No image</div>
+              <div className="cart-added-popup__media-empty">No image</div>
             )}
           </div>
 
           <div className="cart-added-popup__text">
+            <span className="cart-added-popup__eyebrow">
+              {cartPopup?.firstAdd ? "First item added" : "Added to cart"}
+            </span>
             <h4>{title}</h4>
             <p>{message}</p>
-            <strong>{item.name}</strong>
-            <span>GHS {Number(item.price || 0).toFixed(2)}</span>
+
+            <div className="cart-added-popup__product-meta">
+              <strong>{item.name}</strong>
+              <span>GHS {Number(item.price || 0).toFixed(2)}</span>
+            </div>
+
+            {item.selectedOptionsLabel ? (
+              <small>{item.selectedOptionsLabel}</small>
+            ) : null}
           </div>
         </div>
 
         <div className="cart-added-popup__actions">
-          <button onClick={onContinueShopping}>Continue Shopping</button>
-          <button onClick={onCheckout}>Checkout</button>
+          <button
+            type="button"
+            className="cart-added-popup__btn cart-added-popup__btn--ghost"
+            onClick={onContinueShopping}
+          >
+            Continue Shopping
+          </button>
+
+          <button
+            type="button"
+            className="cart-added-popup__btn cart-added-popup__btn--primary"
+            onClick={onCheckout}
+          >
+            Checkout
+          </button>
         </div>
       </div>
     </div>
@@ -108,12 +137,11 @@ function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const { hideCartPopup } = useCart();
-  const { loading: authLoading } = useAuth(); // ✅ IMPORTANT
+  const { loading: authLoading } = useAuth(); // 🔥 loader from auth
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-
-  const [routeLoading, setRouteLoading] = useState(false); // ✅ NEW
+  const [routeLoading, setRouteLoading] = useState(false); // 🔥 route change loader
 
   const hideHeaderRoutes = useMemo(
     () => new Set(["/login", "/signup", "/admin-login"]),
@@ -122,13 +150,12 @@ function AppShell() {
 
   const shouldHideHeader = hideHeaderRoutes.has(location.pathname);
 
-  // ✅ ROUTE LOADER (AUTO)
+  // 🔄 Route change loader trigger
   useEffect(() => {
     setRouteLoading(true);
-
     const timeout = setTimeout(() => {
       setRouteLoading(false);
-    }, 500); // prevents flicker
+    }, 500);
 
     return () => clearTimeout(timeout);
   }, [location.pathname]);
@@ -139,9 +166,7 @@ function AppShell() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [location.pathname]);
 
-  const handleContinueShopping = () => {
-    hideCartPopup();
-  };
+  const handleContinueShopping = () => hideCartPopup();
 
   const handleCheckoutFromPopup = () => {
     hideCartPopup();
@@ -151,7 +176,7 @@ function AppShell() {
 
   return (
     <>
-      {/* ✅ GLOBAL LOADER */}
+      {/* 🔥 GLOBAL LOADER OVERLAY */}
       <LoaderOverlay isVisible={authLoading || routeLoading} />
 
       {!shouldHideHeader ? (
@@ -199,7 +224,10 @@ function AppShell() {
             }
           />
 
-          <Route path="/shop-payment-status" element={<Navigate to="/" replace />} />
+          <Route
+            path="/shop-payment-status"
+            element={<Navigate to="/" replace />}
+          />
 
           <Route path="/about" element={<About />} />
           <Route path="/support" element={<Support />} />
@@ -262,7 +290,7 @@ function AppShell() {
                 <RequireAdmin>
                   <PayoutRequests />
                 </RequireAdmin>
-              </RequireAdmin>
+              </AdminRoute>
             }
           />
 
