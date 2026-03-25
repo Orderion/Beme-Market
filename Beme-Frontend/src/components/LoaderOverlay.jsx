@@ -1,15 +1,37 @@
+import { useEffect, useState } from "react";
 import "./LoaderOverlay.css";
 
 export default function LoaderOverlay({
-  show = true,
+  show,
+  isVisible,
   label = "Loading",
   subtext = "Beme Market",
 }) {
-  if (!show) return null;
+  // ✅ SUPPORT BOTH PROPS (NO BREAKING CHANGE)
+  const visible = typeof isVisible !== "undefined" ? isVisible : show;
+
+  const [shouldRender, setShouldRender] = useState(false);
+
+  // ✅ PREVENT FLICKER (VERY IMPORTANT UX)
+  useEffect(() => {
+    let timeout;
+
+    if (visible) {
+      setShouldRender(true);
+    } else {
+      timeout = setTimeout(() => {
+        setShouldRender(false);
+      }, 200); // smooth exit
+    }
+
+    return () => clearTimeout(timeout);
+  }, [visible]);
+
+  if (!shouldRender) return null;
 
   return (
     <div
-      className="loader-overlay"
+      className={`loader-overlay ${visible ? "show" : "hide"}`}
       role="status"
       aria-live="polite"
       aria-busy="true"
