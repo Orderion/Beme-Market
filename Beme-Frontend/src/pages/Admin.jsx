@@ -33,7 +33,7 @@ const CSV_IMPORT_TABS = [
 ];
 
 const HOME_FILTER_OPTIONS = [
-  { key: "Iphones", label: "Iphones" },
+  { key: "iphones", label: "Iphones" },
   { key: "laptops", label: "Laptops" },
   { key: "shoes", label: "Shoes" },
   { key: "clothing", label: "Clothing" },
@@ -597,6 +597,7 @@ function inferShopFromCategory(category, shops, fallbackShop) {
 
   if (
     [
+      "iphones",
       "phone",
       "phones",
       "laptop",
@@ -649,6 +650,7 @@ function findValidKind(category, kindOptions, fallback) {
   const preferred = [
     raw,
     [
+      "iphones",
       "phone",
       "phones",
       "laptop",
