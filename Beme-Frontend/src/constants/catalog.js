@@ -22,7 +22,7 @@ export const SHOPS = [
 ];
 
 export const HOME_FILTER_OPTIONS = [
-  { key: "phones", label: "Phones" },
+  { key: "iphones", label: "Iphones" },
   { key: "laptops", label: "Laptops" },
   { key: "shoes", label: "Shoes" },
   { key: "clothing", label: "Clothing" },
