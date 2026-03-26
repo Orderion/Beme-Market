@@ -33,7 +33,7 @@ const CSV_IMPORT_TABS = [
 ];
 
 const HOME_FILTER_OPTIONS = [
-  { key: "phones", label: "Phones" },
+  { key: "Iphones", label: "Iphones" },
   { key: "laptops", label: "Laptops" },
   { key: "shoes", label: "Shoes" },
   { key: "clothing", label: "Clothing" },
