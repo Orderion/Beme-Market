@@ -17,10 +17,10 @@ const SUGGESTION_LIMIT = 10;
 
 const CATEGORY_CARDS = [
   {
-    key: "phones",
-    label: "Phones",
+    key: "iphones",
+    label: "Iphones",
     subtitle: "Smartphones and mobile essentials",
-    query: "phone",
+    query: "iphone",
   },
   {
     key: "laptops",
@@ -56,9 +56,9 @@ const CATEGORY_CARDS = [
 
 const CATEGORY_KEYWORDS = [
   {
-    label: "Phones",
+    label: "Iphones",
     type: "category",
-    value: "phone",
+    value: "iphone",
     aliases: [
       "phone",
       "phones",
@@ -347,7 +347,7 @@ function StoreCard({ image, chip, title, subtitle, onClick, ariaLabel }) {
 }
 
 function CategoryIcon({ type }) {
-  if (type === "phones") {
+  if (type === "iphones") {
     return (
       <svg
         viewBox="0 0 24 24"
