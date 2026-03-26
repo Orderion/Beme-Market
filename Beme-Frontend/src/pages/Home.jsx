@@ -13,7 +13,7 @@ import "./Home.css";
 
 const COLLECTION_NAME = "Products";
 const SEARCH_PREVIEW_LIMIT = 80;
-const SUGGESTION_LIMIT = 10;
+const SUGGESTION_LIMIT = 4;
 
 const CATEGORY_CARDS = [
   {
