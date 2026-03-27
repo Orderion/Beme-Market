@@ -1,3 +1,5 @@
+/* ================= BOTTOM NAV ================= */
+
 /* HIDE ON DESKTOP */
 @media (min-width: 768px) {
   .bottom-nav {
@@ -30,6 +32,7 @@
   background: none;
   border: none;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .bn-item span {
@@ -51,22 +54,6 @@
 /* TAP ANIMATION */
 .bn-item:active {
   transform: scale(0.92);
-}
-
-/* CART BADGE */
-.bn-icon-wrap {
-  position: relative;
-}
-
-.bn-badge {
-  position: absolute;
-  top: -6px;
-  right: -8px;
-  background: #000;
-  color: #fff;
-  font-size: 10px;
-  padding: 2px 5px;
-  border-radius: 10px;
 }
 
 /* CENTER BUTTON */
@@ -91,7 +78,6 @@
   height: 24px;
 }
 
-/* CENTER TAP */
 .bn-center:active {
   transform: scale(0.9);
 }
@@ -99,4 +85,90 @@
 /* SAFE AREA */
 body {
   padding-bottom: 80px;
+}
+
+/* ================= ACCOUNT / LOGOUT CONFIRM POPUP ================= */
+.bn-account-wrap {
+  position: relative;
+}
+
+.bn-confirm {
+  position: absolute;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  background: #fff;
+  border: 1px solid #eaeaea;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  text-align: center;
+  padding: 12px;
+  z-index: 1500;
+}
+
+.bn-confirm.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.bn-confirm p {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #333;
+}
+
+.bn-confirm-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bn-confirm-actions button {
+  flex: 1;
+  padding: 6px 0;
+  border-radius: 6px;
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.bn-confirm-actions button:hover {
+  opacity: 0.85;
+}
+
+.bn-confirm-actions .bn-confirm-btn--danger {
+  background: #ff4d4d;
+  color: #fff;
+}
+
+.bn-confirm-actions button:not(.bn-confirm-btn--danger) {
+  background: #f0f0f0;
+  color: #333;
+}
+
+/* ================= OFFERS TAP ALERT STYLE ================= */
+.bn-offer-alert {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #000;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 2000;
+}
+
+.bn-offer-alert.show {
+  opacity: 1;
+  pointer-events: auto;
 }
