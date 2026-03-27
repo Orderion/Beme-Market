@@ -829,11 +829,10 @@ export default function Checkout() {
   const setDeliveryMethod = (nextMethod) => {
     if (sessionExpired || loading) return;
 
-    setDelivery((prev) => ({
-      method: nextMethod,
-      mallId:
-        nextMethod === DELIVERY_METHODS.MALL_PICKUP ? prev.mallId : "",
-    }));
+      setDelivery({
+        method: nextMethod,
+        mallId: nextMethod === DELIVERY_METHODS.MALL_PICKUP ? delivery.mallId : "",
+      });
 
     setTouched((prev) => ({
       ...prev,
@@ -901,9 +900,8 @@ export default function Checkout() {
         "Some items in your cart are out of stock or exceed available stock. Update your cart before checkout.";
     }
 
-    if (!delivery.method) {
-      next.deliveryMethod = "Please select a delivery option.";
-    }
+  if (!delivery.method && !v.deliveryMethod) {
+  next.deliveryMethod = "Please select a delivery option.";
 
     if (
       delivery.method === DELIVERY_METHODS.MALL_PICKUP &&
@@ -950,7 +948,10 @@ export default function Checkout() {
       return "Checkout session expired.";
     }
 
-    const next = validate(form);
+      const next = validate({
+        ...form,
+        deliveryMethod: delivery.method,
+      });
     setErrors(next);
 
     setTouched({
@@ -1150,14 +1151,18 @@ export default function Checkout() {
       return;
     }
 
-    const err = validateRequired();
-    if (err) return;
-
     setLoadingMode("paystack");
     setLoading(true);
+    
+    const err = validateRequired();
+    if (err) {
+      setLoading(false);
+      setLoadingMode("");
+      return;
+    }
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       await startPaystackCheckout({
         email: sanitizeText(form.email, 160).toLowerCase(),
