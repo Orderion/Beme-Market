@@ -1637,41 +1637,47 @@ export default function Checkout() {
 
               {method ? (
                 <div className="checkout-actions checkout-actions--enhanced">
-                  {method === "paystack" ? (
-                    <button
-                      className={[
-                        "primary-btn",
-                        "payment-btn",
-                        "payment-btn--paystack",
-                        "is-selected",
-                      ]
-                        .join(" ")
-                        .trim()}
-                      onClick={payWithPaystack}
-                      disabled={
-                        inputsDisabled ||
-                        !!errors.cart ||
-                        !user ||
-                        authLoading ||
-                        checkingOrderHistory ||
-                        hasUnavailableCartItems
-                      }
-                      type="button"
-                    >
-                      <span className="payment-btn__inner">
-                        <PaymentIcon type="paystack" />
-                        <span className="payment-btn__text">
-                          <span className="payment-btn__title">Pay with Paystack</span>
-                          <span className="payment-btn__sub">
-                            {hasUnavailableCartItems
-                              ? "Resolve unavailable cart items first"
-                              : "Secured by Paystack"}
-                          </span>
-                        </span>
-                        <LockIcon />
-                      </span>
-                    </button>
-                  ) : (
+ {method === "paystack" && (
+  <button
+    type="button"
+    className="checkout-pay-btn"
+    onClick={payWithPaystack}
+    disabled={
+      inputsDisabled ||
+      !!errors.cart ||
+      !user ||
+      authLoading ||
+      checkingOrderHistory ||
+      hasUnavailableCartItems ||
+      loading
+    }
+  >
+    <span className="checkout-pay-btn__inner">
+      {/* Monochrome padlock icon */}
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        fill="currentColor"
+        viewBox="0 0 16 16"
+        style={{ marginRight: 8 }}
+      >
+        <path d="M8 1a4 4 0 0 0-4 4v3H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1h-1V5a4 4 0 0 0-4-4zm-3 4a3 3 0 1 1 6 0v3H5V5zm-2 4h10v5H3v-5z"/>
+      </svg>
+
+      <span className="checkout-pay-btn__text">
+        Pay with Paystack
+        <small>
+          {hasUnavailableCartItems
+            ? "Resolve unavailable cart items first"
+            : loading && loadingMode === "paystack"
+            ? "Processing..."
+            : "Secured by Paystack"}
+        </small>
+      </span>
+    </span>
+  </button>
+)}
                     <button
                       className={[
                         "primary-btn",
