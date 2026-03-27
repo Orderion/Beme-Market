@@ -1674,7 +1674,6 @@ export default function Checkout() {
               </span>
           </span>
        </button>
-      ) : (
 )}
                 <button
                       className={[
