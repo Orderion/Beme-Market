@@ -2,46 +2,50 @@
    BOTTOM NAV — PULSE STYLE
 ========================= */
 
-/* HIDE ON DESKTOP */
 @media (min-width: 768px) {
-  .bottom-nav {
-    display: none;
-  }
+  .bottom-nav { display: none; }
 }
 
-/* NAV BASE */
 .bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
   height: 64px;
-  background: var(--card, #ffffff);
+  background: var(--card);
   display: flex;
   justify-content: space-around;
   align-items: center;
   z-index: 1000;
   border-top: none;
-
-  /* Curved cutout */
-  --curve-size: 38px;
+  --curve-size: 40px;
   -webkit-mask:
-    radial-gradient(circle var(--curve-size) at 50% 0%, transparent 99%, black 100%) top / 100% 100% no-repeat;
+    radial-gradient(circle var(--curve-size) at 50% 0%, transparent 99%, black 100%)
+    top / 100% 100% no-repeat;
   mask:
-    radial-gradient(circle var(--curve-size) at 50% 0%, transparent 99%, black 100%) top / 100% 100% no-repeat;
+    radial-gradient(circle var(--curve-size) at 50% 0%, transparent 99%, black 100%)
+    top / 100% 100% no-repeat;
 }
 
-/* Border line that respects cutout */
 .bottom-nav::after {
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  border-top: 1px solid var(--border, rgba(0,0,0,0.08));
+  border-top: 1px solid var(--border);
   pointer-events: none;
   -webkit-mask:
-    radial-gradient(circle var(--curve-size) at 50% 0%, transparent 99%, black 100%) top / 100% 100% no-repeat;
+    radial-gradient(circle var(--curve-size) at 50% 0%, transparent 99%, black 100%)
+    top / 100% 100% no-repeat;
   mask:
-    radial-gradient(circle var(--curve-size) at 50% 0%, transparent 99%, black 100%) top / 100% 100% no-repeat;
+    radial-gradient(circle var(--curve-size) at 50% 0%, transparent 99%, black 100%)
+    top / 100% 100% no-repeat;
+}
+
+/* Invisible spacer keeps 4 items evenly spaced */
+.bn-center-spacer {
+  width: 64px;
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 /* ITEMS */
@@ -55,62 +59,66 @@
   border: none;
   cursor: pointer;
   padding: 4px 8px;
-  transition: color var(--motion-fast, 0.15s), transform var(--motion-fast, 0.15s);
+  transition: color 0.2s ease, transform 0.15s ease;
   position: relative;
   gap: 3px;
+  flex: 1;
 }
 
 .bn-item span {
   margin-top: 2px;
-  letter-spacing: 0.01em;
 }
 
-/* ICON */
 .bn-svg {
   width: 22px;
   height: 22px;
-  transition: color var(--motion-fast, 0.15s);
 }
 
-/* ACTIVE STATE */
+/* Light mode active = black */
 .bn-item.active {
-  color: var(--text);
+  color: #111111;
   font-weight: 700;
 }
 
-/* TAP ANIMATION */
+/* Dark mode active = white */
+body.dark .bn-item.active {
+  color: #ffffff;
+}
+
 .bn-item:active {
   transform: scale(0.88);
 }
 
 /* ==============================
    CENTER FLOATING BUTTON
-   Fixed position, truly floats above nav
 ============================== */
 .bn-center {
   position: fixed;
-  bottom: 28px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  width: 62px;
-  height: 62px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  /* Hardcode a visible accent — override if your --accent is too dark */
-  background: #111111;
-  color: #ffffff;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10);
-  transition: transform var(--motion-fast, 0.15s), box-shadow var(--motion-fast, 0.15s);
   z-index: 1100;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  /* Light mode: black button, white icon */
+  background: #111111;
+  color: #ffffff;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
 }
 
+/* Dark mode: white button, black icon */
 body.dark .bn-center {
   background: #ffffff;
   color: #000000;
+  box-shadow: 0 4px 20px rgba(255,255,255,0.15);
 }
 
 .bn-center .bn-svg {
@@ -122,7 +130,6 @@ body.dark .bn-center {
   transform: translateX(-50%) scale(0.91);
 }
 
-/* SAFE AREA */
 body {
   padding-bottom: 80px;
 }
@@ -132,6 +139,9 @@ body {
 ========================= */
 .bn-account-wrap {
   position: relative;
+  flex: 1;
+  display: flex;
+  justify-content: center;
 }
 
 .bn-confirm {
@@ -166,7 +176,6 @@ body {
 
 .bn-confirm-actions {
   display: flex;
-  justify-content: space-between;
   gap: 8px;
 }
 
@@ -177,11 +186,9 @@ body {
   border: none;
   font-size: 12px;
   cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
   font-weight: 500;
 }
 
-.bn-confirm-actions button:hover { opacity: 0.85; }
 .bn-confirm-actions button:active { transform: scale(0.95); }
 
 .bn-confirm-actions .bn-confirm-btn--danger {
@@ -192,30 +199,6 @@ body {
 .bn-confirm-actions button:not(.bn-confirm-btn--danger) {
   background: var(--soft);
   color: var(--text);
-}
-
-/* =========================
-   OFFERS TAP ALERT
-========================= */
-.bn-offer-alert {
-  position: fixed;
-  bottom: 88px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--accent);
-  color: var(--button-text);
-  padding: 8px 18px;
-  border-radius: var(--radius, 10px);
-  font-size: 13px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-  z-index: 2000;
-}
-
-.bn-offer-alert.show {
-  opacity: 1;
-  pointer-events: auto;
 }
 
 /* =========================
