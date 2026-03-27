@@ -3,7 +3,7 @@ import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
 import "./BottomNav.css";
 
-/* ================= ICON (MONOCHROME SVG) ================= */
+/* ================= ICONS (MONOCHROME SVG) ================= */
 
 function IconHome() {
   return (
