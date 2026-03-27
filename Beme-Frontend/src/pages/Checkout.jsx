@@ -1858,5 +1858,10 @@ export default function Checkout() {
               ? "Please wait while we secure your payment..."
               : "Please wait while we confirm your order..."
           }
-        />
-      ) : null}
+        <div>
+            <section>
+              {loading ? (
+                <LoaderOverlay ... />
+              ) : null}
+            </section>
+       </div>
