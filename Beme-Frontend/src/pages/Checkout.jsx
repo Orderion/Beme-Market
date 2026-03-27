@@ -1139,18 +1139,23 @@ export default function Checkout() {
   };
 
   const payWithPaystack = async () => {
-    if (
-      loading ||
-      sessionExpired ||
-      checkingOrderHistory ||
-      hasUnavailableCartItems
-    ) {
+    if (loading || sessionExpired || checkingOrderHistory || hasUnavailableCartItems) {
       return;
     }
-
+  
+    // ✅ Ensure delivery method is selected first
+    if (!delivery.method) {
+      setTouched((prev) => ({ ...prev, deliveryMethod: true }));
+      setErrors((prev) => ({
+        ...prev,
+        deliveryMethod: "Please select a delivery option.",
+      }));
+      return; // stop here until user selects a delivery method
+    }
+  
     setLoadingMode("paystack");
     setLoading(true);
-    
+  
     const err = validateRequired();
     if (err) {
       setLoading(false);
