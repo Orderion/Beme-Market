@@ -14,7 +14,10 @@ import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import CartDrawer from "./components/CartDrawer";
 import Footer from "./components/Footer";
-import LoaderOverlay from "./components/LoaderOverlay"; // 🔥 Global Loader
+import LoaderOverlay from "./components/LoaderOverlay";
+
+/* ✅ NEW */
+import BottomNav from "./components/navigation/BottomNav";
 
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
@@ -137,11 +140,11 @@ function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const { hideCartPopup } = useCart();
-  const { loading: authLoading } = useAuth(); // 🔥 loader from auth
+  const { loading: authLoading } = useAuth();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  const [routeLoading, setRouteLoading] = useState(false); // 🔥 route change loader
+  const [routeLoading, setRouteLoading] = useState(false);
 
   const hideHeaderRoutes = useMemo(
     () => new Set(["/login", "/signup", "/admin-login"]),
@@ -150,7 +153,6 @@ function AppShell() {
 
   const shouldHideHeader = hideHeaderRoutes.has(location.pathname);
 
-  // 🔄 Route change loader trigger
   useEffect(() => {
     setRouteLoading(true);
     const timeout = setTimeout(() => {
@@ -176,7 +178,6 @@ function AppShell() {
 
   return (
     <>
-      {/* 🔥 GLOBAL LOADER OVERLAY */}
       <LoaderOverlay isVisible={authLoading || routeLoading} />
 
       {!shouldHideHeader ? (
@@ -319,6 +320,9 @@ function AppShell() {
       </main>
 
       {!shouldHideHeader ? <Footer /> : null}
+
+      {/* ✅ NEW (SAFE) */}
+      {!shouldHideHeader ? <BottomNav /> : null}
     </>
   );
 }
