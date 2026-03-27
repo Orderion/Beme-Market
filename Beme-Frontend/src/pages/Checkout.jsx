@@ -1143,51 +1143,42 @@ export default function Checkout() {
       return;
     }
   
-    // ✅ Ensure delivery method is selected first
+    // ✅ 1. Early return if delivery method not selected
     if (!delivery.method) {
+      // mark delivery method as touched so error shows
       setTouched((prev) => ({ ...prev, deliveryMethod: true }));
+      
+      // set error for delivery method
       setErrors((prev) => ({
         ...prev,
         deliveryMethod: "Please select a delivery option.",
       }));
-      return; // stop here until user selects a delivery method
+  
+      // stop execution here until user selects a delivery option
+      return;
     }
   
-    setLoadingMode("paystack");
-    setLoading(true);
-  
+    // ✅ 2. Then run the full validation
     const err = validateRequired();
     if (err) {
       setLoading(false);
       setLoadingMode("");
       return;
     }
-
+  
+    // ✅ 3. Proceed with Paystack checkout
+    setLoadingMode("paystack");
+    setLoading(true);
+  
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
       await startPaystackCheckout({
         email: sanitizeText(form.email, 160).toLowerCase(),
         cartItems: safeCartItems.map((item) => ({
           ...item,
-          id: item.id || "",
-          productId: item.productId || item.id || "",
-          qty: Math.max(1, Number(item.qty) || 1),
+          qty: Number(item.qty) || 1,
           price: Number(item.price) || 0,
           basePrice: Number(item.basePrice ?? item.price ?? 0) || 0,
           optionPriceTotal: Number(item.optionPriceTotal || 0) || 0,
-          shop: normalizeShop(item.shop),
-          abroadDeliveryFee: getItemAbroadDeliveryFee(item),
-          selectedOptions: item.selectedOptions || {},
-          selectedOptionsLabel: item.selectedOptionsLabel || "",
-          selectedOptionDetails: Array.isArray(item.selectedOptionDetails)
-            ? item.selectedOptionDetails
-            : [],
-          customizations: Array.isArray(item.customizations)
-            ? item.customizations
-            : [],
-          inStock: item.inStock !== false,
-          stock: getNumericStock(item),
         })),
         delivery: buildDeliveryPayload(),
         pricing: {
@@ -1203,16 +1194,11 @@ export default function Checkout() {
           region: sanitizeText(form.region, 80),
           city: sanitizeText(form.city, 80),
           area: sanitizeText(form.area, 120),
-          notes: sanitizeOptionalText(form.notes, 500),
-          country: "Ghana",
           phone: normalizedPhone,
-          network,
-          userId: user?.uid || "",
         },
       });
     } catch (e) {
       console.error("Paystack init failed:", e);
-      alert(e?.message || "Paystack init failed. Please try again.");
       setLoading(false);
       setLoadingMode("");
     }
