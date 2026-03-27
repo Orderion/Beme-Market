@@ -1,5 +1,5 @@
 /* =========================
-   BOTTOM NAV (FINAL CLEAN FIX)
+   BOTTOM NAV (THEME-AWARE)
 ========================= */
 
 /* HIDE ON DESKTOP */
@@ -15,106 +15,85 @@
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 72px;
+  height: 68px;
   background: var(--card);
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: space-around;
   align-items: center;
-  z-index: 999;
-  overflow: hidden;
+  z-index: 1000;
+  transition: background var(--motion-slow), border-color var(--motion-slow);
 }
 
 /* ITEMS */
 .bn-item {
-  flex: 1;
-  background: none;
-  border: none;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 2px;
   font-size: 11px;
   color: var(--muted);
+  background: none;
+  border: none;
+  transition: all var(--motion-fast);
   position: relative;
-  z-index: 2;
-  transition: transform 0.25s ease, color 0.25s ease;
 }
 
 .bn-item span {
-  font-size: 11px;
+  margin-top: 3px;
 }
 
 /* ICON */
 .bn-svg {
   width: 22px;
   height: 22px;
-  transition: transform 0.25s ease, color 0.25s ease;
+  fill: currentColor;
+  transition: color var(--motion-fast);
 }
 
-/* ACTIVE */
+/* ACTIVE STATE */
 .bn-item.active {
-  color: var(--button-text);
-  transform: translateY(-6px);
+  color: var(--accent);
+  transform: translateY(-2px);
 }
 
-/* =========================
-   🔥 INDICATOR (BLOB)
-========================= */
-.bn-indicator {
-  position: absolute;
-  top: -18px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-  z-index: 1;
-
-  /* 🔥 animation base */
-  transition: transform 0.45s cubic-bezier(0.22, 1.5, 0.36, 1);
-}
-
-/* 🔥 Bounce animation trigger */
-.bn-indicator.animate {
-  animation: bounceElastic 0.6s ease;
-}
-
-/* ICON inside active */
-.bn-item.active .bn-svg {
-  color: var(--button-text);
-  transform: scale(1.1);
-}
-
-/* TAP */
+/* TAP ANIMATION */
 .bn-item:active {
   transform: scale(0.92);
 }
 
-/* =========================
-   🔥 BOUNCE + ELASTIC KEYFRAMES
-========================= */
-@keyframes bounceElastic {
-  0% {
-    transform: scale(1) translateY(0);
-  }
-  25% {
-    transform: scale(1.15, 0.85) translateY(-6px);
-  }
-  50% {
-    transform: scale(0.95, 1.05) translateY(2px);
-  }
-  75% {
-    transform: scale(1.05, 0.95) translateY(-2px);
-  }
-  100% {
-    transform: scale(1) translateY(0);
-  }
+/* CENTER BUTTON */
+.bn-center {
+  position: relative;
+  top: -18px;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--button-text);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  transition: transform var(--motion-fast), background var(--motion-smooth);
+}
+
+.bn-center .bn-svg {
+  width: 24px;
+  height: 24px;
+}
+
+.bn-center:active {
+  transform: scale(0.9);
+}
+
+/* SAFE AREA */
+body {
+  padding-bottom: 80px;
 }
 
 /* =========================
-   LOGOUT POPUP (UNCHANGED)
+   ACCOUNT / LOGOUT CONFIRM POPUP
 ========================= */
 .bn-account-wrap {
   position: relative;
@@ -122,17 +101,17 @@
 
 .bn-confirm {
   position: absolute;
-  bottom: 80px;
+  bottom: 70px;
   left: 50%;
   transform: translateX(-50%);
   width: 220px;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   box-shadow: var(--shadow);
   opacity: 0;
   pointer-events: none;
-  transition: all 0.25s ease;
+  transition: all var(--motion-fast);
   text-align: center;
   padding: 12px;
   z-index: 1500;
@@ -151,6 +130,7 @@
 
 .bn-confirm-actions {
   display: flex;
+  justify-content: space-between;
   gap: 8px;
 }
 
@@ -161,9 +141,14 @@
   border: none;
   font-size: 12px;
   cursor: pointer;
+  transition: background var(--motion-fast);
 }
 
-.bn-confirm-btn--danger {
+.bn-confirm-actions button:hover {
+  opacity: 0.85;
+}
+
+.bn-confirm-actions .bn-confirm-btn--danger {
   background: #ff4d4d;
   color: #fff;
 }
@@ -173,7 +158,44 @@
   color: var(--text);
 }
 
-/* SAFE SPACE */
-body {
-  padding-bottom: 90px;
+/* =========================
+   OFFERS TAP ALERT
+========================= */
+.bn-offer-alert {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: var(--button-text);
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  transition: all var(--motion-fast);
+  z-index: 2000;
+}
+
+.bn-offer-alert.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* =========================
+   CART BADGE (if needed later)
+========================= */
+.bn-icon-wrap {
+  position: relative;
+}
+
+.bn-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  background: var(--accent);
+  color: var(--button-text);
+  font-size: 10px;
+  padding: 2px 5px;
+  border-radius: 10px;
 }
