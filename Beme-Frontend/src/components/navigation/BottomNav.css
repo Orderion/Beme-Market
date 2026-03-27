@@ -1,15 +1,15 @@
 /* =========================
-   MOBILE ONLY
+   BOTTOM NAV (FINAL CLEAN FIX)
 ========================= */
+
+/* HIDE ON DESKTOP */
 @media (min-width: 768px) {
   .bottom-nav {
     display: none;
   }
 }
 
-/* =========================
-   NAV BASE (FIXED)
-========================= */
+/* NAV BASE */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -22,11 +22,10 @@
   justify-content: space-around;
   align-items: center;
   z-index: 999;
+  overflow: hidden;
 }
 
-/* =========================
-   ITEMS
-========================= */
+/* ITEMS */
 .bn-item {
   flex: 1;
   background: none;
@@ -35,65 +34,87 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--muted);
+  gap: 2px;
   font-size: 11px;
+  color: var(--muted);
   position: relative;
   z-index: 2;
-  transition: transform 0.3s ease, color 0.25s ease;
+  transition: transform 0.25s ease, color 0.25s ease;
 }
 
 .bn-item span {
-  margin-top: 4px;
+  font-size: 11px;
 }
 
 /* ICON */
 .bn-svg {
   width: 22px;
   height: 22px;
-  transition: transform 0.3s ease, color 0.25s ease;
+  transition: transform 0.25s ease, color 0.25s ease;
 }
 
-/* =========================
-   ACTIVE STATE
-========================= */
+/* ACTIVE */
 .bn-item.active {
   color: var(--button-text);
-  transform: translateY(-14px);
-}
-
-.bn-item.active .bn-svg {
-  transform: scale(1.05);
+  transform: translateY(-6px);
 }
 
 /* =========================
-   FLOATING ACTIVE BLOB
+   🔥 INDICATOR (BLOB)
 ========================= */
 .bn-indicator {
   position: absolute;
-  top: -22px;
+  top: -18px;
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: var(--text);
+  background: var(--accent);
   box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-
-  /* 🔥 SMOOTH MOTION */
-  transition:
-    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.3s ease;
-
   z-index: 1;
+
+  /* 🔥 animation base */
+  transition: transform 0.45s cubic-bezier(0.22, 1.5, 0.36, 1);
 }
 
-/* =========================
-   TAP EFFECT
-========================= */
+/* 🔥 Bounce animation trigger */
+.bn-indicator.animate {
+  animation: bounceElastic 0.6s ease;
+}
+
+/* ICON inside active */
+.bn-item.active .bn-svg {
+  color: var(--button-text);
+  transform: scale(1.1);
+}
+
+/* TAP */
 .bn-item:active {
   transform: scale(0.92);
 }
 
 /* =========================
-   ACCOUNT / LOGOUT
+   🔥 BOUNCE + ELASTIC KEYFRAMES
+========================= */
+@keyframes bounceElastic {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+  25% {
+    transform: scale(1.15, 0.85) translateY(-6px);
+  }
+  50% {
+    transform: scale(0.95, 1.05) translateY(2px);
+  }
+  75% {
+    transform: scale(1.05, 0.95) translateY(-2px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* =========================
+   LOGOUT POPUP (UNCHANGED)
 ========================= */
 .bn-account-wrap {
   position: relative;
@@ -107,7 +128,7 @@
   width: 220px;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 12px;
   box-shadow: var(--shadow);
   opacity: 0;
   pointer-events: none;
@@ -123,8 +144,9 @@
 }
 
 .bn-confirm p {
-  margin-bottom: 8px;
+  margin: 0 0 8px 0;
   font-size: 13px;
+  color: var(--text);
 }
 
 .bn-confirm-actions {
@@ -134,20 +156,24 @@
 
 .bn-confirm-actions button {
   flex: 1;
-  padding: 6px;
+  padding: 6px 0;
   border-radius: 6px;
   border: none;
+  font-size: 12px;
   cursor: pointer;
 }
 
 .bn-confirm-btn--danger {
   background: #ff4d4d;
-  color: white;
+  color: #fff;
 }
 
-/* =========================
-   SAFE SPACE
-========================= */
+.bn-confirm-actions button:not(.bn-confirm-btn--danger) {
+  background: var(--soft);
+  color: var(--text);
+}
+
+/* SAFE SPACE */
 body {
-  padding-bottom: 100px;
+  padding-bottom: 90px;
 }
