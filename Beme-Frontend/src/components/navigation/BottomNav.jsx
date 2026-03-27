@@ -125,8 +125,6 @@ export default function BottomNav() {
          >
          <IconShop />
       </button>
-        <IconShop />
-      </button>
 
       {/* ORDERS */}
       <button
