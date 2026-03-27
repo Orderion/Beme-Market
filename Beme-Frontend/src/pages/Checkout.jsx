@@ -900,8 +900,8 @@ export default function Checkout() {
         "Some items in your cart are out of stock or exceed available stock. Update your cart before checkout.";
     }
 
-  if (!delivery.method && !v.deliveryMethod) {
-  next.deliveryMethod = "Please select a delivery option.";
+    if (!delivery.method) {
+      next.deliveryMethod = "Please select a delivery option.";
     }
     if (
       delivery.method === DELIVERY_METHODS.MALL_PICKUP &&
@@ -948,10 +948,7 @@ export default function Checkout() {
       return "Checkout session expired.";
     }
 
-      const next = validate({
-        ...form,
-        deliveryMethod: delivery.method,
-      });
+    const next = validate(form);
     setErrors(next);
 
     setTouched({
