@@ -1,0 +1,102 @@
+/* HIDE ON DESKTOP */
+@media (min-width: 768px) {
+  .bottom-nav {
+    display: none;
+  }
+}
+
+/* NAV BASE */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 68px;
+  background: #fff;
+  border-top: 1px solid #eaeaea;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* ITEMS */
+.bn-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 11px;
+  color: #888;
+  background: none;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.bn-item span {
+  margin-top: 3px;
+}
+
+/* ICON */
+.bn-svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* ACTIVE STATE */
+.bn-item.active {
+  color: #000;
+  transform: translateY(-2px);
+}
+
+/* TAP ANIMATION */
+.bn-item:active {
+  transform: scale(0.92);
+}
+
+/* CART BADGE */
+.bn-icon-wrap {
+  position: relative;
+}
+
+.bn-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  background: #000;
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 5px;
+  border-radius: 10px;
+}
+
+/* CENTER BUTTON */
+.bn-center {
+  position: relative;
+  top: -18px;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #000;
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  transition: transform 0.2s ease;
+}
+
+.bn-center .bn-svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* CENTER TAP */
+.bn-center:active {
+  transform: scale(0.9);
+}
+
+/* SAFE AREA */
+body {
+  padding-bottom: 80px;
+}
