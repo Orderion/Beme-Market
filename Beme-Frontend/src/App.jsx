@@ -17,7 +17,7 @@ import Footer from "./components/Footer";
 import LoaderOverlay from "./components/LoaderOverlay";
 
 /* ✅ NEW */
-import BottomNav from "./components/navigation/BottomNav";
+import BottomNav from "./components/navigation/BottomNav.jsx";
 
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
