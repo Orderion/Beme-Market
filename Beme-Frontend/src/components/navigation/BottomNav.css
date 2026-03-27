@@ -95,7 +95,7 @@ body {
 .bn-confirm {
   position: absolute;
   bottom: 70px;
-  left: -25%;
+  left: -35%;
   transform: translateX(-50%);
   width: 220px;
   background: #fff;
