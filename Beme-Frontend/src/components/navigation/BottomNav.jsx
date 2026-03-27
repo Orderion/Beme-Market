@@ -1,24 +1,16 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
+import { useEffect, useRef, useState } from "react";
 import "./BottomNav.css";
 
-/* ================= ICON (MONOCHROME SVG) ================= */
+/* ================= ICONS ================= */
 
 function IconHome() {
   return (
     <svg viewBox="0 0 24 24" className="bn-svg">
       <path d="M4 11l8-7 8 7" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
       <path d="M6 10v10h12V10" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconBag() {
-  return (
-    <svg viewBox="0 0 24 24" className="bn-svg">
-      <path d="M6 7h12l-1 12H7L6 7z" fill="none" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M9 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -50,23 +42,62 @@ function IconUser() {
   );
 }
 
+function IconOffers() {
+  return (
+    <svg viewBox="0 0 24 24" className="bn-svg">
+      <path d="M5 12l5-5 9 9-5 5z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
 /* ================= COMPONENT ================= */
 
 export default function BottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { cartItems } = useCart();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
-  const count =
-    cartItems?.reduce((sum, i) => sum + Number(i.qty || 1), 0) || 0;
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [logoutConfirmMounted, setLogoutConfirmMounted] = useState(false);
+  const logoutWrapRef = useRef(null);
 
   const isActive = (path) => location.pathname === path;
 
+  /* Logout confirmation effect */
+  useEffect(() => {
+    let timeoutId;
+    if (showLogoutConfirm) setLogoutConfirmMounted(true);
+    else
+      timeoutId = setTimeout(() => setLogoutConfirmMounted(false), 220);
+    return () => clearTimeout(timeoutId);
+  }, [showLogoutConfirm]);
+
+  useEffect(() => {
+    if (!showLogoutConfirm && !logoutConfirmMounted) return;
+
+    const handleClickOutside = (event) => {
+      if (!logoutWrapRef.current) return;
+      if (!logoutWrapRef.current.contains(event.target)) setShowLogoutConfirm(false);
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") setShowLogoutConfirm(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [showLogoutConfirm, logoutConfirmMounted]);
+
   return (
     <nav className="bottom-nav">
-      
+
       {/* HOME */}
       <button
         className={`bn-item ${isActive("/") ? "active" : ""}`}
@@ -76,16 +107,13 @@ export default function BottomNav() {
         <span>Home</span>
       </button>
 
-      {/* CART */}
+      {/* OFFERS */}
       <button
-        className={`bn-item ${isActive("/cart") ? "active" : ""}`}
-        onClick={() => navigate("/cart")}
+        className={`bn-item ${isActive("/offers") ? "active" : ""}`}
+        onClick={() => alert("No offer available")}
       >
-        <div className="bn-icon-wrap">
-          <IconBag />
-          {count > 0 && <span className="bn-badge">{count}</span>}
-        </div>
-        <span>Cart</span>
+        <IconOffers />
+        <span>Offers</span>
       </button>
 
       {/* CENTER SHOP BUTTON */}
@@ -106,15 +134,51 @@ export default function BottomNav() {
         <span>Orders</span>
       </button>
 
-      {/* ACCOUNT */}
-      <button
-        className={`bn-item ${isActive("/login") ? "active" : ""}`}
-        onClick={() => navigate(user ? "/orders" : "/login")}
-      >
-        <IconUser />
-        <span>{user ? "Account" : "Login"}</span>
-      </button>
+      {/* ACCOUNT / LOGIN */}
+      <div className="bn-item bn-account-wrap" ref={logoutWrapRef}>
+        {!user ? (
+          <button
+            className={`bn-item ${isActive("/login") ? "active" : ""}`}
+            onClick={() => navigate("/login")}
+          >
+            <IconUser />
+            <span>Login</span>
+          </button>
+        ) : (
+          <>
+            <button
+              className={`bn-item ${showLogoutConfirm ? "is-active" : ""}`}
+              onClick={() => setShowLogoutConfirm((prev) => !prev)}
+              aria-label="Open logout confirmation"
+            >
+              <IconUser />
+              <span>Account</span>
+            </button>
 
+            {(logoutConfirmMounted || showLogoutConfirm) && (
+              <div
+                className={`bn-confirm ${showLogoutConfirm ? "is-open" : ""}`}
+                aria-hidden={!showLogoutConfirm}
+              >
+                <p>Log out of your account?</p>
+                <div className="bn-confirm-actions">
+                  <button onClick={() => setShowLogoutConfirm(false)}>Cancel</button>
+                  <button
+                    className="bn-confirm-btn--danger"
+                    onClick={async () => {
+                      await logout();
+                      setShowLogoutConfirm(false);
+                      navigate("/", { replace: true });
+                    }}
+                  >
+                    Log out
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </nav>
   );
 }
