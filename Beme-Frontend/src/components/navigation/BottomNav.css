@@ -1,5 +1,5 @@
 /* =========================
-   BOTTOM NAV (THEME-AWARE)
+   BOTTOM NAV — PULSE STYLE
 ========================= */
 
 /* HIDE ON DESKTOP */
@@ -16,13 +16,55 @@
   left: 0;
   width: 100%;
   height: 68px;
-  background: var(--card);
-  border-top: 1px solid var(--border);
+  background: var(--card, #1a1a1a);
   display: flex;
   justify-content: space-around;
   align-items: center;
   z-index: 1000;
   transition: background var(--motion-slow), border-color var(--motion-slow);
+  clip-path: none;
+}
+
+/* Create the scalloped cutout using a pseudo-element overlay technique */
+.bottom-nav::before {
+  content: "";
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 40px;
+  background: transparent;
+  border-radius: 0 0 50px 50px;
+  box-shadow: 0 0 0 60px var(--card, #1a1a1a);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Curved top edge using SVG-like cutout */
+.bottom-nav {
+  --curve-size: 36px;
+  border-top: none;
+  -webkit-mask:
+    radial-gradient(circle var(--curve-size) at 50% 0%, transparent 99%, black 100%) top / 100% 100% no-repeat;
+  mask:
+    radial-gradient(circle var(--curve-size) at 50% 0%, transparent 99%, black 100%) top / 100% 100% no-repeat;
+}
+
+/* Thin border line that respects the cutout */
+.bottom-nav::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-top: 1px solid var(--border, rgba(255,255,255,0.08));
+  pointer-events: none;
+  -webkit-mask:
+    radial-gradient(circle var(--curve-size) at 50% 0%, transparent 99%, black 100%) top / 100% 100% no-repeat;
+  mask:
+    radial-gradient(circle var(--curve-size) at 50% 0%, transparent 99%, black 100%) top / 100% 100% no-repeat;
 }
 
 /* ITEMS */
@@ -31,60 +73,77 @@
   flex-direction: column;
   align-items: center;
   font-size: 11px;
-  color: var(--muted);
+  color: var(--muted, #888);
   background: none;
   border: none;
-  transition: all var(--motion-fast);
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color var(--motion-fast, 0.15s), transform var(--motion-fast, 0.15s);
   position: relative;
+  gap: 3px;
 }
 
 .bn-item span {
-  margin-top: 3px;
+  margin-top: 2px;
+  letter-spacing: 0.01em;
 }
 
 /* ICON */
 .bn-svg {
   width: 22px;
   height: 22px;
-  fill: currentColor;
-  transition: color var(--motion-fast);
+  transition: color var(--motion-fast, 0.15s);
 }
 
 /* ACTIVE STATE */
 .bn-item.active {
-  color: var(--accent);
-  transform: translateY(-2px);
+  color: var(--accent, #f0c000);
+}
+
+.bn-item.active .bn-svg {
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent, #f0c000) 50%, transparent));
 }
 
 /* TAP ANIMATION */
 .bn-item:active {
-  transform: scale(0.92);
+  transform: scale(0.88);
 }
 
-/* CENTER BUTTON */
+/* ==============================
+   CENTER FLOATING BUTTON — STATIC
+============================== */
 .bn-center {
-  position: relative;
-  top: -18px;
-  width: 58px;
-  height: 58px;
+  position: fixed;
+  bottom: 34px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background: var(--accent);
-  color: var(--button-text);
+  background: var(--accent, #f0c000);
+  color: var(--button-text, #1a1a1a);
   border: none;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow);
-  transition: transform var(--motion-fast), background var(--motion-smooth);
+  box-shadow:
+    0 4px 20px color-mix(in srgb, var(--accent, #f0c000) 50%, transparent),
+    0 2px 8px rgba(0,0,0,0.4);
+  transition: transform var(--motion-fast, 0.15s), box-shadow var(--motion-fast, 0.15s);
+  z-index: 1100;
 }
 
 .bn-center .bn-svg {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
 }
 
 .bn-center:active {
-  transform: scale(0.9);
+  transform: translateX(-50%) scale(0.91);
+  box-shadow:
+    0 2px 10px color-mix(in srgb, var(--accent, #f0c000) 40%, transparent),
+    0 1px 4px rgba(0,0,0,0.3);
 }
 
 /* SAFE AREA */
@@ -101,31 +160,32 @@ body {
 
 .bn-confirm {
   position: absolute;
-  bottom: 70px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 76px;
+  left: -80%;
+  transform: translateX(-50%) translateY(6px);
   width: 220px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  background: var(--card, #1a1a1a);
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: var(--radius, 12px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
   opacity: 0;
   pointer-events: none;
-  transition: all var(--motion-fast);
+  transition: opacity 0.2s ease, transform 0.2s ease;
   text-align: center;
-  padding: 12px;
+  padding: 14px;
   z-index: 1500;
 }
 
 .bn-confirm.is-open {
   opacity: 1;
   pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
 }
 
 .bn-confirm p {
-  margin: 0 0 8px 0;
+  margin: 0 0 10px 0;
   font-size: 13px;
-  color: var(--text);
+  color: var(--text, #fff);
 }
 
 .bn-confirm-actions {
@@ -136,26 +196,31 @@ body {
 
 .bn-confirm-actions button {
   flex: 1;
-  padding: 6px 0;
-  border-radius: 6px;
+  padding: 7px 0;
+  border-radius: 8px;
   border: none;
   font-size: 12px;
   cursor: pointer;
-  transition: background var(--motion-fast);
+  transition: opacity 0.15s, transform 0.1s;
+  font-weight: 500;
 }
 
 .bn-confirm-actions button:hover {
   opacity: 0.85;
 }
 
+.bn-confirm-actions button:active {
+  transform: scale(0.95);
+}
+
 .bn-confirm-actions .bn-confirm-btn--danger {
-  background: #ff4d4d;
+  background: #ff4444;
   color: #fff;
 }
 
 .bn-confirm-actions button:not(.bn-confirm-btn--danger) {
-  background: var(--soft);
-  color: var(--text);
+  background: var(--soft, rgba(255,255,255,0.08));
+  color: var(--text, #fff);
 }
 
 /* =========================
@@ -163,17 +228,17 @@ body {
 ========================= */
 .bn-offer-alert {
   position: fixed;
-  bottom: 80px;
+  bottom: 88px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--accent);
-  color: var(--button-text);
-  padding: 8px 16px;
-  border-radius: var(--radius);
+  background: var(--accent, #f0c000);
+  color: var(--button-text, #1a1a1a);
+  padding: 8px 18px;
+  border-radius: var(--radius, 10px);
   font-size: 13px;
   opacity: 0;
   pointer-events: none;
-  transition: all var(--motion-fast);
+  transition: opacity 0.2s ease;
   z-index: 2000;
 }
 
@@ -193,9 +258,10 @@ body {
   position: absolute;
   top: -6px;
   right: -8px;
-  background: var(--accent);
-  color: var(--button-text);
+  background: var(--accent, #f0c000);
+  color: var(--button-text, #1a1a1a);
   font-size: 10px;
   padding: 2px 5px;
   border-radius: 10px;
+  font-weight: 700;
 }
