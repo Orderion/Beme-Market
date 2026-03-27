@@ -1666,7 +1666,7 @@ export default function Checkout() {
             <span className="checkout-pay-btn__text">Pay</span>
           </span>
        </button>
-      ) : (     
+        )}
                 <button
                       className={[
                         "primary-btn",
