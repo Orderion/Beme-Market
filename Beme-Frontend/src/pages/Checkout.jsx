@@ -1846,6 +1846,7 @@ export default function Checkout() {
           </div>
         )}
       </div>
+
       {loading ? (
         <LoaderOverlay
           label={
@@ -1858,10 +1859,8 @@ export default function Checkout() {
               ? "Please wait while we secure your payment..."
               : "Please wait while we confirm your order..."
           }
-        <div>
-            <section>
-              {loading ? (
-                <LoaderOverlay ... />
-              ) : null}
-            </section>
-       </div>
+        />
+      ) : null}
+    </div>
+  );
+}
