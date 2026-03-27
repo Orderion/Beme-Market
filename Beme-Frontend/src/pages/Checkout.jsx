@@ -1637,44 +1637,44 @@ export default function Checkout() {
 
               {method ? (
                 <div className="checkout-actions checkout-actions--enhanced">
-                 
-                {method === "paystack" && (
-                 <button
-                   className="checkout-pay-btn"
-                   onClick={payWithPaystack}
-                   disabled={
-                   inputsDisabled ||
-                  !!errors.cart ||
-                  !user ||
-                  authLoading ||
-                  checkingOrderHistory ||
-                  hasUnavailableCartItems
-                  }
-                  type="button"
-                 >
-                 <span className="checkout-pay-btn__inner">
-                 {/* Padlock icon */}
-                 <svg
-                 xmlns="http://www.w3.org/2000/svg"
-                 width="20"
-                 height="20"
-                 fill="currentColor"
-                 viewBox="0 0 16 16"
-                >
-                 <path d="M8 1a4 4 0 0 0-4 4v3H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1h-1V5a4 4 0 0 0-4-4zm-3 4a3 3 0 1 1 6 0v3H5V5zm-2 4h10v5H3v-5z"/>
-                 </svg>
-            <span className="checkout-pay-btn__text">Pay
-                <small>
+                                        {method === "paystack" ? (
+  <button
+    className="checkout-pay-btn"
+    onClick={payWithPaystack}
+    disabled={
+      inputsDisabled ||
+      !!errors.cart ||
+      !user ||
+      authLoading ||
+      checkingOrderHistory ||
+      hasUnavailableCartItems
+    }
+    type="button"
+  >
+    <span className="checkout-pay-btn__inner">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        fill="currentColor"
+        viewBox="0 0 16 16"
+      >
+        <path d="M8 1a4 4 0 0 0-4 4v3H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1h-1V5a4 4 0 0 0-4-4zm-3 4a3 3 0 1 1 6 0v3H5V5zm-2 4h10v5H3v-5z"/>
+      </svg>
+
+      <span className="checkout-pay-btn__text">
+        Pay
+        <small>
           {hasUnavailableCartItems
             ? "Resolve unavailable cart items first"
             : loading && loadingMode === "paystack"
             ? "Processing..."
             : "Secured by Paystack"}
         </small>
-              </span>
-          </span>
-       </button>
-)}
+      </span>
+    </span>
+  </button>
+) : null}
                 <button
                       className={[
                         "primary-btn",
