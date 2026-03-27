@@ -65,7 +65,6 @@ export default function Sidebar({ isOpen, onClose }) {
   const [subScreen, setSubScreen] = useState(null);
   const [confirmLogout, setConfirmLogout] = useState(false);
 
-  const offers = useMemo(() => [], []);
   const shopLabel = useMemo(() => (adminShop ? titleize(adminShop) : ""), [adminShop]);
 
   const isRouteActive = (path) => path && location.pathname === path;
@@ -103,11 +102,6 @@ export default function Sidebar({ isOpen, onClose }) {
   };
 
   const goCategory = (cat) => go(`/shop?q=${encodeURIComponent(cat)}`);
-
-  const onOffersClick = () => {
-    if (!offers.length) { alert("You have no offers yet."); return; }
-    onClose?.();
-  };
 
   const onLogout = async () => {
     try { await logout(); }
@@ -203,7 +197,6 @@ export default function Sidebar({ isOpen, onClose }) {
             <MenuRow label="Categories" onClick={() => setSubScreen("categories")} hasArrow />
             <MenuRow label="Departments" onClick={() => setSubScreen("departments")} hasArrow />
             <MenuRow label="More" onClick={() => setSubScreen("more")} hasArrow />
-            <MenuRow label="Offers" onClick={onOffersClick} />
 
             <div className="menu-divider" />
 
