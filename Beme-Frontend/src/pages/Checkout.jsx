@@ -1709,7 +1709,9 @@ export default function Checkout() {
                         </span>
                       </span>
                     </button>
+                    )}
                 </div>
+                ) : null}
             </div>
 
             <div className="checkout-summary">
