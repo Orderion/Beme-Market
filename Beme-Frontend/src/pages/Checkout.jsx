@@ -44,6 +44,7 @@ const DEFAULT_OTHER_CITIES = ["Other"];
 const CHECKOUT_DURATION_SECONDS = 10 * 60;
 const OUTSIDE_ACCRA_DELIVERY_FEE = 50;
 
+/* Delivery setup */
 const DELIVERY_METHODS = {
   MALL_PICKUP: "mall_pickup",
   HOME_DELIVERY: "home_delivery",
@@ -76,6 +77,7 @@ const ACCRA_MALL_PICKUP_OPTIONS = [
   },
 ];
 
+/* Flat fee for all home deliveries */
 const HOME_DELIVERY_FEE = 150;
 
 const INITIAL_FORM = {
@@ -181,7 +183,9 @@ function hasQuantityIssue(item) {
 }
 
 function getUnavailableReason(item) {
-  if (isItemOutOfStock(item)) return "Out of stock";
+  if (isItemOutOfStock(item)) {
+    return "Out of stock";
+  }
 
   if (hasQuantityIssue(item)) {
     const stock = getNumericStock(item);
@@ -414,7 +418,11 @@ function PaymentIcon({ type, disabled = false }) {
 
 function LockIcon() {
   return (
-    <svg className="payment-lock-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <svg
+      className="payment-lock-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
       <path
         d="M7.75 10V8.25a4.25 4.25 0 1 1 8.5 0V10"
         fill="none"
@@ -754,6 +762,23 @@ export default function Checkout() {
   }, [isCODBlocked, method]);
 
   useEffect(() => {
+    if (form.region !== "Greater Accra") {
+      setDelivery((prev) => {
+        if (prev.method === DELIVERY_METHODS.MALL_PICKUP || prev.mallId) {
+          return {
+            method:
+              prev.method === DELIVERY_METHODS.MALL_PICKUP
+                ? DELIVERY_METHODS.HOME_DELIVERY
+                : prev.method,
+            mallId: "",
+          };
+        }
+        return prev;
+      });
+    }
+  }, [form.region]);
+
+  useEffect(() => {
     if (delivery.method !== DELIVERY_METHODS.MALL_PICKUP && delivery.mallId) {
       setDelivery((prev) => ({ ...prev, mallId: "" }));
     }
@@ -798,70 +823,43 @@ export default function Checkout() {
   };
 
   const setDeliveryMethod = (nextMethod) => {
-    if (sessionExpired || loading) return;
+  if (sessionExpired || loading) return;
 
-    if (
-      nextMethod === DELIVERY_METHODS.MALL_PICKUP &&
-      form.region !== "Greater Accra"
-    ) {
-      setTouched((prev) => ({
-        ...prev,
-        deliveryMethod: true,
-        region: true,
-      }));
-
-      setErrors((prev) => ({
-        ...prev,
-        deliveryMethod: "Mall pickup is only available in Greater Accra.",
-      }));
-      return;
-    }
-
-    setDelivery((prev) => ({
-      method: nextMethod,
-      mallId: nextMethod === DELIVERY_METHODS.MALL_PICKUP ? prev.mallId : "",
-    }));
-
+  if (
+    nextMethod === DELIVERY_METHODS.MALL_PICKUP &&
+    form.region !== "Greater Accra"
+  ) {
     setTouched((prev) => ({
       ...prev,
       deliveryMethod: true,
+      region: true,
     }));
 
     setErrors((prev) => ({
       ...prev,
-      deliveryMethod: "",
-      mallId: "",
+      deliveryMethod: "Mall pickup is only available in Greater Accra.",
     }));
-  };
+    return;
+  }
 
-  const setMallPickup = (mallId) => {
-    if (sessionExpired || loading) return;
+  setDelivery((prev) => ({
+    method: nextMethod,
+    mallId:
+      nextMethod === DELIVERY_METHODS.MALL_PICKUP ? prev.mallId : "",
+  }));
 
-    setDelivery({
-      method: DELIVERY_METHODS.MALL_PICKUP,
-      mallId,
-    });
+  setTouched((prev) => ({
+    ...prev,
+    deliveryMethod: true,
+  }));
 
-    setTouched((prev) => ({
-      ...prev,
-      deliveryMethod: true,
-      mallId: true,
-    }));
+  setErrors((prev) => ({
+    ...prev,
+    deliveryMethod: "",
+  }));
+};
 
-    setErrors((prev) => ({
-      ...prev,
-      deliveryMethod: "",
-      mallId: "",
-    }));
-  };
-
-  const markTouched = (key) => () => {
-    setTouched((prev) => ({
-      ...prev,
-      [key]: true,
-    }));
-  };
-    const validate = (v) => {
+  const validate = (v) => {
     const next = {};
 
     if (!user && !authLoading) next.auth = "Please login before checkout.";
@@ -888,7 +886,9 @@ export default function Checkout() {
 
     if (!v.phone.trim()) next.phone = "Phone is required.";
     else if (!normalizedPhone) next.phone = "Use 0XXXXXXXXX or +233XXXXXXXXX.";
-    else if (!network) next.phone = "Phone must be MTN, Telecel, or AirtelTigo.";
+    else if (!network) {
+      next.phone = "Phone must be MTN, Telecel, or AirtelTigo.";
+    }
 
     if (!safeCartItems.length) {
       next.cart = "Your cart is empty.";
@@ -901,24 +901,24 @@ export default function Checkout() {
       next.deliveryMethod = "Please select a delivery option.";
     }
 
-    if (
-      delivery.method === DELIVERY_METHODS.MALL_PICKUP &&
-      v.region !== "Greater Accra"
-    ) {
-      next.deliveryMethod = "Mall pickup is only available in Greater Accra.";
-    }
+    if (!delivery.method) {
+  next.deliveryMethod = "Please select a delivery option.";
+}
 
-    if (
-      delivery.method === DELIVERY_METHODS.MALL_PICKUP &&
-      v.region === "Greater Accra" &&
-      !delivery.mallId
-    ) {
-      next.mallId = "Please select a pickup mall.";
-    }
+if (
+  delivery.method === DELIVERY_METHODS.MALL_PICKUP &&
+  v.region !== "Greater Accra"
+) {
+  next.deliveryMethod = "Mall pickup is only available in Greater Accra.";
+}
 
-    if (!method) {
-      next.paymentMethod = "Please select a payment method.";
-    }
+if (
+  delivery.method === DELIVERY_METHODS.MALL_PICKUP &&
+  v.region === "Greater Accra" &&
+  !delivery.mallId
+) {
+  next.mallId = "Please select a pickup mall.";
+}
 
     return next;
   };
@@ -1011,8 +1011,8 @@ export default function Checkout() {
       delivery.method === DELIVERY_METHODS.HOME_DELIVERY
         ? "Home Delivery"
         : delivery.method === DELIVERY_METHODS.MALL_PICKUP
-          ? mallLabel || "Mall Pickup"
-          : "";
+        ? mallLabel || "Mall Pickup"
+        : "";
 
     return {
       method: delivery.method,
@@ -1280,7 +1280,8 @@ export default function Checkout() {
             {sessionExpired ? (
               <>
                 <p className="checkout-timer__message">
-                  Your checkout session has expired. Please restart checkout to continue.
+                  Your checkout session has expired. Please restart checkout to
+                  continue.
                 </p>
                 <button
                   type="button"
@@ -1311,7 +1312,10 @@ export default function Checkout() {
                 <Link to="/shop" className="checkout-link-btn">
                   Go to shop
                 </Link>
-                <Link to="/" className="checkout-link-btn checkout-link-btn--ghost">
+                <Link
+                  to="/"
+                  className="checkout-link-btn checkout-link-btn--ghost"
+                >
                   Back home
                 </Link>
               </div>
@@ -1340,7 +1344,9 @@ export default function Checkout() {
                 onChange={setField("email")}
                 disabled={inputsDisabled}
               />
-              {showError("email") ? <div className="field-error">{errors.email}</div> : null}
+              {showError("email") ? (
+                <div className="field-error">{errors.email}</div>
+              ) : null}
 
               <h3>Shipping address</h3>
 
@@ -1402,7 +1408,9 @@ export default function Checkout() {
                       </option>
                     ))}
                   </select>
-                  {showError("region") ? <div className="field-error">{errors.region}</div> : null}
+                  {showError("region") ? (
+                    <div className="field-error">{errors.region}</div>
+                  ) : null}
                 </div>
 
                 <div>
@@ -1421,7 +1429,9 @@ export default function Checkout() {
                       </option>
                     ))}
                   </select>
-                  {showError("city") ? <div className="field-error">{errors.city}</div> : null}
+                  {showError("city") ? (
+                    <div className="field-error">{errors.city}</div>
+                  ) : null}
                 </div>
               </div>
 
@@ -1432,7 +1442,9 @@ export default function Checkout() {
                 onChange={setField("area")}
                 disabled={inputsDisabled}
               />
-              {showError("area") ? <div className="field-error">{errors.area}</div> : null}
+              {showError("area") ? (
+                <div className="field-error">{errors.area}</div>
+              ) : null}
 
               <input
                 placeholder="Phone (0XXXXXXXXX or +233XXXXXXXXX)"
@@ -1441,7 +1453,9 @@ export default function Checkout() {
                 onChange={setField("phone")}
                 disabled={inputsDisabled}
               />
-              {showError("phone") ? <div className="field-error">{errors.phone}</div> : null}
+              {showError("phone") ? (
+                <div className="field-error">{errors.phone}</div>
+              ) : null}
 
               {normalizedPhone && network ? (
                 <div className="field-hint">
@@ -1459,14 +1473,14 @@ export default function Checkout() {
               <h3>Delivery options</h3>
 
               <div className="delivery-methods">
-                <button
-                  type="button"
-                  className={`delivery-method-card ${
-                    delivery.method === DELIVERY_METHODS.MALL_PICKUP ? "is-active" : ""
-                  }`}
-                  onClick={() => setDeliveryMethod(DELIVERY_METHODS.MALL_PICKUP)}
-                  disabled={inputsDisabled}
-                >
+               <button
+                type="button"
+                 className={`delivery-method-card ${
+                 delivery.method === DELIVERY_METHODS.MALL_PICKUP ? "is-active" : ""
+                 }`}
+                onClick={() => setDeliveryMethod(DELIVERY_METHODS.MALL_PICKUP)}
+                disabled={inputsDisabled}
+               >
                   <strong>Mall Pickup</strong>
                   <span>
                     {form.region === "Greater Accra"
@@ -1496,7 +1510,9 @@ export default function Checkout() {
 
               {delivery.method === DELIVERY_METHODS.MALL_PICKUP ? (
                 <div className="delivery-mall-options">
-                  <label className="delivery-section-label">Select pickup mall</label>
+                  <label className="delivery-section-label">
+                    Select pickup mall
+                  </label>
 
                   <div className="delivery-mall-grid">
                     {mallPickupOptions.map((mall) => (
@@ -1550,7 +1566,10 @@ export default function Checkout() {
               <h3>Payment method</h3>
 
               <div className="payment-dropdown-wrap">
-                <label className="payment-dropdown-label" htmlFor="payment-method">
+                <label
+                  className="payment-dropdown-label"
+                  htmlFor="payment-method"
+                >
                   Choose how you want to pay
                 </label>
 
@@ -1580,7 +1599,9 @@ export default function Checkout() {
               ) : null}
 
               {checkingOrderHistory ? (
-                <div className="payment-note">Checking your checkout eligibility…</div>
+                <div className="payment-note">
+                  Checking your checkout eligibility…
+                </div>
               ) : null}
 
               {selectedMethodMeta ? (
@@ -1661,7 +1682,9 @@ export default function Checkout() {
                       <span className="payment-btn__inner">
                         <PaymentIcon type="paystack" />
                         <span className="payment-btn__text">
-                          <span className="payment-btn__title">Pay with Paystack</span>
+                          <span className="payment-btn__title">
+                            Pay with Paystack
+                          </span>
                           <span className="payment-btn__sub">
                             {hasUnavailableCartItems
                               ? "Resolve unavailable cart items first"
@@ -1697,7 +1720,9 @@ export default function Checkout() {
                       <span className="payment-btn__inner">
                         <PaymentIcon type="cod" disabled={isCODBlocked} />
                         <span className="payment-btn__text">
-                          <span className="payment-btn__title">Pay on Delivery</span>
+                          <span className="payment-btn__title">
+                            Pay on Delivery
+                          </span>
                           <span className="payment-btn__sub">
                             {isCODBlocked
                               ? "Currently unavailable"
@@ -1721,8 +1746,8 @@ export default function Checkout() {
 
               {hasUnavailableCartItems ? (
                 <div className="field-error" style={{ marginBottom: 14 }}>
-                  Some cart items are unavailable. Remove them or reduce quantity before
-                  checkout.
+                  Some cart items are unavailable. Remove them or reduce quantity
+                  before checkout.
                 </div>
               ) : null}
 
@@ -1740,7 +1765,9 @@ export default function Checkout() {
                         {item.image ? (
                           <img src={item.image} alt={item.name || "Product"} />
                         ) : (
-                          <div className="summary-item-thumb--empty">No image</div>
+                          <div className="summary-item-thumb--empty">
+                            No image
+                          </div>
                         )}
                       </div>
 
@@ -1788,7 +1815,9 @@ export default function Checkout() {
                         : "Outside Accra base delivery (+50)"}
                     </small>
                   ) : (
-                    <small className="summary-line-sub">Select region to calculate</small>
+                    <small className="summary-line-sub">
+                      Select region to calculate
+                    </small>
                   )}
                 </span>
                 <span>GHS {regionalBaseDeliveryFeeUI.toFixed(2)}</span>
