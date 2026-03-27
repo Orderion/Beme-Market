@@ -1,99 +1,99 @@
 /* =========================
-   BOTTOM NAV (THEME-AWARE)
+   MOBILE ONLY
 ========================= */
-
-/* HIDE ON DESKTOP */
 @media (min-width: 768px) {
   .bottom-nav {
     display: none;
   }
 }
 
-/* NAV BASE */
+/* =========================
+   NAV BASE (FIXED)
+========================= */
 .bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 68px;
+  height: 72px;
   background: var(--card);
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: space-around;
   align-items: center;
   z-index: 999;
-  transition: background var(--motion-slow), border-color var(--motion-slow);
 }
 
-/* ITEMS */
+/* =========================
+   ITEMS
+========================= */
 .bn-item {
+  flex: 1;
+  background: none;
+  border: none;
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-size: 11px;
+  justify-content: center;
   color: var(--muted);
-  background: none;
-  border: none;
-  transition: all var(--motion-fast);
+  font-size: 11px;
   position: relative;
+  z-index: 2;
+  transition: transform 0.3s ease, color 0.25s ease;
 }
 
 .bn-item span {
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 /* ICON */
 .bn-svg {
   width: 22px;
   height: 22px;
-  fill: currentColor;
-  transition: color var(--motion-fast);
+  transition: transform 0.3s ease, color 0.25s ease;
 }
 
-/* ACTIVE STATE */
+/* =========================
+   ACTIVE STATE
+========================= */
 .bn-item.active {
-  color: var(--accent);
-  transform: translateY(-2px);
+  color: var(--button-text);
+  transform: translateY(-14px);
 }
 
-/* TAP ANIMATION */
+.bn-item.active .bn-svg {
+  transform: scale(1.05);
+}
+
+/* =========================
+   FLOATING ACTIVE BLOB
+========================= */
+.bn-indicator {
+  position: absolute;
+  top: -22px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--text);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+
+  /* 🔥 SMOOTH MOTION */
+  transition:
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s ease;
+
+  z-index: 1;
+}
+
+/* =========================
+   TAP EFFECT
+========================= */
 .bn-item:active {
   transform: scale(0.92);
 }
 
-/* CENTER BUTTON */
-.bn-center {
-  position: relative;
-  top: -18px;
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--button-text);
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow);
-  transition: transform var(--motion-fast), background var(--motion-smooth);
-}
-
-.bn-center .bn-svg {
-  width: 24px;
-  height: 24px;
-}
-
-.bn-center:active {
-  transform: scale(0.9);
-}
-
-/* SAFE AREA */
-body {
-  padding-bottom: 80px;
-}
-
 /* =========================
-   ACCOUNT / LOGOUT CONFIRM POPUP
+   ACCOUNT / LOGOUT
 ========================= */
 .bn-account-wrap {
   position: relative;
@@ -101,8 +101,8 @@ body {
 
 .bn-confirm {
   position: absolute;
-  bottom: 70px;
-  left: -70%;
+  bottom: 80px;
+  left: 50%;
   transform: translateX(-50%);
   width: 220px;
   background: var(--card);
@@ -111,7 +111,7 @@ body {
   box-shadow: var(--shadow);
   opacity: 0;
   pointer-events: none;
-  transition: all var(--motion-fast);
+  transition: all 0.25s ease;
   text-align: center;
   padding: 12px;
   z-index: 1500;
@@ -123,158 +123,31 @@ body {
 }
 
 .bn-confirm p {
-  margin: 0 0 8px 0;
+  margin-bottom: 8px;
   font-size: 13px;
-  color: var(--text);
 }
 
 .bn-confirm-actions {
   display: flex;
-  justify-content: space-between;
   gap: 8px;
 }
 
 .bn-confirm-actions button {
   flex: 1;
-  padding: 6px 0;
+  padding: 6px;
   border-radius: 6px;
   border: none;
-  font-size: 12px;
   cursor: pointer;
-  transition: background var(--motion-fast);
 }
 
-.bn-confirm-actions button:hover {
-  opacity: 0.85;
-}
-
-.bn-confirm-actions .bn-confirm-btn--danger {
+.bn-confirm-btn--danger {
   background: #ff4d4d;
-  color: #fff;
-}
-
-.bn-confirm-actions button:not(.bn-confirm-btn--danger) {
-  background: var(--soft);
-  color: var(--text);
+  color: white;
 }
 
 /* =========================
-   OFFERS TAP ALERT
+   SAFE SPACE
 ========================= */
-.bn-offer-alert {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--accent);
-  color: var(--button-text);
-  padding: 8px 16px;
-  border-radius: var(--radius);
-  font-size: 13px;
-  opacity: 0;
-  pointer-events: none;
-  transition: all var(--motion-fast);
-  z-index: 2000;
-}
-
-.bn-offer-alert.show {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* =========================
-   CART BADGE (if needed later)
-========================= */
-.bn-icon-wrap {
-  position: relative;
-}
-
-.bn-badge {
-  position: absolute;
-  top: -6px;
-  right: -8px;
-  background: var(--accent);
-  color: var(--button-text);
-  font-size: 10px;
-  padding: 2px 5px;
-  border-radius: 10px;
-}
-/* HIDE ON DESKTOP */
-@media (min-width: 768px) {
-  .bottom-nav {
-    display: none;
-  }
-}
-
-/* NAV CONTAINER */
-.bottom-nav {
-  position: fixed;
-  bottom: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 92%;
-  height: 70px;
-  border-radius: 24px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.12);
-  backdrop-filter: blur(20px);
-  z-index: 999;
-}
-
-/* ITEMS */
-.bn-item {
-  flex: 1;
-  background: none;
-  border: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: var(--muted);
-  font-size: 11px;
-  position: relative;
-  z-index: 2;
-  transition: transform 0.25s ease, color 0.25s ease;
-}
-
-.bn-item span {
-  margin-top: 4px;
-}
-
-/* ICON */
-.bn-svg {
-  width: 22px;
-  height: 22px;
-}
-
-/* ACTIVE */
-.bn-item.active {
-  color: var(--text);
-  transform: translateY(-6px);
-}
-
-/* 🔥 MOVING INDICATOR */
-.bn-indicator {
-  position: absolute;
-  top: -18px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--text);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-  transition: transform 0.35s cubic-bezier(0.22,1,0.36,1);
-  z-index: 1;
-}
-
-/* ICON INSIDE INDICATOR LOOK */
-.bn-item.active .bn-svg {
-  color: var(--button-text);
-}
-
-/* SAFE SPACE */
 body {
   padding-bottom: 100px;
 }
