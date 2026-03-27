@@ -1676,7 +1676,7 @@ export default function Checkout() {
        </button>
       ) : (
   ...
-)
+)}
                 <button
                       className={[
                         "primary-btn",
