@@ -902,7 +902,7 @@ export default function Checkout() {
 
   if (!delivery.method && !v.deliveryMethod) {
   next.deliveryMethod = "Please select a delivery option.";
-
+    }
     if (
       delivery.method === DELIVERY_METHODS.MALL_PICKUP &&
       !delivery.mallId
