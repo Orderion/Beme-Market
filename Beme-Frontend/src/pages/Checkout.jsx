@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import LoaderOverlay from "../components/LoaderOverlay";
+import LoaderOverlay from "../components/LoaderOverlay.jsx";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { startPaystackCheckout } from "../lib/checkout";
