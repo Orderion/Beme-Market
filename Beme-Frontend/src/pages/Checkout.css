@@ -953,7 +953,6 @@
     padding: 13px 14px;
   }
 }
-/* Monochrome Paystack Button */
 .checkout-pay-btn {
   display: flex;
   align-items: center;
@@ -962,28 +961,19 @@
   width: 100%;
   padding: 16px;
   border-radius: 16px;
-  border: 1px solid #111; /* Dark border */
-  background-color: #111; /* Dark button background */
-  color: #fff; /* White text */
+  border: 1px solid #111;
+  background-color: #111;
+  color: #fff;
   font-weight: 700;
   font-size: 15px;
   cursor: pointer;
-  transition:
-    transform 0.2s ease,
-    opacity 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease,
-    border-color 0.2s ease;
+  transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
 }
 
 .checkout-pay-btn:hover:not(:disabled) {
   opacity: 0.95;
   transform: translateY(-1px);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
-}
-
-.checkout-pay-btn:active:not(:disabled) {
-  transform: scale(0.985);
 }
 
 .checkout-pay-btn:disabled {
@@ -1000,13 +990,6 @@
 }
 
 .checkout-pay-btn__text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 14px;
-}
-
-.checkout-pay-btn__text small {
-  font-size: 11px;
-  opacity: 0.7;
+  font-size: 15px;
+  font-weight: 700;
 }
