@@ -1,3 +1,4 @@
+
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
@@ -117,13 +118,12 @@ export default function BottomNav() {
       </button>
 
       {/* CENTER SHOP BUTTON */}
-      <div className="bn-center-spacer" aria-hidden="true" />
-         <button
-         className="bn-center"
-         onClick={() => navigate("/shop")}
-         aria-label="Shop"
-         >
-         <IconShop />
+      <button
+        className="bn-center"
+        onClick={() => navigate("/shop")}
+        aria-label="Shop"
+      >
+        <IconShop />
       </button>
 
       {/* ORDERS */}
