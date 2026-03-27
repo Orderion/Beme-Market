@@ -117,11 +117,14 @@ export default function BottomNav() {
       </button>
 
       {/* CENTER SHOP BUTTON */}
-      <button
-        className="bn-center"
-        onClick={() => navigate("/shop")}
-        aria-label="Shop"
-      >
+      <div className="bn-center-spacer" aria-hidden="true" />
+         <button
+         className="bn-center"
+         onClick={() => navigate("/shop")}
+         aria-label="Shop"
+         >
+         <IconShop />
+      </button>
         <IconShop />
       </button>
 
