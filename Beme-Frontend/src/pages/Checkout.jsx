@@ -77,7 +77,7 @@ const ACCRA_MALL_PICKUP_OPTIONS = [
   },
 ];
 
-const ACCRA_HOME_DELIVERY_FEE = 20;
+const ACCRA_HOME_DELIVERY_FEE = 150;
 
 const INITIAL_FORM = {
   email: "",
