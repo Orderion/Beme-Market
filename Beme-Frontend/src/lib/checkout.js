@@ -181,11 +181,16 @@ function normalizeCheckoutItem(item) {
   };
 }
 
+// ✅ FIX: Added `delivery` to the destructured params so it is no longer
+// silently dropped. It is sanitized and forwarded to paystackInit,
+// which is what was causing the silent failure — the backend never
+// received delivery info and returned an unusable response.
 export async function startPaystackCheckout({
   email,
   cartItems,
   customer,
   pricing,
+  delivery,
 }) {
   validateCheckoutItems(cartItems);
 
@@ -205,10 +210,39 @@ export async function startPaystackCheckout({
     currency: sanitizeText(pricing?.currency || "GHS", 10) || "GHS",
   };
 
+  // Sanitize and normalize the delivery object before sending to backend
+  const normalizedDelivery = delivery
+    ? {
+        method: sanitizeText(delivery?.method || "", 60),
+        label: sanitizeText(delivery?.label || "", 120),
+        fee: Number(delivery?.fee) || 0,
+        breakdown: {
+          regionalBaseFee: Number(delivery?.breakdown?.regionalBaseFee) || 0,
+          methodFee: Number(delivery?.breakdown?.methodFee) || 0,
+          abroadFee: Number(delivery?.breakdown?.abroadFee) || 0,
+        },
+        mallPickup: delivery?.mallPickup
+          ? {
+              id: sanitizeText(delivery.mallPickup.id || "", 60),
+              label: sanitizeText(delivery.mallPickup.label || "", 120),
+              area: sanitizeText(delivery.mallPickup.area || "", 120),
+              fee: Number(delivery.mallPickup.fee) || 0,
+            }
+          : null,
+        homeDelivery: delivery?.homeDelivery
+          ? {
+              label: sanitizeText(delivery.homeDelivery.label || "", 120),
+              fee: Number(delivery.homeDelivery.fee) || 0,
+            }
+          : null,
+      }
+    : null;
+
   const data = await paystackInit({
     email: sanitizeText(email || customer?.email || "", 160).toLowerCase(),
     cartItems: items,
     pricing: normalizedPricing,
+    delivery: normalizedDelivery,
     customer: {
       userId: sanitizeText(customer?.userId || "", 128),
       firstName: sanitizeText(customer?.firstName || "", 80),
