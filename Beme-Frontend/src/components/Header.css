@@ -8,41 +8,63 @@
   align-items: center;
   justify-content: space-between;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
-  border-bottom: 1px solid var(--border);
+  /* Soft bottom separator instead of hard border-bottom */
+  border-bottom: none;
+  box-shadow:
+    inset 0 -1px 0 var(--border),
+    0 2px 12px rgba(17, 17, 17, 0.04);
   backdrop-filter: blur(14px);
   animation: fadeInSoft 0.5s ease;
   transition:
     background 0.36s cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 0.28s ease,
     box-shadow 0.36s cubic-bezier(0.22, 1, 0.36, 1),
     backdrop-filter 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.dark .hdr {
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 255, 255, 0.07),
+    0 2px 12px rgba(0, 0, 0, 0.22);
 }
 
 .hdr-icon {
   width: 48px;
   height: 48px;
   border-radius: 16px;
-  border: 1px solid var(--border);
+  /* Soft outer ring instead of hard border */
+  border: none;
+  box-shadow:
+    0 0 0 1.5px var(--border),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 2px 8px rgba(17, 17, 17, 0.05);
   background: var(--card);
   color: var(--text);
   display: grid;
   place-items: center;
-  box-shadow: var(--shadow);
   cursor: pointer;
   transition:
     transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1),
     opacity 0.18s ease,
     background 0.28s ease,
-    border-color 0.28s ease,
     color 0.28s ease,
     filter 0.24s ease;
   will-change: transform;
 }
 
+body.dark .hdr-icon {
+  box-shadow:
+    0 0 0 1.5px rgba(255, 255, 255, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 2px 8px rgba(0, 0, 0, 0.22);
+}
+
 .hdr-icon:hover {
   transform: translateY(-2px);
-  box-shadow: 0 16px 30px rgba(17, 17, 17, 0.1);
+  box-shadow:
+    0 0 0 1.5px rgba(17, 17, 17, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 16px 30px rgba(17, 17, 17, 0.10);
 }
 
 .hdr-icon:active {
@@ -51,11 +73,17 @@
 
 .hdr-icon.is-active {
   transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--text) 20%, var(--border));
+  box-shadow:
+    0 0 0 1.5px color-mix(in srgb, var(--text) 20%, var(--border)),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 2px 8px rgba(17, 17, 17, 0.05);
 }
 
 body.dark .hdr-icon:hover {
-  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.34);
+  box-shadow:
+    0 0 0 1.5px rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 16px 28px rgba(0, 0, 0, 0.34);
 }
 
 .hdr-svg {
@@ -120,6 +148,10 @@ body.dark .hdr-icon:hover {
   display: grid;
   place-items: center;
   line-height: 1;
+  /* Soft cutout ring so badge floats cleanly above the button */
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 2px 6px rgba(229, 62, 62, 0.36);
   animation: pulseSoft 1.8s infinite;
   transition:
     background 0.28s ease,
@@ -128,15 +160,25 @@ body.dark .hdr-icon:hover {
     box-shadow 0.28s ease;
 }
 
+body.dark .hdr-badge {
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 2px 8px rgba(229, 62, 62, 0.48);
+}
+
 .hdr-confirm {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
   width: 228px;
   border-radius: 20px;
-  border: 1px solid var(--border);
+  /* Soft ring instead of hard border */
+  border: none;
+  box-shadow:
+    0 0 0 1.5px var(--border),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 32px rgba(17, 17, 17, 0.10);
   background: var(--card);
-  box-shadow: var(--shadow);
   padding: 14px;
   z-index: 120;
   opacity: 0;
@@ -149,8 +191,14 @@ body.dark .hdr-icon:hover {
     transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
     visibility 0.24s ease,
     background 0.28s ease,
-    border-color 0.28s ease,
     box-shadow 0.28s ease;
+}
+
+body.dark .hdr-confirm {
+  box-shadow:
+    0 0 0 1.5px rgba(255, 255, 255, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 8px 32px rgba(0, 0, 0, 0.36);
 }
 
 .hdr-confirm.is-open {
@@ -174,7 +222,11 @@ body.dark .hdr-icon:hover {
 
 .hdr-confirm-btn {
   flex: 1;
-  border: 1px solid var(--border);
+  /* Soft ring instead of hard border */
+  border: none;
+  box-shadow:
+    0 0 0 1.5px var(--border),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   background: var(--soft);
   color: var(--text);
   border-radius: 12px;
@@ -185,9 +237,14 @@ body.dark .hdr-icon:hover {
     transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
     opacity 0.18s ease,
     background 0.28s ease,
-    border-color 0.28s ease,
-    color 0.28s ease,
-    box-shadow 0.24s ease;
+    box-shadow 0.28s ease,
+    color 0.28s ease;
+}
+
+body.dark .hdr-confirm-btn {
+  box-shadow:
+    0 0 0 1.5px rgba(255, 255, 255, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .hdr-confirm-btn:hover {
@@ -202,6 +259,7 @@ body.dark .hdr-icon:hover {
 .hdr-confirm-btn--danger {
   background: var(--text);
   color: var(--button-text);
+  box-shadow: none;
 }
 
 @media (max-width: 640px) {
