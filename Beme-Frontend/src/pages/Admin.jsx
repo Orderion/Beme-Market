@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   addDoc,
   collection,
@@ -21,10 +21,12 @@ import {
 import "./Admin.css";
 
 const COLLECTION_NAME = "Products";
+const OFFERS_COLLECTION = "WeeklyOffers";
 
 const MAIN_ADMIN_TABS = [
   { key: "manual", label: "Manual Add Product" },
   { key: "csv", label: "CSV Imports" },
+  { key: "offers", label: "Offers of the Week" }, // ✅ NEW
 ];
 
 const CSV_IMPORT_TABS = [
@@ -136,6 +138,20 @@ const initialImportMeta = {
   skippedRows: 0,
   headerErrors: [],
   rowErrors: [],
+};
+
+// ✅ NEW — initial offer form state
+const initialOfferForm = {
+  title: "",
+  description: "",
+  price: "",
+  oldPrice: "",
+  mediaUrl: "",
+  mediaType: "image",
+  shopChip: "",
+  productId: "",
+  shopKey: "",
+  order: "",
 };
 
 function makeEditableValuesFromLegacy(values) {
@@ -289,6 +305,24 @@ function normalizeAdminProduct(snapshotDoc) {
     customizations: Array.isArray(d.customizations) ? d.customizations : [],
     createdAt: d.createdAt || null,
     updatedAt: d.updatedAt || null,
+  };
+}
+
+function normalizeOffer(docSnap) {
+  const d = docSnap.data() || {};
+  return {
+    id: docSnap.id,
+    title: String(d.title || "").trim(),
+    description: String(d.description || "").trim(),
+    price: Number(d.price || 0),
+    oldPrice: d.oldPrice ? Number(d.oldPrice) : "",
+    mediaUrl: String(d.mediaUrl || d.image || "").trim(),
+    mediaType: String(d.mediaType || "image").trim(),
+    shopChip: String(d.shopChip || "").trim(),
+    productId: String(d.productId || "").trim(),
+    shopKey: String(d.shopKey || "").trim(),
+    order: Number(d.order || 0),
+    createdAt: d.createdAt || null,
   };
 }
 
@@ -971,6 +1005,522 @@ function OptionValuesEditor({
   );
 }
 
+// ✅ NEW — Offers Manager Component (self-contained, no interference with products)
+function OffersManager({ isSuperAdmin, isShopAdmin }) {
+  const [offers, setOffers] = useState([]);
+  const [loadingOffers, setLoadingOffers] = useState(true);
+  const [offerForm, setOfferForm] = useState(initialOfferForm);
+  const [offerMsg, setOfferMsg] = useState("");
+  const [offerSubmitting, setOfferSubmitting] = useState(false);
+  const [deletingOfferId, setDeletingOfferId] = useState("");
+  const [editingOffer, setEditingOffer] = useState(null);
+  const [offerMediaFile, setOfferMediaFile] = useState(null);
+  const [offerMediaPreview, setOfferMediaPreview] = useState("");
+  const [offerUploading, setOfferUploading] = useState(false);
+
+  const loadOffers = async () => {
+    setLoadingOffers(true);
+    try {
+      const snap = await getDocs(collection(db, OFFERS_COLLECTION));
+      const rows = snap.docs.map(normalizeOffer).sort((a, b) => a.order - b.order);
+      setOffers(rows);
+    } catch (err) {
+      console.error("Load offers error:", err);
+      setOffers([]);
+    } finally {
+      setLoadingOffers(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOffers();
+  }, []);
+
+  const setOfferField = (key) => (e) => {
+    const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    setOfferForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleOfferMediaChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setOfferMediaFile(file);
+    setOfferMediaPreview(URL.createObjectURL(file));
+    // Auto-detect media type
+    if (file.type.startsWith("video/")) {
+      setOfferForm((prev) => ({ ...prev, mediaType: "video" }));
+    } else {
+      setOfferForm((prev) => ({ ...prev, mediaType: "image" }));
+    }
+    e.target.value = "";
+  };
+
+  const handleOfferMediaUpload = async () => {
+    if (!offerMediaFile) {
+      setOfferMsg("❌ Please choose a media file first.");
+      return null;
+    }
+    setOfferUploading(true);
+    setOfferMsg("");
+    try {
+      // Use Cloudinary — images go through validateImageFiles/uploadImagesToCloudinary
+      // Videos are uploaded the same way via the unsigned preset
+      const isVideo = offerMediaFile.type.startsWith("video/");
+      let url = "";
+
+      if (isVideo) {
+        // Upload video directly to Cloudinary unsigned
+        const formData = new FormData();
+        formData.append("file", offerMediaFile);
+        formData.append(
+          "upload_preset",
+          import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || "beme_unsigned"
+        );
+        const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+        const res = await fetch(
+          `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`,
+          { method: "POST", body: formData }
+        );
+        const data = await res.json();
+        if (!data.secure_url) throw new Error("Video upload failed.");
+        url = data.secure_url;
+      } else {
+        validateImageFiles([offerMediaFile]);
+        const results = await uploadImagesToCloudinary([offerMediaFile]);
+        url = results[0]?.url || "";
+        if (!url) throw new Error("Image upload failed.");
+      }
+
+      setOfferForm((prev) => ({ ...prev, mediaUrl: url }));
+      setOfferMsg("✅ Media uploaded successfully.");
+      return url;
+    } catch (err) {
+      console.error("Offer media upload error:", err);
+      setOfferMsg(`❌ ${err.message || "Upload failed."}`);
+      return null;
+    } finally {
+      setOfferUploading(false);
+    }
+  };
+
+  const validateOfferForm = () => {
+    if (!offerForm.title.trim()) return "Title is required.";
+    if (!offerForm.price || isNaN(Number(offerForm.price))) return "Valid price is required.";
+    if (!offerForm.mediaUrl.trim() && !offerMediaFile) return "Media URL or uploaded file is required.";
+    return "";
+  };
+
+  const handleAddOffer = async () => {
+    const err = validateOfferForm();
+    if (err) { setOfferMsg(`❌ ${err}`); return; }
+    setOfferSubmitting(true);
+    setOfferMsg("");
+    try {
+      let mediaUrl = offerForm.mediaUrl.trim();
+      if (!mediaUrl && offerMediaFile) {
+        mediaUrl = await handleOfferMediaUpload();
+        if (!mediaUrl) { setOfferSubmitting(false); return; }
+      }
+      const payload = {
+        title: offerForm.title.trim(),
+        description: offerForm.description.trim(),
+        price: Number(offerForm.price),
+        oldPrice: offerForm.oldPrice ? Number(offerForm.oldPrice) : null,
+        mediaUrl,
+        mediaType: offerForm.mediaType || "image",
+        shopChip: offerForm.shopChip.trim(),
+        productId: offerForm.productId.trim(),
+        shopKey: offerForm.shopKey.trim(),
+        order: offerForm.order !== "" ? Number(offerForm.order) : offers.length,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      if (!payload.oldPrice) delete payload.oldPrice;
+      await addDoc(collection(db, OFFERS_COLLECTION), payload);
+      setOfferMsg("✅ Offer added successfully.");
+      setOfferForm(initialOfferForm);
+      setOfferMediaFile(null);
+      setOfferMediaPreview("");
+      await loadOffers();
+    } catch (err) {
+      console.error("Add offer error:", err);
+      setOfferMsg(`❌ ${err.message || "Failed to add offer."}`);
+    } finally {
+      setOfferSubmitting(false);
+    }
+  };
+
+  const handleDeleteOffer = async (offerId) => {
+    setDeletingOfferId(offerId);
+    try {
+      await deleteDoc(doc(db, OFFERS_COLLECTION, offerId));
+      setOffers((prev) => prev.filter((o) => o.id !== offerId));
+    } catch (err) {
+      console.error("Delete offer error:", err);
+      setOfferMsg(`❌ ${err.message || "Failed to delete offer."}`);
+    } finally {
+      setDeletingOfferId("");
+    }
+  };
+
+  const startEditOffer = (offer) => {
+    setEditingOffer(offer);
+    setOfferForm({
+      title: offer.title,
+      description: offer.description,
+      price: String(offer.price),
+      oldPrice: offer.oldPrice ? String(offer.oldPrice) : "",
+      mediaUrl: offer.mediaUrl,
+      mediaType: offer.mediaType,
+      shopChip: offer.shopChip,
+      productId: offer.productId,
+      shopKey: offer.shopKey,
+      order: String(offer.order),
+    });
+    setOfferMediaFile(null);
+    setOfferMediaPreview("");
+    setOfferMsg("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleUpdateOffer = async () => {
+    if (!editingOffer?.id) return;
+    const err = validateOfferForm();
+    if (err) { setOfferMsg(`❌ ${err}`); return; }
+    setOfferSubmitting(true);
+    setOfferMsg("");
+    try {
+      let mediaUrl = offerForm.mediaUrl.trim();
+      if (!mediaUrl && offerMediaFile) {
+        mediaUrl = await handleOfferMediaUpload();
+        if (!mediaUrl) { setOfferSubmitting(false); return; }
+      }
+      const payload = {
+        title: offerForm.title.trim(),
+        description: offerForm.description.trim(),
+        price: Number(offerForm.price),
+        oldPrice: offerForm.oldPrice ? Number(offerForm.oldPrice) : null,
+        mediaUrl,
+        mediaType: offerForm.mediaType || "image",
+        shopChip: offerForm.shopChip.trim(),
+        productId: offerForm.productId.trim(),
+        shopKey: offerForm.shopKey.trim(),
+        order: offerForm.order !== "" ? Number(offerForm.order) : editingOffer.order,
+        updatedAt: serverTimestamp(),
+      };
+      if (!payload.oldPrice) delete payload.oldPrice;
+      await updateDoc(doc(db, OFFERS_COLLECTION, editingOffer.id), payload);
+      setOfferMsg("✅ Offer updated successfully.");
+      setEditingOffer(null);
+      setOfferForm(initialOfferForm);
+      setOfferMediaFile(null);
+      setOfferMediaPreview("");
+      await loadOffers();
+    } catch (err) {
+      console.error("Update offer error:", err);
+      setOfferMsg(`❌ ${err.message || "Failed to update offer."}`);
+    } finally {
+      setOfferSubmitting(false);
+    }
+  };
+
+  const cancelOfferEdit = () => {
+    setEditingOffer(null);
+    setOfferForm(initialOfferForm);
+    setOfferMediaFile(null);
+    setOfferMediaPreview("");
+    setOfferMsg("");
+  };
+
+  return (
+    <div className="admin-offers-shell">
+      {/* ── Form ── */}
+      <div className="admin-upload-card">
+        <div className="admin-upload-head">
+          <div>
+            <h3 className="admin-upload-title">
+              {editingOffer ? "Edit Offer" : "Add Offer of the Week"}
+            </h3>
+            <p className="admin-upload-sub">
+              Add images or short videos to showcase this week's picks. Each offer links directly to a product or shop.
+            </p>
+          </div>
+          {editingOffer ? (
+            <button
+              type="button"
+              className="admin-secondary-btn admin-secondary-btn--ghost"
+              onClick={cancelOfferEdit}
+            >
+              Cancel edit
+            </button>
+          ) : null}
+        </div>
+
+        <div className="admin-form admin-form--compact">
+          <label className="admin-field">
+            <span>Title *</span>
+            <input
+              value={offerForm.title}
+              onChange={setOfferField("title")}
+              placeholder="e.g. Premium Sneakers Drop"
+              autoComplete="off"
+            />
+          </label>
+
+          <label className="admin-field">
+            <span>Description (optional)</span>
+            <textarea
+              rows={3}
+              value={offerForm.description}
+              onChange={setOfferField("description")}
+              placeholder="Short description shown in the product sheet"
+            />
+          </label>
+
+          <div className="admin-row">
+            <label className="admin-field">
+              <span>Price (GHS) *</span>
+              <input
+                value={offerForm.price}
+                onChange={setOfferField("price")}
+                inputMode="decimal"
+                placeholder="e.g. 450"
+              />
+            </label>
+            <label className="admin-field">
+              <span>Old price (GHS, optional)</span>
+              <input
+                value={offerForm.oldPrice}
+                onChange={setOfferField("oldPrice")}
+                inputMode="decimal"
+                placeholder="e.g. 600"
+              />
+            </label>
+          </div>
+
+          <div className="admin-row">
+            <label className="admin-field">
+              <span>Shop chip label (optional)</span>
+              <input
+                value={offerForm.shopChip}
+                onChange={setOfferField("shopChip")}
+                placeholder="e.g. Fashion Shop"
+              />
+            </label>
+            <label className="admin-field">
+              <span>Display order</span>
+              <input
+                value={offerForm.order}
+                onChange={setOfferField("order")}
+                inputMode="numeric"
+                placeholder="e.g. 1"
+              />
+            </label>
+          </div>
+
+          <div className="admin-row">
+            <label className="admin-field">
+              <span>Product ID (links to /product/:id)</span>
+              <input
+                value={offerForm.productId}
+                onChange={setOfferField("productId")}
+                placeholder="Firestore product doc ID"
+                autoComplete="off"
+              />
+            </label>
+            <label className="admin-field">
+              <span>Shop key (fallback link)</span>
+              <input
+                value={offerForm.shopKey}
+                onChange={setOfferField("shopKey")}
+                placeholder="e.g. fashion"
+                autoComplete="off"
+              />
+            </label>
+          </div>
+
+          {/* Media */}
+          <div className="admin-upload-card" style={{ marginTop: 0 }}>
+            <div className="admin-upload-head">
+              <div>
+                <h4 className="admin-upload-title">Media (image or video)</h4>
+                <p className="admin-upload-sub">
+                  Upload an image (JPG/PNG/WebP) or short video (MP4/WebM). Or paste a direct Cloudinary URL below.
+                </p>
+              </div>
+            </div>
+
+            <label className="admin-field">
+              <span>Choose file</span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime"
+                onChange={handleOfferMediaChange}
+              />
+            </label>
+
+            {offerMediaPreview ? (
+              <div className="admin-offer-media-preview">
+                {offerForm.mediaType === "video" ? (
+                  <video
+                    src={offerMediaPreview}
+                    className="admin-offer-media-thumb"
+                    muted
+                    playsInline
+                    controls
+                  />
+                ) : (
+                  <img
+                    src={offerMediaPreview}
+                    alt="Preview"
+                    className="admin-offer-media-thumb"
+                  />
+                )}
+              </div>
+            ) : null}
+
+            <div className="admin-upload-actions">
+              <button
+                type="button"
+                className="admin-secondary-btn"
+                onClick={handleOfferMediaUpload}
+                disabled={!offerMediaFile || offerUploading}
+              >
+                {offerUploading ? "Uploading…" : "Upload to Cloudinary"}
+              </button>
+            </div>
+
+            <label className="admin-field" style={{ marginTop: 10 }}>
+              <span>Or paste media URL directly</span>
+              <input
+                value={offerForm.mediaUrl}
+                onChange={setOfferField("mediaUrl")}
+                placeholder="https://res.cloudinary.com/..."
+                autoComplete="off"
+              />
+            </label>
+
+            <label className="admin-field">
+              <span>Media type</span>
+              <select value={offerForm.mediaType} onChange={setOfferField("mediaType")}>
+                <option value="image">Image</option>
+                <option value="video">Video</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        {offerMsg ? <div className="admin-msg" style={{ marginTop: 12 }}>{offerMsg}</div> : null}
+
+        <div className="admin-upload-actions" style={{ marginTop: 14 }}>
+          <button
+            type="button"
+            className="admin-btn"
+            onClick={editingOffer ? handleUpdateOffer : handleAddOffer}
+            disabled={offerSubmitting}
+          >
+            {offerSubmitting
+              ? editingOffer ? "Updating…" : "Adding…"
+              : editingOffer ? "Update offer" : "Add offer"}
+          </button>
+        </div>
+      </div>
+
+      {/* ── List ── */}
+      <div className="admin-card admin-card--nested" style={{ maxWidth: "100%", marginTop: 20 }}>
+        <div className="admin-head">
+          <h3 className="admin-title admin-title--small">
+            Current Offers ({offers.length})
+          </h3>
+          <p className="admin-sub">
+            These appear on the /offers page. Tap edit to update or reorder them.
+          </p>
+        </div>
+
+        {loadingOffers ? (
+          <div className="admin-products-empty">Loading offers…</div>
+        ) : offers.length === 0 ? (
+          <div className="admin-products-empty">No offers added yet.</div>
+        ) : (
+          <div className="admin-offers-list">
+            {offers.map((offer) => (
+              <div key={offer.id} className="admin-offer-item">
+                <div className="admin-offer-media-wrap">
+                  {offer.mediaUrl ? (
+                    offer.mediaType === "video" ? (
+                      <video
+                        src={offer.mediaUrl}
+                        className="admin-offer-thumb"
+                        muted
+                        playsInline
+                      />
+                    ) : (
+                      <img
+                        src={offer.mediaUrl}
+                        alt={offer.title}
+                        className="admin-offer-thumb"
+                      />
+                    )
+                  ) : (
+                    <div className="admin-offer-thumb admin-offer-thumb--empty">
+                      No media
+                    </div>
+                  )}
+                  <span className="admin-offer-type-badge">
+                    {offer.mediaType === "video" ? "▶ Video" : "🖼 Image"}
+                  </span>
+                </div>
+
+                <div className="admin-offer-content">
+                  <div className="admin-offer-top">
+                    <div>
+                      <h4 className="admin-offer-title">{offer.title}</h4>
+                      <div className="admin-offer-meta">
+                        {offer.shopChip ? <span>{offer.shopChip}</span> : null}
+                        {offer.productId ? <span>Product: {offer.productId.slice(0, 10)}…</span> : null}
+                        {offer.shopKey ? <span>Shop: {offer.shopKey}</span> : null}
+                        <span>Order: {offer.order}</span>
+                      </div>
+                    </div>
+                    <div className="admin-product-price">
+                      {formatMoney(offer.price)}
+                      {offer.oldPrice ? (
+                        <span className="admin-offer-old-price"> / was {formatMoney(offer.oldPrice)}</span>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {offer.description ? (
+                    <p className="admin-import-row-desc">{offer.description}</p>
+                  ) : null}
+
+                  <div className="admin-product-actions">
+                    <button
+                      type="button"
+                      className="admin-secondary-btn"
+                      onClick={() => startEditOffer(offer)}
+                    >
+                      Edit offer
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-danger-btn"
+                      onClick={() => handleDeleteOffer(offer.id)}
+                      disabled={deletingOfferId === offer.id}
+                    >
+                      {deletingOfferId === offer.id ? "Deleting…" : "Delete"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
   const {
     user,
@@ -1178,7 +1728,8 @@ export default function Admin() {
       });
     };
   }, [previewEditImagePreviews]);
-    const setField = (key) => (e) => {
+
+  const setField = (key) => (e) => {
     const value =
       e?.target?.type === "checkbox" ? e.target.checked : e.target.value;
 
@@ -2569,7 +3120,8 @@ export default function Admin() {
     const set = new Set(selectedProductIds);
     return products.filter((product) => set.has(product.id));
   }, [products, selectedProductIds]);
-    const startBulkDelete = () => {
+
+  const startBulkDelete = () => {
     if (!selectedProducts.length) {
       setMsg("❌ Select at least one product first.");
       return;
@@ -3737,6 +4289,11 @@ export default function Admin() {
           </div>
         </div>
 
+        {/* ✅ NEW — Offers tab panel */}
+        {activeMainTab === "offers" ? (
+          <OffersManager isSuperAdmin={isSuperAdmin} isShopAdmin={isShopAdmin} />
+        ) : null}
+
         {activeMainTab === "csv" ? (
           <div className="admin-imports-shell">
             <div className="admin-subtabs">
@@ -4061,7 +4618,8 @@ export default function Admin() {
             ) : null}
           </div>
         ) : null}
-                {activeMainTab === "manual" ? (
+
+        {activeMainTab === "manual" ? (
           <form className="admin-form" onSubmit={onSubmit}>
             <label className="admin-field">
               <span>Name</span>
