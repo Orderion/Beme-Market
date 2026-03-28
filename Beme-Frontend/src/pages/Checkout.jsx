@@ -498,6 +498,7 @@ export default function Checkout() {
   const [showCODInfo, setShowCODInfo] = useState(false);
   const [checkingOrderHistory, setCheckingOrderHistory] = useState(true);
   const [hasSuccessfulPaidOrder, setHasSuccessfulPaidOrder] = useState(false);
+  const [paystackError, setPaystackError] = useState("");
 
   useEffect(() => {
     if (authLoading) return;
@@ -1139,25 +1140,36 @@ export default function Checkout() {
     }
   };
 
-  // ✅ FIXED: payWithPaystack now shows the loader immediately on click,
-  // runs validation, and only resets loading if validation fails.
-  // The loader stays visible while Paystack redirect is in progress.
   const payWithPaystack = async () => {
-    // Guard: block if already loading, session expired, or cart has issues
-    if (
-      loading ||
-      sessionExpired ||
-      checkingOrderHistory ||
-      hasUnavailableCartItems
-    ) {
+    setPaystackError("");
+
+    // --- Guard checks (show visible reason on screen) ---
+    if (loading) {
+      setPaystackError("DEBUG: Already loading.");
+      return;
+    }
+    if (sessionExpired) {
+      setPaystackError("DEBUG: Session expired.");
+      return;
+    }
+    if (checkingOrderHistory) {
+      setPaystackError("DEBUG: Still checking order history, please wait.");
+      return;
+    }
+    if (hasUnavailableCartItems) {
+      setPaystackError("DEBUG: Cart has unavailable items.");
+      return;
+    }
+    if (!user) {
+      setPaystackError("DEBUG: No user logged in.");
       return;
     }
 
-    // ✅ Show loader immediately so the user gets instant feedback
+    // Show loader immediately
     setLoadingMode("paystack");
     setLoading(true);
 
-    // ✅ Mark all fields as touched so validation errors surface on screen
+    // Mark all fields touched so errors appear
     setTouched({
       email: true,
       firstName: true,
@@ -1172,16 +1184,19 @@ export default function Checkout() {
       paymentMethod: true,
     });
 
-    // ✅ Run full validation — if anything fails, hide loader and stop
-    const err = validateRequired();
-    if (err) {
+    // Run validation
+    const currentErrors = validate(form);
+    const firstError = Object.values(currentErrors)[0];
+    if (firstError) {
+      setPaystackError("DEBUG: Validation failed — " + firstError);
       setLoading(false);
       setLoadingMode("");
       return;
     }
 
-    // ✅ All good — proceed to Paystack. Loader stays on until redirect happens.
+    // Attempt Paystack checkout
     try {
+      setPaystackError("DEBUG: Calling startPaystackCheckout...");
       await startPaystackCheckout({
         email: sanitizeText(form.email, 160).toLowerCase(),
         cartItems: safeCartItems.map((item) => ({
@@ -1208,9 +1223,12 @@ export default function Checkout() {
           phone: normalizedPhone,
         },
       });
+      // If we reach here, Paystack didn't redirect — show that
+      setPaystackError("DEBUG: startPaystackCheckout returned without redirecting.");
+      setLoading(false);
+      setLoadingMode("");
     } catch (e) {
-      // ✅ Only reset loader if Paystack init itself throws — not on redirect
-      console.error("Paystack init failed:", e);
+      setPaystackError("DEBUG: startPaystackCheckout threw — " + (e?.message || String(e)));
       setLoading(false);
       setLoadingMode("");
     }
@@ -1303,6 +1321,22 @@ export default function Checkout() {
         </div>
 
         <h1 className="checkout-title">Checkout</h1>
+
+        {paystackError ? (
+          <div style={{
+            background: "#fee2e2",
+            border: "1px solid #f87171",
+            color: "#991b1b",
+            borderRadius: 8,
+            padding: "12px 16px",
+            marginBottom: 16,
+            fontSize: 14,
+            fontFamily: "monospace",
+            wordBreak: "break-word",
+          }}>
+            {paystackError}
+          </div>
+        ) : null}
 
         {!safeCartItems.length ? (
           <div className="checkout-empty">
@@ -1411,7 +1445,7 @@ export default function Checkout() {
                   </select>
                   {showError("region") ? (
                     <div className="field-error">{errors.region}</div>
-                    ) : null}
+                  ) : null}
                 </div>
 
                 <div>
