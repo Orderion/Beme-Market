@@ -113,7 +113,7 @@ body.dark .hdr-icon:hover {
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: var(--accent);
+  background: red;
   color: var(--button-text);
   font-size: 10px;
   font-weight: 800;
