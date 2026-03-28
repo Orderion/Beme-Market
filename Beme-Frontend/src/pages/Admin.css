@@ -1335,3 +1335,132 @@ body.dark .admin-icon-btn--danger {
     padding: 12px;
   }
 }
+/* =========================
+   OFFERS OF THE WEEK — Admin
+========================= */
+
+.admin-offers-shell {
+  display: grid;
+  gap: 0;
+}
+
+.admin-offers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-offer-item {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  background: var(--soft);
+  border-radius: 18px;
+}
+
+.admin-offer-media-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.admin-offer-thumb {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 14px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  background: var(--card);
+  display: block;
+}
+
+.admin-offer-thumb--empty {
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  opacity: 0.55;
+  min-height: 80px;
+}
+
+.admin-offer-type-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(17,17,17,0.76);
+  color: #fff;
+  backdrop-filter: blur(6px);
+}
+
+.admin-offer-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-offer-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-offer-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.admin-offer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.admin-offer-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  font-size: 11px;
+}
+
+.admin-offer-old-price {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+.admin-offer-media-preview {
+  margin-top: 10px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.admin-offer-media-thumb {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+@media (max-width: 520px) {
+  .admin-offer-item {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-offer-top {
+    flex-direction: column;
+  }
+}
