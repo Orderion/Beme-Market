@@ -519,6 +519,7 @@ export default function Checkout() {
     }
   }, [user]);
 
+  // ✅ FIX: Reset loading state when user returns from Paystack redirect or tab focus
   useEffect(() => {
     const restoreAfterExternalReturn = () => {
       setLoading(false);
@@ -829,10 +830,10 @@ export default function Checkout() {
   const setDeliveryMethod = (nextMethod) => {
     if (sessionExpired || loading) return;
 
-      setDelivery({
-        method: nextMethod,
-        mallId: nextMethod === DELIVERY_METHODS.MALL_PICKUP ? delivery.mallId : "",
-      });
+    setDelivery({
+      method: nextMethod,
+      mallId: nextMethod === DELIVERY_METHODS.MALL_PICKUP ? delivery.mallId : "",
+    });
 
     setTouched((prev) => ({
       ...prev,
@@ -1138,38 +1139,48 @@ export default function Checkout() {
     }
   };
 
+  // ✅ FIXED: payWithPaystack now shows the loader immediately on click,
+  // runs validation, and only resets loading if validation fails.
+  // The loader stays visible while Paystack redirect is in progress.
   const payWithPaystack = async () => {
-    if (loading || sessionExpired || checkingOrderHistory || hasUnavailableCartItems) {
+    // Guard: block if already loading, session expired, or cart has issues
+    if (
+      loading ||
+      sessionExpired ||
+      checkingOrderHistory ||
+      hasUnavailableCartItems
+    ) {
       return;
     }
-  
-    // ✅ 1. Early return if delivery method not selected
-    if (!delivery.method) {
-      // mark delivery method as touched so error shows
-      setTouched((prev) => ({ ...prev, deliveryMethod: true }));
-      
-      // set error for delivery method
-      setErrors((prev) => ({
-        ...prev,
-        deliveryMethod: "Please select a delivery option.",
-      }));
-  
-      // stop execution here until user selects a delivery option
-      return;
-    }
-  
-    // ✅ 2. Then run the full validation
+
+    // ✅ Show loader immediately so the user gets instant feedback
+    setLoadingMode("paystack");
+    setLoading(true);
+
+    // ✅ Mark all fields as touched so validation errors surface on screen
+    setTouched({
+      email: true,
+      firstName: true,
+      lastName: true,
+      phone: true,
+      address: true,
+      region: true,
+      city: true,
+      area: true,
+      deliveryMethod: true,
+      mallId: true,
+      paymentMethod: true,
+    });
+
+    // ✅ Run full validation — if anything fails, hide loader and stop
     const err = validateRequired();
     if (err) {
       setLoading(false);
       setLoadingMode("");
       return;
     }
-  
-    // ✅ 3. Proceed with Paystack checkout
-    setLoadingMode("paystack");
-    setLoading(true);
-  
+
+    // ✅ All good — proceed to Paystack. Loader stays on until redirect happens.
     try {
       await startPaystackCheckout({
         email: sanitizeText(form.email, 160).toLowerCase(),
@@ -1198,6 +1209,7 @@ export default function Checkout() {
         },
       });
     } catch (e) {
+      // ✅ Only reset loader if Paystack init itself throws — not on redirect
       console.error("Paystack init failed:", e);
       setLoading(false);
       setLoadingMode("");
@@ -1399,7 +1411,7 @@ export default function Checkout() {
                   </select>
                   {showError("region") ? (
                     <div className="field-error">{errors.region}</div>
-                  ) : null}
+                    ) : null}
                 </div>
 
                 <div>
