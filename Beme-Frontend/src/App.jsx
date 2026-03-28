@@ -45,6 +45,7 @@ import TermsOfService from "./pages/TermsOfService";
 import RefundPolicy from "./pages/RefundPolicy";
 import CookiePolicy from "./pages/CookiePolicy";
 import AccountManagement from "./pages/AccountManagement";
+import Offers from "./pages/Offers"; // ✅ NEW
 
 function SuperAdminOnly({ children }) {
   const { loading, isSuperAdmin } = useAuth();
@@ -208,6 +209,7 @@ function AppShell() {
         <Routes location={location}>
           <Route path="/" element={<Home />} />
           <Route path="/shop" element={<Shop />} />
+          <Route path="/offers" element={<Offers />} /> {/* ✅ NEW */}
           <Route path="/product/:id" element={<ProductDetails />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/order-success" element={<OrderSuccess />} />
