@@ -1915,20 +1915,19 @@ export default function Checkout() {
         )}
       </div>
 
-      {loading ? (
-        <LoaderOverlay
-          label={
-            loadingMode === "paystack"
-              ? "Redirecting to Paystack"
-              : "Placing your order"
-          }
-          subtext={
-            loadingMode === "paystack"
-              ? "Please wait while we secure your payment..."
-              : "Please wait while we confirm your order..."
-          }
-        />
-      ) : null}
+      <LoaderOverlay
+        show={loading}
+        label={
+          loadingMode === "paystack"
+            ? "Redirecting to Paystack"
+            : "Placing your order"
+        }
+        subtext={
+          loadingMode === "paystack"
+            ? "Please wait while we secure your payment..."
+            : "Please wait while we confirm your order..."
+        }
+      />
     </div>
   );
 }
