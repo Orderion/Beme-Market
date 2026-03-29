@@ -1,5 +1,5 @@
 /* =============================================
-   ShopCarousel — profile cards, 3-state animation
+   ShopCarousel — profile card, 3-state animation
    ============================================= */
 
 .sc-root {
@@ -10,12 +10,13 @@
   width: 100%;
 }
 
-/* ── Card shell — height NEVER changes ── */
+/* ── Card shell — FIXED height, never moves ── */
 .sc-card {
   position: relative;
   width: 100%;
   border-radius: 28px;
-  overflow: hidden;
+  /* overflow: visible so inner image can grow without pushing card ── */
+  overflow: visible;
   background: var(--card);
   border: none;
   outline: none;
@@ -29,6 +30,11 @@
     box-shadow 0.38s cubic-bezier(0.22, 1, 0.36, 1),
     transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
+}
+
+/* clip-path keeps rounded corners while allowing inner overflow */
+.sc-card {
+  clip-path: inset(0 round 28px);
 }
 
 .sc-card:active {
@@ -49,11 +55,16 @@ body.dark .sc-card {
 /* ── Image wrapper — padding animates away on expand ── */
 .sc-media-wrap {
   padding: 10px 10px 0 10px;
-  transition: padding 0.52s cubic-bezier(0.34, 1.1, 0.64, 1);
+  /* overflow hidden HERE so only the image clips, not the card ── */
+  overflow: hidden;
+  border-radius: 20px;
+  transition: padding 0.52s cubic-bezier(0.34, 1.1, 0.64, 1),
+              border-radius 0.52s cubic-bezier(0.34, 1.1, 0.64, 1);
 }
 
 .sc-card--expanded .sc-media-wrap {
   padding: 0;
+  border-radius: 28px;
 }
 
 /* ── Media — YOUR height values, untouched ── */
@@ -71,7 +82,7 @@ body.dark .sc-card {
     border-radius 0.52s cubic-bezier(0.34, 1.1, 0.64, 1);
 }
 
-/* Only the inner image height grows on expand */
+/* Only the inner image height grows on expand — card stays still */
 .sc-card--expanded .sc-media {
   height: 138vw;
   max-height: 680px;
@@ -342,7 +353,7 @@ body.dark .sc-follow-btn {
 /* ── Responsive ── */
 @media (max-width: 400px) {
   .sc-card--expanded .sc-media {
-    height: 110vw;
+    height: 130vw;
   }
 
   .sc-title {
