@@ -111,7 +111,8 @@ export default function BottomNav() {
       {/* OFFERS */}
       <button
         className={`bn-item ${isActive("/offers") ? "active" : ""}`}
-        onClick={() => alert("No offer available")}
+        onClick={() => navigate("/offers")}
+        aria-label="Offers"
       >
         <IconOffers />
         <span>Offers</span>
