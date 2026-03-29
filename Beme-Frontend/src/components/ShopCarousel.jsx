@@ -157,11 +157,11 @@ export default function ShopCarousel({ shops = [] }) {
             <div className="sc-stats">
               <span className="sc-stat">
                 <IconUsers />
-                <strong>{shop.followers ?? "0"}</strong>
+                <strong>{shop.followers ?? "205"}</strong>
               </span>
               <span className="sc-stat">
                 <IconBox />
-                <strong>{shop.products ?? "0"}</strong>
+                <strong>{shop.products ?? "88"}</strong>
               </span>
             </div>
 
