@@ -77,8 +77,18 @@ export default function Header({ onMenu, onCart }) {
         <IconMenu />
       </button>
 
+      {/* CENTER LOGO */}
+      <div className="hdr-logo-wrap" aria-label="Brand logo">
+        <img
+          src="/favicon.png"
+          alt="Logo"
+          className="hdr-logo"
+          draggable={false}
+        />
+      </div>
+
+      {/* RIGHT — CART */}
       <div className="hdr-right">
-        {/* CART BUTTON */}
         <button
           className="hdr-icon hdr-bag"
           onClick={handleCartOpen}
