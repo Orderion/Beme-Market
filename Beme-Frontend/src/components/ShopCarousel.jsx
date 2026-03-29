@@ -181,11 +181,11 @@ export default function ShopCarousel({ shops = [] }) {
             <div className="sc-stats">
               <span className="sc-stat">
                 <IconUsers />
-                <strong>{shop.followers ?? "0"}</strong>
+                <strong>{shop.followers ?? "5.5k"}</strong>
               </span>
               <span className="sc-stat">
                 <IconBox />
-                <strong>{shop.products ?? "0"}</strong>
+                <strong>{shop.products ?? "600"}</strong>
               </span>
             </div>
             <button
