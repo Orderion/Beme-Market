@@ -60,7 +60,7 @@ body.dark .sc-card {
 .sc-media {
   position: relative;
   width: 100%;
-  height: 66vw;
+  height: 76vw;
   max-height: 340px;
   overflow: hidden;
   border-radius: 20px;
@@ -72,7 +72,7 @@ body.dark .sc-card {
 }
 
 .sc-card--expanded .sc-media {
-  height: 88vw;
+  height: 98vw;
   max-height: 460px;
   border-radius: 28px;
 }
