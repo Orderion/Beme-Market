@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "../firebase";
@@ -36,24 +37,12 @@ function MediaItem({ src, type, alt, className }) {
 function OfferSheet({ offer, onClose, onViewInShop }) {
   const sheetRef = useRef(null);
   const startYRef = useRef(null);
-  const scrollTopRef = useRef(0);
   const [dragY, setDragY] = useState(0);
   const [closing, setClosing] = useState(false);
 
   useEffect(() => {
-    // Save scroll position and lock background without jumping
-    scrollTopRef.current = window.scrollY;
     document.body.style.overflow = "hidden";
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${scrollTopRef.current}px`;
-    document.body.style.width = "100%";
-    return () => {
-      document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.width = "";
-      window.scrollTo(0, scrollTopRef.current);
-    };
+    return () => { document.body.style.overflow = ""; };
   }, []);
 
   const handleClose = () => {
@@ -66,8 +55,6 @@ function OfferSheet({ offer, onClose, onViewInShop }) {
   };
 
   const handleTouchMove = (e) => {
-    const sheet = sheetRef.current;
-    if (sheet && sheet.scrollTop > 0) return; // only drag if at top
     const dy = e.touches[0].clientY - startYRef.current;
     if (dy > 0) setDragY(dy);
   };
@@ -284,6 +271,7 @@ export default function Offers() {
         setOffers(rows);
       } catch (err) {
         console.error("Offers fetch error:", err);
+        // Fallback without orderBy in case index isn't ready
         try {
           const fallbackSnap = await getDocs(collection(db, OFFERS_COLLECTION));
           if (!alive) return;
