@@ -1,9 +1,45 @@
 import { useState, useRef, useCallback } from "react";
 import "./ShopCarousel.css";
 
+function IconVerified() {
+  return (
+    <svg className="sc-verified" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="12" fill="#22c55e" />
+      <path
+        d="M7 12.5l3.5 3.5 6.5-7"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconUsers() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  );
+}
+
+function IconBox() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+      <line x1="12" y1="22.08" x2="12" y2="12"/>
+    </svg>
+  );
+}
+
 export default function ShopCarousel({ shops = [] }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [expanded, setExpanded] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
 
   // Touch / drag state
@@ -18,18 +54,11 @@ export default function ShopCarousel({ shops = [] }) {
       const clamped = Math.max(0, Math.min(shops.length - 1, index));
       if (clamped === activeIndex) return;
       setIsAnimating(true);
-      setExpanded(false);
       setActiveIndex(clamped);
       setTimeout(() => setIsAnimating(false), 400);
     },
     [activeIndex, isAnimating, shops.length]
   );
-
-  const handleTap = () => {
-    if (hasDragged.current) return;
-    if (isAnimating) return;
-    setExpanded((prev) => !prev);
-  };
 
   /* ── pointer drag ── */
   const onPointerDown = (e) => {
@@ -65,8 +94,7 @@ export default function ShopCarousel({ shops = [] }) {
     <div className="sc-root">
       {/* ── Card ── */}
       <div
-        className={`sc-card ${expanded ? "sc-card--expanded" : ""}`}
-        onClick={handleTap}
+        className="sc-card"
         onMouseDown={onPointerDown}
         onMouseMove={onPointerMove}
         onMouseUp={onPointerUp}
@@ -74,19 +102,14 @@ export default function ShopCarousel({ shops = [] }) {
         onTouchStart={onPointerDown}
         onTouchMove={onPointerMove}
         onTouchEnd={onPointerUp}
-        role="button"
-        tabIndex={0}
-        aria-label={`${shop.chip} — tap to expand`}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            handleTap();
-          }
           if (e.key === "ArrowRight") goTo(activeIndex + 1);
           if (e.key === "ArrowLeft") goTo(activeIndex - 1);
         }}
+        tabIndex={0}
+        aria-label={`${shop.chip} shop card`}
       >
-        {/* image */}
+        {/* ── Image area ── */}
         <div className="sc-media">
           <img
             key={shop.id}
@@ -96,10 +119,13 @@ export default function ShopCarousel({ shops = [] }) {
             draggable={false}
           />
 
-          {/* overlay gradient — only when expanded */}
+          {/* subtle bottom gradient for readability */}
           <div className="sc-overlay" />
 
-          {/* dot indicators inside image */}
+          {/* chip top-left */}
+          <span className="sc-chip">{shop.chip}</span>
+
+          {/* dot indicators */}
           <div className="sc-dots" onClick={(e) => e.stopPropagation()}>
             {shops.map((_, i) => (
               <button
@@ -113,43 +139,46 @@ export default function ShopCarousel({ shops = [] }) {
               />
             ))}
           </div>
-
-          {/* chip — collapses when expanded */}
-          <span className={`sc-chip ${expanded ? "sc-chip--hidden" : ""}`}>
-            {shop.chip}
-          </span>
-
-          {/* expanded overlay text */}
-          <div className={`sc-overlay-content ${expanded ? "sc-overlay-content--visible" : ""}`}>
-            <span className="sc-overlay-chip">{shop.chip}</span>
-            <h3 className="sc-overlay-title">{shop.title}</h3>
-            <p className="sc-overlay-subtitle">{shop.subtitle}</p>
-          </div>
         </div>
 
-        {/* body — hidden when expanded */}
-        <div className={`sc-body ${expanded ? "sc-body--hidden" : ""}`}>
-          <div className="sc-body-text">
+        {/* ── Profile-style info body ── */}
+        <div className="sc-body">
+          {/* name row */}
+          <div className="sc-name-row">
             <h3 className="sc-title">{shop.title}</h3>
-            <p className="sc-subtitle">{shop.subtitle}</p>
+            <IconVerified />
           </div>
-          <div className="sc-hint">Tap to explore</div>
-        </div>
 
-        {/* CTA — visible when expanded */}
-        <div
-          className={`sc-cta ${expanded ? "sc-cta--visible" : ""}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            shop.onClick?.();
-          }}
-        >
-          <button className="sc-cta-btn">
-            Browse {shop.chip}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M13 6l6 6-6 6"/>
-            </svg>
-          </button>
+          {/* subtitle / bio */}
+          <p className="sc-subtitle">{shop.subtitle}</p>
+
+          {/* stats + CTA row */}
+          <div className="sc-footer">
+            <div className="sc-stats">
+              <span className="sc-stat">
+                <IconUsers />
+                <strong>{shop.followers ?? "0"}</strong>
+              </span>
+              <span className="sc-stat">
+                <IconBox />
+                <strong>{shop.products ?? "0"}</strong>
+              </span>
+            </div>
+
+            <button
+              className="sc-cta-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!hasDragged.current) shop.onClick?.();
+              }}
+              aria-label={`Browse ${shop.chip}`}
+            >
+              Browse
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M5 12h14M13 6l6 6-6 6"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
