@@ -23,7 +23,7 @@ body.dark .hdr {
   box-shadow: none;
 }
 
-/* ── Icon buttons — no border, no ring, no shadow ── */
+/* ── Icon buttons ── */
 .hdr-icon {
   width: 48px;
   height: 48px;
@@ -86,11 +86,18 @@ body.dark .hdr-icon {
 }
 
 .hdr-logo {
-  width: 24px;
-  height: 24px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
   display: block;
-  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+  /* smooth invert transition */
+  transition: filter 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+  filter: invert(0);
+}
+
+/* Dark mode — black logo becomes white instantly via CSS */
+body.dark .hdr-logo {
+  filter: invert(1);
 }
 
 /* ── Right group ── */
@@ -141,7 +148,7 @@ body.dark .hdr-badge {
     0 2px 8px rgba(229, 62, 62, 0.48);
 }
 
-/* ── Sign-out confirm popover ── */
+/* ── Confirm popover ── */
 .hdr-confirm {
   position: absolute;
   top: calc(100% + 10px);
