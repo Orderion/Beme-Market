@@ -86,8 +86,8 @@ body.dark .hdr-icon {
 }
 
 .hdr-logo {
-  width: 450px;
-  height: 450px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
   display: block;
   transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
