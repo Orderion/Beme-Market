@@ -1,0 +1,242 @@
+/* ── Shared sub-page base ─────────────────────────── */
+.sp-page {
+  min-height: 100vh;
+  background: var(--bg);
+  padding-bottom: 110px;
+}
+
+.sp-body {
+  padding: 40px 24px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.sp-body--flush {
+  padding: 24px 16px 0;
+  align-items: stretch;
+  text-align: left;
+}
+
+/* ── Empty state ──────────────────────────────────── */
+.sp-empty-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--soft);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+.sp-empty-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.sp-empty-icon--warn {
+  background: rgba(217, 79, 79, 0.08);
+  border-color: rgba(217, 79, 79, 0.2);
+  color: #d94f4f;
+}
+
+.sp-empty-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.04em;
+  margin: 0 0 10px;
+}
+
+.sp-empty-sub {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 280px;
+  margin: 0 0 32px;
+}
+
+/* ── Buttons ──────────────────────────────────────── */
+.sp-primary-btn {
+  padding: 15px 32px;
+  background: var(--btn);
+  color: var(--btnText);
+  border: none;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition: opacity var(--motion-fast);
+}
+
+.sp-primary-btn:active {
+  opacity: 0.82;
+}
+
+.sp-danger-btn {
+  padding: 15px 32px;
+  background: transparent;
+  color: #d94f4f;
+  border: 1px solid rgba(217, 79, 79, 0.35);
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  width: 100%;
+  max-width: 320px;
+  transition: background var(--motion-fast), border-color var(--motion-fast);
+}
+
+.sp-danger-btn:active {
+  background: rgba(217, 79, 79, 0.06);
+}
+
+/* ── Section label ────────────────────────────────── */
+.sp-section-label {
+  margin: 0 0 12px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── Action cards (Help, Contact) ─────────────────── */
+.sp-action-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  width: 100%;
+  margin-bottom: 10px;
+  cursor: pointer;
+  text-align: left;
+  box-shadow: var(--shadow);
+  transition: background var(--motion-fast), transform var(--motion-fast);
+  -webkit-tap-highlight-color: transparent;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.sp-action-card:active {
+  background: var(--soft);
+  transform: scale(0.985);
+}
+
+.sp-action-card--link {
+  display: flex;
+}
+
+.sp-action-card__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--soft);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.sp-action-card__text {
+  flex: 1;
+}
+
+.sp-action-card__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.sp-action-card__sub {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ── Bottom sheet ─────────────────────────────────── */
+.sp-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  backdrop-filter: blur(4px);
+  animation: sp-fadeIn 220ms var(--ease-premium) both;
+}
+
+@keyframes sp-fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.sp-sheet {
+  width: 100%;
+  background: var(--card);
+  border-radius: 28px 28px 0 0;
+  padding: 12px 24px 44px;
+  border-top: 1px solid var(--border);
+  animation: sp-slideUp 320ms var(--ease-premium) both;
+}
+
+@keyframes sp-slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.sp-sheet__bar {
+  width: 36px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 99px;
+  margin: 0 auto 24px;
+}
+
+.sp-sheet__title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.04em;
+  margin: 0 0 8px;
+}
+
+.sp-sheet__sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0 0 28px;
+  line-height: 1.5;
+}
+
+.sp-sheet__danger {
+  width: 100%;
+  padding: 16px;
+  background: #d94f4f;
+  color: #ffffff;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+
+.sp-sheet__cancel {
+  width: 100%;
+  padding: 16px;
+  background: var(--soft);
+  color: var(--text);
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 15px;
+}

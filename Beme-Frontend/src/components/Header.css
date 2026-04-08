@@ -1,0 +1,287 @@
+.hdr {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 76px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  border: none;
+  border-bottom: none;
+  box-shadow: none;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  animation: fadeInSoft 0.5s ease;
+  transition:
+    background 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+    backdrop-filter 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.dark .hdr {
+  box-shadow: none;
+}
+
+/* ── Icon buttons ── */
+.hdr-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  background: var(--bg);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease,
+    background 0.28s ease,
+    color 0.28s ease;
+  will-change: transform;
+}
+
+body.dark .hdr-icon {
+  box-shadow: none;
+}
+
+.hdr-icon:hover {
+  transform: translateY(-2px);
+  opacity: 0.82;
+}
+
+.hdr-icon:active {
+  transform: translateY(0) scale(0.965);
+}
+
+.hdr-icon.is-active {
+  transform: translateY(-1px);
+}
+
+/* ── SVG icons ── */
+.hdr-svg {
+  width: 22px;
+  height: 22px;
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease;
+}
+
+.hdr-icon:hover .hdr-svg {
+  transform: scale(1.06);
+}
+
+/* ── Center logo ── */
+.hdr-logo-wrap {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.hdr-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  display: block;
+  /* smooth invert transition */
+  transition: filter 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+  filter: invert(0);
+}
+
+/* Dark mode — black logo becomes white instantly via CSS */
+body.dark .hdr-logo {
+  filter: invert(1);
+}
+
+/* ── Right group ── */
+.hdr-right {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.hdr-auth-wrap {
+  position: relative;
+}
+
+/* ── Cart / Bag ── */
+.hdr-bag {
+  position: relative;
+}
+
+.hdr-badge {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: red;
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 2px 6px rgba(229, 62, 62, 0.36);
+  animation: pulseSoft 1.8s infinite;
+  transition:
+    background 0.28s ease,
+    color 0.28s ease,
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s ease;
+}
+
+body.dark .hdr-badge {
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 2px 8px rgba(229, 62, 62, 0.48);
+  color: var(--text)
+}
+
+/* ── Confirm popover ── */
+.hdr-confirm {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 228px;
+  border-radius: 20px;
+  border: none;
+  box-shadow:
+    0 0 0 1.5px var(--border),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 32px rgba(17, 17, 17, 0.10);
+  background: var(--card);
+  padding: 14px;
+  z-index: 120;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px) scale(0.985);
+  transform-origin: top right;
+  pointer-events: none;
+  transition:
+    opacity 0.24s ease,
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0.24s ease,
+    background 0.28s ease,
+    box-shadow 0.28s ease;
+}
+
+body.dark .hdr-confirm {
+  box-shadow:
+    0 0 0 1.5px rgba(255, 255, 255, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 8px 32px rgba(0, 0, 0, 0.36);
+}
+
+.hdr-confirm.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.hdr-confirm-text {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.hdr-confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.hdr-confirm-btn {
+  flex: 1;
+  border: none;
+  box-shadow:
+    0 0 0 1.5px var(--border),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: var(--soft);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-weight: 700;
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease,
+    background 0.28s ease,
+    box-shadow 0.28s ease,
+    color 0.28s ease;
+}
+
+body.dark .hdr-confirm-btn {
+  box-shadow:
+    0 0 0 1.5px rgba(255, 255, 255, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.hdr-confirm-btn:hover {
+  opacity: 0.94;
+  transform: translateY(-1px);
+}
+
+.hdr-confirm-btn:active {
+  transform: scale(0.98);
+}
+
+.hdr-confirm-btn--danger {
+  background: var(--text);
+  color: var(--button-text);
+  box-shadow: none;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .hdr {
+    height: 72px;
+    padding: 0 12px;
+  }
+
+  .hdr-right {
+    gap: 10px;
+  }
+
+  .hdr-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+  }
+
+  .hdr-logo {
+    width: 48px;
+    height: 48px;
+  }
+
+  .hdr-confirm {
+    right: -10px;
+    width: 210px;
+  }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .hdr,
+  .hdr-icon,
+  .hdr-svg,
+  .hdr-logo,
+  .hdr-badge,
+  .hdr-confirm,
+  .hdr-confirm-btn {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -1,0 +1,124 @@
+/* LoaderOverlay.css - Premium slow luxurious version */
+
+.loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: 
+    opacity var(--motion-slow) var(--response-delay),
+    visibility var(--motion-slow) var(--response-delay);
+  pointer-events: none;
+}
+
+.loader-overlay.show {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.loader-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--overlay);
+  backdrop-filter: blur(12px);
+  transition: 
+    background var(--motion-slow) var(--response-delay),
+    backdrop-filter var(--motion-slow) var(--response-delay);
+}
+
+.loader-overlay-center {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  animation: fadeUpSoft var(--page-motion) var(--response-delay) both;
+  will-change: opacity, transform;
+}
+
+.loader-mark {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  margin: 0 auto 28px;
+  animation: floatSoft 2800ms var(--ease-premium) infinite;
+}
+
+.loader-ring {
+  position: absolute;
+  inset: 0;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 9999px;
+  animation: loaderSpin 1400ms linear infinite;
+}
+
+@keyframes loaderSpin {
+  to { transform: rotate(360deg); }
+}
+
+.loader-bars {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.loader-bar {
+  width: 4px;
+  background: var(--accent);
+  border-radius: 999px;
+  animation: loaderBarPulse 1200ms var(--ease-premium) infinite;
+  opacity: 0.75;
+}
+
+.loader-bar.bar1 { height: 28px; animation-delay: 0ms; }
+.loader-bar.bar2 { height: 42px; animation-delay: 120ms; }
+.loader-bar.bar3 { height: 36px; animation-delay: 240ms; }
+.loader-bar.bar4 { height: 22px; animation-delay: 360ms; }
+
+@keyframes loaderBarPulse {
+  0%, 100% { transform: scaleY(0.6); opacity: 0.55; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+
+.loader-text {
+  transition: opacity var(--motion-slow) var(--response-delay);
+}
+
+.loader-label {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+  color: var(--text);
+  animation: fadeInSoft var(--motion-slow) var(--response-delay) both;
+}
+
+.loader-sub {
+  font-size: 13px;
+  opacity: 0.65;
+  margin: 0;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  animation: fadeInSoft var(--motion-slow) calc(var(--response-delay) + 120ms) both;
+}
+
+/* Dark mode adjustments already covered by your root variables */
+
+@media (max-width: 640px) {
+  .loader-mark {
+    width: 78px;
+    height: 78px;
+  }
+  
+  .loader-label {
+    font-size: 18px;
+  }
+}

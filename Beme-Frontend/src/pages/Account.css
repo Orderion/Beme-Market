@@ -1,0 +1,219 @@
+/* ── Page ─────────────────────────────────────────── */
+.acc-page {
+  min-height: 100vh;
+  background: var(--bg);
+  padding-bottom: 110px;
+}
+
+/* ── Hero ─────────────────────────────────────────── */
+.acc-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 32px 20px 24px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+
+.acc-avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: var(--soft);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+
+.acc-hero__name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.03em;
+}
+
+.acc-hero__email {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* ── Body ─────────────────────────────────────────── */
+.acc-body {
+  padding: 0 16px;
+}
+
+/* ── Section ──────────────────────────────────────── */
+.acc-section {
+  margin-top: 28px;
+}
+
+.acc-section--last {
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
+.acc-section__label {
+  margin: 0 0 10px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── Group ────────────────────────────────────────── */
+.acc-group {
+  background: var(--card);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+/* ── Row ──────────────────────────────────────────── */
+.acc-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background var(--motion-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.acc-row:last-child {
+  border-bottom: none;
+}
+
+.acc-row:active {
+  background: var(--soft);
+}
+
+.acc-row--danger {
+  color: #d94f4f;
+}
+
+.acc-row-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.acc-row-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text);
+  opacity: 0.8;
+}
+
+.acc-row--danger .acc-row-icon {
+  color: #d94f4f;
+  opacity: 1;
+}
+
+.acc-row-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.acc-row--danger .acc-row-label {
+  color: #d94f4f;
+}
+
+.acc-row-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  opacity: 0.4;
+}
+
+/* ── Logout Sheet ─────────────────────────────────── */
+.acc-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 220ms var(--ease-premium) both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.acc-sheet {
+  width: 100%;
+  background: var(--card);
+  border-radius: 28px 28px 0 0;
+  padding: 12px 24px 40px;
+  border-top: 1px solid var(--border);
+  animation: slideUp 320ms var(--ease-premium) both;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.acc-sheet__bar {
+  width: 36px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 99px;
+  margin: 0 auto 24px;
+}
+
+.acc-sheet__title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.04em;
+  margin: 0 0 8px;
+}
+
+.acc-sheet__sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0 0 28px;
+  line-height: 1.5;
+}
+
+.acc-sheet__btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+
+.acc-sheet__btn--danger {
+  background: #d94f4f;
+  color: #ffffff;
+}
+
+.acc-sheet__btn--cancel {
+  background: var(--soft);
+  color: var(--text);
+  margin-bottom: 0;
+}
