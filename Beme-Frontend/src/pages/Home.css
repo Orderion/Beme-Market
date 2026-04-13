@@ -370,3 +370,58 @@
     padding: 22px 16px;
   }
 }
+/* ══════════════════════════════════════════
+   RESPONSIVE FIXES — TABLET & DESKTOP
+══════════════════════════════════════════ */
+
+@media (min-width: 640px) {
+  .home-search-sticky { padding: 12px 24px 10px; }
+  .home-intro         { padding: 32px 24px 14px; max-width: 860px; }
+  .home-sec-header    { padding: 0 24px 12px; }
+
+  .home-cat-scroll {
+    flex-wrap: wrap;
+    overflow-x: hidden;
+    justify-content: center;
+    padding: 6px 24px 18px;
+    gap: 10px 14px;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Push content clear of the fixed side-nav */
+  .home { padding-left: 64px; }
+
+  .home-search-sticky { padding: 14px 48px 12px; }
+
+  .home-intro {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px 48px 18px;
+  }
+
+  .home-headline { font-size: clamp(2rem, 2.8vw, 3rem); }
+
+  /* Categories — centered wrap, no horizontal scroll */
+  .home-section--cats { padding-top: 18px; }
+
+  .home-cat-scroll {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    justify-content: center;
+    padding: 8px 48px 22px;
+    gap: 14px 22px;
+  }
+
+  .home-cat-circle { width: 82px; height: 82px; }
+  .home-cat-label  { font-size: 13px; }
+
+  /* Section headers & content blocks */
+  .home-sec-header { padding: 0 48px 14px; }
+  .home-section    { max-width: 1280px; margin-left: auto; margin-right: auto; }
+}
+
+@media (min-width: 1280px) {
+  .home               { padding-left: 72px; }
+  .home-cat-circle    { width: 90px; height: 90px; }
+}
