@@ -28,7 +28,6 @@ import ProductDetails from "./pages/ProductDetails";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
 import Orders from "./pages/Orders";
-import FlashDeals from "./pages/FlashDeals";
 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
