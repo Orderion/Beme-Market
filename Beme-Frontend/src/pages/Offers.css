@@ -571,3 +571,187 @@ body.dark .offer-sheet {
     transition: none !important;
   }
 }
+
+
+
+
+
+/* ── Replace .offers-page ── */
+.offers-page {
+  padding: 28px 20px 80px;
+  max-width: 960px;
+  margin: 0 auto;
+  color: var(--text);
+  animation: fadeUpSoft 0.52s var(--ease-premium);
+}
+
+/* ── Replace .offers-grid ── */
+.offers-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  animation: fadeUpSoft 0.66s var(--ease-premium);
+}
+
+/* ── Replace .offer-card--large ── */
+.offer-card--large {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;  /* image left, info right */
+}
+
+/* ── Replace .offer-card-media ── */
+.offer-card-media {
+  position: relative;
+  width: 100%;
+  background: var(--soft);
+  overflow: hidden;
+}
+
+/* Normal cards: portrait ratio */
+.offer-card:not(.offer-card--large) .offer-card-media {
+  aspect-ratio: 3 / 4;
+}
+
+/* Wide card: fixed height, landscape */
+.offer-card--large .offer-card-media {
+  height: 220px;
+  aspect-ratio: unset;
+}
+
+/* ── ADD: info panel that sits beside media on wide card ── */
+.offer-card--large .offer-card-info {
+  position: static;           /* override absolute */
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  background: var(--card);
+}
+
+.offer-card--large .offer-card-title {
+  color: var(--text);         /* dark text on card bg */
+  font-size: 18px;
+}
+
+.offer-card--large .offer-card-price {
+  color: var(--text);
+}
+
+.offer-card--large .offer-card-old-price {
+  color: var(--muted);
+}
+
+.offer-card--large .offer-card-chip {
+  background: var(--soft);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  /* remove glass effect — not on dark overlay */
+  backdrop-filter: none;
+}
+
+/* ── ADD: description only shown on wide cards ── */
+.offer-card-desc {
+  display: none;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.offer-card--large .offer-card-desc {
+  display: block;
+}
+
+/* ── ADD: CTA button in wide card info panel ── */
+.offer-card-cta {
+  display: none;
+}
+
+.offer-card--large .offer-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  margin-top: 6px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-main);
+  cursor: pointer;
+  transition: background 0.18s, transform 0.18s var(--ease-premium);
+}
+
+.offer-card--large .offer-card-cta:hover {
+  background: var(--soft);
+  transform: translateX(2px);
+}
+
+/* ── Replace bottom sheet responsive ── */
+/* Sheet: centered + max-width on desktop, full on mobile */
+.offer-sheet {
+  max-width: 560px;    /* was 100% — this is what makes it centered & not full screen */
+  width: 100%;
+  margin: 0 auto;
+  border-radius: 20px 20px 0 0;
+}
+
+/* ── Replace skeleton grid ── */
+.offers-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+/* ── RESPONSIVE FIXES ── */
+@media (min-width: 1024px) {
+  .offers-page {
+    padding-left: 64px;   /* clear side nav */
+    padding-right: 40px;
+  }
+
+  .offers-grid { gap: 16px; }
+
+  .offer-card--large .offer-card-media { height: 260px; }
+  .offer-card--large .offer-card-title { font-size: 22px; }
+
+  .offer-sheet { max-width: 600px; }
+}
+
+@media (min-width: 1280px) {
+  .offers-page { padding-left: 72px; }
+}
+
+/* On mobile: wide card goes back to stacked (media on top, info below) */
+@media (max-width: 560px) {
+  .offer-card--large {
+    grid-template-columns: 1fr;  /* stack vertically */
+  }
+
+  .offer-card--large .offer-card-media {
+    height: 200px;
+  }
+
+  .offer-card--large .offer-card-info {
+    position: absolute;  /* back to overlay mode on mobile */
+    background: transparent;
+    padding: 14px;
+  }
+
+  .offer-card--large .offer-card-title { color: #fff; font-size: 18px; }
+  .offer-card--large .offer-card-price { color: #fff; }
+  .offer-card--large .offer-card-cta  { display: none; }
+  .offer-card--large .offer-card-desc { display: none; }
+  .offer-card--large .offer-card-chip {
+    background: rgba(255,255,255,.18);
+    color: #fff;
+    border-color: rgba(255,255,255,.2);
+  }
+
+  .offer-sheet { border-radius: 24px 24px 0 0; max-width: 100%; }
+}
