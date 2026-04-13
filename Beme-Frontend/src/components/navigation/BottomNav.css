@@ -15,7 +15,18 @@
   justify-content: space-around;
   align-items: center;
   z-index: 999;
-  transition: background var(--motion-slow), border-color var(--motion-slow);
+  /* slide transition */
+  transform: translateY(0);
+  transition:
+    transform 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+    background var(--motion-slow),
+    border-color var(--motion-slow);
+  will-change: transform;
+}
+
+/* Hidden state — slides fully off screen bottom */
+.bottom-nav--hidden {
+  transform: translateY(100%);
 }
 
 /* ITEMS */
@@ -29,8 +40,8 @@
   border: none;
   transition: all var(--motion-fast);
   position: relative;
+  cursor: pointer;
 }
-
 .bn-item span {
   margin-top: 3px;
 }
@@ -39,7 +50,7 @@
 .bn-svg {
   width: 22px;
   height: 22px;
-  fill: currentColor;
+  fill: none; /* Changed to none for stroke-based SVGs */
   transition: color var(--motion-fast);
 }
 
@@ -69,13 +80,12 @@
   justify-content: center;
   box-shadow: var(--shadow);
   transition: transform var(--motion-fast), background var(--motion-smooth);
+  cursor: pointer;
 }
-
 .bn-center .bn-svg {
   width: 24px;
   height: 24px;
 }
-
 .bn-center:active {
   transform: scale(0.9);
 }
@@ -86,120 +96,145 @@ body {
 }
 
 /* =========================
+   BACK TO TOP BUTTON
+========================= */
+.bn-back-top {
+  position: fixed;
+  right: 16px;
+  bottom: 80px;
+  z-index: 1000;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--text);
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.18),
+    0 0 0 1px var(--border);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px) scale(0.88);
+  transition:
+    opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.38s cubic-bezier(0.34, 1.1, 0.64, 1),
+    bottom 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+    background var(--motion-slow),
+    box-shadow 0.22s ease;
+  will-change: transform, opacity, bottom;
+}
+
+.bn-back-top--visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.bn-back-top--nav-hidden {
+  bottom: 16px;
+}
+
+.bn-back-top:hover {
+  background: var(--grtheme);
+  color: var(--button-text);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
+  transform: translateY(-2px) scale(1);
+}
+
+/* =========================
    ACCOUNT / LOGOUT CONFIRM POPUP
 ========================= */
 .bn-account-wrap {
   position: relative;
 }
-
 .bn-confirm {
   position: absolute;
   bottom: 70px;
-  left: -80%;
+  left: 50%;
   transform: translateX(-50%);
-  width: 220px;
-  background: var(--card);
+  width: 200px;
+  background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 12px;
   box-shadow: var(--shadow);
   opacity: 0;
   pointer-events: none;
-  transition: all var(--motion-fast);
+  transition: all 0.2s ease;
   text-align: center;
-  padding: 12px;
+  padding: 16px;
   z-index: 1500;
 }
-
 .bn-confirm.is-open {
   opacity: 1;
   pointer-events: auto;
+  bottom: 80px;
 }
-
 .bn-confirm p {
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
   font-size: 13px;
+  font-weight: 500;
   color: var(--text);
 }
-
 .bn-confirm-actions {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 8px;
 }
-
 .bn-confirm-actions button {
-  flex: 1;
-  padding: 6px 0;
-  border-radius: 6px;
+  width: 100%;
+  padding: 8px 0;
+  border-radius: 8px;
   border: none;
   font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background var(--motion-fast);
 }
-
-.bn-confirm-actions button:hover {
-  opacity: 0.85;
-}
-
-.bn-confirm-actions .bn-confirm-btn--danger {
+.bn-confirm-btn--danger {
   background: #ff4d4d;
-  color: #fff;
+  color: white;
 }
-
-.bn-confirm-actions button:not(.bn-confirm-btn--danger) {
-  background: var(--soft);
-  color: var(--text);
+.bn-confirm-btn--danger:hover {
+  background: #ff3333;
 }
+/* ── append these rules to your existing BottomNav.css ── */
 
-/* =========================
-   OFFERS TAP ALERT
-========================= */
-.bn-offer-alert {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--accent);
-  color: var(--button-text);
-  padding: 8px 16px;
-  border-radius: var(--radius);
-  font-size: 13px;
-  opacity: 0;
-  pointer-events: none;
-  transition: all var(--motion-fast);
-  z-index: 2000;
-}
-
-.bn-offer-alert.show {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* =========================
-   CART BADGE (if needed later)
-========================= */
+/* Wrap the icon so the badge can be positioned relative to it */
 .bn-icon-wrap {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.bn-badge {
+/* Orange count badge on Account icon */
+.bn-saved-badge {
   position: absolute;
   top: -6px;
   right: -8px;
-  background: var(--accent);
-  color: var(--button-text);
-  font-size: 10px;
-  padding: 2px 5px;
-  border-radius: 10px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #FF6600;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+  pointer-events: none;
+  animation: bn-badge-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-@media (min-width: 768px) {
-  .bottom-nav {
-    display: none;
-  }
+@keyframes bn-badge-pop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
 }
-@media (min-width: 1024px) {
-  .bottom-nav {
-    display: none !important;
-  }
+
+/* RESPONSIVE & UTILS */
+@media (min-width: 768px) {
+  .bottom-nav, .bn-back-top { display: none !important; }
 }

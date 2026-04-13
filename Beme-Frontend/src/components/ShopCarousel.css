@@ -1,434 +1,241 @@
 /* =============================================
-   ShopCarousel — profile card, auto-slide + 3-state animation
-   ============================================= */
-
-/* ── Slide keyframes ── */
-@keyframes sc-slide-in-left {
-  from { transform: translateX(100%) scale(0.96); opacity: 0; }
-  to   { transform: translateX(0)    scale(1);    opacity: 1; }
-}
-
-@keyframes sc-slide-in-right {
-  from { transform: translateX(-100%) scale(0.96); opacity: 0; }
-  to   { transform: translateX(0)     scale(1);    opacity: 1; }
-}
+   ShopCarousel — banner card, native scroll snap
+============================================= */
 
 .sc-root {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 14px;
+  gap: 10px;
   width: 100%;
-}
-
-/* ── Progress track ── */
-.sc-progress-track {
-  width: 100%;
-  height: 3px;
-  background: var(--border, rgba(0,0,0,0.10));
-  border-radius: 999px;
   overflow: hidden;
 }
 
-.sc-progress-bar {
-  height: 100%;
-  background: var(--text, #111);
-  border-radius: 999px;
-  transition: width 80ms linear;
-  will-change: width;
+/* ── Track ── */
+.sc-track {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  overflow-x: scroll;
+  overflow-y: visible;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 6px;
+  /* padding drives alignment — no negative margins */
+  padding-left: 16px;
+  padding-right: 16px;
+  box-sizing: border-box;
 }
 
-.sc-progress-bar--paused {
-  opacity: 0.38;
-  transition: opacity 0.22s ease;
+.sc-track::-webkit-scrollbar {
+  display: none;
 }
 
-body.dark .sc-progress-bar {
-  background: rgba(255,255,255,0.72);
+/* spacers removed — padding handles start/end alignment */
+.sc-track-lead,
+.sc-track-trail {
+  display: none;
 }
 
-/* ── Card shell — FIXED height, never moves ── */
+/* ── Card wrapper ── */
+.sc-card-wrap {
+  flex-shrink: 0;
+  /* fills container minus 48px so next card peeks ~36px on right */
+  width: calc(100% - 48px);
+  max-width: 500px;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* ── The banner card ── */
 .sc-card {
   position: relative;
-  width: 100%;
-  border-radius: 28px;
-  overflow: visible;
-  background: var(--caru);
-  border: none;
-  outline: none;
-  box-shadow:
-    0 4px 28px rgba(17, 17, 17, 0.10),
-    0 1px 4px rgba(17, 17, 17, 0.06);
+  width: 80vw;
+  height: 185px;
+  border-radius: 10px;
+  left: 20px;
+  overflow: hidden;
+  background: #1a1a1a;
   cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
-  transition:
-    box-shadow 0.38s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform;
-  clip-path: inset(0 round 28px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10);
+  transition: transform 0.16s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.sc-card:active {
-  transform: scale(0.992);
-}
-
+.sc-card:active  { transform: scale(0.985); }
 .sc-card:focus-visible {
-  outline: 2px solid var(--text);
+  outline: 2px solid var(--accent, #e86c2c);
   outline-offset: 3px;
 }
 
-body.dark .sc-card {
-  box-shadow:
-    0 4px 32px rgba(0, 0, 0, 0.42),
-    0 1px 6px rgba(0, 0, 0, 0.24);
-}
-
-/* ── Image wrapper — padding animates away on expand ── */
-.sc-media-wrap {
-  padding: 10px 10px 0 10px;
-  overflow: hidden;
-  border-radius: 20px;
-  transition: padding 0.52s cubic-bezier(0.34, 1.1, 0.64, 1),
-              border-radius 0.52s cubic-bezier(0.34, 1.1, 0.64, 1);
-}
-
-.sc-card--expanded .sc-media-wrap {
-  padding: 0;
-  border-radius: 28px;
-}
-
-/* ── Media container ── */
-.sc-media {
-  position: relative;
-  width: 100%;
-  height: 116vw;
-  max-height: 560px;
-  overflow: hidden;
-  border-radius: 20px;
-  background: var(--soft);
-  transition:
-    height 0.52s cubic-bezier(0.34, 1.1, 0.64, 1),
-    max-height 0.52s cubic-bezier(0.34, 1.1, 0.64, 1),
-    border-radius 0.52s cubic-bezier(0.34, 1.1, 0.64, 1);
-}
-
-.sc-card--expanded .sc-media {
-  height: 138vw;
-  max-height: 680px;
-  border-radius: 28px;
-}
-
-/* ── Image — slide animations ── */
-.sc-image {
+/* ── Cover image ── */
+.sc-img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: top center;
+  object-position: center;
   display: block;
   pointer-events: none;
-  /* entrance animation applied via class */
-  animation-duration: 1.5s;
-  animation-timing-function: cubic-bezier(0.34, 1.05, 0.64, 1);
-  animation-fill-mode: both;
 }
 
-/* Direction: left = next card (slides in from right) */
-.sc-image--slide-left {
-  animation-name: sc-slide-in-left;
-}
-
-/* Direction: right = prev card (slides in from left) */
-.sc-image--slide-right {
-  animation-name: sc-slide-in-right;
-}
-
-/* Subtle scale on expand (applied after slide settles) */
-.sc-card--expanded .sc-image {
-  transform: scale(1.04);
-  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* ── Dark gradient overlay (fades in on expand) ── */
+/* ── Bottom gradient overlay ── */
 .sc-gradient {
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    to top,
-    rgba(8, 8, 12, 0.88) 0%,
-    rgba(8, 8, 12, 0.42) 40%,
-    transparent 70%
+    to bottom,
+    transparent 0%,
+    transparent 40%,
+    rgba(0, 0, 0, 0.55) 100%
   );
-  opacity: 0;
   pointer-events: none;
-  transition: opacity 0.44s ease;
   z-index: 2;
 }
 
-.sc-card--expanded .sc-gradient {
-  opacity: 1;
+/* ── Store chip — bottom left ── */
+.sc-chip {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  z-index: 4;
+  pointer-events: none;
+  letter-spacing: 0.02em;
 }
 
-/* ── Dot indicators ── */
-.sc-dots {
+/* ── Rating badge — top left ── */
+.sc-badge-rating {
   position: absolute;
-  bottom: 52px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 10px;
+  left: 10px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  z-index: 6;
-  transition: bottom 0.52s cubic-bezier(0.34, 1.1, 0.64, 1);
+  gap: 3px;
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 20px;
+  padding: 3px 8px 3px 6px;
+  z-index: 4;
+  pointer-events: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
 }
 
-.sc-card--expanded .sc-dots {
-  bottom: 14px;
+.sc-rating-val {
+  font-size: 11px;
+  font-weight: 700;
+  color: #111;
+  line-height: 1;
 }
 
-.sc-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  border: none;
-  outline: none;
-  background: rgba(255, 255, 255, 0.42);
-  cursor: pointer;
-  padding: 0;
-  transition:
-    width 0.32s cubic-bezier(0.34, 1.26, 0.64, 1),
-    background 0.28s ease;
+.sc-rating-count {
+  font-size: 10px;
+  font-weight: 400;
+  color: #888;
+  line-height: 1;
 }
 
-.sc-dot--active {
-  width: 24px;
-  background: rgba(255, 255, 255, 0.96);
-}
-
-/* ── Overlay info inside image (expanded state) ── */
-.sc-overlay-info {
+/* ── Heart button — top right ── */
+.sc-badge-heart {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 5;
-  padding: 18px 18px 64px;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.97);
+  border: none;
   display: flex;
-  flex-direction: column;
-  gap: 5px;
-  opacity: 0;
-  transform: translateY(14px);
-  pointer-events: none;
-  transition:
-    opacity 0.38s ease 0.08s,
-    transform 0.44s cubic-bezier(0.34, 1.1, 0.64, 1) 0.08s;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 4;
+  padding: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+  transition: transform 0.14s ease;
 }
 
-.sc-overlay-info--visible {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
+.sc-badge-heart:active { transform: scale(0.84); }
+
+.sc-heart-svg {
+  width: 14px;
+  height: 14px;
 }
 
-/* ── Static body below image (collapsed) ── */
-.sc-body {
-  padding: 14px 16px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  transition:
-    opacity 0.3s ease,
-    max-height 0.44s cubic-bezier(0.34, 1.1, 0.64, 1),
-    padding 0.38s ease;
-  max-height: 160px;
-  overflow: hidden;
-}
-
-.sc-body--hidden {
-  opacity: 0;
-  max-height: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-  pointer-events: none;
-}
-
-/* ── Shared: name row ── */
+/* ── Name row — below card ── */
 .sc-name-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  padding: 8px 2px 0;
 }
 
-.sc-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.2rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: var(--text);
+.sc-name-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text, #111);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.sc-title--light {
-  color: #fff;
-}
-
-.sc-verified {
-  width: 20px;
-  height: 20px;
+.sc-verified-svg {
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
 }
 
-/* ── Subtitle / bio ── */
-.sc-subtitle {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.sc-subtitle--light {
-  color: rgba(255, 255, 255, 0.72);
-}
-
-/* ── Footer: stats + button ── */
-.sc-footer {
+/* ── Dots ── */
+.sc-dots {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-top: 4px;
+  justify-content: center;
+  gap: 6px;
+  padding: 2px 0 4px;
 }
 
-.sc-stats {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.sc-stat {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.sc-stat strong {
-  color: var(--text);
-  font-weight: 700;
-  font-size: 13px;
-}
-
-.sc-stat--light {
-  color: rgba(255, 255, 255, 0.65);
-}
-
-.sc-stat--light strong {
-  color: #fff;
-}
-
-/* ── Follow button ── */
-.sc-follow-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 9px 18px;
+.sc-dot {
+  width: 7px;
+  height: 7px;
   border-radius: 999px;
   border: none;
   outline: none;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  background: rgba(17, 17, 17, 0.18);
   cursor: pointer;
-  white-space: nowrap;
-  background: var(--card);
-  color: var(--text);
-  box-shadow: 0 0 0 1.5px var(--border);
-  transition:
-    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
-    background 0.22s ease,
-    color 0.22s ease,
-    box-shadow 0.24s ease;
+  padding: 0;
+  transition: width 0.3s cubic-bezier(0.34, 1.26, 0.64, 1), background 0.22s ease;
 }
 
-.sc-follow-btn:hover {
-  transform: translateY(-2px);
-  background: var(--text);
-  color: var(--card);
-  box-shadow: 0 0 0 1.5px var(--text);
+@media (prefers-color-scheme: dark) {
+  .sc-dot { background: rgba(255, 255, 255, 0.25); }
 }
 
-.sc-follow-btn:active {
-  transform: scale(0.97);
-}
-
-.sc-follow-btn--dark {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.36);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-.sc-follow-btn--dark:hover {
-  background: rgba(255, 255, 255, 0.95);
-  color: #111;
-  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.95);
-}
-
-body.dark .sc-follow-btn {
-  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.14);
-}
-
-/* ── Swipe hint ── */
-.sc-swipe-hint {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--muted);
-  opacity: 0.52;
-  letter-spacing: 0.01em;
-  text-align: center;
-  transition: opacity 0.22s ease;
+.sc-dot--active {
+  width: 22px;
+  background: var(--accent, #e86c2c);
 }
 
 /* ── Responsive ── */
-@media (max-width: 400px) {
-  .sc-card--expanded .sc-media {
-    height: 130vw;
-  }
-
-  .sc-title {
-    font-size: 1.06rem;
-  }
-
-  .sc-body {
-    padding: 12px 14px 14px;
-  }
+@media (min-width: 480px) {
+  .sc-card-wrap { width: 340px; }
+  .sc-card      { height: 240px; }
 }
 
-/* ── Reduced motion ── */
+@media (min-width: 768px) {
+  .sc-card { height: 260px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sc-card,
-  .sc-media,
-  .sc-media-wrap,
-  .sc-image,
-  .sc-gradient,
-  .sc-overlay-info,
-  .sc-body,
-  .sc-dot,
-  .sc-dots,
-  .sc-follow-btn,
-  .sc-progress-bar {
-    transition: none !important;
-    animation: none !important;
-  }
+  .sc-badge-heart,
+  .sc-dot { transition: none !important; }
 }

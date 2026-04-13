@@ -1,99 +1,270 @@
-/* ── Page ─────────────────────────────────────────── */
+/* =============================================
+   ACCOUNT — Redesigned
+   Uses all vars from index.css
+============================================= */
+
 .acc-page {
   min-height: 100vh;
   background: var(--bg);
   padding-bottom: 110px;
+  animation: fadeUpSoft 0.48s var(--ease-premium);
 }
 
-/* ── Hero ─────────────────────────────────────────── */
-.acc-hero {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 32px 20px 24px;
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
-}
-
-.acc-avatar {
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
-  background: var(--soft);
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.02em;
-  flex-shrink: 0;
-}
-
-.acc-hero__name {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.03em;
-}
-
-.acc-hero__email {
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-/* ── Body ─────────────────────────────────────────── */
 .acc-body {
   padding: 0 16px;
 }
 
-/* ── Section ──────────────────────────────────────── */
+/* ── Sections ── */
 .acc-section {
-  margin-top: 28px;
+  margin-top: 22px;
+}
+
+.acc-section--first {
+  margin-top: 16px;
 }
 
 .acc-section--last {
-  margin-top: 12px;
+  margin-top: 14px;
   margin-bottom: 8px;
 }
 
-.acc-section__label {
-  margin: 0 0 10px 4px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+.acc-section__eyebrow {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
+  margin-bottom: 10px;
+  padding-left: 2px;
 }
 
-/* ── Group ────────────────────────────────────────── */
+/* ── Hero card ── */
+.acc-hero-card {
+  background: var(--card);
+  border-radius: 22px;
+  border: 1.5px solid rgba(17, 17, 17, 0.08);
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(17, 17, 17, 0.04);
+  transition: box-shadow var(--motion-smooth) var(--response-delay);
+}
+
+body.dark .acc-hero-card {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.acc-hero-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 18px 18px;
+  position: relative;
+}
+
+/* avatar */
+.acc-avatar-ring {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  transition: background var(--motion-slow) var(--response-delay);
+}
+
+.acc-avatar-letter {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--bg);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.acc-avatar-online {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #22a058;
+  border: 2.5px solid var(--card);
+  transition: border-color var(--motion-slow) var(--response-delay);
+}
+
+/* hero info */
+.acc-hero-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.acc-hero-name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  margin: 0 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.acc-hero-email {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* edit button */
+.acc-edit-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(17, 17, 17, 0.05);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: background 0.2s var(--ease-premium), color 0.2s, transform 0.18s var(--ease-premium);
+}
+
+body.dark .acc-edit-btn {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.acc-edit-btn:hover {
+  background: rgba(17, 17, 17, 0.1);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+body.dark .acc-edit-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.acc-edit-btn:active {
+  transform: scale(0.94);
+}
+
+/* stats strip */
+.acc-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  border-top: 1px solid rgba(17, 17, 17, 0.07);
+}
+
+body.dark .acc-stats {
+  border-top-color: rgba(255, 255, 255, 0.07);
+}
+
+.acc-stat {
+  padding: 14px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border-right: 1px solid rgba(17, 17, 17, 0.07);
+  transition: background 0.18s var(--ease-premium);
+}
+
+body.dark .acc-stat {
+  border-right-color: rgba(255, 255, 255, 0.07);
+}
+
+.acc-stat:last-child {
+  border-right: none;
+}
+
+.acc-stat-val {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  line-height: 1;
+}
+
+.acc-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+/* Tappable "Saved" stat — navigates to /saved */
+.acc-stat--btn {
+  background: transparent;
+  border: none;
+  border-right: 1px solid rgba(17, 17, 17, 0.07);
+  cursor: pointer;
+  padding: 14px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: background 0.18s var(--ease-premium);
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.dark .acc-stat--btn {
+  border-right-color: rgba(255, 255, 255, 0.07);
+}
+
+.acc-stat--btn:active {
+  background: var(--soft);
+}
+
+/* ── Group card ── */
 .acc-group {
   background: var(--card);
-  border-radius: 18px;
-  border: 1px solid var(--border);
+  border-radius: 20px;
+  border: 1.5px solid rgba(17, 17, 17, 0.08);
   overflow: hidden;
-  box-shadow: var(--shadow);
+  box-shadow: 0 2px 12px rgba(17, 17, 17, 0.03);
+  transition:
+    background var(--motion-slow) var(--response-delay),
+    border-color var(--motion-slow) var(--response-delay),
+    box-shadow var(--motion-slow) var(--response-delay);
 }
 
-/* ── Row ──────────────────────────────────────────── */
+body.dark .acc-group {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Row ── */
 .acc-row {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 18px;
+  padding: 14px 16px;
   background: transparent;
   border: none;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(17, 17, 17, 0.06);
   cursor: pointer;
-  transition: background var(--motion-fast);
+  gap: 12px;
   -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s var(--ease-premium);
+}
+
+body.dark .acc-row {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
 .acc-row:last-child {
@@ -108,42 +279,123 @@
   color: #d94f4f;
 }
 
-.acc-row-content {
+/* row left */
+.acc-row-left {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 13px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* icon wrap */
+.acc-row-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(17, 17, 17, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--motion-slow) var(--response-delay);
+}
+
+body.dark .acc-row-icon-wrap {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.acc-row--danger .acc-row-icon-wrap {
+  background: rgba(217, 79, 79, 0.1);
 }
 
 .acc-row-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
+  display: block;
   color: var(--text);
-  opacity: 0.8;
+  flex-shrink: 0;
 }
 
 .acc-row--danger .acc-row-icon {
   color: #d94f4f;
-  opacity: 1;
+}
+
+/* row text */
+.acc-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .acc-row-label {
+  display: block;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-main);
+  text-align: left;
 }
 
 .acc-row--danger .acc-row-label {
   color: #d94f4f;
 }
 
-.acc-row-chevron {
-  width: 16px;
-  height: 16px;
+.acc-row-sub {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--muted);
-  opacity: 0.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-main);
+  text-align: left;
 }
 
-/* ── Logout Sheet ─────────────────────────────────── */
+.acc-row--danger .acc-row-sub {
+  color: rgba(217, 79, 79, 0.65);
+}
+
+/* row right */
+.acc-row-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.acc-row-badge {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--grtheme);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: var(--font-main);
+  line-height: 1.4;
+}
+
+.acc-row-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+  opacity: 0.4;
+  display: block;
+  flex-shrink: 0;
+}
+
+.acc-row--danger .acc-row-chevron {
+  color: #d94f4f;
+  opacity: 0.6;
+}
+
+/* ── Logout sheet ── */
 .acc-sheet-backdrop {
   position: fixed;
   inset: 0;
@@ -152,68 +404,113 @@
   display: flex;
   align-items: flex-end;
   backdrop-filter: blur(4px);
-  animation: fadeIn 220ms var(--ease-premium) both;
+  -webkit-backdrop-filter: blur(4px);
+  animation: acc-fade-in 220ms var(--ease-premium) both;
 }
 
-@keyframes fadeIn {
+@keyframes acc-fade-in {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
 
 .acc-sheet {
   width: 100%;
   background: var(--card);
   border-radius: 28px 28px 0 0;
-  padding: 12px 24px 40px;
-  border-top: 1px solid var(--border);
-  animation: slideUp 320ms var(--ease-premium) both;
+  padding: 12px 22px 44px;
+  border-top: 1px solid rgba(17, 17, 17, 0.08);
+  animation: acc-slide-up 340ms var(--ease-premium) both;
+  transition: background var(--motion-slow) var(--response-delay);
 }
 
-@keyframes slideUp {
+body.dark .acc-sheet {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+@keyframes acc-slide-up {
   from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+  to   { transform: translateY(0); }
 }
 
 .acc-sheet__bar {
   width: 36px;
   height: 4px;
-  background: var(--border);
+  background: rgba(17, 17, 17, 0.12);
   border-radius: 99px;
-  margin: 0 auto 24px;
+  margin: 0 auto 22px;
+  transition: background var(--motion-slow) var(--response-delay);
+}
+
+body.dark .acc-sheet__bar {
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .acc-sheet__title {
   font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text);
+  font-size: 22px;
+  font-weight: 800;
   letter-spacing: -0.04em;
-  margin: 0 0 8px;
+  color: var(--text);
+  margin: 0 0 7px;
 }
 
 .acc-sheet__sub {
   font-size: 14px;
+  font-weight: 600;
   color: var(--muted);
-  margin: 0 0 28px;
-  line-height: 1.5;
+  margin: 0 0 26px;
+  line-height: 1.6;
+  font-family: var(--font-main);
 }
 
 .acc-sheet__btn {
   width: 100%;
   padding: 16px;
-  border-radius: 14px;
-  font-weight: 700;
+  border-radius: 16px;
+  font-weight: 800;
   font-size: 15px;
-  margin-bottom: 12px;
+  font-family: var(--font-main);
+  border: none;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: opacity 0.18s, transform 0.18s var(--ease-premium);
 }
+
+.acc-sheet__btn:hover  { opacity: 0.9; transform: translateY(-1px); }
+.acc-sheet__btn:active { transform: scale(0.98); }
+.acc-sheet__btn:last-child { margin-bottom: 0; }
 
 .acc-sheet__btn--danger {
   background: #d94f4f;
-  color: #ffffff;
+  color: #fff;
 }
 
 .acc-sheet__btn--cancel {
-  background: var(--soft);
+  background: rgba(17, 17, 17, 0.06);
   color: var(--text);
-  margin-bottom: 0;
+}
+
+body.dark .acc-sheet__btn--cancel {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .acc-body { padding: 0 14px; }
+  .acc-hero-name { font-size: 16px; }
+  .acc-hero-email { font-size: 12px; }
+  .acc-stat-val { font-size: 18px; }
+  .acc-row { padding: 13px 14px; }
+  .acc-row-label { font-size: 13px; }
+  .acc-row-sub { font-size: 11px; }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .acc-page, .acc-hero-card, .acc-group, .acc-row,
+  .acc-edit-btn, .acc-sheet, .acc-sheet-backdrop,
+  .acc-sheet__btn {
+    transition: none !important;
+    animation: none !important;
+  }
 }

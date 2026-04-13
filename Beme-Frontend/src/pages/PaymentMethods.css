@@ -1,0 +1,182 @@
+/* =============================================
+   PAYMENT METHODS PAGE
+   Vars from index.css root
+============================================= */
+
+/* ── Page shell ── */
+.pm-page {
+  min-height: 100vh;
+  background: var(--bg);
+  padding-bottom: 110px;
+  animation: fadeUpSoft 0.48s var(--ease-premium);
+}
+
+.pm-body {
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Card ── */
+.pm-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1.5px solid rgba(17, 17, 17, 0.08);
+  padding: 18px;
+  box-shadow: var(--shadow);
+  transition:
+    background var(--motion-slow) var(--response-delay),
+    border-color var(--motion-slow) var(--response-delay),
+    box-shadow var(--motion-slow) var(--response-delay),
+    opacity 0.2s var(--ease-premium);
+}
+
+body.dark .pm-card {
+  border-color: rgba(245, 247, 250, 0.08);
+  box-shadow: var(--shadow);
+}
+
+.pm-card--disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* Card top row */
+.pm-card__top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+/* Icon wrap */
+.pm-icon-wrap {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background: rgba(17, 17, 17, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text);
+  transition: background var(--motion-slow) var(--response-delay);
+}
+
+body.dark .pm-icon-wrap {
+  background: rgba(245, 247, 250, 0.08);
+}
+
+/* Title & subtitle */
+.pm-card__title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 3px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.pm-card__sub {
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* Description */
+.pm-card__desc {
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  line-height: 1.65;
+  margin: 0 0 14px;
+}
+
+.pm-card__desc--muted {
+  opacity: 0.7;
+}
+
+/* ── Badges row ── */
+.pm-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: var(--font-main);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.pm-badge--green {
+  background: rgba(34, 160, 88, 0.12);
+  color: #22a058;
+}
+
+body.dark .pm-badge--green {
+  background: rgba(34, 160, 88, 0.18);
+}
+
+.pm-badge--warn {
+  background: rgba(255, 102, 0, 0.1);
+  color: var(--grtheme);
+}
+
+body.dark .pm-badge--warn {
+  background: rgba(255, 102, 0, 0.18);
+}
+
+/* ── Info notice strip ── */
+.pm-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 13px;
+  background: rgba(17, 17, 17, 0.04);
+  border-radius: 12px;
+  color: var(--muted);
+  transition: background var(--motion-slow) var(--response-delay);
+}
+
+body.dark .pm-notice {
+  background: rgba(245, 247, 250, 0.05);
+}
+
+.pm-notice p {
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.55;
+}
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .pm-body        { padding: 16px 14px; }
+  .pm-card        { padding: 15px; }
+  .pm-card__title { font-size: 14px; }
+  .pm-card__desc  { font-size: 12px; }
+  .pm-icon-wrap   { width: 40px; height: 40px; border-radius: 11px; }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .pm-page, .pm-card {
+    transition: none !important;
+    animation: none !important;
+  }
+}

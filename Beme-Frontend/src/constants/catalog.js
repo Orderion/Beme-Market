@@ -28,6 +28,8 @@ export const HOME_FILTER_OPTIONS = [
   { key: "clothing", label: "Clothing" },
   { key: "kids", label: "Kids" },
   { key: "others", label: "Others" },
+  { key: "home_appliances", label: "Home Appliances" },
+  { key: "game", label: "Game Shop" },
 ];
 
 export const DEFAULT_KIND_BY_DEPT = {

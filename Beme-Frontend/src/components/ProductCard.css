@@ -69,7 +69,7 @@ body.dark .p-card:hover {
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1.02;
-  border-radius: 1px;
+  border-radius: 20px;
   overflow: hidden;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0)),
@@ -88,12 +88,11 @@ body.dark .p-media-frame {
 .p-img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
   border-radius: 20px;
   transition: transform 0.35s ease;
   display: block;
-  padding: 10px;
   background: #f7f7f7;
 }
 
@@ -168,7 +167,7 @@ body.dark .p-img--empty {
   width: 44px;
   height: 44px;
   border-radius: 999px;
-  border: 1px solid rgba(17, 17, 17, 0.08);
+  border: 1px solid var(--grtheme);
   background: rgba(255, 255, 255, 0.95);
   display: flex;
   align-items: center;
@@ -188,7 +187,7 @@ body.dark .p-img--empty {
 
 body.dark .p-cart-btn {
   background: rgba(20, 20, 20, 0.95);
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--grtheme);
 }
 
 .p-cart-btn:hover {
@@ -219,11 +218,11 @@ body.dark .p-cart-btn {
 .cart-svg {
   width: 20px;
   height: 20px;
-  color: #111;
+  color: var(--grtheme);
 }
 
 body.dark .cart-svg {
-  color: #fff;
+  color: var(--grtheme);
 }
 
 /* SLIDER NAV */
@@ -434,10 +433,6 @@ body.dark .p-price {
   .p-img,
   .p-img--empty {
     border-radius: 18px;
-  }
-
-  .p-img {
-    padding: 8px;
   }
 
   .p-media-top {

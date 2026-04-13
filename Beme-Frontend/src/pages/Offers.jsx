@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "../firebase";
@@ -7,6 +6,7 @@ import "./Offers.css";
 
 const OFFERS_COLLECTION = "WeeklyOffers";
 
+/* ── MediaItem — unchanged ── */
 function MediaItem({ src, type, alt, className }) {
   const videoRef = useRef(null);
 
@@ -34,6 +34,7 @@ function MediaItem({ src, type, alt, className }) {
   return <img src={src} alt={alt} className={className} />;
 }
 
+/* ── OfferSheet — SCROLL FIX applied ── */
 function OfferSheet({ offer, onClose, onViewInShop }) {
   const sheetRef = useRef(null);
   const startYRef = useRef(null);
@@ -60,11 +61,8 @@ function OfferSheet({ offer, onClose, onViewInShop }) {
   };
 
   const handleTouchEnd = () => {
-    if (dragY > 80) {
-      handleClose();
-    } else {
-      setDragY(0);
-    }
+    if (dragY > 80) handleClose();
+    else setDragY(0);
   };
 
   const handleOverlayClick = (e) => {
@@ -72,7 +70,8 @@ function OfferSheet({ offer, onClose, onViewInShop }) {
   };
 
   const mediaType = offer.mediaType || "image";
-  const mediaSrc = offer.mediaUrl || offer.image || "";
+  const mediaSrc  = offer.mediaUrl  || offer.image || "";
+
   const discount = offer.oldPrice && offer.price
     ? Math.round(((offer.oldPrice - offer.price) / offer.oldPrice) * 100)
     : null;
@@ -94,22 +93,22 @@ function OfferSheet({ offer, onClose, onViewInShop }) {
         aria-modal="true"
         aria-label={offer.title}
       >
-        {/* Drag handle */}
+        {/* Handle — flex-shrink:0 in CSS, stays locked at top */}
         <div className="offer-sheet-handle" />
 
-        {/* Close button */}
+        {/* Close */}
         <button
           className="offer-sheet-close"
           onClick={handleClose}
           aria-label="Close"
           type="button"
         >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
         </button>
 
-        {/* Media */}
+        {/* Media — flex-shrink:0 in CSS, stays locked below handle */}
         <div className="offer-sheet-media">
           {mediaSrc ? (
             <MediaItem
@@ -126,7 +125,7 @@ function OfferSheet({ offer, onClose, onViewInShop }) {
           ) : null}
         </div>
 
-        {/* Content */}
+        {/* Body — flex:1 + overflow-y:auto = THE SCROLLABLE PART */}
         <div className="offer-sheet-body">
           {offer.shopChip ? (
             <span className="offer-sheet-chip">{offer.shopChip}</span>
@@ -147,6 +146,25 @@ function OfferSheet({ offer, onClose, onViewInShop }) {
                 GHS {Number(offer.oldPrice).toFixed(2)}
               </span>
             ) : null}
+            {discount ? (
+              <span className="offer-sheet-save">Save {discount}%</span>
+            ) : null}
+          </div>
+
+          {/* Detail grid — shop, origin, etc. */}
+          <div className="offer-sheet-details">
+            {offer.shopChip ? (
+              <div className="offer-sheet-detail">
+                <span className="offer-sheet-detail-label">Shop</span>
+                <span className="offer-sheet-detail-value">{offer.shopChip}</span>
+              </div>
+            ) : null}
+            {offer.shopKey ? (
+              <div className="offer-sheet-detail">
+                <span className="offer-sheet-detail-label">Category</span>
+                <span className="offer-sheet-detail-value">{offer.shopKey}</span>
+              </div>
+            ) : null}
           </div>
 
           <button
@@ -165,13 +183,17 @@ function OfferSheet({ offer, onClose, onViewInShop }) {
   );
 }
 
+/* ── OfferCard — added offer-badge--new variant ── */
 function OfferCard({ offer, index, onClick }) {
   const mediaType = offer.mediaType || "image";
-  const mediaSrc = offer.mediaUrl || offer.image || "";
-  const isLarge = index % 5 === 0 || index % 5 === 3;
+  const mediaSrc  = offer.mediaUrl  || offer.image || "";
+  const isLarge   = index % 5 === 0 || index % 5 === 3;
+
   const discount = offer.oldPrice && offer.price
     ? Math.round(((offer.oldPrice - offer.price) / offer.oldPrice) * 100)
     : null;
+
+  const isNew = !discount && index % 4 === 1;   // show "New" when no discount
 
   return (
     <button
@@ -193,13 +215,13 @@ function OfferCard({ offer, index, onClick }) {
           <div className="offer-card-img-empty" />
         )}
 
-        {/* Gradient overlay */}
         <div className="offer-card-overlay" />
 
-        {/* Badges */}
         <div className="offer-card-badges">
           {discount ? (
             <span className="offer-badge offer-badge--discount">−{discount}%</span>
+          ) : isNew ? (
+            <span className="offer-badge offer-badge--new">New</span>
           ) : null}
           {mediaType === "video" ? (
             <span className="offer-badge offer-badge--video">
@@ -210,7 +232,6 @@ function OfferCard({ offer, index, onClick }) {
           ) : null}
         </div>
 
-        {/* Bottom info */}
         <div className="offer-card-info">
           {offer.shopChip ? (
             <span className="offer-card-chip">{offer.shopChip}</span>
@@ -232,6 +253,7 @@ function OfferCard({ offer, index, onClick }) {
   );
 }
 
+/* ── Offers page — added count bar ── */
 export default function Offers() {
   const navigate = useNavigate();
   const [offers, setOffers] = useState([]);
@@ -246,51 +268,15 @@ export default function Offers() {
       setLoading(true);
       setError("");
       try {
-        const q = query(
-          collection(db, OFFERS_COLLECTION),
-          orderBy("order", "asc")
-        );
+        const q = query(collection(db, OFFERS_COLLECTION), orderBy("order", "asc"));
         const snap = await getDocs(q);
         if (!alive) return;
-        const rows = snap.docs.map((docSnap) => {
-          const d = docSnap.data() || {};
-          return {
-            id: docSnap.id,
-            title: String(d.title || "").trim(),
-            description: String(d.description || "").trim(),
-            price: Number(d.price || 0),
-            oldPrice: d.oldPrice ? Number(d.oldPrice) : null,
-            mediaUrl: String(d.mediaUrl || d.image || "").trim(),
-            mediaType: String(d.mediaType || "image").trim(),
-            shopChip: String(d.shopChip || "").trim(),
-            productId: String(d.productId || "").trim(),
-            shopKey: String(d.shopKey || "").trim(),
-            order: Number(d.order || 0),
-          };
-        });
-        setOffers(rows);
-      } catch (err) {
-        console.error("Offers fetch error:", err);
-        // Fallback without orderBy in case index isn't ready
+        setOffers(mapDocs(snap.docs));
+      } catch {
         try {
           const fallbackSnap = await getDocs(collection(db, OFFERS_COLLECTION));
           if (!alive) return;
-          const rows = fallbackSnap.docs.map((docSnap) => {
-            const d = docSnap.data() || {};
-            return {
-              id: docSnap.id,
-              title: String(d.title || "").trim(),
-              description: String(d.description || "").trim(),
-              price: Number(d.price || 0),
-              oldPrice: d.oldPrice ? Number(d.oldPrice) : null,
-              mediaUrl: String(d.mediaUrl || d.image || "").trim(),
-              mediaType: String(d.mediaType || "image").trim(),
-              shopChip: String(d.shopChip || "").trim(),
-              productId: String(d.productId || "").trim(),
-              shopKey: String(d.shopKey || "").trim(),
-              order: Number(d.order || 0),
-            };
-          });
+          const rows = mapDocs(fallbackSnap.docs);
           setOffers(rows.sort((a, b) => a.order - b.order));
         } catch (fallbackErr) {
           console.error("Offers fallback error:", fallbackErr);
@@ -307,18 +293,14 @@ export default function Offers() {
 
   const handleViewInShop = (offer) => {
     setActiveOffer(null);
-    if (offer.productId) {
-      navigate(`/product/${offer.productId}`);
-    } else if (offer.shopKey) {
-      navigate(`/shop?shop=${encodeURIComponent(offer.shopKey)}`);
-    } else {
-      navigate("/shop");
-    }
+    if (offer.productId)  navigate(`/product/${offer.productId}`);
+    else if (offer.shopKey) navigate(`/shop?shop=${encodeURIComponent(offer.shopKey)}`);
+    else navigate("/shop");
   };
 
   return (
     <div className="offers-page">
-      {/* Header */}
+      {/* Intro */}
       <section className="offers-intro">
         <div className="offers-intro-eyebrow">
           <span className="offers-live-dot" />
@@ -340,29 +322,42 @@ export default function Offers() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className={`offers-skeleton${i % 5 === 0 || i % 5 === 3 ? " offers-skeleton--large" : ""}`}
+                className={`offers-skeleton ${
+                  i % 5 === 0 || i % 5 === 3
+                    ? "offers-skeleton--wide"
+                    : "offers-skeleton--tall"
+                }`}
               />
             ))}
           </div>
         </div>
+
       ) : error ? (
         <div className="offers-error">{error}</div>
+
       ) : offers.length === 0 ? (
         <div className="offers-empty">
           <div className="offers-empty-icon">✦</div>
           <p>No offers this week yet. Check back soon.</p>
         </div>
+
       ) : (
-        <div className="offers-grid">
-          {offers.map((offer, index) => (
-            <OfferCard
-              key={offer.id}
-              offer={offer}
-              index={index}
-              onClick={() => setActiveOffer(offer)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="offers-count-bar">
+            <span className="offers-count-label">This week's offers</span>
+            <span className="offers-count-pill">{offers.length} deal{offers.length === 1 ? "" : "s"}</span>
+          </div>
+          <div className="offers-grid">
+            {offers.map((offer, index) => (
+              <OfferCard
+                key={offer.id}
+                offer={offer}
+                index={index}
+                onClick={() => setActiveOffer(offer)}
+              />
+            ))}
+          </div>
+        </>
       )}
 
       {/* Bottom Sheet */}
@@ -375,4 +370,24 @@ export default function Offers() {
       ) : null}
     </div>
   );
+}
+
+/* ── helper ── */
+function mapDocs(docs) {
+  return docs.map((docSnap) => {
+    const d = docSnap.data() || {};
+    return {
+      id:          docSnap.id,
+      title:       String(d.title       || "").trim(),
+      description: String(d.description || "").trim(),
+      price:       Number(d.price       || 0),
+      oldPrice:    d.oldPrice ? Number(d.oldPrice) : null,
+      mediaUrl:    String(d.mediaUrl || d.image || "").trim(),
+      mediaType:   String(d.mediaType || "image").trim(),
+      shopChip:    String(d.shopChip  || "").trim(),
+      productId:   String(d.productId || "").trim(),
+      shopKey:     String(d.shopKey   || "").trim(),
+      order:       Number(d.order     || 0),
+    };
+  });
 }

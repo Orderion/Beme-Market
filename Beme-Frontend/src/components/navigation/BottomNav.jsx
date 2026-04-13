@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useEffect, useRef, useState } from "react";
+import { useWishlist } from "../../hooks/useWishlist";
 import "./BottomNav.css";
 
 /* ================= ICONS ================= */
@@ -50,21 +51,65 @@ function IconOffers() {
   );
 }
 
+function IconChevronUp() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 15l-6-6-6 6" />
+    </svg>
+  );
+}
+
 /* ================= COMPONENT ================= */
 
 export default function BottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
-
   const { user, logout } = useAuth();
+
+  // Get wishlist count — pass null product, we only need the count
+  const { wishlistCount } = useWishlist(null);
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [logoutConfirmMounted, setLogoutConfirmMounted] = useState(false);
   const logoutWrapRef = useRef(null);
 
+  /* ── Scroll-hide logic ── */
+  const [navVisible, setNavVisible] = useState(true);
+  const [showBackTop, setShowBackTop] = useState(false);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
+
+  useEffect(() => {
+    const SCROLL_THRESHOLD = 8;
+    const BACK_TOP_THRESHOLD = 320;
+
+    const onScroll = () => {
+      if (ticking.current) return;
+      ticking.current = true;
+      requestAnimationFrame(() => {
+        const currentY = window.scrollY;
+        const diff = currentY - lastScrollY.current;
+        if (Math.abs(diff) >= SCROLL_THRESHOLD) {
+          setNavVisible(diff < 0 || currentY < 60);
+          lastScrollY.current = currentY;
+        }
+        setShowBackTop(currentY > BACK_TOP_THRESHOLD);
+        ticking.current = false;
+      });
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setNavVisible(true);
+  };
+
   const isActive = (path) => location.pathname === path;
 
-  /* Handle mount/unmount for animation */
+  /* ── Logout confirm mount/unmount ── */
   useEffect(() => {
     let timeoutId;
     if (showLogoutConfirm) {
@@ -75,7 +120,7 @@ export default function BottomNav() {
     return () => clearTimeout(timeoutId);
   }, [showLogoutConfirm]);
 
-  /* Close on outside click or ESC */
+  /* ── Close on outside click or ESC ── */
   useEffect(() => {
     if (!showLogoutConfirm && !logoutConfirmMounted) return;
 
@@ -87,61 +132,74 @@ export default function BottomNav() {
     };
 
     const handleEscape = (event) => {
-      if (event.key === "Escape") {
-        setShowLogoutConfirm(false);
-      }
+      if (event.key === "Escape") setShowLogoutConfirm(false);
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
   }, [showLogoutConfirm, logoutConfirmMounted]);
 
+  const displayCount = user && wishlistCount > 0 ? wishlistCount : 0;
+
   return (
-    <nav className="bottom-nav">
-
-      {/* HOME */}
+    <>
+      {/* ── Back-to-top ── */}
       <button
-        className={`bn-item ${isActive("/") ? "active" : ""}`}
-        onClick={() => navigate("/")}
+        className={[
+          "bn-back-top",
+          showBackTop ? "bn-back-top--visible" : "",
+          !navVisible ? "bn-back-top--nav-hidden" : "",
+        ].join(" ")}
+        onClick={scrollToTop}
+        aria-label="Back to top"
       >
-        <IconHome />
-        <span>Home</span>
+        <IconChevronUp />
       </button>
 
-      {/* OFFERS */}
-      <button
-        className={`bn-item ${isActive("/offers") ? "active" : ""}`}
-        onClick={() => navigate("/offers")}
-      >
-        <IconOffers />
-        <span>Offers</span>
-      </button>
+      {/* ── Nav ── */}
+      <nav className={`bottom-nav${navVisible ? "" : " bottom-nav--hidden"}`}>
 
-      {/* CENTER SHOP */}
-      <button
-        className="bn-center"
-        onClick={() => navigate("/shop")}
-        aria-label="Shop"
-      >
-        <IconShop />
-      </button>
+        {/* HOME */}
+        <button
+          className={`bn-item ${isActive("/") ? "active" : ""}`}
+          onClick={() => navigate("/")}
+        >
+          <IconHome />
+          <span>Home</span>
+        </button>
 
-      {/* ORDERS */}
-      <button
-        className={`bn-item ${isActive("/orders") ? "active" : ""}`}
-        onClick={() => navigate("/orders")}
-      >
-        <IconOrders />
-        <span>Orders</span>
-      </button>
+        {/* OFFERS */}
+        <button
+          className={`bn-item ${isActive("/offers") ? "active" : ""}`}
+          onClick={() => navigate("/offers")}
+        >
+          <IconOffers />
+          <span>Offers</span>
+        </button>
 
-      {/* ACCOUNT */}
-      <div className="bn-item bn-account-wrap" ref={logoutWrapRef}>
+        {/* CENTER SHOP */}
+        <button
+          className="bn-center"
+          onClick={() => navigate("/shop")}
+          aria-label="Shop"
+        >
+          <IconShop />
+        </button>
+
+        {/* ORDERS */}
+        <button
+          className={`bn-item ${isActive("/orders") ? "active" : ""}`}
+          onClick={() => navigate("/orders")}
+        >
+          <IconOrders />
+          <span>Orders</span>
+        </button>
+
+        {/* ACCOUNT / LOGIN */}
         {!user ? (
           <button
             className={`bn-item ${isActive("/login") ? "active" : ""}`}
@@ -151,42 +209,24 @@ export default function BottomNav() {
             <span>Login</span>
           </button>
         ) : (
-          <>
-            <button
-              className={`bn-item ${isActive("/account") ? "active" : ""}`}
-              onClick={() => navigate("/account")}
-            >
+          <button
+            className={`bn-item ${isActive("/account") ? "active" : ""}`}
+            onClick={() => navigate("/account")}
+            aria-label="Go to account"
+          >
+            <span className="bn-icon-wrap">
               <IconUser />
-              <span>Account</span>
-            </button>
-
-            {/* LOGOUT CONFIRM */}
-            {logoutConfirmMounted && (
-              <div className={`logout-popup ${showLogoutConfirm ? "show" : ""}`}>
-                <p>Logout?</p>
-                <div className="logout-actions">
-                  <button
-                    className="confirm"
-                    onClick={() => {
-                      logout();
-                      setShowLogoutConfirm(false);
-                    }}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    className="cancel"
-                    onClick={() => setShowLogoutConfirm(false)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
+              {displayCount > 0 && (
+                <span className="bn-saved-badge">
+                  {displayCount > 99 ? "99+" : displayCount}
+                </span>
+              )}
+            </span>
+            <span>Account</span>
+          </button>
         )}
-      </div>
 
-    </nav>
+      </nav>
+    </>
   );
 }

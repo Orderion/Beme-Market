@@ -55,9 +55,10 @@ import Account from "./pages/Account";
 import ManageAccount from "./pages/ManageAccount";
 import PaymentMethods from "./pages/PaymentMethods";
 import AccountManagement from "./pages/AccountManagement";
+import SavedItems from "./pages/SavedItems"; // ✅ FIX 1: single import, from pages/
 
 import {
-  SavedItems,
+  // ✅ FIX 2: SavedItems removed from here — it's a full page, not an AccountSubPage
   Notifications,
   HelpSupport,
   ContactUs,
@@ -194,7 +195,7 @@ function AppShell() {
           <Route path="/account/notifications" element={<Notifications />} />
           <Route path="/account/help" element={<HelpSupport />} />
           <Route path="/account/contact" element={<ContactUs />} />
-          <Route path="/saved" element={<SavedItems />} />
+          <Route path="/saved" element={<SavedItems />} /> {/* ✅ FIX 3: one route only */}
 
           {/* ADMIN */}
           <Route

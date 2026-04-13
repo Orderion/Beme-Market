@@ -12,7 +12,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { DEPARTMENTS, KINDS, SHOPS } from "../constants/catalog";
+import { DEPARTMENTS, KINDS, SHOPS, HOME_FILTER_OPTIONS } from "../constants/catalog";
 import { useAuth } from "../context/AuthContext";
 import {
   uploadImagesToCloudinary,
@@ -26,21 +26,12 @@ const OFFERS_COLLECTION = "WeeklyOffers";
 const MAIN_ADMIN_TABS = [
   { key: "manual", label: "Manual Add Product" },
   { key: "csv", label: "CSV Imports" },
-  { key: "offers", label: "Offers of the Week" }, // ✅ NEW
+  { key: "offers", label: "Offers of the Week" },
 ];
 
 const CSV_IMPORT_TABS = [
   { key: "standard", label: "Standard CSV Imports" },
   { key: "cj", label: "CJ Imports" },
-];
-
-const HOME_FILTER_OPTIONS = [
-  { key: "iphones", label: "Iphones" },
-  { key: "laptops", label: "Laptops" },
-  { key: "shoes", label: "Shoes" },
-  { key: "clothing", label: "Clothing" },
-  { key: "kids", label: "Kids" },
-  { key: "others", label: "Others" },
 ];
 
 const STANDARD_IMPORT_REQUIRED_HEADERS = ["title", "category", "price"];
@@ -140,7 +131,6 @@ const initialImportMeta = {
   rowErrors: [],
 };
 
-// ✅ NEW — initial offer form state
 const initialOfferForm = {
   title: "",
   description: "",
@@ -1005,7 +995,6 @@ function OptionValuesEditor({
   );
 }
 
-// ✅ NEW — Offers Manager Component (self-contained, no interference with products)
 function OffersManager({ isSuperAdmin, isShopAdmin }) {
   const [offers, setOffers] = useState([]);
   const [loadingOffers, setLoadingOffers] = useState(true);
@@ -1046,7 +1035,6 @@ function OffersManager({ isSuperAdmin, isShopAdmin }) {
     if (!file) return;
     setOfferMediaFile(file);
     setOfferMediaPreview(URL.createObjectURL(file));
-    // Auto-detect media type
     if (file.type.startsWith("video/")) {
       setOfferForm((prev) => ({ ...prev, mediaType: "video" }));
     } else {
@@ -1063,13 +1051,10 @@ function OffersManager({ isSuperAdmin, isShopAdmin }) {
     setOfferUploading(true);
     setOfferMsg("");
     try {
-      // Use Cloudinary — images go through validateImageFiles/uploadImagesToCloudinary
-      // Videos are uploaded the same way via the unsigned preset
       const isVideo = offerMediaFile.type.startsWith("video/");
       let url = "";
 
       if (isVideo) {
-        // Upload video directly to Cloudinary unsigned
         const formData = new FormData();
         formData.append("file", offerMediaFile);
         formData.append(
@@ -1234,7 +1219,6 @@ function OffersManager({ isSuperAdmin, isShopAdmin }) {
 
   return (
     <div className="admin-offers-shell">
-      {/* ── Form ── */}
       <div className="admin-upload-card">
         <div className="admin-upload-head">
           <div>
@@ -1339,7 +1323,6 @@ function OffersManager({ isSuperAdmin, isShopAdmin }) {
             </label>
           </div>
 
-          {/* Media */}
           <div className="admin-upload-card" style={{ marginTop: 0 }}>
             <div className="admin-upload-head">
               <div>
@@ -1426,7 +1409,6 @@ function OffersManager({ isSuperAdmin, isShopAdmin }) {
         </div>
       </div>
 
-      {/* ── List ── */}
       <div className="admin-card admin-card--nested" style={{ maxWidth: "100%", marginTop: 20 }}>
         <div className="admin-head">
           <h3 className="admin-title admin-title--small">
@@ -4289,7 +4271,6 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* ✅ NEW — Offers tab panel */}
         {activeMainTab === "offers" ? (
           <OffersManager isSuperAdmin={isSuperAdmin} isShopAdmin={isShopAdmin} />
         ) : null}
