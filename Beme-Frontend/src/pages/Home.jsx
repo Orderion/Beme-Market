@@ -6,11 +6,11 @@ import ProductGrid from "../components/ProductGrid";
 import ShopCarousel from "../components/ShopCarousel";
 import FlashDealsBanner from "../components/FlashDealsBanner";
 import { SHOPS } from "../constants/catalog";
-import banner from "../assets/home-banner.PNG";
+import banner from "../assets/home-banner.png";
 import fashionBanner from "../assets/fashion-banner.PNG";
-import kenteBanner from "../assets/kente-banner.PNG";
-import perfumeBanner from "../assets/perfume-banner.PNG";
-import techBanner from "../assets/tech-banner.PNG";
+import kenteBanner from "../assets/kente-banner.png";
+import perfumeBanner from "../assets/perfume-banner.png";
+import techBanner from "../assets/tech-banner.png";
 import "./Home.css";
 
 const COLLECTION_NAME = "Products";
