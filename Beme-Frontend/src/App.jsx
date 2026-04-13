@@ -28,6 +28,7 @@ import ProductDetails from "./pages/ProductDetails";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
 import Orders from "./pages/Orders";
+import FlashDeals from "./pages/FlashDeals";
 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -55,10 +56,9 @@ import Account from "./pages/Account";
 import ManageAccount from "./pages/ManageAccount";
 import PaymentMethods from "./pages/PaymentMethods";
 import AccountManagement from "./pages/AccountManagement";
-import SavedItems from "./pages/SavedItems"; // ✅ FIX 1: single import, from pages/
 
 import {
-  // ✅ FIX 2: SavedItems removed from here — it's a full page, not an AccountSubPage
+  SavedItems,
   Notifications,
   HelpSupport,
   ContactUs,
@@ -178,6 +178,7 @@ function AppShell() {
           <Route path="/" element={<Home />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/offers" element={<Offers />} />
+          <Route path="/flash-deals" element={<FlashDeals />} />
           <Route path="/product/:id" element={<ProductDetails />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/order-success" element={<OrderSuccess />} />
@@ -195,7 +196,7 @@ function AppShell() {
           <Route path="/account/notifications" element={<Notifications />} />
           <Route path="/account/help" element={<HelpSupport />} />
           <Route path="/account/contact" element={<ContactUs />} />
-          <Route path="/saved" element={<SavedItems />} /> {/* ✅ FIX 3: one route only */}
+          <Route path="/saved" element={<SavedItems />} />
 
           {/* ADMIN */}
           <Route
