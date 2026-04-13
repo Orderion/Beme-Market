@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "../firebase";
-import "./FlashDeals.css";
+import "../pages/FlashDeals.css";
 
 const FLASH_COLLECTION = "FlashDeals";
 
