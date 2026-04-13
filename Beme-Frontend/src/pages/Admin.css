@@ -1454,6 +1454,38 @@ body.dark .admin-icon-btn--danger {
   object-fit: cover;
   display: block;
 }
+/* =========================
+   FLASH DEALS — Admin additions
+   Append these to the bottom of your existing Admin.css
+========================= */
+
+.admin-flash-countdown {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-flash-countdown-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--grtheme, #FF6600);
+  animation: admin-flash-pulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes admin-flash-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.35; transform: scale(0.65); }
+}
+
+.admin-flash-countdown-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--grtheme, #FF6600);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+}
 
 @media (max-width: 520px) {
   .admin-offer-item {

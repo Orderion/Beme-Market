@@ -22,16 +22,28 @@ import "./Admin.css";
 
 const COLLECTION_NAME = "Products";
 const OFFERS_COLLECTION = "WeeklyOffers";
+const FLASH_COLLECTION = "FlashDeals";
 
 const MAIN_ADMIN_TABS = [
   { key: "manual", label: "Manual Add Product" },
-  { key: "csv", label: "CSV Imports" },
+  { key: "csv",    label: "CSV Imports" },
   { key: "offers", label: "Offers of the Week" },
+  { key: "flash",  label: "⚡ Flash Deals" },
 ];
 
 const CSV_IMPORT_TABS = [
   { key: "standard", label: "Standard CSV Imports" },
-  { key: "cj", label: "CJ Imports" },
+  { key: "cj",       label: "CJ Imports" },
+];
+
+const DURATION_OPTIONS = [
+  { label: "1 hour",   value: 1 },
+  { label: "3 hours",  value: 3 },
+  { label: "6 hours",  value: 6 },
+  { label: "12 hours", value: 12 },
+  { label: "24 hours", value: 24 },
+  { label: "48 hours", value: 48 },
+  { label: "72 hours", value: 72 },
 ];
 
 const STANDARD_IMPORT_REQUIRED_HEADERS = ["title", "category", "price"];
@@ -141,6 +153,18 @@ const initialOfferForm = {
   shopChip: "",
   productId: "",
   shopKey: "",
+  order: "",
+};
+
+const initialFlashForm = {
+  title: "",
+  dealPrice: "",
+  originalPrice: "",
+  discountPercent: "",
+  durationHours: "24",
+  productId: "",
+  shopKey: "",
+  image: "",
   order: "",
 };
 
@@ -312,6 +336,24 @@ function normalizeOffer(docSnap) {
     productId: String(d.productId || "").trim(),
     shopKey: String(d.shopKey || "").trim(),
     order: Number(d.order || 0),
+    createdAt: d.createdAt || null,
+  };
+}
+
+function normalizeFlashDeal(docSnap) {
+  const d = docSnap.data() || {};
+  return {
+    id: docSnap.id,
+    title: String(d.title || "").trim(),
+    image: String(d.image || d.mediaUrl || "").trim(),
+    dealPrice: Number(d.dealPrice || 0),
+    originalPrice: Number(d.originalPrice || 0),
+    discountPercent: Number(d.discountPercent || 0),
+    durationHours: Number(d.durationHours || 24),
+    productId: String(d.productId || "").trim(),
+    shopKey: String(d.shopKey || "").trim(),
+    order: Number(d.order || 0),
+    endsAt: d.endsAt || null,
     createdAt: d.createdAt || null,
   };
 }
@@ -877,6 +919,33 @@ function validateCjImportRows(rows) {
   return rowErrors;
 }
 
+// ─── Flash Deal helpers ───────────────────────────────────────
+
+function getEndsAtMillis(deal) {
+  if (!deal.endsAt) return null;
+  if (deal.endsAt?.toMillis) return deal.endsAt.toMillis();
+  return Number(deal.endsAt);
+}
+
+function formatCountdown(endsAtMs) {
+  if (!endsAtMs) return null;
+  const diff = endsAtMs - Date.now();
+  if (diff <= 0) return "Expired";
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function calcAutoDiscount(original, deal) {
+  const o = Number(original);
+  const d = Number(deal);
+  if (!o || !d || d >= o) return "";
+  return String(Math.round(((o - d) / o) * 100));
+}
+
+// ─────────────────────────────────────────────────────────────
+
 function StatusFlags({ inStock, featured, shipsFromAbroad }) {
   return (
     <div className="admin-product-flags">
@@ -994,6 +1063,568 @@ function OptionValuesEditor({
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────
+//  ⚡ Flash Deals Manager
+// ─────────────────────────────────────────────────────────────
+
+function FlashDealsManager() {
+  const [deals, setDeals] = useState([]);
+  const [loadingDeals, setLoadingDeals] = useState(true);
+  const [flashForm, setFlashForm] = useState(initialFlashForm);
+  const [flashMsg, setFlashMsg] = useState("");
+  const [flashSubmitting, setFlashSubmitting] = useState(false);
+  const [editingFlash, setEditingFlash] = useState(null);
+  const [deletingFlashId, setDeletingFlashId] = useState("");
+  const [flashImageFile, setFlashImageFile] = useState(null);
+  const [flashImagePreview, setFlashImagePreview] = useState("");
+  const [flashUploading, setFlashUploading] = useState(false);
+  const [, setTick] = useState(0);
+
+  // Live ticker for countdown displays
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadDeals = async () => {
+    setLoadingDeals(true);
+    try {
+      const snap = await getDocs(
+        query(collection(db, FLASH_COLLECTION), orderBy("order", "asc"))
+      );
+      setDeals(snap.docs.map(normalizeFlashDeal));
+    } catch {
+      try {
+        const fallback = await getDocs(collection(db, FLASH_COLLECTION));
+        setDeals(
+          fallback.docs
+            .map(normalizeFlashDeal)
+            .sort((a, b) => a.order - b.order)
+        );
+      } catch (err) {
+        console.error("Load flash deals error:", err);
+        setDeals([]);
+      }
+    } finally {
+      setLoadingDeals(false);
+    }
+  };
+
+  useEffect(() => { loadDeals(); }, []);
+
+  const setFlashField = (key) => (e) => {
+    const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    setFlashForm((prev) => {
+      const next = { ...prev, [key]: value };
+      // Auto-calculate discount % when prices change
+      if (key === "dealPrice" || key === "originalPrice") {
+        const orig = key === "originalPrice" ? value : prev.originalPrice;
+        const deal = key === "dealPrice" ? value : prev.dealPrice;
+        const auto = calcAutoDiscount(orig, deal);
+        if (auto !== "") next.discountPercent = auto;
+      }
+      return next;
+    });
+  };
+
+  const handleFlashImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFlashImageFile(file);
+    setFlashImagePreview(URL.createObjectURL(file));
+    e.target.value = "";
+  };
+
+  const handleFlashImageUpload = async () => {
+    if (!flashImageFile) { setFlashMsg("❌ Please choose an image first."); return null; }
+    setFlashUploading(true);
+    setFlashMsg("");
+    try {
+      validateImageFiles([flashImageFile]);
+      const results = await uploadImagesToCloudinary([flashImageFile]);
+      const url = results[0]?.url || "";
+      if (!url) throw new Error("Image upload failed.");
+      setFlashForm((prev) => ({ ...prev, image: url }));
+      setFlashMsg("✅ Image uploaded successfully.");
+      return url;
+    } catch (err) {
+      console.error("Flash deal image upload error:", err);
+      setFlashMsg(`❌ ${err.message || "Upload failed."}`);
+      return null;
+    } finally {
+      setFlashUploading(false);
+    }
+  };
+
+  const validateFlashForm = () => {
+    if (!flashForm.title.trim()) return "Title is required.";
+    if (!flashForm.dealPrice || isNaN(Number(flashForm.dealPrice))) return "Valid deal price is required.";
+    if (!flashForm.originalPrice || isNaN(Number(flashForm.originalPrice))) return "Valid original price is required.";
+    if (Number(flashForm.dealPrice) >= Number(flashForm.originalPrice)) return "Deal price must be lower than original price.";
+    if (!flashForm.durationHours) return "Duration is required.";
+    return "";
+  };
+
+  const buildFlashPayload = async (isEdit = false) => {
+    let image = flashForm.image.trim();
+    if (!image && flashImageFile) {
+      image = await handleFlashImageUpload();
+      if (!image) return null;
+    }
+
+    const durationHours = Number(flashForm.durationHours) || 24;
+    const endsAt = isEdit && editingFlash?.endsAt &&
+      Number(flashForm.durationHours) === editingFlash.durationHours
+      ? editingFlash.endsAt
+      : new Date(Date.now() + durationHours * 3600000);
+
+    const discount = flashForm.discountPercent
+      ? Number(flashForm.discountPercent)
+      : calcAutoDiscount(flashForm.originalPrice, flashForm.dealPrice)
+        ? Number(calcAutoDiscount(flashForm.originalPrice, flashForm.dealPrice))
+        : 0;
+
+    return {
+      title: flashForm.title.trim(),
+      dealPrice: Number(flashForm.dealPrice),
+      originalPrice: Number(flashForm.originalPrice),
+      discountPercent: discount,
+      durationHours,
+      endsAt,
+      image,
+      productId: flashForm.productId.trim(),
+      shopKey: flashForm.shopKey.trim(),
+      order: flashForm.order !== "" ? Number(flashForm.order) : deals.length,
+    };
+  };
+
+  const handleAddFlashDeal = async () => {
+    const err = validateFlashForm();
+    if (err) { setFlashMsg(`❌ ${err}`); return; }
+    setFlashSubmitting(true);
+    setFlashMsg("");
+    try {
+      const payload = await buildFlashPayload(false);
+      if (!payload) { setFlashSubmitting(false); return; }
+      await addDoc(collection(db, FLASH_COLLECTION), {
+        ...payload,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      setFlashMsg("✅ Flash deal added successfully.");
+      setFlashForm(initialFlashForm);
+      setFlashImageFile(null);
+      setFlashImagePreview("");
+      await loadDeals();
+    } catch (err) {
+      console.error("Add flash deal error:", err);
+      setFlashMsg(`❌ ${err.message || "Failed to add flash deal."}`);
+    } finally {
+      setFlashSubmitting(false);
+    }
+  };
+
+  const handleUpdateFlashDeal = async () => {
+    if (!editingFlash?.id) return;
+    const err = validateFlashForm();
+    if (err) { setFlashMsg(`❌ ${err}`); return; }
+    setFlashSubmitting(true);
+    setFlashMsg("");
+    try {
+      const payload = await buildFlashPayload(true);
+      if (!payload) { setFlashSubmitting(false); return; }
+      await updateDoc(doc(db, FLASH_COLLECTION, editingFlash.id), {
+        ...payload,
+        updatedAt: serverTimestamp(),
+      });
+      setFlashMsg("✅ Flash deal updated.");
+      setEditingFlash(null);
+      setFlashForm(initialFlashForm);
+      setFlashImageFile(null);
+      setFlashImagePreview("");
+      await loadDeals();
+    } catch (err) {
+      console.error("Update flash deal error:", err);
+      setFlashMsg(`❌ ${err.message || "Failed to update flash deal."}`);
+    } finally {
+      setFlashSubmitting(false);
+    }
+  };
+
+  const handleDeleteFlashDeal = async (dealId) => {
+    setDeletingFlashId(dealId);
+    try {
+      await deleteDoc(doc(db, FLASH_COLLECTION, dealId));
+      setDeals((prev) => prev.filter((d) => d.id !== dealId));
+    } catch (err) {
+      console.error("Delete flash deal error:", err);
+      setFlashMsg(`❌ ${err.message || "Failed to delete flash deal."}`);
+    } finally {
+      setDeletingFlashId("");
+    }
+  };
+
+  const startEditFlashDeal = (deal) => {
+    setEditingFlash(deal);
+    setFlashForm({
+      title: deal.title,
+      dealPrice: String(deal.dealPrice),
+      originalPrice: String(deal.originalPrice),
+      discountPercent: String(deal.discountPercent),
+      durationHours: String(deal.durationHours),
+      productId: deal.productId,
+      shopKey: deal.shopKey,
+      image: deal.image,
+      order: String(deal.order),
+    });
+    setFlashImageFile(null);
+    setFlashImagePreview("");
+    setFlashMsg("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancelFlashEdit = () => {
+    setEditingFlash(null);
+    setFlashForm(initialFlashForm);
+    setFlashImageFile(null);
+    setFlashImagePreview("");
+    setFlashMsg("");
+  };
+
+  const activeDeals = deals.filter((d) => {
+    const ms = getEndsAtMillis(d);
+    return !ms || ms > Date.now();
+  });
+
+  const expiredDeals = deals.filter((d) => {
+    const ms = getEndsAtMillis(d);
+    return ms && ms <= Date.now();
+  });
+
+  return (
+    <div className="admin-offers-shell">
+
+      {/* ── Form ── */}
+      <div className="admin-upload-card">
+        <div className="admin-upload-head">
+          <div>
+            <h3 className="admin-upload-title">
+              {editingFlash ? "Edit Flash Deal" : "Add Flash Deal"}
+            </h3>
+            <p className="admin-upload-sub">
+              Set a deal price, original price, and duration. The timer starts the
+              moment you save. Link to an existing product or leave the product ID
+              blank for a standalone deal.
+            </p>
+          </div>
+          {editingFlash ? (
+            <button
+              type="button"
+              className="admin-secondary-btn admin-secondary-btn--ghost"
+              onClick={cancelFlashEdit}
+            >
+              Cancel edit
+            </button>
+          ) : null}
+        </div>
+
+        <div className="admin-form admin-form--compact">
+
+          <label className="admin-field">
+            <span>Title *</span>
+            <input
+              value={flashForm.title}
+              onChange={setFlashField("title")}
+              placeholder="e.g. Nike Air Force 1 Flash Sale"
+              autoComplete="off"
+            />
+          </label>
+
+          <div className="admin-row">
+            <label className="admin-field">
+              <span>Deal price (GHS) *</span>
+              <input
+                value={flashForm.dealPrice}
+                onChange={setFlashField("dealPrice")}
+                inputMode="decimal"
+                placeholder="e.g. 350"
+              />
+            </label>
+            <label className="admin-field">
+              <span>Original price (GHS) *</span>
+              <input
+                value={flashForm.originalPrice}
+                onChange={setFlashField("originalPrice")}
+                inputMode="decimal"
+                placeholder="e.g. 500"
+              />
+            </label>
+          </div>
+
+          <div className="admin-row">
+            <label className="admin-field">
+              <span>Discount % (auto-calculated)</span>
+              <input
+                value={flashForm.discountPercent}
+                onChange={setFlashField("discountPercent")}
+                inputMode="numeric"
+                placeholder="e.g. 30"
+              />
+            </label>
+            <label className="admin-field">
+              <span>Deal duration *</span>
+              <select value={flashForm.durationHours} onChange={setFlashField("durationHours")}>
+                {DURATION_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="admin-row">
+            <label className="admin-field">
+              <span>Product ID (links to /product/:id)</span>
+              <input
+                value={flashForm.productId}
+                onChange={setFlashField("productId")}
+                placeholder="Firestore product doc ID"
+                autoComplete="off"
+              />
+            </label>
+            <label className="admin-field">
+              <span>Shop key (fallback link)</span>
+              <input
+                value={flashForm.shopKey}
+                onChange={setFlashField("shopKey")}
+                placeholder="e.g. tech"
+                autoComplete="off"
+              />
+            </label>
+          </div>
+
+          <label className="admin-field">
+            <span>Display order</span>
+            <input
+              value={flashForm.order}
+              onChange={setFlashField("order")}
+              inputMode="numeric"
+              placeholder="e.g. 1"
+            />
+          </label>
+
+          {/* Image */}
+          <div className="admin-upload-card" style={{ marginTop: 0 }}>
+            <div className="admin-upload-head">
+              <div>
+                <h4 className="admin-upload-title">Product image</h4>
+                <p className="admin-upload-sub">
+                  Upload an image (JPG/PNG/WebP) or paste a Cloudinary URL directly below.
+                </p>
+              </div>
+            </div>
+
+            <label className="admin-field">
+              <span>Choose image file</span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleFlashImageChange}
+              />
+            </label>
+
+            {flashImagePreview ? (
+              <div className="admin-offer-media-preview">
+                <img src={flashImagePreview} alt="Preview" className="admin-offer-media-thumb" />
+              </div>
+            ) : null}
+
+            <div className="admin-upload-actions">
+              <button
+                type="button"
+                className="admin-secondary-btn"
+                onClick={handleFlashImageUpload}
+                disabled={!flashImageFile || flashUploading}
+              >
+                {flashUploading ? "Uploading…" : "Upload to Cloudinary"}
+              </button>
+            </div>
+
+            <label className="admin-field" style={{ marginTop: 10 }}>
+              <span>Or paste image URL directly</span>
+              <input
+                value={flashForm.image}
+                onChange={setFlashField("image")}
+                placeholder="https://res.cloudinary.com/..."
+                autoComplete="off"
+              />
+            </label>
+          </div>
+        </div>
+
+        {flashMsg ? <div className="admin-msg" style={{ marginTop: 12 }}>{flashMsg}</div> : null}
+
+        <div className="admin-upload-actions" style={{ marginTop: 14 }}>
+          <button
+            type="button"
+            className="admin-btn"
+            onClick={editingFlash ? handleUpdateFlashDeal : handleAddFlashDeal}
+            disabled={flashSubmitting}
+          >
+            {flashSubmitting
+              ? editingFlash ? "Updating…" : "Adding…"
+              : editingFlash ? "Update flash deal" : "Add flash deal"}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Active deals list ── */}
+      <div className="admin-card admin-card--nested" style={{ maxWidth: "100%", marginTop: 20 }}>
+        <div className="admin-head">
+          <h3 className="admin-title admin-title--small">
+            Active Flash Deals ({activeDeals.length})
+          </h3>
+          <p className="admin-sub">
+            These appear on the homepage banner and /flash-deals page. Timer starts from when the deal was saved.
+          </p>
+        </div>
+
+        {loadingDeals ? (
+          <div className="admin-products-empty">Loading flash deals…</div>
+        ) : activeDeals.length === 0 ? (
+          <div className="admin-products-empty">No active flash deals.</div>
+        ) : (
+          <div className="admin-offers-list">
+            {activeDeals.map((deal) => {
+              const endsAtMs = getEndsAtMillis(deal);
+              const countdown = formatCountdown(endsAtMs);
+              const discount = deal.discountPercent
+                ? deal.discountPercent
+                : deal.originalPrice > deal.dealPrice
+                ? Math.round(((deal.originalPrice - deal.dealPrice) / deal.originalPrice) * 100)
+                : 0;
+
+              return (
+                <div key={deal.id} className="admin-offer-item">
+                  <div className="admin-offer-media-wrap">
+                    {deal.image ? (
+                      <img src={deal.image} alt={deal.title} className="admin-offer-thumb" />
+                    ) : (
+                      <div className="admin-offer-thumb admin-offer-thumb--empty">No image</div>
+                    )}
+                    {discount > 0 ? (
+                      <span className="admin-offer-type-badge">-{discount}%</span>
+                    ) : null}
+                  </div>
+
+                  <div className="admin-offer-content">
+                    <div className="admin-offer-top">
+                      <div>
+                        <h4 className="admin-offer-title">{deal.title}</h4>
+                        <div className="admin-offer-meta">
+                          {deal.productId ? <span>Product: {deal.productId.slice(0, 10)}…</span> : null}
+                          {deal.shopKey ? <span>Shop: {deal.shopKey}</span> : null}
+                          <span>Order: {deal.order}</span>
+                          <span>{deal.durationHours}h deal</span>
+                        </div>
+                      </div>
+                      <div className="admin-product-price">
+                        {formatMoney(deal.dealPrice)}
+                        <span className="admin-offer-old-price"> / was {formatMoney(deal.originalPrice)}</span>
+                      </div>
+                    </div>
+
+                    {countdown && countdown !== "Expired" ? (
+                      <div className="admin-flash-countdown">
+                        <span className="admin-flash-countdown-dot" />
+                        <span className="admin-flash-countdown-text">Ends in {countdown}</span>
+                      </div>
+                    ) : null}
+
+                    <div className="admin-product-actions">
+                      <button
+                        type="button"
+                        className="admin-secondary-btn"
+                        onClick={() => startEditFlashDeal(deal)}
+                      >
+                        Edit deal
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-danger-btn"
+                        onClick={() => handleDeleteFlashDeal(deal.id)}
+                        disabled={deletingFlashId === deal.id}
+                      >
+                        {deletingFlashId === deal.id ? "Deleting…" : "Delete"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Expired deals list ── */}
+      {expiredDeals.length > 0 ? (
+        <div className="admin-card admin-card--nested" style={{ maxWidth: "100%", marginTop: 16 }}>
+          <div className="admin-head">
+            <h3 className="admin-title admin-title--small">Expired Deals ({expiredDeals.length})</h3>
+            <p className="admin-sub">These show with an "Expired" badge on the deals page. Delete them to clean up.</p>
+          </div>
+          <div className="admin-offers-list">
+            {expiredDeals.map((deal) => (
+              <div key={deal.id} className="admin-offer-item" style={{ opacity: 0.7 }}>
+                <div className="admin-offer-media-wrap">
+                  {deal.image ? (
+                    <img src={deal.image} alt={deal.title} className="admin-offer-thumb" />
+                  ) : (
+                    <div className="admin-offer-thumb admin-offer-thumb--empty">No image</div>
+                  )}
+                  <span className="admin-offer-type-badge">Expired</span>
+                </div>
+                <div className="admin-offer-content">
+                  <div className="admin-offer-top">
+                    <div>
+                      <h4 className="admin-offer-title">{deal.title}</h4>
+                      <div className="admin-offer-meta">
+                        {deal.productId ? <span>Product: {deal.productId.slice(0, 10)}…</span> : null}
+                        {deal.shopKey ? <span>Shop: {deal.shopKey}</span> : null}
+                      </div>
+                    </div>
+                    <div className="admin-product-price">{formatMoney(deal.dealPrice)}</div>
+                  </div>
+                  <div className="admin-product-actions">
+                    <button
+                      type="button"
+                      className="admin-secondary-btn"
+                      onClick={() => startEditFlashDeal(deal)}
+                    >
+                      Edit &amp; relaunch
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-danger-btn"
+                      onClick={() => handleDeleteFlashDeal(deal.id)}
+                      disabled={deletingFlashId === deal.id}
+                    >
+                      {deletingFlashId === deal.id ? "Deleting…" : "Delete"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Offers of the Week Manager  (unchanged from your file)
+// ─────────────────────────────────────────────────────────────
 
 function OffersManager({ isSuperAdmin, isShopAdmin }) {
   const [offers, setOffers] = useState([]);
@@ -1219,6 +1850,7 @@ function OffersManager({ isSuperAdmin, isShopAdmin }) {
 
   return (
     <div className="admin-offers-shell">
+      {/* ── Form ── */}
       <div className="admin-upload-card">
         <div className="admin-upload-head">
           <div>
@@ -1323,6 +1955,7 @@ function OffersManager({ isSuperAdmin, isShopAdmin }) {
             </label>
           </div>
 
+          {/* Media */}
           <div className="admin-upload-card" style={{ marginTop: 0 }}>
             <div className="admin-upload-head">
               <div>
@@ -1409,6 +2042,7 @@ function OffersManager({ isSuperAdmin, isShopAdmin }) {
         </div>
       </div>
 
+      {/* ── List ── */}
       <div className="admin-card admin-card--nested" style={{ maxWidth: "100%", marginTop: 20 }}>
         <div className="admin-head">
           <h3 className="admin-title admin-title--small">
@@ -1502,6 +2136,10 @@ function OffersManager({ isSuperAdmin, isShopAdmin }) {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────
+//  Main Admin export
+// ─────────────────────────────────────────────────────────────
 
 export default function Admin() {
   const {
@@ -4271,6 +4909,12 @@ export default function Admin() {
           </div>
         </div>
 
+        {/* ⚡ Flash Deals tab */}
+        {activeMainTab === "flash" ? (
+          <FlashDealsManager />
+        ) : null}
+
+        {/* Offers of the Week tab */}
         {activeMainTab === "offers" ? (
           <OffersManager isSuperAdmin={isSuperAdmin} isShopAdmin={isShopAdmin} />
         ) : null}

@@ -4,6 +4,7 @@ import { collection, getDocs, limit, query } from "firebase/firestore";
 import { db } from "../firebase";
 import ProductGrid from "../components/ProductGrid";
 import ShopCarousel from "../components/ShopCarousel";
+import FlashDealsBanner from "../components/FlashDealsBanner";
 import { SHOPS } from "../constants/catalog";
 import banner from "../assets/home-banner.PNG";
 import fashionBanner from "../assets/fashion-banner.PNG";
@@ -38,7 +39,6 @@ const CATEGORY_KEYWORDS = [
   { label: "Accessories",     type: "category", value: "accessories", aliases: ["accessories","accessory","watch","bag","bags","power bank","speaker","perfume","cosmetics","others"] },
 ];
 
-/* ── Background colours per category ── */
 const CATEGORY_BG = {
   iphones:         "#DDEEFF",
   laptops:         "#EAE7FD",
@@ -137,7 +137,6 @@ function buildSuggestions(products, term) {
     .slice(0, SUGGESTION_LIMIT);
 }
 
-/* ── Filled, colourful category SVG icons ── */
 function CategoryIcon({ type }) {
   if (type === "iphones") return (
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -150,7 +149,6 @@ function CategoryIcon({ type }) {
       <rect x="16" y="15" width="5" height="1.5" rx="0.75" fill="#5BA3E0" fillOpacity="0.4"/>
     </svg>
   );
-
   if (type === "laptops") return (
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="6" y="10" width="28" height="18" rx="2.5" fill="#7C6FD6"/>
@@ -163,7 +161,6 @@ function CategoryIcon({ type }) {
       <rect x="10" y="22" width="12" height="1.5" rx="0.75" fill="#7C6FD6" fillOpacity="0.35"/>
     </svg>
   );
-
   if (type === "shoes") return (
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M7 26c3.5-1 5.5-4.5 7.5-7l2-2.5c.6 3 2.5 5.5 7 7l4.5 1.2c2.5.7 3.5 1.5 3.5 3.3v2.5H7V26z" fill="#E07050"/>
@@ -174,7 +171,6 @@ function CategoryIcon({ type }) {
       <ellipse cx="16" cy="16.5" rx="2.5" ry="2" fill="#E07050" fillOpacity="0.6"/>
     </svg>
   );
-
   if (type === "clothing") return (
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M15 7l5 3 5-3 6 5-4 4.5V34H13V16.5L9 12l6-5z" fill="#D4537E"/>
@@ -184,7 +180,6 @@ function CategoryIcon({ type }) {
       <path d="M17 10.5c1 1.5 2.5 2.5 3 2.5s2-1 3-2.5" stroke="#B03060" strokeWidth="1.3" strokeLinecap="round" fill="none"/>
     </svg>
   );
-
   if (type === "kids") return (
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="20" cy="14" r="6.5" fill="#F0A030"/>
@@ -196,7 +191,6 @@ function CategoryIcon({ type }) {
       <path d="M14 34v-4a6 6 0 0 1 6-6h0a6 6 0 0 1 6 6v4" fill="white" fillOpacity="0.15"/>
     </svg>
   );
-
   if (type === "game") return (
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="5" y="15" width="30" height="14" rx="7" fill="#3DA060"/>
@@ -209,7 +203,6 @@ function CategoryIcon({ type }) {
       <rect x="19" y="20" width="2" height="4" rx="1" fill="#3DA060" fillOpacity="0.5"/>
     </svg>
   );
-
   if (type === "home_appliances") return (
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="10" y="6" width="20" height="28" rx="3.5" fill="#1D9E75"/>
@@ -222,8 +215,6 @@ function CategoryIcon({ type }) {
       <circle cx="23" cy="11" r="1.2" fill="#0F6E56"/>
     </svg>
   );
-
-  /* others / accessories */
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="9" y="8" width="22" height="26" rx="3.5" fill="#D08020"/>
@@ -259,7 +250,6 @@ export default function Home() {
     { id: "tech",    image: techBanner,    chip: "Tech Shop",    title: "Latest gadgets",             subtitle: "Smart devices and modern electronics for daily life.",   onClick: () => navigate("/shop?shop=tech"),    ariaLabel: "Open Tech Shop" },
   ], [navigate]);
 
-  /* ── Fetch products for search suggestions ── */
   useEffect(() => {
     let alive = true;
     async function load() {
@@ -281,7 +271,6 @@ export default function Home() {
     return () => { alive = false; };
   }, []);
 
-  /* ── Click outside closes suggestions ── */
   useEffect(() => {
     const onPointerDown = (event) => {
       if (!searchWrapRef.current) return;
@@ -298,7 +287,6 @@ export default function Home() {
     };
   }, []);
 
-  /* ── Scroll collapses the sticky search bar ── */
   useEffect(() => {
     const onScroll = () => {
       const scrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop;
@@ -355,7 +343,7 @@ export default function Home() {
   return (
     <div className="home">
 
-      {/* ── Sticky search bar (animates out on scroll) ── */}
+      {/* ── Sticky search bar ── */}
       <div className={`home-search-sticky ${searchCollapsed ? "home-search-sticky--hidden" : ""}`}>
         <div className="home-search-wrap" ref={searchWrapRef}>
           <form className="home-search-form" onSubmit={submitSearch}>
@@ -420,7 +408,7 @@ export default function Home() {
         </h1>
       </section>
 
-      {/* ── Department / Categories ── */}
+      {/* ── Categories ── */}
       <section className="home-section home-section--cats">
         <div className="home-cat-scroll">
           {CATEGORY_CARDS.map((item) => (
@@ -443,7 +431,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Shops Carousel ── */}
+      {/* ── What's new — Shops Carousel ── */}
       <section className="home-section">
         <div className="home-sec-header">
           <h3>What's new on Beme Market</h3>
@@ -451,6 +439,9 @@ export default function Home() {
         </div>
         <ShopCarousel shops={storeCards} />
       </section>
+
+      {/* ── ⚡ Flash Deals Banner ── sits between carousel and trending ── */}
+      <FlashDealsBanner />
 
       {/* ── Trending now ── */}
       <section className="home-section">
