@@ -619,3 +619,91 @@ body.dark .chip { border-color: rgba(255,255,255,0.1); background: var(--soft); 
     animation: none !important;
   }
 }
+/* ══════════════════════════════════════════
+   RESPONSIVE FIXES — TABLET & DESKTOP
+══════════════════════════════════════════ */
+
+@media (min-width: 1024px) {
+  /* ── Push entire page clear of the fixed side-nav ── */
+  .shop-page {
+    padding-left: 64px;
+  }
+
+  /* ── Topbar ── */
+  .shop-topbar {
+    padding: 16px 48px 12px;
+    left: 64px; /* if it's fixed, align with content */
+  }
+
+  /* ── Banner: constrain width and add horizontal padding ── */
+  .shop-banner-wrap {
+    padding: 18px 48px 0;
+  }
+
+  .shop-banner {
+    height: 220px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  .shop-banner-title { font-size: 28px; }
+  .shop-banner-sub   { font-size: 13px; }
+
+  /* ── Chip sections ── */
+  .shop-chip-section {
+    padding: 16px 48px 0;
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+    /* Allow chips to wrap on desktop instead of scrolling */
+  }
+
+  .shop-chip-row {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  /* ── Active pills ── */
+  .shop-active-pills-wrap {
+    padding: 12px 48px 0;
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ── Filter / Sort controls ── */
+  .shop-controls {
+    margin: 14px 48px 0;
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+    /* override the auto centering margin above ↓ */
+    margin-top: 14px;
+    padding-left: 48px;
+    padding-right: 48px;
+  }
+
+  /* ── Meta count ── */
+  .shop-meta {
+    padding: 14px 48px 6px;
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-top: 14px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .shop-page         { padding-left: 72px; }
+  .shop-banner       { height: 260px; }
+  .shop-banner-title { font-size: 32px; }
+}
+
+/* ── Fix controls margin conflict (desktop needs explicit left offset) ── */
+@media (min-width: 1024px) {
+  .shop-controls {
+    margin: 14px 48px 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
