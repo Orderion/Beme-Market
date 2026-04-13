@@ -221,9 +221,6 @@ export default function Sidebar({ isOpen, onClose }) {
     >
       {/* Logo + toggle */}
       <div className="sb-desktop-header">
-        <div className="sb-logo-mark">
-          <LogoMark />
-        </div>
         {desktopExpanded && <span className="sb-logo-text">Beme</span>}
         <button
           type="button"
