@@ -1,14 +1,14 @@
 /* ═══════════════════════════════════════════════════════
-   FlashDeals.css
+   FlashDeals.css  — redesigned
    Covers:
-     • .fdb-*   → FlashDealsBanner  (homepage strip)
-     • .fd-*    → FlashDeals page   (full page)
+     • .fdb-*   → FlashDealsBanner  (homepage strip, unchanged)
+     • .fd-*    → FlashDeals page   (full page, redesigned)
    Uses CSS variables from index.css / global theme.
    Main accent = var(--grtheme)  (#FF6600)
 ═══════════════════════════════════════════════════════ */
 
 /* ─────────────────────────────────────────────────────
-   HOMEPAGE BANNER STRIP  (.fdb-*)
+   HOMEPAGE BANNER STRIP  (.fdb-*)  — UNCHANGED
 ───────────────────────────────────────────────────── */
 
 .fdb-section {
@@ -93,7 +93,6 @@
   display: none;
 }
 
-/* Mini card */
 .fdb-card {
   flex-shrink: 0;
   width: 148px;
@@ -242,7 +241,6 @@ body.dark .fdb-card-info {
   margin-top: 2px;
 }
 
-/* View all tail card */
 .fdb-view-all-card {
   flex-shrink: 0;
   width: 80px;
@@ -276,7 +274,6 @@ body.dark .fdb-card-info {
   line-height: 1.3;
 }
 
-/* Skeleton banner cards */
 .fdb-skeleton-card {
   flex-shrink: 0;
   width: 148px;
@@ -318,94 +315,155 @@ body.dark .fdb-card-info {
   to   { opacity: 1; }
 }
 
+
 /* ═══════════════════════════════════════════════════════
-   FLASH DEALS FULL PAGE  (.fd-*)
+   FLASH DEALS FULL PAGE  (.fd-*)  — REDESIGNED
 ═══════════════════════════════════════════════════════ */
 
 .fd-page {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
-  padding-bottom: 80px;
+  padding-bottom: 90px;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Header */
-.fd-header {
+/* ── Hero ── */
+.fd-hero {
+  position: relative;
+  width: 100%;
+  height: 260px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.fd-hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+
+.fd-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(8, 8, 10, 0.88) 0%,
+    rgba(8, 8, 10, 0.42) 55%,
+    rgba(8, 8, 10, 0.15) 100%
+  );
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 16px 12px;
-  gap: 12px;
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 20px 18px;
 }
 
 .fd-back-btn {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--text);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  flex-shrink: 0;
-  transition: transform 0.15s ease, background 0.15s ease;
+  backdrop-filter: blur(8px);
+  transition: background var(--motion-fast), transform var(--motion-fast);
 }
 
 .fd-back-btn:hover {
+  background: rgba(0, 0, 0, 0.65);
   transform: translateX(-2px);
-  background: var(--soft);
 }
 
-.fd-header-center {
-  flex: 1;
-  text-align: center;
-}
-
-.fd-header-title {
-  font-size: 1.15rem;
+.fd-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--grtheme);
+  color: #fff;
+  font-size: 10px;
   font-weight: 800;
-  margin: 0;
-  color: var(--text);
-  letter-spacing: -0.03em;
+  letter-spacing: 0.07em;
+  padding: 4px 11px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+  width: fit-content;
 }
 
-.fd-header-bolt {
-  margin-right: 2px;
+.fd-hero-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  margin: 0 0 5px;
 }
 
-.fd-header-sub {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: var(--muted);
+.fd-hero-sub {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0 0 16px;
   line-height: 1.4;
 }
 
-.fd-header-timer {
+.fd-hero-timer {
   font-weight: 800;
   color: var(--grtheme);
   font-variant-numeric: tabular-nums;
 }
 
-/* Live strip */
+.fd-hero-btn {
+  display: inline-flex;
+  align-items: center;
+  background: #fff;
+  color: #111;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 10px 20px;
+  width: fit-content;
+  letter-spacing: -0.01em;
+  border: none;
+  cursor: pointer;
+  transition: opacity var(--motion-fast), transform var(--motion-fast);
+}
+
+.fd-hero-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.fd-hero-btn:active {
+  transform: scale(0.97);
+}
+
+/* ── Live strip ── */
 .fd-live-strip {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  background: rgba(255, 102, 0, 0.07);
-  border-bottom: 1px solid rgba(255, 102, 0, 0.15);
+  padding: 9px 16px;
+  background: rgba(255, 102, 0, 0.08);
+  border-bottom: 1px solid rgba(255, 102, 0, 0.18);
+  flex-shrink: 0;
 }
 
 .fd-live-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--grtheme);
   animation: fdb-pulse 1.4s ease-in-out infinite;
@@ -413,74 +471,99 @@ body.dark .fdb-card-info {
 }
 
 .fd-live-text {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--grtheme);
 }
 
-/* Content */
-.fd-content {
+/* ── Filter chips ── */
+.fd-chips-row {
+  display: flex;
+  gap: 10px;
+  padding: 14px 16px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex-shrink: 0;
+}
+
+.fd-chips-row::-webkit-scrollbar {
+  display: none;
+}
+
+.fd-chip {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 2px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 14px;
+  cursor: pointer;
+  min-width: 88px;
+  transition: background var(--motion-fast), border-color var(--motion-fast);
+  -webkit-tap-highlight-color: transparent;
 }
 
-.fd-section {
-  padding: 18px 0 4px;
+.fd-chip--active {
+  background: rgba(255, 102, 0, 0.1);
+  border-color: var(--grtheme);
 }
 
-.fd-section--expired {
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
-}
-
-.fd-section-header {
-  padding: 0 16px 12px;
-}
-
-.fd-section-title {
-  margin: 0;
-  font-size: 0.95rem;
+.fd-chip-label {
+  font-size: 12px;
   font-weight: 700;
-  color: var(--muted);
-  letter-spacing: -0.02em;
+  color: var(--text);
+  white-space: nowrap;
 }
 
-/* Deals grid */
+.fd-chip-sub {
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.fd-chip--active .fd-chip-label {
+  color: var(--grtheme);
+}
+
+/* ── Deals grid ── */
 .fd-deals-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 14px;
-  padding: 0 16px;
+  padding: 10px 16px 16px;
 }
 
-@media (min-width: 680px) {
+@media (min-width: 580px) {
   .fd-deals-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
-@media (min-width: 900px) {
+@media (min-width: 820px) {
   .fd-deals-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
-/* Full page deal card */
+/* ── Deal card ── */
 .fd-card {
   border-radius: 20px;
   overflow: hidden;
   border: none;
   background: var(--card);
-  box-shadow: 0 6px 22px rgba(17, 17, 17, 0.1);
+  box-shadow: 0 4px 18px rgba(17, 17, 17, 0.1);
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
   -webkit-tap-highlight-color: transparent;
   text-align: left;
   width: 100%;
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast);
 }
 
 .fd-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 14px 36px rgba(17, 17, 17, 0.15);
+  box-shadow: 0 14px 36px rgba(17, 17, 17, 0.16);
 }
 
 .fd-card:active {
@@ -488,9 +571,10 @@ body.dark .fdb-card-info {
 }
 
 .fd-card--expired {
-  opacity: 0.65;
+  opacity: 0.6;
 }
 
+/* Image area */
 .fd-card-img-wrap {
   position: relative;
   width: 100%;
@@ -521,39 +605,39 @@ body.dark .fdb-card-info {
 /* Heart */
 .fd-card-heart {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 34px;
-  height: 34px;
+  top: 9px;
+  right: 9px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: none;
   background: #1a1a1a;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
   z-index: 2;
+  transition: background var(--motion-fast), transform var(--motion-fast);
 }
 
 .fd-card-heart:hover {
   background: #2a2a2a;
   color: #fff;
-  transform: scale(1.08);
+  transform: scale(1.1);
 }
 
 /* Discount badge */
 .fd-card-discount-badge {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  height: 24px;
+  top: 9px;
+  left: 9px;
+  height: 22px;
   padding: 0 9px;
   border-radius: 999px;
   background: var(--grtheme);
   color: #fff;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 800;
   display: inline-flex;
   align-items: center;
@@ -564,7 +648,7 @@ body.dark .fdb-card-info {
 .fd-card-expired-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(17, 17, 17, 0.5);
+  background: rgba(17, 17, 17, 0.52);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -573,30 +657,30 @@ body.dark .fdb-card-info {
 }
 
 .fd-card-expired-overlay span {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   color: #fff;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
 /* Dark info area */
 .fd-card-info {
   background: #1a1a1a;
-  padding: 12px 12px 14px;
+  padding: 11px 12px 13px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   flex: 1;
 }
 
 body.dark .fd-card-info {
-  background: #222;
+  background: #202020;
 }
 
 .fd-card-title {
   margin: 0;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #fff;
   line-height: 1.35;
@@ -613,13 +697,17 @@ body.dark .fd-card-info {
   gap: 6px;
 }
 
-.fd-card-timer-icon {
-  font-size: 11px;
-  line-height: 1;
+.fd-card-timer-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--grtheme);
+  animation: fdb-pulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
 }
 
 .fd-card-timer-text {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   color: var(--grtheme);
   font-variant-numeric: tabular-nums;
@@ -631,7 +719,7 @@ body.dark .fd-card-info {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   margin-top: 2px;
 }
 
@@ -642,25 +730,25 @@ body.dark .fd-card-info {
 }
 
 .fd-card-price {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
   color: #fff;
   line-height: 1;
 }
 
 .fd-card-old-price {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.38);
   text-decoration: line-through;
   line-height: 1;
 }
 
-/* Cart button — white rounded square */
+/* Cart button */
 .fd-card-cart-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   border: none;
   background: #fff;
   color: #1a1a1a;
@@ -669,8 +757,8 @@ body.dark .fd-card-info {
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  transition: transform 0.15s ease, background 0.15s ease;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: transform var(--motion-fast), background var(--motion-fast);
 }
 
 .fd-card-cart-btn:hover {
@@ -679,18 +767,15 @@ body.dark .fd-card-info {
 }
 
 .fd-card-cart-btn:active {
-  transform: scale(0.93);
+  transform: scale(0.92);
 }
 
-/* Loading skeletons */
-.fd-loading {
-  padding: 20px 16px;
-}
-
+/* ── Loading skeletons ── */
 .fd-loading-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 14px;
+  padding: 14px 16px;
 }
 
 .fd-skeleton {
@@ -718,7 +803,7 @@ body.dark .fd-card-info {
 .fd-skeleton-line {
   height: 10px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.1);
   width: 85%;
   animation: fdb-shimmer 1.4s ease-in-out infinite alternate;
 }
@@ -726,7 +811,7 @@ body.dark .fd-card-info {
 .fd-skeleton-line--wide { width: 100%; }
 .fd-skeleton-line--short { width: 50%; }
 
-/* Error */
+/* ── Error state ── */
 .fd-error {
   display: flex;
   flex-direction: column;
@@ -749,18 +834,18 @@ body.dark .fd-card-info {
   cursor: pointer;
 }
 
-/* Empty state */
+/* ── Empty state ── */
 .fd-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 64px 24px 48px;
+  padding: 56px 24px 48px;
   text-align: center;
 }
 
 .fd-empty-icon {
-  font-size: 48px;
+  font-size: 44px;
   line-height: 1;
   display: block;
   margin-bottom: 4px;
@@ -769,7 +854,7 @@ body.dark .fd-card-info {
 
 .fd-empty-title {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: var(--text);
   letter-spacing: -0.03em;
@@ -793,10 +878,65 @@ body.dark .fd-card-info {
   font-size: 14px;
   font-weight: 800;
   cursor: pointer;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition: opacity var(--motion-fast), transform var(--motion-fast);
 }
 
 .fd-empty-btn:hover {
   opacity: 0.88;
   transform: translateY(-1px);
+}
+
+/* ── Bottom bar ── */
+.fd-bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 10px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  z-index: 50;
+}
+
+.fd-bottom-ghost {
+  flex: 1;
+  height: 48px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--motion-fast), border-color var(--motion-fast);
+}
+
+.fd-bottom-ghost:hover {
+  background: var(--card);
+}
+
+.fd-bottom-solid {
+  flex: 2;
+  height: 48px;
+  border-radius: 999px;
+  border: none;
+  background: var(--btn);
+  color: var(--btnText);
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity var(--motion-fast), transform var(--motion-fast);
+}
+
+.fd-bottom-solid:hover {
+  opacity: 0.88;
+}
+
+.fd-bottom-solid:active {
+  transform: scale(0.97);
 }
