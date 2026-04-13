@@ -4,6 +4,7 @@ import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "../firebase";
 import "./FlashDeals.css";
 
+
 const FLASH_COLLECTION = "FlashDeals";
 
 function normalizeFlashDeal(docSnap) {
