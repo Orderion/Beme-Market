@@ -4,11 +4,11 @@ import { doc, getDoc, collection, query, limit, getDocs } from "firebase/firesto
 import { db } from "../firebase";
 import { useCart } from "../context/CartContext";
 import { SHOPS, HOME_FILTER_OPTIONS } from "../constants/catalog";
-import { useWishlist } from "../hooks/useWishlist";   // ← ADD 1: import hook
-import WishlistModal from "../components/WishlistModal"; // ← ADD 2: import modal
+import { useWishlist } from "../hooks/useWishlist";
+import WishlistModal from "../components/WishlistModal";
 import "./ProductDetails.css";
 
-/* ─── helpers (unchanged) ─── */
+/* ─── helpers ─── */
 function parseBooleanish(value, fallback = false) {
   if (typeof value === "boolean") return value;
   if (typeof value === "number") return value > 0;
@@ -111,7 +111,7 @@ function TruckIcon() {
   return <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>;
 }
 
-/* ─── Suggestion Card (unchanged) ─── */
+/* ─── Suggestion Card ─── */
 export function SuggestionCard({ product }) {
   const navigate = useNavigate();
   const images = normalizeImages(product);
@@ -144,18 +144,22 @@ export function SuggestionCard({ product }) {
   );
 }
 
-/* ─── Skeleton (unchanged) ─── */
+/* ─── Skeleton ─── */
 function ProductDetailsSkeleton() {
   return (
     <div className="pd-page">
-      <div className="pd-skeleton-hero" />
-      <div className="pd-skeleton-body">
-        <div className="pd-skeleton pd-sk-title" />
-        <div className="pd-skeleton pd-sk-badges" />
-        <div className="pd-skeleton pd-sk-price" />
-        <div className="pd-skeleton pd-sk-line" />
-        <div className="pd-skeleton pd-sk-line short" />
-        <div className="pd-skeleton pd-sk-btn" />
+      <div className="pd-layout-row">
+        <div className="pd-left-col">
+          <div className="pd-skeleton-hero" />
+        </div>
+        <div className="pd-skeleton-body">
+          <div className="pd-skeleton pd-sk-title" />
+          <div className="pd-skeleton pd-sk-badges" />
+          <div className="pd-skeleton pd-sk-price" />
+          <div className="pd-skeleton pd-sk-line" />
+          <div className="pd-skeleton pd-sk-line short" />
+          <div className="pd-skeleton pd-sk-btn" />
+        </div>
       </div>
     </div>
   );
@@ -175,11 +179,9 @@ export default function ProductDetails() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [addedFeedback, setAddedFeedback] = useState(false);
   const [cartFeedback, setCartFeedback] = useState("");
-  // ── CHANGE 1: replace useState(false) with modal state ──────────
   const [showWishlistModal, setShowWishlistModal] = useState(false);
   const openWishlistModal  = useCallback(() => setShowWishlistModal(true),  []);
   const closeWishlistModal = useCallback(() => setShowWishlistModal(false), []);
-  // ────────────────────────────────────────────────────────────────
   const [descExpanded, setDescExpanded] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
 
@@ -242,8 +244,6 @@ export default function ProductDetails() {
   const abroadDeliveryFee = useMemo(() => getAbroadDeliveryFee(product), [product]);
   const isOutOfStock = useMemo(() => parseBooleanish(product?.inStock, true) === false, [product]);
 
-  // ── CHANGE 2: build wishlistProduct object + call the hook ───────
-  // Only constructed once product is loaded. Hook is safe with null.
   const wishlistProduct = useMemo(() => {
     if (!product) return null;
     return {
@@ -256,9 +256,8 @@ export default function ProductDetails() {
 
   const { isWishlisted, toggleWishlist, loading: wishlistLoading } = useWishlist(
     wishlistProduct,
-    openWishlistModal   // ← opens the modal on SAVE (not on remove)
+    openWishlistModal
   );
-  // ────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const init = {};
@@ -406,263 +405,312 @@ export default function ProductDetails() {
   return (
     <div className="pd-page">
 
-      {/* ── HERO IMAGE ── */}
-      <div className={`pd-hero ${isDragging ? "is-dragging" : ""}`}
-        onTouchStart={onTouchStart} onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd} onTouchCancel={onTouchCancel}>
+      {/* ── TWO-COLUMN ROW (desktop: image left | info right) ── */}
+      <div className="pd-layout-row">
 
-        {images.length ? (
-          <>
-            <div className={`pd-slider ${isDragging ? "is-dragging" : ""}`}
-              style={{ transform: `translate3d(${sliderTranslate}, 0, 0)` }}>
-              {images.map((src, i) => (
-                <div className="pd-slide" key={`${src}-${i}`}>
-                  <img className="pd-hero-img" src={src} alt={`${name} ${i + 1}`} draggable="false" />
-                </div>
-              ))}
-            </div>
+        {/* ── LEFT COLUMN: hero image + thumbnails ── */}
+        <div className="pd-left-col">
 
-            {shippingBadgeLabel && (
-              <div className={`pd-ship-badge ${shippingSource === "uni" ? "pd-ship-badge--uni" : ""} ${shipsFromAbroad ? "pd-ship-badge--abroad" : ""}`}>
-                {shippingBadgeLabel}
-              </div>
-            )}
-            {isOutOfStock && <div className="pd-oos-badge">Out of stock</div>}
-
-            {images.length > 1 && (
-              <div className="pd-gallery-counter">{activeImageIndex + 1} / {images.length}</div>
-            )}
-
-            {images.length > 1 && (
+          {/* ── HERO IMAGE ── */}
+          <div
+            className={`pd-hero ${isDragging ? "is-dragging" : ""}`}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            onTouchCancel={onTouchCancel}
+          >
+            {images.length ? (
               <>
-                <button type="button" className="pd-arrow pd-arrow--left" onClick={goPrev} aria-label="Previous"><ChevronLeft /></button>
-                <button type="button" className="pd-arrow pd-arrow--right" onClick={goNext} aria-label="Next"><ChevronRight /></button>
-              </>
-            )}
+                <div
+                  className={`pd-slider ${isDragging ? "is-dragging" : ""}`}
+                  style={{ transform: `translate3d(${sliderTranslate}, 0, 0)` }}
+                >
+                  {images.map((src, i) => (
+                    <div className="pd-slide" key={`${src}-${i}`}>
+                      <img className="pd-hero-img" src={src} alt={`${name} ${i + 1}`} draggable="false" />
+                    </div>
+                  ))}
+                </div>
 
-            {/* ── CHANGE 3: wire heart button to real toggle ─────────── */}
-            <button
-              type="button"
-              className={`pd-wishlist-btn ${isWishlisted ? "active" : ""}`}
-              onClick={toggleWishlist}
-              disabled={wishlistLoading}
-              aria-label={isWishlisted ? "Remove from wishlist" : "Save to wishlist"}
-            >
-              <HeartIcon filled={isWishlisted} />
-            </button>
-            {/* ──────────────────────────────────────────────────────── */}
-
-            {images.length > 1 && (
-              <div className="pd-dots">
-                {images.map((_, i) => (
-                  <button key={i} type="button"
-                    className={`pd-dot ${i === activeImageIndex ? "active" : ""}`}
-                    onClick={() => { setDragOffset(0); setActiveImageIndex(i); }}
-                    aria-label={`Image ${i + 1}`} />
-                ))}
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="pd-hero-empty">No image</div>
-        )}
-      </div>
-
-      {/* ── THUMBNAILS ── */}
-      {images.length > 1 && (
-        <div className="pd-thumbs-row">
-          {images.map((src, i) => (
-            <button key={`${src}-${i}`} type="button"
-              className={`pd-thumb ${i === activeImageIndex ? "active" : ""}`}
-              onClick={() => { setDragOffset(0); setActiveImageIndex(i); }}
-              aria-label={`Select image ${i + 1}`}>
-              <img src={src} alt={`${name} ${i + 1}`} />
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* ── INFO BODY ── */}
-      <div className="pd-body">
-
-        <h1 className="pd-title">{name}</h1>
-
-        <div className="pd-badges">
-          <span className={`pd-badge ${isOutOfStock ? "pd-badge--out" : "pd-badge--in"}`}>
-            {isOutOfStock ? "Out of stock" : "In stock"}
-          </span>
-          {shippingBadgeLabel && (
-            <span className={`pd-badge ${shipsFromAbroad ? "pd-badge--abroad" : "pd-badge--uni"}`}>
-              {shippingBadgeLabel}
-            </span>
-          )}
-          {shopLabel && <span className="pd-badge pd-badge--soft">{shopLabel}</span>}
-          {homeSlotLabel && <span className="pd-badge pd-badge--soft">{homeSlotLabel}</span>}
-        </div>
-
-        <div className="pd-price-row">
-          <span className="pd-price">{formatMoney(finalUnitPrice)}</span>
-          {hasDiscount && (
-            <>
-              <span className="pd-old-price">{formatMoney(oldPrice)}</span>
-              <span className="pd-save-badge">Save {formatMoney(oldPrice - finalUnitPrice)}</span>
-            </>
-          )}
-          {optionPriceTotal > 0 && (
-            <span className="pd-option-bump">+{formatMoney(optionPriceTotal)} options</span>
-          )}
-        </div>
-
-        {brand && (
-          <div className="pd-section">
-            <h3 className="pd-section-label">Brand</h3>
-            <div className="pd-brand-pill">{brand}</div>
-          </div>
-        )}
-
-        <div className="pd-section">
-          <h3 className="pd-section-label">
-            Color
-            {colorGroup && selectedOptions[colorGroup.name] && (
-              <span className="pd-section-value"> · {selectedOptions[colorGroup.name]}</span>
-            )}
-          </h3>
-          <div className="pd-swatches">
-            {colorGroup ? (
-              colorGroup.values.map((val) => {
-                const active = selectedOptions[colorGroup.name] === val.label;
-                const colorMap = {
-                  white: "#f0eeea", black: "#111", red: "#e24b4a", blue: "#378add",
-                  green: "#639922", yellow: "#ef9f27", navy: "#1a2a5e", grey: "#b0aba3",
-                  gray: "#b0aba3", pink: "#d4537e", orange: "#FF6600", purple: "#7f77dd",
-                  brown: "#8b5e3c", beige: "#f5f0e8", cream: "#faf6ee",
-                };
-                const key = val.label.toLowerCase();
-                const bg = Object.entries(colorMap).find(([k]) => key.includes(k))?.[1] || "#ccc";
-                return (
-                  <button key={val.id} type="button"
-                    className={`pd-swatch ${active ? "active" : ""}`}
-                    onClick={() => setOptionValue(colorGroup.name, val.label)}
-                    title={val.label}
-                    style={{ "--swatch-bg": bg }}>
-                    {active && <CheckIcon />}
-                  </button>
-                );
-              })
-            ) : (
-              <button type="button" className="pd-swatch active" style={{ "--swatch-bg": "#f0eeea" }} title="Default"><CheckIcon /></button>
-            )}
-            <button type="button" className="pd-swatch pd-swatch--add" title="Add color (admin)">
-              <PlusIcon />
-            </button>
-          </div>
-        </div>
-
-        {customizations.length > 0 && (
-          <div className="pd-section">
-            {customizations.filter((g) => g !== colorGroup).map((group) => (
-              <div className="pd-option-group" key={group.id}>
-                <h3 className="pd-section-label">
-                  {group.name}
-                  {group.required && <span className="pd-required-dot" />}
-                </h3>
-                {group.type === "select" ? (
-                  <select className="pd-select"
-                    value={selectedOptions[group.name] || ""}
-                    onChange={(e) => setOptionValue(group.name, e.target.value)}>
-                    <option value="">Select {group.name.toLowerCase()}</option>
-                    {group.values.map((val) => (
-                      <option key={val.id} value={val.label}>
-                        {val.label}{val.priceBump > 0 ? ` (+${formatMoney(val.priceBump)})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <div className="pd-option-pills">
-                    {group.values.map((val) => {
-                      const active = selectedOptions[group.name] === val.label;
-                      return (
-                        <button key={val.id} type="button"
-                          className={`pd-option-pill ${active ? "active" : ""}`}
-                          onClick={() => setOptionValue(group.name, val.label)}>
-                          {val.label}
-                          {val.priceBump > 0 && <span className="pd-bump"> +{formatMoney(val.priceBump)}</span>}
-                        </button>
-                      );
-                    })}
+                {shippingBadgeLabel && (
+                  <div className={`pd-ship-badge ${shippingSource === "uni" ? "pd-ship-badge--uni" : ""} ${shipsFromAbroad ? "pd-ship-badge--abroad" : ""}`}>
+                    {shippingBadgeLabel}
                   </div>
                 )}
-              </div>
-            ))}
-            {optionError && <p className="pd-error">{optionError}</p>}
-          </div>
-        )}
 
-        <div className="pd-section">
-          <h3 className="pd-section-label">Description</h3>
-          <p className={`pd-desc ${descExpanded ? "expanded" : ""}`}>{desc}</p>
-          {desc.length > 160 && (
-            <button type="button" className="pd-read-more" onClick={() => setDescExpanded((p) => !p)}>
-              {descExpanded ? "Read less ↑" : "Read more ↓"}
-            </button>
+                {isOutOfStock && <div className="pd-oos-badge">Out of stock</div>}
+
+                {images.length > 1 && (
+                  <div className="pd-gallery-counter">{activeImageIndex + 1} / {images.length}</div>
+                )}
+
+                {images.length > 1 && (
+                  <>
+                    <button type="button" className="pd-arrow pd-arrow--left" onClick={goPrev} aria-label="Previous"><ChevronLeft /></button>
+                    <button type="button" className="pd-arrow pd-arrow--right" onClick={goNext} aria-label="Next"><ChevronRight /></button>
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  className={`pd-wishlist-btn ${isWishlisted ? "active" : ""}`}
+                  onClick={toggleWishlist}
+                  disabled={wishlistLoading}
+                  aria-label={isWishlisted ? "Remove from wishlist" : "Save to wishlist"}
+                >
+                  <HeartIcon filled={isWishlisted} />
+                </button>
+
+                {images.length > 1 && (
+                  <div className="pd-dots">
+                    {images.map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        className={`pd-dot ${i === activeImageIndex ? "active" : ""}`}
+                        onClick={() => { setDragOffset(0); setActiveImageIndex(i); }}
+                        aria-label={`Image ${i + 1}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="pd-hero-empty">No image</div>
+            )}
+          </div>
+
+          {/* ── THUMBNAILS ── */}
+          {images.length > 1 && (
+            <div className="pd-thumbs-row">
+              {images.map((src, i) => (
+                <button
+                  key={`${src}-${i}`}
+                  type="button"
+                  className={`pd-thumb ${i === activeImageIndex ? "active" : ""}`}
+                  onClick={() => { setDragOffset(0); setActiveImageIndex(i); }}
+                  aria-label={`Select image ${i + 1}`}
+                >
+                  <img src={src} alt={`${name} ${i + 1}`} />
+                </button>
+              ))}
+            </div>
           )}
-        </div>
 
-        <div className="pd-section">
-          <h3 className="pd-section-label">Share</h3>
-          <div className="pd-socials">
-            {socialLinks.map((item) => (
-              <a key={item.label} href={item.href} target="_blank" rel="noreferrer"
-                aria-label={item.label} className="pd-social-btn">
-                {item.icon}
-                <span>{item.label}</span>
-              </a>
-            ))}
+        </div>{/* end pd-left-col */}
+
+        {/* ── RIGHT COLUMN: all product info ── */}
+        <div className="pd-body">
+
+          <h1 className="pd-title">{name}</h1>
+
+          <div className="pd-badges">
+            <span className={`pd-badge ${isOutOfStock ? "pd-badge--out" : "pd-badge--in"}`}>
+              {isOutOfStock ? "Out of stock" : "In stock"}
+            </span>
+            {shippingBadgeLabel && (
+              <span className={`pd-badge ${shipsFromAbroad ? "pd-badge--abroad" : "pd-badge--uni"}`}>
+                {shippingBadgeLabel}
+              </span>
+            )}
+            {shopLabel && <span className="pd-badge pd-badge--soft">{shopLabel}</span>}
+            {homeSlotLabel && <span className="pd-badge pd-badge--soft">{homeSlotLabel}</span>}
           </div>
-        </div>
 
-        <div className="pd-qty-row">
-          <span className="pd-qty-label">
-            Qty{stock !== null && !isOutOfStock && <span className="pd-stock-note"> · {stock} left</span>}
-          </span>
-          <div className="pd-qty-ctrl">
-            <button type="button" className="pd-qty-btn" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={isOutOfStock} aria-label="Decrease">−</button>
-            <span className="pd-qty-num">{qty}</span>
-            <button type="button" className="pd-qty-btn" onClick={() => setQty((q) => stock !== null ? Math.min(stock, q + 1) : q + 1)} disabled={isOutOfStock || qtyLimitReached} aria-label="Increase">+</button>
+          <div className="pd-price-row">
+            <span className="pd-price">{formatMoney(finalUnitPrice)}</span>
+            {hasDiscount && (
+              <>
+                <span className="pd-old-price">{formatMoney(oldPrice)}</span>
+                <span className="pd-save-badge">Save {formatMoney(oldPrice - finalUnitPrice)}</span>
+              </>
+            )}
+            {optionPriceTotal > 0 && (
+              <span className="pd-option-bump">+{formatMoney(optionPriceTotal)} options</span>
+            )}
           </div>
-        </div>
 
-        {stock !== null && !isOutOfStock && qtyLimitReached && (
-          <p className="pd-error">Maximum available quantity reached.</p>
-        )}
-        {shipsFromAbroad && abroadDeliveryFee > 0 && (
-          <div className="pd-info-strip pd-info-strip--delivery">
-            <TruckIcon /> Abroad delivery fee: {formatMoney(abroadDeliveryFee)}
+          {brand && (
+            <div className="pd-section">
+              <h3 className="pd-section-label">Brand</h3>
+              <div className="pd-brand-pill">{brand}</div>
+            </div>
+          )}
+
+          <div className="pd-section">
+            <h3 className="pd-section-label">
+              Color
+              {colorGroup && selectedOptions[colorGroup.name] && (
+                <span className="pd-section-value"> · {selectedOptions[colorGroup.name]}</span>
+              )}
+            </h3>
+            <div className="pd-swatches">
+              {colorGroup ? (
+                colorGroup.values.map((val) => {
+                  const active = selectedOptions[colorGroup.name] === val.label;
+                  const colorMap = {
+                    white: "#f0eeea", black: "#111", red: "#e24b4a", blue: "#378add",
+                    green: "#639922", yellow: "#ef9f27", navy: "#1a2a5e", grey: "#b0aba3",
+                    gray: "#b0aba3", pink: "#d4537e", orange: "#FF6600", purple: "#7f77dd",
+                    brown: "#8b5e3c", beige: "#f5f0e8", cream: "#faf6ee",
+                  };
+                  const key = val.label.toLowerCase();
+                  const bg = Object.entries(colorMap).find(([k]) => key.includes(k))?.[1] || "#ccc";
+                  return (
+                    <button
+                      key={val.id}
+                      type="button"
+                      className={`pd-swatch ${active ? "active" : ""}`}
+                      onClick={() => setOptionValue(colorGroup.name, val.label)}
+                      title={val.label}
+                      style={{ "--swatch-bg": bg }}
+                    >
+                      {active && <CheckIcon />}
+                    </button>
+                  );
+                })
+              ) : (
+                <button type="button" className="pd-swatch active" style={{ "--swatch-bg": "#f0eeea" }} title="Default"><CheckIcon /></button>
+              )}
+              <button type="button" className="pd-swatch pd-swatch--add" title="Add color (admin)">
+                <PlusIcon />
+              </button>
+            </div>
           </div>
-        )}
-        {isOutOfStock && <p className="pd-error">Sorry, this product is currently unavailable.</p>}
-        {cartFeedback && (
-          <div className={addedFeedback ? "pd-success-strip" : "pd-error"}>{cartFeedback}</div>
-        )}
 
-        <div className="pd-cta">
-          <button type="button" className="pd-btn pd-btn--outline" onClick={handleAdd} disabled={isOutOfStock}>
-            <CartIcon />
-            {isOutOfStock ? "Unavailable" : "Add to cart"}
-          </button>
-          <button type="button" className="pd-btn pd-btn--primary" onClick={handleBuyNow} disabled={isOutOfStock}>
-            {isOutOfStock ? "Out of stock" : "Buy now"}
-          </button>
-        </div>
+          {customizations.length > 0 && (
+            <div className="pd-section">
+              {customizations.filter((g) => g !== colorGroup).map((group) => (
+                <div className="pd-option-group" key={group.id}>
+                  <h3 className="pd-section-label">
+                    {group.name}
+                    {group.required && <span className="pd-required-dot" />}
+                  </h3>
+                  {group.type === "select" ? (
+                    <select
+                      className="pd-select"
+                      value={selectedOptions[group.name] || ""}
+                      onChange={(e) => setOptionValue(group.name, e.target.value)}
+                    >
+                      <option value="">Select {group.name.toLowerCase()}</option>
+                      {group.values.map((val) => (
+                        <option key={val.id} value={val.label}>
+                          {val.label}{val.priceBump > 0 ? ` (+${formatMoney(val.priceBump)})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="pd-option-pills">
+                      {group.values.map((val) => {
+                        const active = selectedOptions[group.name] === val.label;
+                        return (
+                          <button
+                            key={val.id}
+                            type="button"
+                            className={`pd-option-pill ${active ? "active" : ""}`}
+                            onClick={() => setOptionValue(group.name, val.label)}
+                          >
+                            {val.label}
+                            {val.priceBump > 0 && <span className="pd-bump"> +{formatMoney(val.priceBump)}</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {optionError && <p className="pd-error">{optionError}</p>}
+            </div>
+          )}
 
-        <div className="pd-delivery-note">
-          <TruckIcon />
-          <span>Get it in 1–3 days in Ghana · May take a week if shipped from abroad</span>
-        </div>
+          <div className="pd-section">
+            <h3 className="pd-section-label">Description</h3>
+            <p className={`pd-desc ${descExpanded ? "expanded" : ""}`}>{desc}</p>
+            {desc.length > 160 && (
+              <button type="button" className="pd-read-more" onClick={() => setDescExpanded((p) => !p)}>
+                {descExpanded ? "Read less ↑" : "Read more ↓"}
+              </button>
+            )}
+          </div>
 
-      </div>
+          <div className="pd-section">
+            <h3 className="pd-section-label">Share</h3>
+            <div className="pd-socials">
+              {socialLinks.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={item.label}
+                  className="pd-social-btn"
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </a>
+              ))}
+            </div>
+          </div>
 
-      {/* ── YOU MAY ALSO LIKE ── */}
+          <div className="pd-qty-row">
+            <span className="pd-qty-label">
+              Qty{stock !== null && !isOutOfStock && <span className="pd-stock-note"> · {stock} left</span>}
+            </span>
+            <div className="pd-qty-ctrl">
+              <button
+                type="button"
+                className="pd-qty-btn"
+                onClick={() => setQty((q) => Math.max(1, q - 1))}
+                disabled={isOutOfStock}
+                aria-label="Decrease"
+              >−</button>
+              <span className="pd-qty-num">{qty}</span>
+              <button
+                type="button"
+                className="pd-qty-btn"
+                onClick={() => setQty((q) => stock !== null ? Math.min(stock, q + 1) : q + 1)}
+                disabled={isOutOfStock || qtyLimitReached}
+                aria-label="Increase"
+              >+</button>
+            </div>
+          </div>
+
+          {stock !== null && !isOutOfStock && qtyLimitReached && (
+            <p className="pd-error">Maximum available quantity reached.</p>
+          )}
+
+          {shipsFromAbroad && abroadDeliveryFee > 0 && (
+            <div className="pd-info-strip pd-info-strip--delivery">
+              <TruckIcon /> Abroad delivery fee: {formatMoney(abroadDeliveryFee)}
+            </div>
+          )}
+
+          {isOutOfStock && <p className="pd-error">Sorry, this product is currently unavailable.</p>}
+
+          {cartFeedback && (
+            <div className={addedFeedback ? "pd-success-strip" : "pd-error"}>{cartFeedback}</div>
+          )}
+
+          <div className="pd-cta">
+            <button type="button" className="pd-btn pd-btn--outline" onClick={handleAdd} disabled={isOutOfStock}>
+              <CartIcon />
+              {isOutOfStock ? "Unavailable" : "Add to cart"}
+            </button>
+            <button type="button" className="pd-btn pd-btn--primary" onClick={handleBuyNow} disabled={isOutOfStock}>
+              {isOutOfStock ? "Out of stock" : "Buy now"}
+            </button>
+          </div>
+
+          <div className="pd-delivery-note">
+            <TruckIcon />
+            <span>Get it in 1–3 days in Ghana · May take a week if shipped from abroad</span>
+          </div>
+
+        </div>{/* end pd-body (right column) */}
+
+      </div>{/* end pd-layout-row */}
+
+      {/* ── YOU MAY ALSO LIKE (full-width below both columns) ── */}
       {suggestions.length > 0 && (
         <div className="pd-suggestions">
           <div className="pd-sug-header">
@@ -676,14 +724,13 @@ export default function ProductDetails() {
         </div>
       )}
 
-      {/* ── CHANGE 4: render modal ───────────────────────────────── */}
+      {/* ── WISHLIST MODAL ── */}
       {showWishlistModal && wishlistProduct && (
         <WishlistModal
           product={wishlistProduct}
           onClose={closeWishlistModal}
         />
       )}
-      {/* ──────────────────────────────────────────────────────────── */}
 
     </div>
   );
