@@ -1,268 +1,159 @@
-/* =============================================
-   ShopCarousel — banner card, native scroll snap
-============================================= */
-
 .sc-root {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: 100%;
-  overflow: hidden;
 }
 
-/* ── Track ── */
+/* TRACK */
 .sc-track {
   display: flex;
-  align-items: flex-start;
-  gap: 20px;
-  overflow-x: scroll;
-  overflow-y: visible;
+  gap: 16px;
+  overflow-x: auto;
   scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
+  padding: 0 16px;
   scrollbar-width: none;
-  -ms-overflow-style: none;
-  padding-bottom: 6px;
-  /* padding drives alignment — no negative margins */
-  padding-left: 16px;
-  padding-right: 16px;
-  box-sizing: border-box;
 }
+.sc-track::-webkit-scrollbar { display: none; }
 
-.sc-track::-webkit-scrollbar {
-  display: none;
-}
-
-/* spacers removed — padding handles start/end alignment */
-.sc-track-lead,
-.sc-track-trail {
-  display: none;
-}
-
-/* ── Card wrapper ── */
+/* CARD WRAP */
 .sc-card-wrap {
   flex-shrink: 0;
-  /* fills container minus 48px so next card peeks ~36px on right */
-  width: calc(100% - 48px);
-  max-width: 500px;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
+  width: 85%;
+  max-width: 420px;
+  scroll-snap-align: center;
 }
 
-/* ── The banner card ── */
+/* CARD */
 .sc-card {
   position: relative;
-  width: 80vw;
-  height: 185px;
-  border-radius: 10px;
-  left: 20px;
+  height: 200px;
+  border-radius: 22px;
+  background: #f4f4f4;
+  padding: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
   overflow: hidden;
-  background: #1a1a1a;
-  cursor: pointer;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10);
-  transition: transform 0.16s ease;
-  -webkit-tap-highlight-color: transparent;
 }
 
-.sc-card:active  { transform: scale(0.985); }
-.sc-card:focus-visible {
-  outline: 2px solid var(--accent, #e86c2c);
-  outline-offset: 3px;
-}
-
-/* ── Cover image ── */
-.sc-img {
-  position: absolute;
-  inset: 0;
+/* INNER */
+.sc-inner {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center;
-  display: block;
-  pointer-events: none;
-}
-
-/* ── Bottom gradient overlay ── */
-.sc-gradient {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    transparent 40%,
-    rgba(0, 0, 0, 0.55) 100%
-  );
-  pointer-events: none;
-  z-index: 2;
-}
-
-/* ── Store chip — bottom left ── */
-.sc-chip {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  font-size: 11px;
-  font-weight: 700;
-  color: #fff;
-  z-index: 4;
-  pointer-events: none;
-  letter-spacing: 0.02em;
-}
-
-/* ── Rating badge — top left ── */
-.sc-badge-rating {
-  position: absolute;
-  top: 10px;
-  left: 10px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #111, #1a1a1a);
   display: flex;
-  align-items: center;
-  gap: 3px;
-  background: rgba(255, 255, 255, 0.97);
-  border-radius: 20px;
-  padding: 3px 8px 3px 6px;
-  z-index: 4;
-  pointer-events: none;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+  justify-content: space-between;
+  padding: 16px;
+  position: relative;
 }
 
-.sc-rating-val {
+/* TEXT */
+.sc-content {
+  max-width: 55%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.sc-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.sc-subtitle {
+  font-size: 11px;
+  color: rgba(255,255,255,0.6);
+  margin: 6px 0;
+}
+
+.sc-preview-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.sc-preview-row img {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.sc-btn {
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #fff;
+  border: none;
+  font-weight: 600;
+}
+
+/* IMAGE */
+.sc-image-wrap {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.sc-image-wrap img {
+  height: 110%;
+  object-fit: contain;
+}
+
+/* TOP */
+.sc-top {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.sc-rating {
+  display: flex;
+  gap: 4px;
+  background: #fff;
+  padding: 4px 8px;
+  border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
-  color: #111;
-  line-height: 1;
 }
 
-.sc-rating-count {
-  font-size: 10px;
-  font-weight: 400;
-  color: #888;
-  line-height: 1;
-}
-
-/* ── Heart button — top right ── */
-.sc-badge-heart {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 30px;
-  height: 30px;
+.sc-heart {
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.97);
+  background: #fff;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  z-index: 4;
-  padding: 0;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
-  transition: transform 0.14s ease;
 }
-
-.sc-badge-heart:active { transform: scale(0.84); }
 
 .sc-heart-svg {
   width: 14px;
-  height: 14px;
 }
 
-/* ── Name row — below card ── */
-.sc-name-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 2px 0;
-}
-
-.sc-name-text {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text, #111);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sc-verified-svg {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
-/* ── Dots ── */
+/* DOTS */
 .sc-dots {
   display: flex;
-  align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 2px 0 4px;
 }
 
 .sc-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
+  width: 6px;
+  height: 6px;
+  background: #ccc;
+  border-radius: 50%;
   border: none;
-  outline: none;
-  background: rgba(17, 17, 17, 0.18);
-  cursor: pointer;
-  padding: 0;
-  transition: width 0.3s cubic-bezier(0.34, 1.26, 0.64, 1), background 0.22s ease;
 }
 
-@media (prefers-color-scheme: dark) {
-  .sc-dot { background: rgba(255, 255, 255, 0.25); }
-}
-
-.sc-dot--active {
-  width: 22px;
-  background: var(--accent, #e86c2c);
-}
-
-/* ── Responsive ── */
-@media (min-width: 480px) {
-  .sc-card-wrap { width: 340px; }
-  .sc-card      { height: 240px; }
-}
-
-@media (min-width: 768px) {
-  .sc-card { height: 260px; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sc-card,
-  .sc-badge-heart,
-  .sc-dot { transition: none !important; }
-}
-/* ══════════════════════════════════════════
-   RESPONSIVE FIXES — TABLET & DESKTOP
-══════════════════════════════════════════ */
-
-@media (min-width: 640px) {
-  .sc-track    { padding-left: 24px; padding-right: 24px; gap: 16px; }
-  .sc-card-wrap { width: 320px; max-width: 320px; }
-  .sc-card     { width: 100%; }
-}
-
-@media (min-width: 1024px) {
-  .sc-root  { padding: 0 48px; }
-
-  .sc-track {
-    padding-left: 0;
-    padding-right: 0;
-    gap: 20px;
-  }
-
-  .sc-card-wrap { width: 370px; max-width: 370px; }
-  .sc-card      { width: 100%; height: 270px; left: 0; }
-}
-
-@media (min-width: 1280px) {
-  .sc-card-wrap { width: 420px; max-width: 420px; }
-  .sc-card      { height: 290px; }
+.sc-dot.active {
+  width: 18px;
+  background: #e86c2c;
 }
