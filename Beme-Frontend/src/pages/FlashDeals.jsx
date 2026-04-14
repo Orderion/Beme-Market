@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "../firebase";
-import perfumeBanner from "../assets/Flashpage-Header.png";
 import "./FlashDeals.css";
 
 const FLASH_COLLECTION = "FlashDeals";
@@ -50,7 +49,48 @@ function pad(n) {
   return String(n).padStart(2, "0");
 }
 
-/* ── Single deal card ── */
+/* Animated SVG Hero Component */
+function AnimatedHero() {
+  return (
+    <div className="fd-hero">
+      <svg className="fd-hero-animated-svg" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="heroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="rgba(255,107,53,0.15)" />
+            <stop offset="100%" stopColor="rgba(255,140,66,0.25)" />
+          </linearGradient>
+          <style>{`
+            @keyframes float-text {
+              0%, 100% { transform: translateY(0px); opacity: 0.8; }
+              50% { transform: translateY(-8px); opacity: 1; }
+            }
+            .float-anim { animation: float-text 3s ease-in-out infinite; }
+          `}</style>
+        </defs>
+        <rect width="800" height="200" fill="url(#heroGrad)" />
+        
+        {/* Main Title */}
+        <text x="400" y="70" fontSize="36" fontWeight="800" textAnchor="middle" fill="#FF6B35">
+          ⚡ Flash Deals
+        </text>
+        
+        {/* Subtitle */}
+        <text x="400" y="110" fontSize="18" fontWeight="700" textAnchor="middle" fill="#111">
+          Limited Time Offers
+        </text>
+        
+        {/* Animated Text */}
+        <g className="float-anim">
+          <text x="400" y="145" fontSize="13" textAnchor="middle" fill="#666">
+            Get your deals here • Ends soon
+          </text>
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+/* Single deal card */
 function FlashDealCard({ deal, onClick }) {
   const [countdown, setCountdown] = useState(() =>
     computeCountdown(getEndsAtMillis(deal))
@@ -85,8 +125,9 @@ function FlashDealCard({ deal, onClick }) {
           <img src={deal.image} alt={deal.title} className="fd-card-img" />
         ) : (
           <div className="fd-card-img-empty">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
               <polyline points="21 15 16 10 5 21"/>
             </svg>
           </div>
@@ -99,7 +140,7 @@ function FlashDealCard({ deal, onClick }) {
           onClick={(e) => e.stopPropagation()}
           aria-label="Save to wishlist"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
           </svg>
         </button>
@@ -117,7 +158,7 @@ function FlashDealCard({ deal, onClick }) {
         )}
       </div>
 
-      {/* Dark info area */}
+      {/* Card info - light style */}
       <div className="fd-card-info">
         <p className="fd-card-title">{deal.title}</p>
 
@@ -144,7 +185,7 @@ function FlashDealCard({ deal, onClick }) {
             onClick={(e) => { e.stopPropagation(); onClick && onClick(); }}
             aria-label="Add to cart"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
               <line x1="3" y1="6" x2="21" y2="6"/>
               <path d="M16 10a4 4 0 0 1-8 0"/>
@@ -158,13 +199,13 @@ function FlashDealCard({ deal, onClick }) {
   );
 }
 
-/* ── Main page ── */
+/* Main page */
 export default function FlashDeals() {
   const navigate = useNavigate();
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState("all"); // "all" | "active" | "expired"
+  const [filter, setFilter] = useState("all");
   const [tick, setTick] = useState(0);
 
   /* Global ticker for header countdown */
@@ -226,7 +267,6 @@ export default function FlashDeals() {
     return ms && ms <= Date.now();
   });
 
-  /* Nearest ending deal for header countdown */
   const nearestDeal = activeDeals
     .filter((d) => getEndsAtMillis(d) && getEndsAtMillis(d) > Date.now())
     .sort((a, b) => (getEndsAtMillis(a) || Infinity) - (getEndsAtMillis(b) || Infinity))[0];
@@ -235,7 +275,6 @@ export default function FlashDeals() {
     ? computeCountdown(getEndsAtMillis(nearestDeal))
     : null;
 
-  /* Filtered list based on chip selection */
   const visibleDeals =
     filter === "active"
       ? activeDeals
@@ -252,55 +291,22 @@ export default function FlashDeals() {
   return (
     <div className="fd-page">
 
-      {/* ── Hero banner ── */}
-      <div className="fd-hero">
-        <button
-          type="button"
-          className="fd-back-btn"
-          onClick={() => navigate(-1)}
-          aria-label="Go back"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 12H5M12 5l-7 7 7 7"/>
-          </svg>
-        </button>
+      {/* Back button */}
+      <button
+        type="button"
+        className="fd-back-btn"
+        onClick={() => navigate(-1)}
+        aria-label="Go back"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
+      </button>
 
-        <img src={perfumeBanner} alt="Flash Deals" className="fd-hero-img" />
+      {/* Animated SVG Hero */}
+      <AnimatedHero />
 
-        <div className="fd-hero-overlay">
-          <div className="fd-hero-badge">
-            <svg width="11" height="13" viewBox="0 0 10 14" fill="currentColor">
-              <path d="M5.5 0L0 8h4.5L4 14l6-8H5.5L5.5 0z"/>
-            </svg>
-            FLASH DEALS
-          </div>
-          <h1 className="fd-hero-title">Limited Time<br/>Offers</h1>
-          {headerCountdown && !headerCountdown.expired ? (
-            <p className="fd-hero-sub">
-              Next deal ends in{" "}
-              <span className="fd-hero-timer">
-                {pad(headerCountdown.h)}:{pad(headerCountdown.m)}:{pad(headerCountdown.s)}
-              </span>
-            </p>
-          ) : (
-            <p className="fd-hero-sub">Limited-time offers — grab them before they're gone</p>
-          )}
-          <button
-            type="button"
-            className="fd-hero-btn"
-            onClick={() => document.getElementById("fd-deals-anchor")?.scrollIntoView({ behavior: "smooth" })}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
-              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <path d="M16 10a4 4 0 01-8 0"/>
-            </svg>
-            Shop Deals
-          </button>
-        </div>
-      </div>
-
-      {/* ── Live strip ── */}
+      {/* Live strip */}
       {!loading && activeDeals.length > 0 && (
         <div className="fd-live-strip">
           <span className="fd-live-dot" />
@@ -310,7 +316,7 @@ export default function FlashDeals() {
         </div>
       )}
 
-      {/* ── Filter chips ── */}
+      {/* Filter chips */}
       <div id="fd-deals-anchor" className="fd-chips-row">
         {chips.map((chip) => (
           <button
@@ -325,7 +331,7 @@ export default function FlashDeals() {
         ))}
       </div>
 
-      {/* ── Body ── */}
+      {/* Body */}
       {loading ? (
         <div className="fd-loading-grid">
           {[1, 2, 3, 4].map((n) => (
@@ -373,7 +379,7 @@ export default function FlashDeals() {
         </div>
       )}
 
-      {/* ── Bottom bar ── */}
+      {/* Bottom bar */}
       <div className="fd-bottom-bar">
         <button type="button" className="fd-bottom-ghost" onClick={() => navigate(-1)}>
           Browse Shop
