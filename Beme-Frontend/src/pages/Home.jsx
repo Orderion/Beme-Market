@@ -400,16 +400,17 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── Intro headline ── */}
-      <section className="home-intro">
-        <span className="home-brand-mark">Beme Market</span>
-        <h1 className="home-headline">
-          Your next <span className="home-accent">find</span> is just a search away
-        </h1>
+      {/* ── Shop Carousel — top of page ── */}
+      <section className="home-section home-section--carousel">
+        <ShopCarousel shops={storeCards} />
       </section>
 
-      {/* ── Categories ── */}
+      {/* ── Categories — below carousel ── */}
       <section className="home-section home-section--cats">
+        <div className="home-sec-header">
+          <h3>Category</h3>
+          <button className="home-see-btn" onClick={goToShop}>See All</button>
+        </div>
         <div className="home-cat-scroll">
           {CATEGORY_CARDS.map((item) => (
             <button
@@ -431,16 +432,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── What's new — Shops Carousel ── */}
-      <section className="home-section">
-        <div className="home-sec-header">
-          <h3>What's new on Beme Market</h3>
-          <button className="home-see-btn" onClick={goToShop}>View all</button>
-        </div>
-        <ShopCarousel shops={storeCards} />
-      </section>
-
-      {/* ── ⚡ Flash Deals Banner ── sits between carousel and trending ── */}
+      {/* ── ⚡ Flash Deals Banner ── */}
       <FlashDealsBanner />
 
       {/* ── Trending now ── */}
