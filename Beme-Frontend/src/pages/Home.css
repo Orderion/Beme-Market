@@ -147,45 +147,21 @@
 }
 
 /* ══════════════════════════════════════════
-   INTRO HEADLINE
-══════════════════════════════════════════ */
-.home-intro {
-  padding: 28px 16px 12px;
-  max-width: 680px;
-  margin: 0 auto;
-}
-
-.home-brand-mark {
-  display: block;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
-
-.home-headline {
-  font-size: clamp(1.6rem, 5vw, 2.4rem);
-  font-weight: 700;
-  line-height: 1.2;
-  color: var(--text);
-  margin: 0;
-}
-
-.home-accent {
-  color: var(--grtheme);
-}
-
-/* ══════════════════════════════════════════
    GENERIC SECTION WRAPPER
 ══════════════════════════════════════════ */
 .home-section {
   padding: 20px 0 4px;
 }
 
+/* Carousel sits flush at the top — no extra top padding */
+.home-section--carousel {
+  padding-top: 4px;
+  padding-bottom: 0;
+}
+
+/* Categories sit right below carousel */
 .home-section--cats {
-  padding-top: 12px;
+  padding-top: 20px;
   padding-bottom: 0;
 }
 
@@ -251,7 +227,7 @@
 }
 
 /* ══════════════════════════════════════════
-   CATEGORY CIRCLES  (new food-app style)
+   CATEGORY CIRCLES
 ══════════════════════════════════════════ */
 .home-cat-scroll {
   display: flex;
@@ -370,13 +346,13 @@
     padding: 22px 16px;
   }
 }
+
 /* ══════════════════════════════════════════
    RESPONSIVE FIXES — TABLET & DESKTOP
 ══════════════════════════════════════════ */
 
 @media (min-width: 640px) {
   .home-search-sticky { padding: 12px 24px 10px; }
-  .home-intro         { padding: 32px 24px 14px; max-width: 860px; }
   .home-sec-header    { padding: 0 24px 12px; }
 
   .home-cat-scroll {
@@ -394,16 +370,8 @@
 
   .home-search-sticky { padding: 14px 48px 12px; }
 
-  .home-intro {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 40px 48px 18px;
-  }
-
-  .home-headline { font-size: clamp(2rem, 2.8vw, 3rem); }
-
   /* Categories — centered wrap, no horizontal scroll */
-  .home-section--cats { padding-top: 18px; }
+  .home-section--cats { padding-top: 24px; }
 
   .home-cat-scroll {
     flex-wrap: wrap;
