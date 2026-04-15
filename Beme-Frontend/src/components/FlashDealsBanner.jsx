@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "../firebase";
-import "../pages/FlashDeals.css";
+import "./FlashDealsBanner.css";
 
 const FLASH_COLLECTION = "FlashDeals";
 
@@ -20,6 +20,7 @@ function normalizeFlashDeal(docSnap) {
     order: Number(d.order || 0),
     durationHours: Number(d.durationHours || 24),
     endsAt: d.endsAt || null,
+    stock: Number(d.stock || 0),
   };
 }
 
@@ -47,7 +48,7 @@ function pad(n) {
   return String(n).padStart(2, "0");
 }
 
-/* ── Mini card for the homepage banner strip ── */
+/* ── Horizontal mini card for the homepage banner strip ── */
 function BannerCard({ deal, onClick }) {
   const [countdown, setCountdown] = useState(() =>
     computeCountdown(getEndsAtMillis(deal))
@@ -67,8 +68,12 @@ function BannerCard({ deal, onClick }) {
   const discount = deal.discountPercent
     ? deal.discountPercent
     : deal.originalPrice > deal.dealPrice
-    ? Math.round(((deal.originalPrice - deal.dealPrice) / deal.originalPrice) * 100)
+    ? Math.round(
+        ((deal.originalPrice - deal.dealPrice) / deal.originalPrice) * 100
+      )
     : 0;
+
+  const lowStock = deal.stock > 0 && deal.stock <= 15;
 
   return (
     <button
@@ -77,35 +82,51 @@ function BannerCard({ deal, onClick }) {
       onClick={onClick}
       aria-label={deal.title}
     >
-      {/* Image */}
+      {/* Left — image */}
       <div className="fdb-card-img-wrap">
         {deal.image ? (
           <img src={deal.image} alt={deal.title} className="fdb-card-img" />
         ) : (
           <div className="fdb-card-img-empty">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="3"/>
-              <circle cx="8.5" cy="8.5" r="1.5"/>
-              <path d="M21 15l-5-5L5 21"/>
+            <svg
+              width="26"
+              height="26"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="3" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
             </svg>
           </div>
         )}
 
-        {/* Discount pill */}
-        {discount > 0 && !isExpired ? (
+        {discount > 0 && !isExpired && (
           <span className="fdb-discount-pill">-{discount}%</span>
-        ) : null}
+        )}
 
-        {isExpired ? (
-          <div className="fdb-expired-overlay"><span>Expired</span></div>
-        ) : null}
+        {isExpired && (
+          <div className="fdb-expired-overlay">
+            <span>Expired</span>
+          </div>
+        )}
       </div>
 
-      {/* Dark info bottom */}
+      {/* Right — info */}
       <div className="fdb-card-info">
-        <p className="fdb-card-name">{deal.title}</p>
+        {/* Name row + stock badge */}
+        <div className="fdb-card-top-row">
+          <p className="fdb-card-name">{deal.title}</p>
+          {lowStock && !isExpired && (
+            <span className="fdb-stock-badge">Low Stock : {deal.stock}</span>
+          )}
+        </div>
 
+        {/* Countdown */}
         {!isExpired && countdown ? (
           <div className="fdb-timer">
             <span className="fdb-timer-dot" />
@@ -115,7 +136,26 @@ function BannerCard({ deal, onClick }) {
           </div>
         ) : null}
 
-        <span className="fdb-price">{formatMoney(deal.dealPrice)}</span>
+        {/* Price + cart */}
+        <div className="fdb-card-bottom-row">
+          <span className="fdb-price">{formatMoney(deal.dealPrice)}</span>
+          <span className="fdb-cart-btn" aria-hidden="true">
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="9" cy="21" r="1" />
+              <circle cx="20" cy="21" r="1" />
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+            </svg>
+          </span>
+        </div>
       </div>
     </button>
   );
@@ -135,7 +175,6 @@ export default function FlashDealsBanner() {
         );
         if (!alive) return;
         const rows = snap.docs.map(normalizeFlashDeal);
-        // Show all deals (active + expired) — expired show badge
         setDeals(rows.sort((a, b) => a.order - b.order));
       } catch {
         try {
@@ -154,15 +193,17 @@ export default function FlashDealsBanner() {
       }
     }
     load();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  // Don't render section at all if no deals
   if (!loading && deals.length === 0) return null;
 
   const handleCardClick = (deal) => {
     if (deal.productId) navigate(`/product/${deal.productId}`);
-    else if (deal.shopKey) navigate(`/shop?shop=${encodeURIComponent(deal.shopKey)}`);
+    else if (deal.shopKey)
+      navigate(`/shop?shop=${encodeURIComponent(deal.shopKey)}`);
     else navigate("/flash-deals");
   };
 
@@ -171,7 +212,13 @@ export default function FlashDealsBanner() {
       {/* Section header */}
       <div className="fdb-header">
         <div className="fdb-header-left">
-          <span className="fdb-bolt">⚡</span>
+          <svg
+            className="fdb-bolt-icon"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" />
+          </svg>
           <h3 className="fdb-title">Flash Deals</h3>
           <span className="fdb-live-badge">LIVE</span>
         </div>
@@ -193,6 +240,7 @@ export default function FlashDealsBanner() {
               <div className="fdb-skeleton-body">
                 <div className="fdb-skeleton-line" />
                 <div className="fdb-skeleton-line fdb-skeleton-line--short" />
+                <div className="fdb-skeleton-line fdb-skeleton-line--med" />
               </div>
             </div>
           ))}
@@ -214,8 +262,18 @@ export default function FlashDealsBanner() {
             onClick={() => navigate("/flash-deals")}
             aria-label="View all flash deals"
           >
-            <span className="fdb-view-all-bolt">⚡</span>
-            <span className="fdb-view-all-text">View<br/>all</span>
+            <svg
+              className="fdb-view-all-bolt"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" />
+            </svg>
+            <span className="fdb-view-all-text">
+              View
+              <br />
+              all
+            </span>
           </button>
         </div>
       )}
