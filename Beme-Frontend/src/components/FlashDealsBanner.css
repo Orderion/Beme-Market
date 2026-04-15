@@ -87,14 +87,14 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 11px;
-  min-width: 280px;
-  max-width: 300px;
+  gap: 13px;
+  min-width: 300px;
+  max-width: 320px;
   flex-shrink: 0;
   background: var(--color-card-bg, #ffffff);
   border: 0.5px solid var(--color-border, rgba(0, 0, 0, 0.07));
   border-radius: 16px;
-  padding: 11px;
+  padding: 13px;
   cursor: pointer;
   text-align: left;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -112,8 +112,8 @@
 .fdb-card-img-wrap {
   position: relative;
   flex-shrink: 0;
-  width: 86px;
-  height: 86px;
+  width: 90px;
+  height: 90px;
   border-radius: 12px;
   overflow: hidden;
   background: var(--color-img-bg, #f5f2ee);
@@ -170,7 +170,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -182,7 +182,7 @@
 }
 
 .fdb-card-name {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--color-text-primary, #1a1a1a);
   line-height: 1.3;
@@ -191,6 +191,16 @@
   text-overflow: ellipsis;
   flex: 1;
   min-width: 0;
+}
+
+.fdb-card-desc {
+  font-size: 12px;
+  color: var(--color-text-secondary, #888);
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .fdb-stock-badge {
@@ -234,31 +244,13 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Bottom row — price + cart ── */
-.fdb-card-bottom-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 2px;
-}
-
+/* ── Price ── */
 .fdb-price {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 800;
   color: var(--color-text-primary, #1a1a1a);
-  letter-spacing: -0.2px;
-}
-
-.fdb-cart-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: var(--color-cart-bg, #1a1a2e);
-  color: #fff;
-  flex-shrink: 0;
+  letter-spacing: -0.3px;
+  margin-top: 2px;
 }
 
 /* ── View all tail card ── */
@@ -270,7 +262,7 @@
   gap: 6px;
   min-width: 90px;
   width: 90px;
-  height: 108px;
+  height: 116px;
   flex-shrink: 0;
   background: var(--color-view-all-bg, #fff8f2);
   border: 1.5px dashed var(--color-primary, #f97316);
@@ -302,19 +294,19 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 11px;
-  min-width: 280px;
-  max-width: 300px;
+  gap: 13px;
+  min-width: 300px;
+  max-width: 320px;
   flex-shrink: 0;
   background: var(--color-card-bg, #ffffff);
   border: 0.5px solid var(--color-border, rgba(0, 0, 0, 0.07));
   border-radius: 16px;
-  padding: 11px;
+  padding: 13px;
 }
 
 .fdb-skeleton-img {
-  width: 86px;
-  height: 86px;
+  width: 90px;
+  height: 90px;
   border-radius: 12px;
   flex-shrink: 0;
   background: var(--color-skeleton, #ebebeb);
