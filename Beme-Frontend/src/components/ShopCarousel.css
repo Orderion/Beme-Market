@@ -1,7 +1,7 @@
 .sc-root {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 /* TRACK */
@@ -18,8 +18,8 @@
 /* CARD WRAP */
 .sc-card-wrap {
   flex-shrink: 0;
-  width: 85%;
-  max-width: 420px;
+  width: 90%;
+  max-width: 440px;
   scroll-snap-align: center;
 }
 
@@ -27,115 +27,115 @@
 .sc-card {
   position: relative;
   height: 200px;
-  border-radius: 22px;
-  background: #f4f4f4;
-  padding: 10px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  border-radius: 20px;
   overflow: hidden;
 }
 
-/* INNER */
+/* INNER — dark forest green background */
 .sc-inner {
   width: 100%;
   height: 100%;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #111, #1a1a1a);
+  background: #1a3a2a;
   display: flex;
   justify-content: space-between;
-  padding: 16px;
+  padding: 20px 20px 20px 22px;
   position: relative;
 }
 
-/* TEXT */
+/* CONTENT */
 .sc-content {
-  max-width: 55%;
+  max-width: 58%;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  gap: 6px;
+  z-index: 1;
 }
 
+/* BADGE */
+.sc-badge {
+  display: inline-block;
+  background: #e86c2c;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  width: fit-content;
+  margin-bottom: 4px;
+}
+
+/* TITLE */
 .sc-title {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 800;
   color: #fff;
+  line-height: 1.2;
+  margin: 0;
 }
 
+/* SUBTITLE */
 .sc-subtitle {
-  font-size: 11px;
-  color: rgba(255,255,255,0.6);
-  margin: 6px 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
 }
 
-.sc-preview-row {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 10px;
-}
-
-.sc-preview-row img {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  object-fit: cover;
-}
-
+/* CTA BUTTON */
 .sc-btn {
-  font-size: 11px;
-  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  width: fit-content;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 16px;
   border-radius: 999px;
-  background: #fff;
+  background: #e86c2c;
+  color: #fff;
   border: none;
-  font-weight: 600;
+  cursor: pointer;
 }
 
-/* IMAGE */
+/* PRODUCT IMAGE */
 .sc-image-wrap {
   position: absolute;
   right: 0;
+  top: 0;
   bottom: 0;
-  height: 100%;
-  display: flex;
-  align-items: flex-end;
-}
-
-.sc-image-wrap img {
-  height: 110%;
-  object-fit: contain;
-}
-
-/* TOP */
-.sc-top {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  right: 12px;
-  display: flex;
-  justify-content: space-between;
-}
-
-.sc-rating {
-  display: flex;
-  gap: 4px;
-  background: #fff;
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.sc-heart {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #fff;
-  border: none;
+  width: 48%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+.sc-image-wrap img {
+  height: 95%;
+  width: 100%;
+  object-fit: contain;
+}
 
+/* HEART */
+.sc-heart {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
 .sc-heart-svg {
-  width: 14px;
+  width: 15px;
 }
 
 /* DOTS */
@@ -144,16 +144,18 @@
   justify-content: center;
   gap: 6px;
 }
-
 .sc-dot {
   width: 6px;
   height: 6px;
   background: #ccc;
   border-radius: 50%;
   border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: width 0.2s, background 0.2s;
 }
-
 .sc-dot.active {
-  width: 18px;
+  width: 20px;
   background: #e86c2c;
+  border-radius: 999px;
 }
