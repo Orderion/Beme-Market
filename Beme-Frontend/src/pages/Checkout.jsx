@@ -373,11 +373,32 @@ export default function Checkout() {
     try {
       setPaystackError("DEBUG: Calling startPaystackCheckout...");
       await startPaystackCheckout({
-        email:sanitizeText(form.email,160).toLowerCase(),
-        cartItems:safeCartItems.map(item=>({...item,qty:Number(item.qty)||1,price:Number(item.price)||0,basePrice:Number(item.basePrice??item.price??0)||0,optionPriceTotal:Number(item.optionPriceTotal||0)||0})),
-        delivery:buildDeliveryPayload(),
-        pricing:{ subtotal:subtotalUI, deliveryFee:deliveryFeeUI, total:totalUI, currency:"GHS" },
-        customer:{ firstName:sanitizeText(form.firstName,80), lastName:sanitizeText(form.lastName,80), address:sanitizeText(form.address,300), region:sanitizeText(form.region,80), city:sanitizeText(form.city,80), area:sanitizeText(form.area,120), phone:normalizedPhone },
+        email: sanitizeText(form.email, 160).toLowerCase(),
+        cartItems: safeCartItems.map(item => ({
+          ...item,
+          qty: Number(item.qty) || 1,
+          price: Number(item.price) || 0,
+          basePrice: Number(item.basePrice ?? item.price ?? 0) || 0,
+          optionPriceTotal: Number(item.optionPriceTotal || 0) || 0,
+        })),
+        delivery: buildDeliveryPayload(),
+        pricing: { subtotal: subtotalUI, deliveryFee: deliveryFeeUI, total: totalUI, currency: "GHS" },
+        // ✅ FIX: Pass the complete customer object including userId, network,
+        // notes, and country. Previously these were omitted, causing the backend
+        // to reject the request with a generic "An error occurred" response.
+        customer: {
+          userId:    user?.uid || "",
+          firstName: sanitizeText(form.firstName, 80),
+          lastName:  sanitizeText(form.lastName, 80),
+          phone:     normalizedPhone || "",
+          network:   network || "",
+          address:   sanitizeText(form.address, 300),
+          region:    sanitizeText(form.region, 80),
+          city:      sanitizeText(form.city, 80),
+          area:      sanitizeText(form.area, 120),
+          notes:     sanitizeOptionalText(form.notes, 500),
+          country:   "Ghana",
+        },
       });
       setPaystackError("DEBUG: startPaystackCheckout returned without redirecting.");
       setLoading(false); setLoadingMode("");
