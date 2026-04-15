@@ -11,6 +11,7 @@ function normalizeFlashDeal(docSnap) {
   return {
     id: docSnap.id,
     title: String(d.title || "").trim(),
+    description: String(d.description || d.subtitle || "").trim(),
     image: String(d.image || d.mediaUrl || "").trim(),
     dealPrice: Number(d.dealPrice || 0),
     originalPrice: Number(d.originalPrice || 0),
@@ -126,6 +127,11 @@ function BannerCard({ deal, onClick }) {
           )}
         </div>
 
+        {/* Description */}
+        {deal.description ? (
+          <p className="fdb-card-desc">{deal.description}</p>
+        ) : null}
+
         {/* Countdown */}
         {!isExpired && countdown ? (
           <div className="fdb-timer">
@@ -136,26 +142,8 @@ function BannerCard({ deal, onClick }) {
           </div>
         ) : null}
 
-        {/* Price + cart */}
-        <div className="fdb-card-bottom-row">
-          <span className="fdb-price">{formatMoney(deal.dealPrice)}</span>
-          <span className="fdb-cart-btn" aria-hidden="true">
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="9" cy="21" r="1" />
-              <circle cx="20" cy="21" r="1" />
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-            </svg>
-          </span>
-        </div>
+        {/* Price */}
+        <p className="fdb-price">{formatMoney(deal.dealPrice)}</p>
       </div>
     </button>
   );
@@ -241,6 +229,7 @@ export default function FlashDealsBanner() {
                 <div className="fdb-skeleton-line" />
                 <div className="fdb-skeleton-line fdb-skeleton-line--short" />
                 <div className="fdb-skeleton-line fdb-skeleton-line--med" />
+                <div className="fdb-skeleton-line fdb-skeleton-line--short" />
               </div>
             </div>
           ))}
