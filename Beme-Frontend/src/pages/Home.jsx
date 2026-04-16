@@ -8,7 +8,7 @@ import FlashDealsBanner from "../components/FlashDealsBanner";
 import { SHOPS } from "../constants/catalog";
 import banner from "../assets/home_banner.PNG";
 import fashionBanner from "../assets/fashion-banner.PNG";
-import kenteBanner from "../assets/kente-banner.png";
+import kenteBanner from "../assets/kente-banner.PNG";
 import perfumeBanner from "../assets/perfume-banner.png";
 import techBanner from "../assets/tech-banner.png";
 import "./Home.css";
