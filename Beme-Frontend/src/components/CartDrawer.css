@@ -58,6 +58,7 @@
   will-change: transform;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  overflow: hidden;
 }
 
 .cd--open .cd-panel {
@@ -75,6 +76,7 @@
   padding: 16px 16px;
   border-bottom: 1px solid var(--border);
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .cd-header-center {
@@ -131,6 +133,143 @@
 .cd-icon-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+/* ─────────────────────────────────────────────
+   CLEAR CART CONFIRMATION DIALOG
+───────────────────────────────────────────── */
+
+.cd-confirm-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeUpSoft 0.22s ease;
+}
+
+.cd-confirm-dialog {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 28px 24px 24px;
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0;
+  animation: confirmSlideUp 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+}
+
+@keyframes confirmSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cd-confirm-icon-wrap {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(220, 53, 69, 0.08);
+  border: 1px solid rgba(220, 53, 69, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #dc3545;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.cd-confirm-title {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.cd-confirm-message {
+  margin: 0 0 22px;
+  font-size: 13px;
+  color: var(--muted, var(--text));
+  opacity: 0.72;
+  line-height: 1.6;
+  max-width: 260px;
+}
+
+.cd-confirm-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.cd-confirm-cancel {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--soft);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-main);
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease,
+    background var(--motion-smooth),
+    border-color var(--motion-smooth);
+}
+
+.cd-confirm-cancel:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.cd-confirm-cancel:active {
+  transform: scale(0.97);
+}
+
+.cd-confirm-clear {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: none;
+  background: #dc3545;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-main);
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.18s ease,
+    box-shadow 0.28s ease;
+}
+
+.cd-confirm-clear:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(220, 53, 69, 0.28);
+}
+
+.cd-confirm-clear:active {
+  transform: scale(0.97);
 }
 
 /* ─────────────────────────────────────────────
@@ -430,6 +569,182 @@
 }
 
 /* ─────────────────────────────────────────────
+   RECOMMENDED FOR YOU
+───────────────────────────────────────────── */
+
+.cd-rec-section {
+  padding: 18px 0 6px;
+}
+
+.cd-rec-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cd-rec-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-family: var(--font-display);
+}
+
+.cd-rec-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(var(--grtheme-rgb, 255, 102, 0), 0.1);
+  background: color-mix(in srgb, var(--grtheme) 12%, transparent);
+  color: var(--grtheme);
+  border: 1px solid color-mix(in srgb, var(--grtheme) 28%, transparent);
+}
+
+/* Horizontal scroll container */
+.cd-rec-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-snap-type: x mandatory;
+}
+
+.cd-rec-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Individual recommended card */
+.cd-rec-card {
+  flex-shrink: 0;
+  width: 128px;
+  background: var(--soft);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: default;
+  scroll-snap-align: start;
+  transition:
+    transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.22s ease,
+    box-shadow 0.26s ease;
+  animation: fadeUpSoft 0.34s ease;
+}
+
+.cd-rec-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--grtheme) 30%, var(--border));
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.07);
+}
+
+/* Image area */
+.cd-rec-img {
+  width: 100%;
+  height: 88px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cd-rec-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cd-rec-card:hover .cd-rec-img img {
+  transform: scale(1.05);
+}
+
+.cd-rec-img-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  width: 100%;
+  height: 100%;
+}
+
+/* Card body */
+.cd-rec-body {
+  padding: 9px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cd-rec-name {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cd-rec-price {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--grtheme);
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* Add to cart button on rec card */
+.cd-rec-add {
+  margin-top: 4px;
+  width: 100%;
+  padding: 7px 0;
+  border-radius: 10px;
+  border: none;
+  background: var(--grtheme);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-main);
+  letter-spacing: -0.01em;
+  transition:
+    opacity 0.18s ease,
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.22s ease;
+}
+
+.cd-rec-add:hover:not(:disabled) {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.cd-rec-add:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* "✓ Added" state */
+.cd-rec-add--done {
+  background: var(--soft);
+  color: var(--text);
+  border: 1px solid var(--border);
+  cursor: default;
+  opacity: 0.75;
+}
+
+.cd-rec-add--done:hover {
+  transform: none !important;
+  opacity: 0.75 !important;
+}
+
+/* ─────────────────────────────────────────────
    GHOST BUTTON (shared)
 ───────────────────────────────────────────── */
 
@@ -599,6 +914,7 @@
   border-top: 1px solid var(--border);
   padding: 16px 16px 20px;
   background: var(--card);
+  flex-shrink: 0;
   transition:
     background var(--motion-slow),
     border-color var(--motion-slow);
@@ -797,6 +1113,21 @@
 }
 
 /* ─────────────────────────────────────────────
+   KEYFRAMES
+───────────────────────────────────────────── */
+
+@keyframes fadeUpSoft {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─────────────────────────────────────────────
    RESPONSIVE
 ───────────────────────────────────────────── */
 
@@ -808,6 +1139,14 @@
   .cd-item-img {
     width: 68px;
     height: 68px;
+  }
+
+  .cd-rec-card {
+    width: 116px;
+  }
+
+  .cd-rec-img {
+    height: 76px;
   }
 }
 
@@ -830,7 +1169,12 @@
   .cd-remove-icon,
   .cd-checkout,
   .cd-promo-btn,
-  .cd-success-card {
+  .cd-success-card,
+  .cd-confirm-backdrop,
+  .cd-confirm-dialog,
+  .cd-rec-card,
+  .cd-rec-add,
+  .cd-rec-img img {
     transition: none !important;
     animation: none !important;
   }
