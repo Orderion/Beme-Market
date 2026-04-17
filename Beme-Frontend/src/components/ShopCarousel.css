@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════════════════════════════════
-   ShopCarousel.css
-   Five themed cards — each with its own enter-viewport animation.
-   Animations only fire when the card is ≥ 38 % visible in the track.
+   ShopCarousel.css  —  Full file, all 5 animated themes
+   Animations fire only when .sc-card--visible is present (set by
+   IntersectionObserver in ShopCarousel.jsx).
    ═══════════════════════════════════════════════════════════════════ */
 
-/* ─── ROOT & LAYOUT ───────────────────────────────────────────────── */
+/* ── ROOT ──────────────────────────────────────────────────────────── */
 .sc-root {
   display: flex;
   flex-direction: column;
@@ -12,7 +12,7 @@
   width: 100%;
 }
 
-/* ─── SCROLL TRACK ────────────────────────────────────────────────── */
+/* ── SCROLL TRACK ──────────────────────────────────────────────────── */
 .sc-track {
   display: flex;
   gap: 16px;
@@ -22,18 +22,16 @@
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
-.sc-track::-webkit-scrollbar {
-  display: none;
-}
+.sc-track::-webkit-scrollbar { display: none; }
 
-/* ─── CARD WRAPPER ────────────────────────────────────────────────── */
+/* ── CARD WRAPPER ──────────────────────────────────────────────────── */
 .sc-card-wrap {
   flex-shrink: 0;
   width: clamp(260px, 88vw, 440px);
   scroll-snap-align: center;
 }
 
-/* ─── CARD SHELL ──────────────────────────────────────────────────── */
+/* ── CARD SHELL ────────────────────────────────────────────────────── */
 .sc-card {
   position: relative;
   height: 190px;
@@ -47,18 +45,18 @@
   box-shadow: 0 0 0 3px rgba(232, 108, 44, 0.55);
 }
 
-/* ─── INNER LAYOUT ────────────────────────────────────────────────── */
+/* ── INNER ─────────────────────────────────────────────────────────── */
 .sc-inner {
   width: 100%;
   height: 100%;
-  background: #1a3a2a; /* fallback; theme classes override below */
+  background: #1a3a2a;
   display: flex;
   justify-content: space-between;
   padding: 20px 0 20px 22px;
   position: relative;
 }
 
-/* ─── CONTENT COLUMN ──────────────────────────────────────────────── */
+/* ── CONTENT ───────────────────────────────────────────────────────── */
 .sc-content {
   max-width: 55%;
   display: flex;
@@ -69,7 +67,7 @@
   position: relative;
 }
 
-/* ─── BADGE ───────────────────────────────────────────────────────── */
+/* ── BADGE ─────────────────────────────────────────────────────────── */
 .sc-badge {
   display: inline-block;
   background: #e86c2c;
@@ -84,16 +82,16 @@
   margin-bottom: 2px;
 }
 
-/* ─── TITLE ───────────────────────────────────────────────────────── */
+/* ── TITLE ─────────────────────────────────────────────────────────── */
 .sc-title {
-  font-size: clamp(15px, 4vw, 18px);
+  font-size: clamp(14px, 4vw, 18px);
   font-weight: 800;
   color: #fff;
   line-height: 1.2;
   margin: 0;
 }
 
-/* ─── SUBTITLE ────────────────────────────────────────────────────── */
+/* ── SUBTITLE ──────────────────────────────────────────────────────── */
 .sc-subtitle {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.62);
@@ -101,7 +99,7 @@
   line-height: 1.4;
 }
 
-/* ─── CTA BUTTON ──────────────────────────────────────────────────── */
+/* ── CTA BUTTON ────────────────────────────────────────────────────── */
 .sc-btn {
   display: inline-flex;
   align-items: center;
@@ -116,12 +114,12 @@
   color: #fff;
   border: none;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, transform 0.1s;
 }
 .sc-btn:hover  { opacity: 0.88; }
 .sc-btn:active { opacity: 0.72; transform: scale(0.97); }
 
-/* ─── PRODUCT IMAGE ───────────────────────────────────────────────── */
+/* ── PRODUCT IMAGE ─────────────────────────────────────────────────── */
 .sc-image-wrap {
   position: absolute;
   right: 0;
@@ -141,7 +139,7 @@
   user-select: none;
 }
 
-/* ─── HEART BUTTON ────────────────────────────────────────────────── */
+/* ── HEART ─────────────────────────────────────────────────────────── */
 .sc-heart {
   position: absolute;
   top: 12px;
@@ -163,7 +161,7 @@
 .sc-heart:hover { background: rgba(255, 255, 255, 0.26); }
 .sc-heart-svg   { width: 15px; }
 
-/* ─── DOTS ────────────────────────────────────────────────────────── */
+/* ── DOTS ──────────────────────────────────────────────────────────── */
 .sc-dots {
   display: flex;
   justify-content: center;
@@ -195,14 +193,14 @@
 .sc-theme-scents      .sc-inner { background: #1E3D2A; }
 .sc-theme-gadgets     .sc-inner { background: #070E1C; }
 
-/* Gadgets: cyan text glow */
 .sc-theme-gadgets .sc-title {
   text-shadow: 0 0 18px rgba(0, 220, 255, 0.55);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
    1. FASHION — CURTAIN REVEAL
-   Two panels (same green as card) slide left/right on enter.
+   Two panels cover the card on load; .sc-card--visible slides them apart.
+   CRITICAL: panels must start at translateX(0) — no transform by default.
    ═══════════════════════════════════════════════════════════════════ */
 .sc-curtain {
   position: absolute;
@@ -215,20 +213,21 @@
 .sc-curtain-left,
 .sc-curtain-right {
   height: 100%;
-  width: 50.5%; /* slight overlap to avoid 1-px gap */
-  transition: transform 1.25s cubic-bezier(0.77, 0, 0.175, 1);
+  width: 50.5%;               /* slight overlap closes the seam         */
+  will-change: transform;
+  /* FIX: explicit start state — required for the transition to work   */
+  transform: translateX(0);
+  transition: transform 1.3s cubic-bezier(0.77, 0, 0.175, 1);
 }
 
-.sc-curtain-left  { transform-origin: left;  }
-.sc-curtain-right { transform-origin: right; }
-
-/* Panels open when card is visible */
+/* Panels open when the card enters the viewport */
 .sc-card--visible .sc-curtain-left  { transform: translateX(-100%); }
 .sc-card--visible .sc-curtain-right { transform: translateX(100%);  }
 
 /* ═══════════════════════════════════════════════════════════════════
-   2. KENTE — CURLY ZIGZAG STRIPES (JS-driven stroke-dashoffset)
-   SVG built in React useEffect; animation controlled by isVisible prop.
+   2. KENTE — CURLY ZIGZAG STRIPES
+   Entirely JS-driven (stroke-dashoffset in KenteOverlay component).
+   The wrapper just clips the SVG to the card bounds.
    ═══════════════════════════════════════════════════════════════════ */
 .sc-kente-wrap {
   position: absolute;
@@ -239,8 +238,9 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   3. SCENTS — TRANSLUCENT CLOUD SPRAY FROM SIDES
-   Six puff divs remounted on each enter → animations restart.
+   3. SCENTS — TRANSLUCENT CLOUD SPRAY
+   SprayOverlay is remounted (key prop) each time the card enters view,
+   so these @keyframes always restart from the beginning.
    ═══════════════════════════════════════════════════════════════════ */
 .sc-spray-wrap {
   position: absolute;
@@ -262,37 +262,31 @@
   opacity: 0;
 }
 
-/* Left puffs */
+/* LEFT side */
 .sc-puff-l1 {
-  width: 175px; height: 145px;
-  left: -75px;  top: 0px;
+  width: 175px; height: 145px; left: -75px; top: 0;
   animation: scPuffL 3.2s ease-out 0s forwards;
 }
 .sc-puff-l2 {
-  width: 130px; height: 110px;
-  left: -48px;  top: 28px;
+  width: 130px; height: 110px; left: -48px; top: 28px;
   animation: scPuffL 3.2s ease-out 0.22s forwards;
 }
 .sc-puff-l3 {
-  width: 100px; height: 80px;
-  left: -20px;  top: 56px;
+  width: 100px; height:  80px; left: -20px; top: 56px;
   animation: scPuffL 3.2s ease-out 0.42s forwards;
 }
 
-/* Right puffs */
+/* RIGHT side */
 .sc-puff-r1 {
-  width: 175px; height: 145px;
-  right: -75px; top: 0px;
+  width: 175px; height: 145px; right: -75px; top: 0;
   animation: scPuffR 3.2s ease-out 0.1s forwards;
 }
 .sc-puff-r2 {
-  width: 130px; height: 110px;
-  right: -48px; top: 28px;
+  width: 130px; height: 110px; right: -48px; top: 28px;
   animation: scPuffR 3.2s ease-out 0.3s forwards;
 }
 .sc-puff-r3 {
-  width: 100px; height: 80px;
-  right: -20px; top: 56px;
+  width: 100px; height:  80px; right: -20px; top: 56px;
   animation: scPuffR 3.2s ease-out 0.5s forwards;
 }
 
@@ -311,8 +305,8 @@
 
 /* ═══════════════════════════════════════════════════════════════════
    4. GADGETS — RGB GLITCH + SCAN LINES
-   Three layers (cyan / magenta / yellow) clip-path flicker.
-   GlitchOverlay remounts on each enter → animations restart cleanly.
+   GlitchOverlay is remounted (key prop) each time the card enters view.
+   Three mix-blend-mode:screen layers flicker with clip-path steps.
    ═══════════════════════════════════════════════════════════════════ */
 .sc-glitch-wrap {
   position: absolute;
@@ -329,7 +323,6 @@
   mix-blend-mode: screen;
 }
 
-/* Scanlines: persistent subtle texture */
 .sc-scanlines {
   position: absolute;
   inset: 0;
@@ -339,106 +332,103 @@
     0deg,
     transparent,
     transparent 3px,
-    rgba(0, 0, 0, 0.13) 3px,
-    rgba(0, 0, 0, 0.13) 4px
+    rgba(0, 0, 0, 0.14) 3px,
+    rgba(0, 0, 0, 0.14) 4px
   );
   opacity: 0;
-  animation: scScanIn 0.7s ease 0.1s forwards;
+  animation: scScanIn 0.6s ease 0.05s forwards;
 }
 
 @keyframes scScanIn {
   to { opacity: 1; }
 }
 
-/* Cyan channel */
-.sc-gl-c {
-  animation: scGlC 2.7s steps(1) forwards;
-}
-/* Magenta channel */
-.sc-gl-m {
-  animation: scGlM 2.7s steps(1) 0.07s forwards;
-}
-/* Yellow channel */
-.sc-gl-y {
-  animation: scGlY 2.7s steps(1) 0.14s forwards;
-}
+/* Cyan */
+.sc-gl-c { animation: scGlC 2.8s steps(1) 0s    forwards; }
+/* Magenta */
+.sc-gl-m { animation: scGlM 2.8s steps(1) 0.07s forwards; }
+/* Yellow */
+.sc-gl-y { animation: scGlY 2.8s steps(1) 0.14s forwards; }
 
 @keyframes scGlC {
   0%   { opacity: 0; }
-  4%   { opacity: 1;   background: rgba(0,255,255,0.45); clip-path: inset(4% 0 83% 0);  transform: translateX(-8px);  }
-  8%   {               background: rgba(0,255,255,0.45); clip-path: inset(68% 0 4% 0);  transform: translateX(8px);   }
+  4%   { opacity: 1;    background: rgba(0,255,255,0.45);
+         clip-path: inset(4% 0 83% 0);  transform: translateX(-8px);  }
+  8%   {               background: rgba(0,255,255,0.45);
+         clip-path: inset(68% 0 4% 0);  transform: translateX(8px);   }
   12%  { opacity: 0; }
-  20%  { opacity: 0.7; background: rgba(0,255,255,0.28); clip-path: inset(33% 0 50% 0); transform: translateX(-5px);  }
+  20%  { opacity: 0.7;  background: rgba(0,255,255,0.28);
+         clip-path: inset(33% 0 50% 0); transform: translateX(-5px);  }
   24%  { opacity: 0; }
-  30%  { opacity: 0.42;background: rgba(0,255,255,0.18); clip-path: inset(10% 0 78% 0); transform: translateX(3px);   }
+  30%  { opacity: 0.42; background: rgba(0,255,255,0.18);
+         clip-path: inset(10% 0 78% 0); transform: translateX(3px);   }
   34%  { opacity: 0; }
   100% { opacity: 0; }
 }
 @keyframes scGlM {
   0%   { opacity: 0; }
-  4%   { opacity: 1;   background: rgba(255,0,255,0.45); clip-path: inset(44% 0 30% 0); transform: translateX(9px);   }
-  8%   {               background: rgba(255,0,255,0.45); clip-path: inset(16% 0 68% 0); transform: translateX(-9px);  }
+  4%   { opacity: 1;    background: rgba(255,0,255,0.45);
+         clip-path: inset(44% 0 30% 0); transform: translateX(9px);   }
+  8%   {               background: rgba(255,0,255,0.45);
+         clip-path: inset(16% 0 68% 0); transform: translateX(-9px);  }
   12%  { opacity: 0; }
-  20%  { opacity: 0.7; background: rgba(255,0,255,0.28); clip-path: inset(62% 0 16% 0); transform: translateX(5px);   }
+  20%  { opacity: 0.7;  background: rgba(255,0,255,0.28);
+         clip-path: inset(62% 0 16% 0); transform: translateX(5px);   }
   24%  { opacity: 0; }
-  30%  { opacity: 0.36;background: rgba(255,0,255,0.16); clip-path: inset(80% 0 6% 0);  transform: translateX(-3px);  }
+  30%  { opacity: 0.36; background: rgba(255,0,255,0.16);
+         clip-path: inset(80% 0 6% 0);  transform: translateX(-3px);  }
   34%  { opacity: 0; }
   100% { opacity: 0; }
 }
 @keyframes scGlY {
   0%   { opacity: 0; }
-  4%   { opacity: 0.9; background: rgba(255,255,0,0.35); clip-path: inset(84% 0 2% 0);  transform: translateX(-6px);  }
-  8%   {               background: rgba(255,255,0,0.35); clip-path: inset(26% 0 60% 0); transform: translateX(6px);   }
+  4%   { opacity: 0.9;  background: rgba(255,255,0,0.35);
+         clip-path: inset(84% 0 2% 0);  transform: translateX(-6px);  }
+  8%   {               background: rgba(255,255,0,0.35);
+         clip-path: inset(26% 0 60% 0); transform: translateX(6px);   }
   12%  { opacity: 0; }
-  20%  { opacity: 0.5; background: rgba(255,255,0,0.22); clip-path: inset(48% 0 40% 0); transform: translateX(-4px);  }
+  20%  { opacity: 0.5;  background: rgba(255,255,0,0.22);
+         clip-path: inset(48% 0 40% 0); transform: translateX(-4px);  }
   24%  { opacity: 0; }
   100% { opacity: 0; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   RESPONSIVE OVERRIDES
+   RESPONSIVE
    ═══════════════════════════════════════════════════════════════════ */
 
-/* Small phones (< 360 px) */
+/* Small phones */
 @media (max-width: 360px) {
   .sc-card-wrap { width: calc(100vw - 40px); }
-  .sc-card       { height: 170px; }
-  .sc-title      { font-size: 14px; }
-  .sc-subtitle   { font-size: 10px; }
-  .sc-btn        { font-size: 10px; padding: 6px 12px; }
-  .sc-image-wrap { width: 44%; }
+  .sc-card      { height: 168px; }
+  .sc-title     { font-size: 13px; }
+  .sc-subtitle  { font-size: 10px; }
+  .sc-btn       { font-size: 10px; padding: 6px 12px; margin-top: 6px; }
 }
 
-/* Tablets (> 640 px) */
+/* Tablets */
 @media (min-width: 640px) {
   .sc-card-wrap { width: clamp(340px, 72vw, 480px); }
-  .sc-card       { height: 210px; }
-  .sc-title      { font-size: 20px; }
-  .sc-subtitle   { font-size: 12px; }
-  .sc-btn        { font-size: 13px; padding: 9px 18px; margin-top: 10px; }
+  .sc-card      { height: 210px; }
+  .sc-title     { font-size: 20px; }
+  .sc-subtitle  { font-size: 12px; }
+  .sc-btn       { font-size: 13px; padding: 9px 18px; margin-top: 10px; }
 }
 
-/* Desktop (> 1024 px) */
+/* Desktop */
 @media (min-width: 1024px) {
   .sc-card-wrap { width: clamp(380px, 38vw, 520px); }
-  .sc-card       { height: 220px; }
-  .sc-track      { padding: 4px 24px 6px; gap: 20px; }
+  .sc-card      { height: 220px; }
+  .sc-track     { padding: 4px 24px 6px; gap: 20px; }
 }
 
-/* Respect reduced-motion preferences */
+/* Honour reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .sc-curtain-left,
-  .sc-curtain-right,
+  .sc-curtain-right { transition: none !important; }
   .sc-puff,
   .sc-gl,
-  .sc-scanlines {
-    animation: none !important;
-    transition: none !important;
-    opacity: 0 !important;
-  }
-  .sc-card--visible .sc-curtain-left,
-  .sc-card--visible .sc-curtain-right {
-    transform: translateX(-100%) !important;
-    /* just hide instantly */
-  }
+  .sc-scanlines     { animation: none !important; opacity: 0 !important; }
+  .sc-card--visible .sc-curtain-left  { transform: translateX(-100%) !important; }
+  .sc-card--visible .sc-curtain-right { transform: translateX(100%)  !important; }
 }
