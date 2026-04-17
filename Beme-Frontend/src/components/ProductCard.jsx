@@ -92,7 +92,6 @@ function getDescriptionSnippet(product) {
   return "";
 }
 
-/* ─── Cart icon SVG (shared between in-stock / out-of-stock states) ─── */
 function CartIcon({ inStock }) {
   return (
     <svg
@@ -135,7 +134,6 @@ export default function ProductCard({ product }) {
 
   useEffect(() => { setActiveImageIndex(0); }, [id, imageCount]);
 
-  // Auto-dismiss cart popup after 4s
   useEffect(() => {
     if (showCartPopup) {
       clearTimeout(popupTimerRef.current);
@@ -145,31 +143,38 @@ export default function ProductCard({ product }) {
   }, [showCartPopup]);
 
   const shippingSource = useMemo(() => normalizeShippingSource(product), [product]);
-  const shipsFromAbroad = shippingSource === "abroad" || parseBooleanish(product?.shipFromAbroad, false) || parseBooleanish(product?.shipsFromAbroad, false);
+  const shipsFromAbroad =
+    shippingSource === "abroad" ||
+    parseBooleanish(product?.shipFromAbroad, false) ||
+    parseBooleanish(product?.shipsFromAbroad, false);
   const abroadDeliveryFee = useMemo(() => getItemAbroadDeliveryFee(product), [product]);
   const inStock = useMemo(() => normalizeStock(product), [product]);
   const stock = useMemo(() => getNumericStock(product), [product]);
 
   const priceRaw = product?.price;
   const oldPriceRaw = product?.oldPrice;
-  const price = priceRaw !== undefined && priceRaw !== null && priceRaw !== "" ? Number(priceRaw) : null;
-  const oldPrice = oldPriceRaw !== undefined && oldPriceRaw !== null && oldPriceRaw !== "" ? Number(oldPriceRaw) : null;
-  const customizations = useMemo(() => normalizeCustomizations(product?.customizations), [product]);
+  const price =
+    priceRaw !== undefined && priceRaw !== null && priceRaw !== ""
+      ? Number(priceRaw)
+      : null;
+  const oldPrice =
+    oldPriceRaw !== undefined && oldPriceRaw !== null && oldPriceRaw !== ""
+      ? Number(oldPriceRaw)
+      : null;
+  const customizations = useMemo(
+    () => normalizeCustomizations(product?.customizations),
+    [product]
+  );
   const descriptionSnippet = useMemo(() => getDescriptionSnippet(product), [product]);
 
-  // ── Discount calculation ──
   const hasDiscount = price !== null && oldPrice !== null && oldPrice > price;
-  const discountPct = hasDiscount ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
-  const savings = hasDiscount ? oldPrice - price : 0;
+  const discountPct = hasDiscount
+    ? Math.round(((oldPrice - price) / oldPrice) * 100)
+    : 0;
 
   const formatMoney = (n) => {
     if (n === null || Number.isNaN(n)) return "";
     return `GHS ${n.toFixed(2)}`;
-  };
-
-  const formatMoneyShort = (n) => {
-    if (n === null || Number.isNaN(n)) return "";
-    return `GHS ${n % 1 === 0 ? n.toFixed(0) : n.toFixed(2)}`;
   };
 
   const showCardPopupMsg = (message) => {
@@ -221,12 +226,29 @@ export default function ProductCard({ product }) {
     }
   };
 
-  const goToImage = (e, index) => { e.preventDefault(); e.stopPropagation(); setActiveImageIndex(index); };
-  const goPrevImage = () => { if (imageCount <= 1) return; setActiveImageIndex((prev) => (prev - 1 + imageCount) % imageCount); };
-  const goNextImage = () => { if (imageCount <= 1) return; setActiveImageIndex((prev) => (prev + 1) % imageCount); };
+  const goToImage = (e, index) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveImageIndex(index);
+  };
+  const goPrevImage = () => {
+    if (imageCount <= 1) return;
+    setActiveImageIndex((prev) => (prev - 1 + imageCount) % imageCount);
+  };
+  const goNextImage = () => {
+    if (imageCount <= 1) return;
+    setActiveImageIndex((prev) => (prev + 1) % imageCount);
+  };
 
-  const handleTouchStart = (e) => { if (imageCount <= 1) return; touchStartXRef.current = e.touches[0].clientX; touchDeltaXRef.current = 0; };
-  const handleTouchMove = (e) => { if (imageCount <= 1 || touchStartXRef.current === null) return; touchDeltaXRef.current = e.touches[0].clientX - touchStartXRef.current; };
+  const handleTouchStart = (e) => {
+    if (imageCount <= 1) return;
+    touchStartXRef.current = e.touches[0].clientX;
+    touchDeltaXRef.current = 0;
+  };
+  const handleTouchMove = (e) => {
+    if (imageCount <= 1 || touchStartXRef.current === null) return;
+    touchDeltaXRef.current = e.touches[0].clientX - touchStartXRef.current;
+  };
   const handleTouchEnd = () => {
     if (imageCount <= 1 || touchStartXRef.current === null) return;
     const deltaX = touchDeltaXRef.current;
@@ -270,22 +292,39 @@ export default function ProductCard({ product }) {
                       className="p-media-nav p-media-nav--prev"
                       type="button"
                       aria-label="Previous image"
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); goPrevImage(); }}
-                    >‹</button>
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        goPrevImage();
+                      }}
+                    >
+                      ‹
+                    </button>
 
                     <button
                       className="p-media-nav p-media-nav--next"
                       type="button"
                       aria-label="Next image"
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); goNextImage(); }}
-                    >›</button>
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        goNextImage();
+                      }}
+                    >
+                      ›
+                    </button>
 
-                    <div className="p-gallery-dots" aria-label={`${imageCount} product images`}>
+                    <div
+                      className="p-gallery-dots"
+                      aria-label={`${imageCount} product images`}
+                    >
                       {images.map((img, index) => (
                         <button
                           key={`${img}-${index}`}
                           type="button"
-                          className={`p-gallery-dot ${index === activeImageIndex ? "p-gallery-dot--active" : ""}`}
+                          className={`p-gallery-dot ${
+                            index === activeImageIndex ? "p-gallery-dot--active" : ""
+                          }`}
                           aria-label={`Show image ${index + 1}`}
                           onClick={(e) => goToImage(e, index)}
                         />
@@ -299,25 +338,21 @@ export default function ProductCard({ product }) {
             )}
           </div>
 
-          {/* ── Discount banner — shown only when oldPrice > price ── */}
+          {/* ── Slim deal strip — only renders when a discount exists ── */}
           {hasDiscount && (
-            <div className="p-discount-banner" aria-label={`${discountPct}% discount`}>
-              <span className="p-discount-pct">{discountPct}% OFF</span>
-              <div className="p-discount-right">
-                <span className="p-discount-prices">
-                  <span className="p-discount-old">{formatMoneyShort(oldPrice)}</span>
-                  <span className="p-discount-arrow">→</span>
-                  <span className="p-discount-new">{formatMoneyShort(price)}</span>
-                </span>
-                <span className="p-discount-save">You save {formatMoneyShort(savings)}</span>
-              </div>
+            <div className="p-deal-strip" aria-label={`Up to ${discountPct}% off`}>
+              <span className="p-deal-upto">Up to</span>
+              <span className="p-deal-pct">{discountPct}%</span>
+              <span className="p-deal-off">OFF</span>
             </div>
           )}
 
           {/* ── Card body ── */}
           <div className="p-body">
             {cardPopup && (
-              <div className="p-card-popup" role="alert">{cardPopup}</div>
+              <div className="p-card-popup" role="alert">
+                {cardPopup}
+              </div>
             )}
 
             <h3 className="p-name">{name}</h3>
@@ -328,7 +363,7 @@ export default function ProductCard({ product }) {
               <div className="p-desc p-desc--empty" aria-hidden="true" />
             )}
 
-            {/* ── Price row + inline cart button ── */}
+            {/* ── Price row with inline cart button ── */}
             <div className="p-prices">
               {price !== null ? (
                 <div className="p-price-col">
@@ -344,7 +379,6 @@ export default function ProductCard({ product }) {
                 <span className="p-missing">No price</span>
               )}
 
-              {/* Cart button — inline beside price */}
               <button
                 className={`p-cart-btn ${!inStock ? "p-cart-btn--disabled" : ""}`}
                 onClick={handleAddToCart}
@@ -359,55 +393,62 @@ export default function ProductCard({ product }) {
         </div>
       </Wrapper>
 
-      {/* ── Cart confirmation popup ── */}
-      {showCartPopup && cartPopupItem && createPortal(
-        <div className="cart-popup">
-          <div className="cart-popup__close-wrap">
-            <button
-              className="cart-popup__close"
-              onClick={() => setShowCartPopup(false)}
-              aria-label="Close"
-            >×</button>
-          </div>
-
-          <div className="cart-popup__header">
-            <div className="cart-popup__thumb">
-              {cartPopupItem.image && (
-                <img src={cartPopupItem.image} alt={cartPopupItem.name} />
-              )}
+      {/* ── Global cart confirmation popup ── */}
+      {showCartPopup &&
+        cartPopupItem &&
+        createPortal(
+          <div className="cart-popup">
+            <div className="cart-popup__close-wrap">
+              <button
+                className="cart-popup__close"
+                onClick={() => setShowCartPopup(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
             </div>
-            <div className="cart-popup__info">
-              <span className="cart-popup__label">Added to cart</span>
-              <p className="cart-popup__name">{cartPopupItem.name}</p>
-              {cartPopupItem.price !== null && (
-                <p className="cart-popup__price">{formatMoney(cartPopupItem.price)}</p>
-              )}
+
+            <div className="cart-popup__header">
+              <div className="cart-popup__thumb">
+                {cartPopupItem.image && (
+                  <img src={cartPopupItem.image} alt={cartPopupItem.name} />
+                )}
+              </div>
+              <div className="cart-popup__info">
+                <span className="cart-popup__label">Added to cart</span>
+                <p className="cart-popup__name">{cartPopupItem.name}</p>
+                {cartPopupItem.price !== null && (
+                  <p className="cart-popup__price">{formatMoney(cartPopupItem.price)}</p>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="cart-popup__divider" />
+            <div className="cart-popup__divider" />
 
-          <p className="cart-popup__thanks">
-            Thanks for shopping with us! Ready to checkout or keep browsing?
-          </p>
+            <p className="cart-popup__thanks">
+              Thanks for shopping with us! Ready to checkout or keep browsing?
+            </p>
 
-          <div className="cart-popup__actions">
-            <button
-              className="cart-popup__btn cart-popup__btn--ghost"
-              onClick={() => setShowCartPopup(false)}
-            >
-              Continue Shopping
-            </button>
-            <button
-              className="cart-popup__btn cart-popup__btn--primary"
-              onClick={() => { setShowCartPopup(false); navigate("/cart"); }}
-            >
-              Checkout
-            </button>
-          </div>
-        </div>,
-        document.body
-      )}
+            <div className="cart-popup__actions">
+              <button
+                className="cart-popup__btn cart-popup__btn--ghost"
+                onClick={() => setShowCartPopup(false)}
+              >
+                Continue Shopping
+              </button>
+              <button
+                className="cart-popup__btn cart-popup__btn--primary"
+                onClick={() => {
+                  setShowCartPopup(false);
+                  navigate("/cart");
+                }}
+              >
+                Checkout
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
     </>
   );
 }
