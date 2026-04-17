@@ -205,37 +205,50 @@ export default function ShopCarousel({ shops = [] }) {
   useEffect(() => {
     if (!trackRef.current) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const idx = parseInt(entry.target.dataset.cardIndex, 10);
-          setVisibleSet((prev) => {
-            const next = new Set(prev);
-            if (entry.isIntersecting) {
-              next.add(idx);
-              /* Bump the key so CSS-animation overlays remount cleanly */
-              setAnimKeys((ak) => ({ ...ak, [idx]: (ak[idx] || 0) + 1 }));
-            } else {
-              next.delete(idx);
-            }
-            return next;
-          });
-        });
-      },
-      { threshold: 0.38, root: trackRef.current }
-    );
+    const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+    const idx = parseInt(entry.target.dataset.cardIndex, 10);
 
+      setVisibleSet((prev) => {
+        const next = new Set(prev);
+
+        if (entry.isIntersecting) {
+          next.add(idx);
+          setAnimKeys((ak) => ({
+            ...ak,
+            [idx]: (ak[idx] || 0) + 1,
+          }));
+        } else {
+          next.delete(idx);
+        }
+
+        return next;
+      });
+    });
+  }, { threshold: 0.3 });
+
+  // 🔥 delay ensures refs are ready
+  const t = setTimeout(() => {
     cardRefs.current.forEach((el) => el && observer.observe(el));
-    return () => observer.disconnect();
+    }, 50);
+
+    return () => {
+       clearTimeout(t);
+       observer.disconnect();
+    };
   }, [shops]);
 
-  if (!shops.length) return null;
+  useEffect(() => {
+   if (shops.length > 0) {
+      setVisibleSet(new Set([0])); // 👈 force first card animation
+    }
+  }, [shops]);
 
   return (
     <div className="sc-root">
       <div ref={trackRef} className="sc-track" onScroll={onScroll}>
         {shops.map((shop, i) => {
-          const isVisible  = visibleSet.has(i);
+          const isVisible = visibleSet.has(i) || i === 0;
           const animKey    = animKeys[i] || 0;
           const themeClass = THEME_CLASS[shop.theme] || "";
 
