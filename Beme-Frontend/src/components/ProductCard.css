@@ -17,7 +17,7 @@
 .p-card {
   background: #f7f7f7;
   border: 1px solid rgba(17, 17, 17, 0.06);
-  border-radius: 26px;
+  border-radius: 16px;
   overflow: hidden;
   box-shadow:
     0 18px 45px rgba(17, 17, 17, 0.08),
@@ -237,105 +237,107 @@ body.dark .p-media-nav {
 }
 
 /* ─────────────────────────────────────────
-   DISCOUNT BANNER
-   Sits between the image and the card body.
-   Shows only when oldPrice > price.
+   SLIM DEAL STRIP
+   Sits between the image area and the card
+   body. Inspired by the flat yellow-band
+   style in reference Image 1.
+   Only renders when oldPrice > price.
    ───────────────────────────────────────── */
 
-.p-discount-banner {
+.p-deal-strip {
   position: relative;
   overflow: hidden;
-  /* pull up to overlap the bottom padding of p-media */
-  margin: -12px 12px 0;
-  border-radius: 12px;
-  padding: 7px 12px;
+  width: 100%;
+  /* warm cream-amber background */
+  background: #FFF8E1;
+  border-top: 1px solid #FFE082;
+  border-bottom: 1px solid #FFE082;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  z-index: 3;
-  /* warm coral-to-orange gradient matching the brand accent */
-  background: linear-gradient(95deg, #d94f30 0%, #f06740 55%, #e8533a 100%);
-  box-shadow: 0 4px 16px rgba(217, 79, 48, 0.32);
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 14px;
 }
 
-body.dark .p-discount-banner {
-  background: linear-gradient(95deg, #c04428 0%, #e05c35 55%, #d44a2e 100%);
-  box-shadow: 0 4px 20px rgba(200, 60, 30, 0.40);
+body.dark .p-deal-strip {
+  background: #2a2000;
+  border-top-color: rgba(255, 193, 7, 0.18);
+  border-bottom-color: rgba(255, 193, 7, 0.18);
 }
 
-/* Diagonal light-sweep shimmer animation */
-.p-discount-banner::before {
+/* Diagonal shimmer sweep */
+.p-deal-strip::before {
   content: "";
   position: absolute;
-  top: -40%;
+  top: -60%;
   left: -90%;
-  width: 52%;
-  height: 200%;
+  width: 48%;
+  height: 260%;
   background: linear-gradient(
-    108deg,
+    110deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.0) 28%,
-    rgba(255, 255, 255, 0.52) 50%,
-    rgba(255, 255, 255, 0.0) 72%,
+    rgba(255, 255, 255, 0.0) 30%,
+    rgba(255, 255, 255, 0.72) 50%,
+    rgba(255, 255, 255, 0.0) 70%,
     transparent 100%
   );
-  transform: skewX(-12deg);
-  animation: p-shimmer 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  transform: skewX(-10deg);
+  animation: p-strip-shimmer 2.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   pointer-events: none;
 }
 
-@keyframes p-shimmer {
+body.dark .p-deal-strip::before {
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.0) 30%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.0) 70%,
+    transparent 100%
+  );
+}
+
+@keyframes p-strip-shimmer {
   0%   { left: -90%; }
   100% { left: 170%; }
 }
 
-.p-discount-pct {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -0.04em;
-  white-space: nowrap;
+.p-deal-upto {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #92580a;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
   line-height: 1;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
-.p-discount-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
+body.dark .p-deal-upto {
+  color: #d4a339;
 }
 
-.p-discount-prices {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+.p-deal-pct {
+  font-size: 14px;
+  font-weight: 800;
+  color: #D97706;
+  letter-spacing: -0.04em;
+  line-height: 1;
 }
 
-.p-discount-old {
-  font-size: 10px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.65);
-  text-decoration: line-through;
+body.dark .p-deal-pct {
+  color: #F59E0B;
 }
 
-.p-discount-arrow {
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.55);
-}
-
-.p-discount-new {
-  font-size: 10.5px;
+.p-deal-off {
+  font-size: 9.5px;
   font-weight: 700;
-  color: #fff;
+  color: #92580a;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  line-height: 1;
 }
 
-.p-discount-save {
-  font-size: 9px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.60);
-  letter-spacing: 0.01em;
+body.dark .p-deal-off {
+  color: #d4a339;
 }
 
 /* ── Card body ── */
@@ -379,7 +381,7 @@ body.dark .p-desc {
   opacity: 0;
 }
 
-/* ── Price row — flex with cart button on the right ── */
+/* ── Price row — price col left, cart button right ── */
 
 .p-prices {
   display: flex;
@@ -443,13 +445,13 @@ body.dark .p-price {
   display: inline-block;
 }
 
-/* ── Cart button — inline in the price row ── */
+/* ── Inline cart button ── */
 
 .p-cart-btn {
   flex-shrink: 0;
   width: 42px;
   height: 42px;
-  border-radius: 14px;
+  border-radius: 999px;
   border: 1.5px solid var(--grtheme);
   background: rgba(255, 255, 255, 0.95);
   display: flex;
@@ -462,7 +464,6 @@ body.dark .p-price {
     box-shadow 0.2s ease,
     opacity 0.2s ease,
     border-color 0.2s ease;
-  z-index: 2;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   box-shadow: 0 4px 14px rgba(17, 17, 17, 0.06);
@@ -488,7 +489,7 @@ body.dark .p-cart-btn:hover {
 }
 
 .p-cart-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.94);
 }
 
 .p-cart-btn:focus-visible {
@@ -543,7 +544,7 @@ body.dark .p-cart-btn:hover {
   animation: fadeUpSoft 0.22s ease;
 }
 
-/* ── Cart global confirmation popup ── */
+/* ── Global cart confirmation popup ── */
 
 .cart-popup {
   position: fixed;
@@ -780,14 +781,18 @@ body.dark .cart-popup__btn--ghost:hover {
     bottom: 10px;
   }
 
-  .p-discount-banner {
-    margin: -10px 10px 0;
-    padding: 6px 10px;
-    border-radius: 10px;
+  .p-deal-strip {
+    padding: 4px 12px;
+    gap: 4px;
   }
 
-  .p-discount-pct {
-    font-size: 0.87rem;
+  .p-deal-pct {
+    font-size: 13px;
+  }
+
+  .p-deal-upto,
+  .p-deal-off {
+    font-size: 9px;
   }
 
   .p-body {
@@ -811,9 +816,8 @@ body.dark .cart-popup__btn--ghost:hover {
   }
 
   .p-cart-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
+    width: 38px;
+    height: 38px;
   }
 
   .cart-svg {
