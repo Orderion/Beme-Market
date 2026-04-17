@@ -1,65 +1,75 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   ShopCarousel — base styles (unchanged)
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════
+   ShopCarousel.css
+   Five themed cards — each with its own enter-viewport animation.
+   Animations only fire when the card is ≥ 38 % visible in the track.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── ROOT & LAYOUT ───────────────────────────────────────────────── */
 .sc-root {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  width: 100%;
 }
 
-/* TRACK */
+/* ─── SCROLL TRACK ────────────────────────────────────────────────── */
 .sc-track {
   display: flex;
   gap: 16px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  padding: 0 16px;
+  padding: 4px 16px 6px;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
-.sc-track::-webkit-scrollbar { display: none; }
+.sc-track::-webkit-scrollbar {
+  display: none;
+}
 
-/* CARD WRAP */
+/* ─── CARD WRAPPER ────────────────────────────────────────────────── */
 .sc-card-wrap {
   flex-shrink: 0;
-  width: 90%;
-  max-width: 440px;
+  width: clamp(260px, 88vw, 440px);
   scroll-snap-align: center;
 }
 
-/* CARD */
+/* ─── CARD SHELL ──────────────────────────────────────────────────── */
 .sc-card {
   position: relative;
-  height: 200px;
+  height: 190px;
   border-radius: 20px;
   overflow: hidden;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+.sc-card:focus-visible {
+  box-shadow: 0 0 0 3px rgba(232, 108, 44, 0.55);
 }
 
-/* INNER */
+/* ─── INNER LAYOUT ────────────────────────────────────────────────── */
 .sc-inner {
   width: 100%;
   height: 100%;
-  /* background is now set via inline style per theme */
-  background: #1a3a2a;
+  background: #1a3a2a; /* fallback; theme classes override below */
   display: flex;
   justify-content: space-between;
-  padding: 20px 20px 20px 22px;
+  padding: 20px 0 20px 22px;
   position: relative;
-  overflow: hidden;
 }
 
-/* CONTENT */
+/* ─── CONTENT COLUMN ──────────────────────────────────────────────── */
 .sc-content {
-  max-width: 58%;
+  max-width: 55%;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 6px;
-  z-index: 6;
+  gap: 5px;
+  z-index: 1;
   position: relative;
 }
 
-/* BADGE */
+/* ─── BADGE ───────────────────────────────────────────────────────── */
 .sc-badge {
   display: inline-block;
   background: #e86c2c;
@@ -71,86 +81,94 @@
   padding: 4px 10px;
   border-radius: 999px;
   width: fit-content;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
-/* TITLE */
+/* ─── TITLE ───────────────────────────────────────────────────────── */
 .sc-title {
-  font-size: 18px;
+  font-size: clamp(15px, 4vw, 18px);
   font-weight: 800;
   color: #fff;
   line-height: 1.2;
   margin: 0;
 }
 
-/* SUBTITLE */
+/* ─── SUBTITLE ────────────────────────────────────────────────────── */
 .sc-subtitle {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.65);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.62);
   margin: 0;
+  line-height: 1.4;
 }
 
-/* CTA BUTTON */
+/* ─── CTA BUTTON ──────────────────────────────────────────────────── */
 .sc-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-top: 10px;
+  margin-top: 8px;
   width: fit-content;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 8px 16px;
+  padding: 7px 14px;
   border-radius: 999px;
   background: #e86c2c;
   color: #fff;
   border: none;
   cursor: pointer;
+  transition: opacity 0.15s;
 }
+.sc-btn:hover  { opacity: 0.88; }
+.sc-btn:active { opacity: 0.72; transform: scale(0.97); }
 
-/* PRODUCT IMAGE */
+/* ─── PRODUCT IMAGE ───────────────────────────────────────────────── */
 .sc-image-wrap {
   position: absolute;
   right: 0;
   top: 0;
   bottom: 0;
-  width: 48%;
+  width: 47%;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2;
 }
 .sc-image-wrap img {
-  height: 95%;
+  height: 94%;
   width: 100%;
   object-fit: contain;
+  pointer-events: none;
+  user-select: none;
 }
 
-/* HEART — bumped to z-index 20 so it sits above all overlays */
+/* ─── HEART BUTTON ────────────────────────────────────────────────── */
 .sc-heart {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 12px;
+  right: 12px;
   z-index: 20;
   width: 32px;
   height: 32px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: background 0.2s;
 }
-.sc-heart-svg {
-  width: 15px;
-}
+.sc-heart:hover { background: rgba(255, 255, 255, 0.26); }
+.sc-heart-svg   { width: 15px; }
 
-/* DOTS */
+/* ─── DOTS ────────────────────────────────────────────────────────── */
 .sc-dots {
   display: flex;
   justify-content: center;
   gap: 6px;
+  padding: 0 0 2px;
 }
 .sc-dot {
   width: 6px;
@@ -168,12 +186,24 @@
   border-radius: 999px;
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   THEME BACKGROUNDS
+   ═══════════════════════════════════════════════════════════════════ */
+.sc-theme-fashion     .sc-inner { background: #1E3D2A; }
+.sc-theme-bestsellers .sc-inner { background: #7B1E1E; }
+.sc-theme-kente       .sc-inner { background: #17260F; }
+.sc-theme-scents      .sc-inner { background: #1E3D2A; }
+.sc-theme-gadgets     .sc-inner { background: #070E1C; }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   ANIMATION OVERLAYS
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* Gadgets: cyan text glow */
+.sc-theme-gadgets .sc-title {
+  text-shadow: 0 0 18px rgba(0, 220, 255, 0.55);
+}
 
-/* ── FASHION: two-panel curtain ─────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   1. FASHION — CURTAIN REVEAL
+   Two panels (same green as card) slide left/right on enter.
+   ═══════════════════════════════════════════════════════════════════ */
 .sc-curtain {
   position: absolute;
   inset: 0;
@@ -181,20 +211,25 @@
   display: flex;
   pointer-events: none;
 }
-.sc-curtain-l,
-.sc-curtain-r {
+
+.sc-curtain-left,
+.sc-curtain-right {
   height: 100%;
-  width: 50.5%;
-  transition: transform 1.2s cubic-bezier(0.77, 0, 0.175, 1);
+  width: 50.5%; /* slight overlap to avoid 1-px gap */
+  transition: transform 1.25s cubic-bezier(0.77, 0, 0.175, 1);
 }
-.sc-curtain-l { transform-origin: left; }
-.sc-curtain-r { transform-origin: right; }
 
-.sc-curtain-open.sc-curtain-l { transform: translateX(-100%); }
-.sc-curtain-open.sc-curtain-r { transform: translateX(100%); }
+.sc-curtain-left  { transform-origin: left;  }
+.sc-curtain-right { transform-origin: right; }
 
+/* Panels open when card is visible */
+.sc-card--visible .sc-curtain-left  { transform: translateX(-100%); }
+.sc-card--visible .sc-curtain-right { transform: translateX(100%);  }
 
-/* ── KENTE: zigzag stripe canvas ────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   2. KENTE — CURLY ZIGZAG STRIPES (JS-driven stroke-dashoffset)
+   SVG built in React useEffect; animation controlled by isVisible prop.
+   ═══════════════════════════════════════════════════════════════════ */
 .sc-kente-wrap {
   position: absolute;
   inset: 0;
@@ -202,15 +237,11 @@
   pointer-events: none;
   overflow: hidden;
 }
-.sc-kente-wrap svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
 
-
-/* ── SCENTS: mist puffs ─────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   3. SCENTS — TRANSLUCENT CLOUD SPRAY FROM SIDES
+   Six puff divs remounted on each enter → animations restart.
+   ═══════════════════════════════════════════════════════════════════ */
 .sc-spray-wrap {
   position: absolute;
   inset: 0;
@@ -218,42 +249,71 @@
   pointer-events: none;
   overflow: hidden;
 }
+
 .sc-puff {
   position: absolute;
   border-radius: 50%;
   background: radial-gradient(
     ellipse at center,
-    rgba(255, 255, 255, 0.9)  0%,
+    rgba(255, 255, 255, 0.92) 0%,
     rgba(255, 255, 255, 0.38) 42%,
-    transparent               70%
+    transparent 70%
   );
   opacity: 0;
 }
 
-/* left puffs */
-.sc-puff--pL1 { animation: sc-pfL 3s ease-out 0s    forwards; }
-.sc-puff--pL2 { animation: sc-pfL 3s ease-out 0.2s  forwards; }
-.sc-puff--pL3 { animation: sc-pfL 3s ease-out 0.38s forwards; }
-/* right puffs */
-.sc-puff--pR1 { animation: sc-pfR 3s ease-out 0.1s  forwards; }
-.sc-puff--pR2 { animation: sc-pfR 3s ease-out 0.28s forwards; }
-.sc-puff--pR3 { animation: sc-pfR 3s ease-out 0.46s forwards; }
-
-@keyframes sc-pfL {
-  0%   { opacity: 0;    transform: translateX(-75%) scaleY(0.5); }
-  20%  { opacity: 0.92; transform: translateX(0%)   scaleY(1);   }
-  55%  { opacity: 0.38; }
-  100% { opacity: 0;    transform: translateX(6%)   scaleY(1.15); }
+/* Left puffs */
+.sc-puff-l1 {
+  width: 175px; height: 145px;
+  left: -75px;  top: 0px;
+  animation: scPuffL 3.2s ease-out 0s forwards;
 }
-@keyframes sc-pfR {
-  0%   { opacity: 0;    transform: translateX(75%)  scaleY(0.5); }
-  20%  { opacity: 0.92; transform: translateX(0%)   scaleY(1);   }
-  55%  { opacity: 0.38; }
-  100% { opacity: 0;    transform: translateX(-6%)  scaleY(1.15); }
+.sc-puff-l2 {
+  width: 130px; height: 110px;
+  left: -48px;  top: 28px;
+  animation: scPuffL 3.2s ease-out 0.22s forwards;
+}
+.sc-puff-l3 {
+  width: 100px; height: 80px;
+  left: -20px;  top: 56px;
+  animation: scPuffL 3.2s ease-out 0.42s forwards;
 }
 
+/* Right puffs */
+.sc-puff-r1 {
+  width: 175px; height: 145px;
+  right: -75px; top: 0px;
+  animation: scPuffR 3.2s ease-out 0.1s forwards;
+}
+.sc-puff-r2 {
+  width: 130px; height: 110px;
+  right: -48px; top: 28px;
+  animation: scPuffR 3.2s ease-out 0.3s forwards;
+}
+.sc-puff-r3 {
+  width: 100px; height: 80px;
+  right: -20px; top: 56px;
+  animation: scPuffR 3.2s ease-out 0.5s forwards;
+}
 
-/* ── GADGETS: RGB glitch bands ──────────────────────────────────────────── */
+@keyframes scPuffL {
+  0%   { opacity: 0;    transform: translateX(-78%) scaleY(0.48); }
+  18%  { opacity: 0.94; transform: translateX(0%)   scaleY(1);    }
+  52%  { opacity: 0.4;                                              }
+  100% { opacity: 0;    transform: translateX(7%)   scaleY(1.18); }
+}
+@keyframes scPuffR {
+  0%   { opacity: 0;    transform: translateX(78%)  scaleY(0.48); }
+  18%  { opacity: 0.94; transform: translateX(0%)   scaleY(1);    }
+  52%  { opacity: 0.4;                                              }
+  100% { opacity: 0;    transform: translateX(-7%)  scaleY(1.18); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   4. GADGETS — RGB GLITCH + SCAN LINES
+   Three layers (cyan / magenta / yellow) clip-path flicker.
+   GlitchOverlay remounts on each enter → animations restart cleanly.
+   ═══════════════════════════════════════════════════════════════════ */
 .sc-glitch-wrap {
   position: absolute;
   inset: 0;
@@ -261,17 +321,15 @@
   pointer-events: none;
   overflow: hidden;
 }
+
 .sc-gl {
   position: absolute;
   inset: 0;
   opacity: 0;
   mix-blend-mode: screen;
 }
-.sc-gl--c { animation: sc-glC 2.6s steps(1)        forwards; }
-.sc-gl--m { animation: sc-glM 2.6s steps(1) 0.07s  forwards; }
-.sc-gl--y { animation: sc-glY 2.6s steps(1) 0.14s  forwards; }
 
-/* Scanlines — persistent texture, fades in when card enters view */
+/* Scanlines: persistent subtle texture */
 .sc-scanlines {
   position: absolute;
   inset: 0;
@@ -285,43 +343,102 @@
     rgba(0, 0, 0, 0.13) 4px
   );
   opacity: 0;
-  transition: opacity 0.6s;
-}
-.sc-scanlines--on { opacity: 1; }
-
-/* Gadgets title glow */
-.sc-title--glow {
-  text-shadow: 0 0 16px rgba(0, 220, 255, 0.6);
+  animation: scScanIn 0.7s ease 0.1s forwards;
 }
 
-@keyframes sc-glC {
+@keyframes scScanIn {
+  to { opacity: 1; }
+}
+
+/* Cyan channel */
+.sc-gl-c {
+  animation: scGlC 2.7s steps(1) forwards;
+}
+/* Magenta channel */
+.sc-gl-m {
+  animation: scGlM 2.7s steps(1) 0.07s forwards;
+}
+/* Yellow channel */
+.sc-gl-y {
+  animation: scGlY 2.7s steps(1) 0.14s forwards;
+}
+
+@keyframes scGlC {
   0%   { opacity: 0; }
-  4%   { opacity: 1;    background: rgba(0,255,255,0.45); clip-path: inset(4%  0 83% 0); transform: translateX(-8px); }
-  8%   {               background: rgba(0,255,255,0.45); clip-path: inset(68% 0  4% 0); transform: translateX( 8px); }
+  4%   { opacity: 1;   background: rgba(0,255,255,0.45); clip-path: inset(4% 0 83% 0);  transform: translateX(-8px);  }
+  8%   {               background: rgba(0,255,255,0.45); clip-path: inset(68% 0 4% 0);  transform: translateX(8px);   }
   12%  { opacity: 0; }
-  19%  { opacity: 0.70; background: rgba(0,255,255,0.28); clip-path: inset(33% 0 50% 0); transform: translateX(-5px); }
-  23%  { opacity: 0; }
-  29%  { opacity: 0.45; background: rgba(0,255,255,0.18); clip-path: inset(10% 0 78% 0); transform: translateX( 3px); }
-  33%  { opacity: 0; }
+  20%  { opacity: 0.7; background: rgba(0,255,255,0.28); clip-path: inset(33% 0 50% 0); transform: translateX(-5px);  }
+  24%  { opacity: 0; }
+  30%  { opacity: 0.42;background: rgba(0,255,255,0.18); clip-path: inset(10% 0 78% 0); transform: translateX(3px);   }
+  34%  { opacity: 0; }
   100% { opacity: 0; }
 }
-@keyframes sc-glM {
+@keyframes scGlM {
   0%   { opacity: 0; }
-  4%   { opacity: 1;    background: rgba(255,0,255,0.45); clip-path: inset(44% 0 30% 0); transform: translateX( 9px); }
-  8%   {               background: rgba(255,0,255,0.45); clip-path: inset(16% 0 68% 0); transform: translateX(-9px); }
+  4%   { opacity: 1;   background: rgba(255,0,255,0.45); clip-path: inset(44% 0 30% 0); transform: translateX(9px);   }
+  8%   {               background: rgba(255,0,255,0.45); clip-path: inset(16% 0 68% 0); transform: translateX(-9px);  }
   12%  { opacity: 0; }
-  19%  { opacity: 0.70; background: rgba(255,0,255,0.28); clip-path: inset(62% 0 16% 0); transform: translateX( 5px); }
-  23%  { opacity: 0; }
-  29%  { opacity: 0.38; background: rgba(255,0,255,0.16); clip-path: inset(80% 0  6% 0); transform: translateX(-3px); }
-  33%  { opacity: 0; }
+  20%  { opacity: 0.7; background: rgba(255,0,255,0.28); clip-path: inset(62% 0 16% 0); transform: translateX(5px);   }
+  24%  { opacity: 0; }
+  30%  { opacity: 0.36;background: rgba(255,0,255,0.16); clip-path: inset(80% 0 6% 0);  transform: translateX(-3px);  }
+  34%  { opacity: 0; }
   100% { opacity: 0; }
 }
-@keyframes sc-glY {
+@keyframes scGlY {
   0%   { opacity: 0; }
-  4%   { opacity: 0.88; background: rgba(255,255,0,0.35); clip-path: inset(84% 0  2% 0); transform: translateX(-6px); }
-  8%   {               background: rgba(255,255,0,0.35); clip-path: inset(26% 0 60% 0); transform: translateX( 6px); }
+  4%   { opacity: 0.9; background: rgba(255,255,0,0.35); clip-path: inset(84% 0 2% 0);  transform: translateX(-6px);  }
+  8%   {               background: rgba(255,255,0,0.35); clip-path: inset(26% 0 60% 0); transform: translateX(6px);   }
   12%  { opacity: 0; }
-  19%  { opacity: 0.50; background: rgba(255,255,0,0.22); clip-path: inset(48% 0 40% 0); transform: translateX(-4px); }
-  23%  { opacity: 0; }
+  20%  { opacity: 0.5; background: rgba(255,255,0,0.22); clip-path: inset(48% 0 40% 0); transform: translateX(-4px);  }
+  24%  { opacity: 0; }
   100% { opacity: 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RESPONSIVE OVERRIDES
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Small phones (< 360 px) */
+@media (max-width: 360px) {
+  .sc-card-wrap { width: calc(100vw - 40px); }
+  .sc-card       { height: 170px; }
+  .sc-title      { font-size: 14px; }
+  .sc-subtitle   { font-size: 10px; }
+  .sc-btn        { font-size: 10px; padding: 6px 12px; }
+  .sc-image-wrap { width: 44%; }
+}
+
+/* Tablets (> 640 px) */
+@media (min-width: 640px) {
+  .sc-card-wrap { width: clamp(340px, 72vw, 480px); }
+  .sc-card       { height: 210px; }
+  .sc-title      { font-size: 20px; }
+  .sc-subtitle   { font-size: 12px; }
+  .sc-btn        { font-size: 13px; padding: 9px 18px; margin-top: 10px; }
+}
+
+/* Desktop (> 1024 px) */
+@media (min-width: 1024px) {
+  .sc-card-wrap { width: clamp(380px, 38vw, 520px); }
+  .sc-card       { height: 220px; }
+  .sc-track      { padding: 4px 24px 6px; gap: 20px; }
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .sc-curtain-left,
+  .sc-curtain-right,
+  .sc-puff,
+  .sc-gl,
+  .sc-scanlines {
+    animation: none !important;
+    transition: none !important;
+    opacity: 0 !important;
+  }
+  .sc-card--visible .sc-curtain-left,
+  .sc-card--visible .sc-curtain-right {
+    transform: translateX(-100%) !important;
+    /* just hide instantly */
+  }
 }
