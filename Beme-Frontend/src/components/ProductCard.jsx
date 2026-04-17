@@ -92,6 +92,27 @@ function getDescriptionSnippet(product) {
   return "";
 }
 
+/* ─── Cart icon SVG (shared between in-stock / out-of-stock states) ─── */
+function CartIcon({ inStock }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      className="cart-svg"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M6 7h12l-1 12H7L6 7z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M9 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      {inStock ? (
+        <path d="M12 11v6M9 14h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      ) : (
+        <path d="M9 15l6-6M9 9l6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      )}
+    </svg>
+  );
+}
+
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();
   const navigate = useNavigate();
@@ -136,9 +157,19 @@ export default function ProductCard({ product }) {
   const customizations = useMemo(() => normalizeCustomizations(product?.customizations), [product]);
   const descriptionSnippet = useMemo(() => getDescriptionSnippet(product), [product]);
 
+  // ── Discount calculation ──
+  const hasDiscount = price !== null && oldPrice !== null && oldPrice > price;
+  const discountPct = hasDiscount ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
+  const savings = hasDiscount ? oldPrice - price : 0;
+
   const formatMoney = (n) => {
     if (n === null || Number.isNaN(n)) return "";
     return `GHS ${n.toFixed(2)}`;
+  };
+
+  const formatMoneyShort = (n) => {
+    if (n === null || Number.isNaN(n)) return "";
+    return `GHS ${n % 1 === 0 ? n.toFixed(0) : n.toFixed(2)}`;
   };
 
   const showCardPopupMsg = (message) => {
@@ -215,6 +246,8 @@ export default function ProductCard({ product }) {
     <>
       <Wrapper {...wrapperProps}>
         <div className={`p-card ${!inStock ? "p-card--out" : ""}`}>
+
+          {/* ── Image / media area ── */}
           <div
             className="p-media"
             onTouchStart={handleTouchStart}
@@ -225,32 +258,6 @@ export default function ProductCard({ product }) {
               <>
                 <div className="p-media-frame">
                   <img className="p-img" src={activeImage} alt={name} loading="lazy" />
-                </div>
-
-                <div className="p-media-top">
-                  <button
-                    className={`p-cart-btn ${!inStock ? "p-cart-btn--disabled" : ""}`}
-                    onClick={handleAddToCart}
-                    aria-label={inStock ? "Add to cart" : "Product is out of stock"}
-                    type="button"
-                    disabled={!inStock}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      className="cart-svg"
-                      aria-hidden="true"
-                      focusable="false"
-                    >
-                      <path d="M6 7h12l-1 12H7L6 7z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-                      <path d="M9 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                      {inStock ? (
-                        <path d="M12 11v6M9 14h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                      ) : (
-                        <path d="M9 15l6-6M9 9l6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                      )}
-                    </svg>
-                  </button>
                 </div>
 
                 {!inStock && (
@@ -292,7 +299,27 @@ export default function ProductCard({ product }) {
             )}
           </div>
 
+          {/* ── Discount banner — shown only when oldPrice > price ── */}
+          {hasDiscount && (
+            <div className="p-discount-banner" aria-label={`${discountPct}% discount`}>
+              <span className="p-discount-pct">{discountPct}% OFF</span>
+              <div className="p-discount-right">
+                <span className="p-discount-prices">
+                  <span className="p-discount-old">{formatMoneyShort(oldPrice)}</span>
+                  <span className="p-discount-arrow">→</span>
+                  <span className="p-discount-new">{formatMoneyShort(price)}</span>
+                </span>
+                <span className="p-discount-save">You save {formatMoneyShort(savings)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* ── Card body ── */}
           <div className="p-body">
+            {cardPopup && (
+              <div className="p-card-popup" role="alert">{cardPopup}</div>
+            )}
+
             <h3 className="p-name">{name}</h3>
 
             {descriptionSnippet ? (
@@ -301,19 +328,33 @@ export default function ProductCard({ product }) {
               <div className="p-desc p-desc--empty" aria-hidden="true" />
             )}
 
-            {price !== null ? (
-              <div className="p-prices">
-                <span className="p-price">{formatMoney(price)}</span>
-                {oldPrice !== null && oldPrice > price && (
-                  <span className="p-old-wrap">
-                    <span className="p-old-label">Old price</span>
-                    <span className="p-old">{formatMoney(oldPrice)}</span>
-                  </span>
-                )}
-              </div>
-            ) : (
-              <span className="p-missing">No price</span>
-            )}
+            {/* ── Price row + inline cart button ── */}
+            <div className="p-prices">
+              {price !== null ? (
+                <div className="p-price-col">
+                  <span className="p-price">{formatMoney(price)}</span>
+                  {hasDiscount && (
+                    <div className="p-old-wrap">
+                      <span className="p-old-label">Was</span>
+                      <span className="p-old">{formatMoney(oldPrice)}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <span className="p-missing">No price</span>
+              )}
+
+              {/* Cart button — inline beside price */}
+              <button
+                className={`p-cart-btn ${!inStock ? "p-cart-btn--disabled" : ""}`}
+                onClick={handleAddToCart}
+                aria-label={inStock ? "Add to cart" : "Product is out of stock"}
+                type="button"
+                disabled={!inStock}
+              >
+                <CartIcon inStock={inStock} />
+              </button>
+            </div>
           </div>
         </div>
       </Wrapper>
@@ -328,7 +369,7 @@ export default function ProductCard({ product }) {
               aria-label="Close"
             >×</button>
           </div>
-      
+
           <div className="cart-popup__header">
             <div className="cart-popup__thumb">
               {cartPopupItem.image && (
@@ -343,13 +384,13 @@ export default function ProductCard({ product }) {
               )}
             </div>
           </div>
-      
+
           <div className="cart-popup__divider" />
-      
+
           <p className="cart-popup__thanks">
             Thanks for shopping with us! Ready to checkout or keep browsing?
           </p>
-      
+
           <div className="cart-popup__actions">
             <button
               className="cart-popup__btn cart-popup__btn--ghost"
