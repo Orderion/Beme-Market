@@ -3,6 +3,22 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import "./CartDrawer.css";
 
+/* ─────────────────────────────────────────────
+   RECOMMENDED PRODUCTS
+   Replace this mock data with your real products
+   source (API call, context, props, etc.)
+───────────────────────────────────────────── */
+const RECOMMENDED_PRODUCTS = [
+  { id: "rec-1", name: "USB-C Hub 7-in-1", price: 95, image: "" },
+  { id: "rec-2", name: "Phone Stand Desk", price: 45, image: "" },
+  { id: "rec-3", name: "Cable Organiser Set", price: 28, image: "" },
+  { id: "rec-4", name: "Webcam Cover Slider", price: 12, image: "" },
+  { id: "rec-5", name: "Laptop Cooling Pad", price: 62, image: "" },
+];
+
+/* ─────────────────────────────────────────────
+   HELPERS (unchanged)
+───────────────────────────────────────────── */
 function parseBooleanish(value, fallback = false) {
   if (typeof value === "boolean") return value;
   if (typeof value === "number") return value > 0;
@@ -54,12 +70,16 @@ function getItemAbroadDeliveryFee(item) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
+/* ─────────────────────────────────────────────
+   COMPONENT
+───────────────────────────────────────────── */
 export default function CartDrawer({ isOpen, onClose }) {
   const navigate = useNavigate();
   const {
     cartItems,
     removeFromCart,
     updateQty,
+    addToCart,
     subtotal,
     itemCount,
     cartPopup,
@@ -67,43 +87,63 @@ export default function CartDrawer({ isOpen, onClose }) {
     hasUnavailableItems,
   } = useCart();
 
-  const [cartMessage, setCartMessage] = useState("");
-  const [promoCode, setPromoCode] = useState("");
-  const [promoApplied, setPromoApplied] = useState(false);
+  const [cartMessage, setCartMessage]       = useState("");
+  const [promoCode, setPromoCode]           = useState("");
+  const [promoApplied, setPromoApplied]     = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [addedRecIds, setAddedRecIds]       = useState(new Set());
 
+  /* auto-clear the status message */
   useEffect(() => {
     if (!cartMessage) return;
     const timer = window.setTimeout(() => setCartMessage(""), 2200);
     return () => window.clearTimeout(timer);
   }, [cartMessage]);
 
+  /* lock body scroll when open */
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
+  /* close on Escape — but only if the confirm dialog is NOT open */
   useEffect(() => {
     if (!isOpen) return;
-    const onKeyDown = (e) => { if (e.key === "Escape") onClose?.(); };
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        if (showClearConfirm) {
+          setShowClearConfirm(false);
+        } else {
+          onClose?.();
+        }
+      }
+    };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, showClearConfirm]);
+
+  /* reset confirm dialog whenever drawer closes */
+  useEffect(() => {
+    if (!isOpen) setShowClearConfirm(false);
+  }, [isOpen]);
 
   const unavailableCount = useMemo(
     () => cartItems.filter((item) => getUnavailableReason(item)).length,
     [cartItems]
   );
 
-  const popupItem = cartPopup?.item || null;
-  const popupImage =
+  /* ── popup helpers ── */
+  const popupItem    = cartPopup?.item || null;
+  const popupImage   =
     popupItem?.image ||
     (Array.isArray(popupItem?.images) ? popupItem.images[0] : "") ||
     "";
-  const popupTitle = cartPopup?.title || "Added to cart";
+  const popupTitle   = cartPopup?.title   || "Added to cart";
   const popupMessage =
     cartPopup?.message ||
     "Thank you for shopping with us. Your item has been added to cart.";
 
+  /* ── navigation ── */
   const goCheckout = () => {
     if (cartItems.length === 0 || hasUnavailableItems) {
       if (hasUnavailableItems) {
@@ -123,6 +163,7 @@ export default function CartDrawer({ isOpen, onClose }) {
     onClose?.();
   };
 
+  /* ── qty controls ── */
   const handleDecrease = (item, qty) => {
     const result = updateQty(item.lineId || item.id, Math.max(1, qty - 1));
     if (result?.ok === false) setCartMessage(result.message || "Unable to update quantity.");
@@ -133,15 +174,62 @@ export default function CartDrawer({ isOpen, onClose }) {
     if (result?.ok === false) setCartMessage(result.message || "Unable to update quantity.");
   };
 
+  /* ── promo ── */
   const handleApplyPromo = () => {
     if (!promoCode.trim()) return;
     setPromoApplied(true);
     setCartMessage(`Promo code "${promoCode}" applied.`);
   };
 
+  /* ── clear cart (confirmed) ── */
+  const handleConfirmedClear = () => {
+    cartItems.forEach((item) => removeFromCart(item.lineId || item.id));
+    setShowClearConfirm(false);
+    setAddedRecIds(new Set());
+  };
+
+  /* ── add recommended product ── */
+  const handleAddRecommended = (product) => {
+    if (addedRecIds.has(product.id)) return;
+
+    if (typeof addToCart === "function") {
+      addToCart({
+        id:    product.id,
+        name:  product.name,
+        price: product.price,
+        image: product.image || "",
+        qty:   1,
+      });
+    }
+
+    setAddedRecIds((prev) => new Set(prev).add(product.id));
+    setCartMessage(`"${product.name}" added to cart.`);
+  };
+
+  /* ── filter recommended: hide items already in cart ── */
+  const cartItemIds = useMemo(
+    () => new Set(cartItems.map((i) => i.id)),
+    [cartItems]
+  );
+  const visibleRecs = RECOMMENDED_PRODUCTS.filter(
+    (p) => !cartItemIds.has(p.id)
+  );
+
+  /* ─────────────────────────────────────────────
+     RENDER
+  ───────────────────────────────────────────── */
   return (
     <div className={`cd ${isOpen ? "cd--open" : ""}`} aria-hidden={!isOpen}>
-      <div className="cd-overlay" onClick={onClose} />
+      <div
+        className="cd-overlay"
+        onClick={() => {
+          if (showClearConfirm) {
+            setShowClearConfirm(false);
+          } else {
+            onClose?.();
+          }
+        }}
+      />
 
       <aside className="cd-panel" role="dialog" aria-modal="true">
 
@@ -164,11 +252,12 @@ export default function CartDrawer({ isOpen, onClose }) {
             <p className="cd-subtitle">{itemCount} item{itemCount !== 1 ? "s" : ""}</p>
           </div>
 
+          {/* Trash button — opens confirm dialog */}
           <button
             className="cd-icon-btn"
             onClick={() => {
               if (cartItems.length === 0) return;
-              cartItems.forEach((item) => removeFromCart(item.lineId || item.id));
+              setShowClearConfirm(true);
             }}
             aria-label="Clear cart"
             type="button"
@@ -184,6 +273,45 @@ export default function CartDrawer({ isOpen, onClose }) {
             </svg>
           </button>
         </div>
+
+        {/* ── CLEAR CART CONFIRMATION DIALOG ── */}
+        {showClearConfirm && (
+          <div className="cd-confirm-backdrop" role="dialog" aria-modal="true" aria-labelledby="cd-confirm-title">
+            <div className="cd-confirm-dialog">
+              <div className="cd-confirm-icon-wrap">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14H6L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4h6v2" />
+                </svg>
+              </div>
+              <h4 className="cd-confirm-title" id="cd-confirm-title">Clear your cart?</h4>
+              <p className="cd-confirm-message">
+                This will remove all {itemCount} item{itemCount !== 1 ? "s" : ""} from your cart.
+                This action cannot be undone.
+              </p>
+              <div className="cd-confirm-actions">
+                <button
+                  type="button"
+                  className="cd-confirm-cancel"
+                  onClick={() => setShowClearConfirm(false)}
+                >
+                  Keep shopping
+                </button>
+                <button
+                  type="button"
+                  className="cd-confirm-clear"
+                  onClick={handleConfirmedClear}
+                >
+                  Yes, clear cart
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── BODY ── */}
         <div className="cd-body">
@@ -277,145 +405,197 @@ export default function CartDrawer({ isOpen, onClose }) {
               </button>
             </div>
           ) : (
-            cartItems.map((item) => {
-              const img = item.image || "";
-              const name = item.name || "Untitled";
-              const price = Number(item.price || 0);
-              const basePrice = Number(item.basePrice ?? item.price ?? 0);
-              const optionPriceTotal = Number(item.optionPriceTotal || 0);
-              const qty = Number(item.qty || 1);
-              const stock = getNumericStock(item);
-              const unavailableReason = getUnavailableReason(item);
-              const itemBlocked = Boolean(unavailableReason);
-              const canIncrease = !isOutOfStock(item) && (stock === null || qty < stock);
-              const abroadDeliveryFee = getItemAbroadDeliveryFee(item);
+            <>
+              {/* ── CART ITEMS ── */}
+              {cartItems.map((item) => {
+                const img              = item.image || "";
+                const name             = item.name || "Untitled";
+                const price            = Number(item.price || 0);
+                const basePrice        = Number(item.basePrice ?? item.price ?? 0);
+                const optionPriceTotal = Number(item.optionPriceTotal || 0);
+                const qty              = Number(item.qty || 1);
+                const stock            = getNumericStock(item);
+                const unavailableReason = getUnavailableReason(item);
+                const itemBlocked      = Boolean(unavailableReason);
+                const canIncrease      = !isOutOfStock(item) && (stock === null || qty < stock);
+                const abroadDeliveryFee = getItemAbroadDeliveryFee(item);
 
-              return (
-                <div key={item.lineId || item.id} className="cd-item">
-                  {/* Thumbnail */}
-                  <div className="cd-item-img">
-                    {img ? (
-                      <img src={img} alt={name} />
-                    ) : (
-                      <div className="cd-img-placeholder">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-                          stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" opacity="0.4">
-                          <rect x="3" y="3" width="18" height="18" rx="2" />
-                          <circle cx="8.5" cy="8.5" r="1.5" />
-                          <polyline points="21 15 16 10 5 21" />
-                        </svg>
+                return (
+                  <div key={item.lineId || item.id} className="cd-item">
+                    {/* Thumbnail */}
+                    <div className="cd-item-img">
+                      {img ? (
+                        <img src={img} alt={name} />
+                      ) : (
+                        <div className="cd-img-placeholder">
+                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"
+                            strokeLinejoin="round" opacity="0.4">
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <polyline points="21 15 16 10 5 21" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="cd-item-info">
+                      <div className="cd-item-top-row">
+                        <p className="cd-item-name">{name}</p>
+
+                        <button
+                          type="button"
+                          className="cd-remove-icon"
+                          onClick={() => removeFromCart(item.lineId || item.id)}
+                          aria-label={`Remove ${name}`}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6l-1 14H6L5 6" />
+                            <path d="M10 11v6" /><path d="M14 11v6" />
+                            <path d="M9 6V4h6v2" />
+                          </svg>
+                        </button>
                       </div>
-                    )}
+
+                      {/* Selected options pills */}
+                      {item.selectedOptions && Object.keys(item.selectedOptions).length ? (
+                        <div className="cd-item-options">
+                          {Object.entries(item.selectedOptions).map(([key, value]) =>
+                            value ? (
+                              <span className="cd-option-pill" key={`${key}-${value}`}>
+                                {key}: {value}
+                              </span>
+                            ) : null
+                          )}
+                        </div>
+                      ) : null}
+
+                      {/* Option price breakdown */}
+                      {optionPriceTotal > 0 ? (
+                        <div className="cd-item-options">
+                          <span className="cd-option-pill">Base: GHS {basePrice.toFixed(2)}</span>
+                          <span className="cd-option-pill">Options: +GHS {optionPriceTotal.toFixed(2)}</span>
+                        </div>
+                      ) : null}
+
+                      {/* Ships from abroad */}
+                      {item.shipsFromAbroad ? (
+                        <div className="cd-item-options">
+                          <span className="cd-option-pill cd-option-pill--abroad">
+                            Ships from abroad
+                            {abroadDeliveryFee > 0 ? ` • Fee: GHS ${abroadDeliveryFee.toFixed(2)} each` : ""}
+                          </span>
+                        </div>
+                      ) : null}
+
+                      {/* Stock pill */}
+                      {stock !== null && !isOutOfStock(item) ? (
+                        <div className="cd-item-options">
+                          <span className="cd-option-pill">Stock: {stock}</span>
+                        </div>
+                      ) : null}
+
+                      {/* Unavailable reason */}
+                      {unavailableReason ? (
+                        <div className="cd-item-options">
+                          <span className="cd-option-pill cd-option-pill--danger">
+                            {unavailableReason}
+                          </span>
+                        </div>
+                      ) : null}
+
+                      {/* Price + qty row */}
+                      <div className="cd-item-bottom-row">
+                        <p className="cd-item-price">GHS {price.toFixed(2)}</p>
+
+                        <div className="cd-qty">
+                          <button
+                            type="button"
+                            className="cd-qty-btn cd-qty-btn--minus"
+                            onClick={() => handleDecrease(item, qty)}
+                            aria-label="Decrease quantity"
+                            disabled={itemBlocked || qty <= 1}
+                          >
+                            −
+                          </button>
+                          <span className="cd-qty-num">{qty}</span>
+                          <button
+                            type="button"
+                            className="cd-qty-btn cd-qty-btn--plus"
+                            onClick={() => handleIncrease(item, qty)}
+                            aria-label="Increase quantity"
+                            disabled={!canIncrease}
+                            title={
+                              !canIncrease && stock !== null && !isOutOfStock(item)
+                                ? `Only ${stock} available`
+                                : undefined
+                            }
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* ── RECOMMENDED FOR YOU ── */}
+              {visibleRecs.length > 0 && (
+                <div className="cd-rec-section">
+                  <div className="cd-rec-header">
+                    <span className="cd-rec-label">Recommended for you</span>
+                    <span className="cd-rec-badge">{visibleRecs.length} picks</span>
                   </div>
 
-                  {/* Info */}
-                  <div className="cd-item-info">
-                    <div className="cd-item-top-row">
-                      <p className="cd-item-name">{name}</p>
+                  <div className="cd-rec-scroll">
+                    {visibleRecs.map((product) => {
+                      const alreadyAdded = addedRecIds.has(product.id);
+                      return (
+                        <div key={product.id} className="cd-rec-card">
+                          <div className="cd-rec-img">
+                            {product.image ? (
+                              <img src={product.image} alt={product.name} />
+                            ) : (
+                              <div className="cd-rec-img-placeholder">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                  stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"
+                                  strokeLinejoin="round" opacity="0.35">
+                                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                                  <circle cx="8.5" cy="8.5" r="1.5" />
+                                  <polyline points="21 15 16 10 5 21" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
 
-                      {/* ── Individual remove button ── */}
-                      <button
-                        type="button"
-                        className="cd-remove-icon"
-                        onClick={() => removeFromCart(item.lineId || item.id)}
-                        aria-label={`Remove ${name}`}
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                          stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6l-1 14H6L5 6" />
-                          <path d="M10 11v6" /><path d="M14 11v6" />
-                          <path d="M9 6V4h6v2" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    {/* Selected options pills */}
-                    {item.selectedOptions && Object.keys(item.selectedOptions).length ? (
-                      <div className="cd-item-options">
-                        {Object.entries(item.selectedOptions).map(([key, value]) =>
-                          value ? (
-                            <span className="cd-option-pill" key={`${key}-${value}`}>
-                              {key}: {value}
-                            </span>
-                          ) : null
-                        )}
-                      </div>
-                    ) : null}
-
-                    {/* Option price breakdown */}
-                    {optionPriceTotal > 0 ? (
-                      <div className="cd-item-options">
-                        <span className="cd-option-pill">Base: GHS {basePrice.toFixed(2)}</span>
-                        <span className="cd-option-pill">Options: +GHS {optionPriceTotal.toFixed(2)}</span>
-                      </div>
-                    ) : null}
-
-                    {/* Ships from abroad */}
-                    {item.shipsFromAbroad ? (
-                      <div className="cd-item-options">
-                        <span className="cd-option-pill cd-option-pill--abroad">
-                          Ships from abroad
-                          {abroadDeliveryFee > 0 ? ` • Fee: GHS ${abroadDeliveryFee.toFixed(2)} each` : ""}
-                        </span>
-                      </div>
-                    ) : null}
-
-                    {/* Stock pill */}
-                    {stock !== null && !isOutOfStock(item) ? (
-                      <div className="cd-item-options">
-                        <span className="cd-option-pill">Stock: {stock}</span>
-                      </div>
-                    ) : null}
-
-                    {/* Unavailable reason */}
-                    {unavailableReason ? (
-                      <div className="cd-item-options">
-                        <span className="cd-option-pill cd-option-pill--danger">
-                          {unavailableReason}
-                        </span>
-                      </div>
-                    ) : null}
-
-                    {/* Price + qty row */}
-                    <div className="cd-item-bottom-row">
-                      <p className="cd-item-price">GHS {price.toFixed(2)}</p>
-
-                      <div className="cd-qty">
-                        <button
-                          type="button"
-                          className="cd-qty-btn cd-qty-btn--minus"
-                          onClick={() => handleDecrease(item, qty)}
-                          aria-label="Decrease quantity"
-                          disabled={itemBlocked || qty <= 1}
-                        >
-                          −
-                        </button>
-                        <span className="cd-qty-num">{qty}</span>
-                        <button
-                          type="button"
-                          className="cd-qty-btn cd-qty-btn--plus"
-                          onClick={() => handleIncrease(item, qty)}
-                          aria-label="Increase quantity"
-                          disabled={!canIncrease}
-                          title={
-                            !canIncrease && stock !== null && !isOutOfStock(item)
-                              ? `Only ${stock} available`
-                              : undefined
-                          }
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
+                          <div className="cd-rec-body">
+                            <p className="cd-rec-name" title={product.name}>{product.name}</p>
+                            <p className="cd-rec-price">GHS {Number(product.price || 0).toFixed(2)}</p>
+                            <button
+                              type="button"
+                              className={`cd-rec-add ${alreadyAdded ? "cd-rec-add--done" : ""}`}
+                              onClick={() => handleAddRecommended(product)}
+                              disabled={alreadyAdded}
+                              aria-label={alreadyAdded ? `${product.name} added` : `Add ${product.name} to cart`}
+                            >
+                              {alreadyAdded ? "✓ Added" : "+ Add to cart"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              );
-            })
+              )}
+            </>
           )}
         </div>
 
-        {/* ── FOOTER ── */}
+        {/* ── FOOTER (non-empty cart) ── */}
         {cartItems.length > 0 && (
           <div className="cd-footer">
 
