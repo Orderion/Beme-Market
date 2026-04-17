@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════
-   ShopCarousel.css  — All 5 animated themes
-   Visibility driven by .sc-card--visible (set from scroll position)
+   ShopCarousel.css
+   .sc-card--visible is added by scroll detection in ShopCarousel.jsx
    ═══════════════════════════════════════════════════════════════════ */
 
 .sc-root { display:flex; flex-direction:column; gap:12px; width:100%; }
@@ -16,10 +16,11 @@
 
 .sc-card-wrap {
   flex-shrink:0;
-  width: clamp(260px, 88vw, 440px);
+  width:clamp(260px, 88vw, 440px);
   scroll-snap-align:center;
 }
 
+/* ── Card shell — background set inline from THEME_BG in JSX ──────── */
 .sc-card {
   position:relative; height:190px;
   border-radius:20px; overflow:hidden;
@@ -30,7 +31,6 @@
 
 .sc-inner {
   width:100%; height:100%;
-  background:#1a3a2a;
   display:flex; justify-content:space-between;
   padding:20px 0 20px 22px; position:relative;
 }
@@ -52,7 +52,10 @@
   color:#fff; line-height:1.2; margin:0;
 }
 
-.sc-subtitle { font-size:11px; color:rgba(255,255,255,0.62); margin:0; line-height:1.4; }
+.sc-subtitle {
+  font-size:11px; color:rgba(255,255,255,0.65);
+  margin:0; line-height:1.4;
+}
 
 .sc-btn {
   display:inline-flex; align-items:center; gap:4px;
@@ -81,7 +84,8 @@
   background:rgba(255,255,255,0.15);
   backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
   border:none; display:flex; align-items:center;
-  justify-content:center; cursor:pointer; transition:background 0.2s;
+  justify-content:center; cursor:pointer;
+  transition:background 0.2s;
 }
 .sc-heart:hover { background:rgba(255,255,255,0.26); }
 .sc-heart-svg   { width:15px; }
@@ -94,83 +98,69 @@
 }
 .sc-dot.active { width:20px; background:#e86c2c; border-radius:999px; }
 
-/* ── THEME BACKGROUNDS ─────────────────────────────────────────────── */
-.sc-theme-fashion     .sc-inner { background:#1E3D2A; }
-.sc-theme-bestsellers .sc-inner { background:#7B1E1E; }
-.sc-theme-kente       .sc-inner { background:#17260F; }
-.sc-theme-scents      .sc-inner { background:#1E3D2A; }
-.sc-theme-gadgets     .sc-inner { background:#070E1C; }
-.sc-theme-gadgets .sc-title { text-shadow:0 0 18px rgba(0,220,255,0.55); }
+/* ── Gadgets: cyan title glow ──────────────────────────────────────── */
+.sc-theme-gadgets .sc-title {
+  text-shadow:0 0 18px rgba(0,220,255,0.6);
+}
 
 /* ════════════════════════════════════════════════════════════════════
-   1. FASHION — CURTAIN
-   Panels cover the card by default. sc-card--visible opens them.
+   1. FASHION — CURTAIN REVEAL
+   Two panels start at translateX(0) and slide apart on --visible.
    ════════════════════════════════════════════════════════════════════ */
 .sc-curtain {
   position:absolute; inset:0; z-index:15;
   display:flex; pointer-events:none;
 }
-
 .sc-curtain-left,
 .sc-curtain-right {
   height:100%; width:50.5%;
   will-change:transform;
-  /* IMPORTANT: explicit start state so transition has a from-value */
-  transform:translateX(0);
+  transform:translateX(0);                          /* EXPLICIT start */
   transition:transform 1.3s cubic-bezier(0.77,0,0.175,1);
 }
-
-/* Open the curtains when card is active */
 .sc-card--visible .sc-curtain-left  { transform:translateX(-100%); }
 .sc-card--visible .sc-curtain-right { transform:translateX(100%);  }
 
 /* ════════════════════════════════════════════════════════════════════
-   2. KENTE — ZIGZAG STRIPES
-   KenteSVG is remounted (key prop) on each activation.
-   Paths animate via CSS @keyframes on mount — no JS timing needed.
-   stroke-dasharray/offset: use a big fixed number (2000) that covers
-   the longest path (~1800px for 420-wide card at period=22).
+   2. KENTE — ZIGZAG STRIPES DRAW IN
+   KenteSVG remounts on each activation (key prop) → @keyframes restart.
+   stroke-dasharray:2000 is larger than any path length (~1600px max).
    ════════════════════════════════════════════════════════════════════ */
 .sc-kente-wrap {
   position:absolute; inset:0; z-index:3;
   pointer-events:none; overflow:hidden;
 }
-
 .sc-kente-svg {
   position:absolute; inset:0;
   width:100%; height:100%;
-  display:block; overflow:visible;
+  display:block;
 }
-
 .sc-kente-path {
-  stroke-dasharray: 2000;
-  stroke-dashoffset: 2000;
-  animation: kenteDrawIn 1.1s ease-out forwards;
+  stroke-dasharray:2000;
+  stroke-dashoffset:2000;
+  animation:kenteDrawIn 1.2s ease-out forwards;
 }
-
 @keyframes kenteDrawIn {
-  to { stroke-dashoffset: 0; }
+  to { stroke-dashoffset:0; }
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   3. SCENTS — CLOUD SPRAY
-   SprayOverlay remounts on activation → @keyframes restart.
+   3. SCENTS — TRANSLUCENT CLOUD SPRAY
+   SprayOverlay remounts on each activation → @keyframes restart.
    ════════════════════════════════════════════════════════════════════ */
 .sc-spray-wrap {
   position:absolute; inset:0; z-index:12;
   pointer-events:none; overflow:hidden;
 }
-
 .sc-puff {
   position:absolute; border-radius:50%;
   background:radial-gradient(ellipse at center,
-    rgba(255,255,255,0.92) 0%,
+    rgba(255,255,255,0.93) 0%,
     rgba(255,255,255,0.38) 42%,
     transparent 70%);
   opacity:0;
 }
-
-.sc-puff-l1 { width:175px;height:145px;left:-75px;top:0;   animation:scPuffL 3.2s ease-out 0s    forwards; }
+.sc-puff-l1 { width:175px;height:145px;left:-75px;top:0;    animation:scPuffL 3.2s ease-out 0s    forwards; }
 .sc-puff-l2 { width:130px;height:110px;left:-48px;top:28px; animation:scPuffL 3.2s ease-out 0.22s forwards; }
 .sc-puff-l3 { width:100px;height: 80px;left:-20px;top:56px; animation:scPuffL 3.2s ease-out 0.42s forwards; }
 .sc-puff-r1 { width:175px;height:145px;right:-75px;top:0;   animation:scPuffR 3.2s ease-out 0.1s  forwards; }
@@ -178,36 +168,36 @@
 .sc-puff-r3 { width:100px;height: 80px;right:-20px;top:56px;animation:scPuffR 3.2s ease-out 0.5s  forwards; }
 
 @keyframes scPuffL {
-  0%   { opacity:0;    transform:translateX(-78%) scaleY(0.48); }
-  18%  { opacity:0.94; transform:translateX(0%)   scaleY(1);    }
-  52%  { opacity:0.4; }
-  100% { opacity:0;    transform:translateX(7%)   scaleY(1.18); }
+  0%   { opacity:0;    transform:translateX(-80%) scaleY(0.45); }
+  18%  { opacity:0.95; transform:translateX(0%)   scaleY(1);    }
+  55%  { opacity:0.38; }
+  100% { opacity:0;    transform:translateX(8%)   scaleY(1.2);  }
 }
 @keyframes scPuffR {
-  0%   { opacity:0;    transform:translateX(78%)  scaleY(0.48); }
-  18%  { opacity:0.94; transform:translateX(0%)   scaleY(1);    }
-  52%  { opacity:0.4; }
-  100% { opacity:0;    transform:translateX(-7%)  scaleY(1.18); }
+  0%   { opacity:0;    transform:translateX(80%)  scaleY(0.45); }
+  18%  { opacity:0.95; transform:translateX(0%)   scaleY(1);    }
+  55%  { opacity:0.38; }
+  100% { opacity:0;    transform:translateX(-8%)  scaleY(1.2);  }
 }
 
 /* ════════════════════════════════════════════════════════════════════
    4. GADGETS — RGB GLITCH + SCANLINES
-   GlitchOverlay remounts on activation → @keyframes restart.
+   GlitchOverlay remounts on each activation → @keyframes restart.
    ════════════════════════════════════════════════════════════════════ */
 .sc-glitch-wrap {
   position:absolute; inset:0; z-index:12;
   pointer-events:none; overflow:hidden;
 }
-
-.sc-gl { position:absolute; inset:0; opacity:0; mix-blend-mode:screen; }
-
+.sc-gl {
+  position:absolute; inset:0; opacity:0; mix-blend-mode:screen;
+}
 .sc-scanlines {
   position:absolute; inset:0; z-index:4; pointer-events:none;
   background:repeating-linear-gradient(0deg,
     transparent,transparent 3px,
     rgba(0,0,0,0.14) 3px,rgba(0,0,0,0.14) 4px);
   opacity:0;
-  animation:scScanIn 0.6s ease 0.05s forwards;
+  animation:scScanIn 0.5s ease 0.05s forwards;
 }
 @keyframes scScanIn { to { opacity:1; } }
 
@@ -217,37 +207,37 @@
 
 @keyframes scGlC {
   0%  { opacity:0; }
-  4%  { opacity:1;    background:rgba(0,255,255,0.45); clip-path:inset(4% 0 83% 0);  transform:translateX(-8px); }
-  8%  {              background:rgba(0,255,255,0.45); clip-path:inset(68% 0 4% 0);  transform:translateX(8px);  }
+  4%  { opacity:1;    background:rgba(0,255,255,0.5);  clip-path:inset(4%  0 83% 0); transform:translateX(-8px); }
+  8%  {              background:rgba(0,255,255,0.5);  clip-path:inset(68% 0 4%  0); transform:translateX(8px);  }
   12% { opacity:0; }
-  20% { opacity:0.7;  background:rgba(0,255,255,0.28); clip-path:inset(33% 0 50% 0); transform:translateX(-5px); }
+  20% { opacity:0.7;  background:rgba(0,255,255,0.3);  clip-path:inset(33% 0 50% 0); transform:translateX(-5px); }
   24% { opacity:0; }
-  30% { opacity:0.42; background:rgba(0,255,255,0.18); clip-path:inset(10% 0 78% 0); transform:translateX(3px);  }
+  30% { opacity:0.4;  background:rgba(0,255,255,0.18); clip-path:inset(10% 0 78% 0); transform:translateX(3px);  }
   34% { opacity:0; }
  100% { opacity:0; }
 }
 @keyframes scGlM {
   0%  { opacity:0; }
-  4%  { opacity:1;    background:rgba(255,0,255,0.45); clip-path:inset(44% 0 30% 0); transform:translateX(9px);  }
-  8%  {              background:rgba(255,0,255,0.45); clip-path:inset(16% 0 68% 0); transform:translateX(-9px); }
+  4%  { opacity:1;    background:rgba(255,0,255,0.5);  clip-path:inset(44% 0 30% 0); transform:translateX(9px);  }
+  8%  {              background:rgba(255,0,255,0.5);  clip-path:inset(16% 0 68% 0); transform:translateX(-9px); }
   12% { opacity:0; }
-  20% { opacity:0.7;  background:rgba(255,0,255,0.28); clip-path:inset(62% 0 16% 0); transform:translateX(5px);  }
+  20% { opacity:0.7;  background:rgba(255,0,255,0.3);  clip-path:inset(62% 0 16% 0); transform:translateX(5px);  }
   24% { opacity:0; }
-  30% { opacity:0.36; background:rgba(255,0,255,0.16); clip-path:inset(80% 0 6% 0);  transform:translateX(-3px); }
+  30% { opacity:0.35; background:rgba(255,0,255,0.15); clip-path:inset(80% 0 6%  0); transform:translateX(-3px); }
   34% { opacity:0; }
  100% { opacity:0; }
 }
 @keyframes scGlY {
   0%  { opacity:0; }
-  4%  { opacity:0.9;  background:rgba(255,255,0,0.35); clip-path:inset(84% 0 2% 0);  transform:translateX(-6px); }
-  8%  {              background:rgba(255,255,0,0.35); clip-path:inset(26% 0 60% 0); transform:translateX(6px);  }
+  4%  { opacity:0.9;  background:rgba(255,255,0,0.38); clip-path:inset(84% 0 2%  0); transform:translateX(-6px); }
+  8%  {              background:rgba(255,255,0,0.38); clip-path:inset(26% 0 60% 0); transform:translateX(6px);  }
   12% { opacity:0; }
   20% { opacity:0.5;  background:rgba(255,255,0,0.22); clip-path:inset(48% 0 40% 0); transform:translateX(-4px); }
   24% { opacity:0; }
  100% { opacity:0; }
 }
 
-/* ── RESPONSIVE ─────────────────────────────────────────────────────── */
+/* ── RESPONSIVE ────────────────────────────────────────────────────── */
 @media (max-width:360px) {
   .sc-card-wrap { width:calc(100vw - 40px); }
   .sc-card      { height:168px; }
@@ -268,9 +258,9 @@
   .sc-track     { padding:4px 24px 6px; gap:20px; }
 }
 @media (prefers-reduced-motion:reduce) {
-  .sc-curtain-left, .sc-curtain-right { transition:none !important; }
-  .sc-puff,.sc-gl,.sc-scanlines       { animation:none !important; opacity:0 !important; }
+  .sc-curtain-left,.sc-curtain-right { transition:none !important; }
+  .sc-puff,.sc-gl,.sc-scanlines      { animation:none !important; opacity:0 !important; }
   .sc-card--visible .sc-curtain-left  { transform:translateX(-100%) !important; }
   .sc-card--visible .sc-curtain-right { transform:translateX(100%)  !important; }
-  .sc-kente-path                      { animation:none !important; stroke-dashoffset:0 !important; }
+  .sc-kente-path { animation:none !important; stroke-dashoffset:0 !important; }
 }
