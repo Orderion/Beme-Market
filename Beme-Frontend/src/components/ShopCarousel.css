@@ -240,7 +240,14 @@
 
 /* ═══════════════════════════════════════════════════════════════════
    3. SCENTS — TRANSLUCENT CLOUD SPRAY FROM SIDES
-   Six puff divs remounted on each enter → animations restart.
+
+   FIX: Puff animations are now gated by the .sc-card--visible parent
+   selector, exactly like the HTML reference's `.cv .pL1 { animation }`.
+   This means:
+     - The overlay is always in the DOM (no isVisible conditional render)
+     - Puffs stay invisible (opacity:0) until the parent gets .sc-card--visible
+     - The component is re-mounted (via key prop) on every re-entry,
+       resetting the CSS animation state for a clean replay each time.
    ═══════════════════════════════════════════════════════════════════ */
 .sc-spray-wrap {
   position: absolute;
@@ -250,6 +257,7 @@
   overflow: hidden;
 }
 
+/* Base puff style — hidden by default */
 .sc-puff {
   position: absolute;
   border-radius: 50%;
@@ -262,39 +270,25 @@
   opacity: 0;
 }
 
-/* Left puffs */
-.sc-puff-l1 {
-  width: 175px; height: 145px;
-  left: -75px;  top: 0px;
-  animation: scPuffL 3.2s ease-out 0s forwards;
-}
-.sc-puff-l2 {
-  width: 130px; height: 110px;
-  left: -48px;  top: 28px;
-  animation: scPuffL 3.2s ease-out 0.22s forwards;
-}
-.sc-puff-l3 {
-  width: 100px; height: 80px;
-  left: -20px;  top: 56px;
-  animation: scPuffL 3.2s ease-out 0.42s forwards;
-}
+/* Puff sizes & positions */
+.sc-puff-l1 { width: 175px; height: 145px; left: -75px; top: 0px;   }
+.sc-puff-l2 { width: 130px; height: 110px; left: -48px; top: 28px;  }
+.sc-puff-l3 { width: 100px; height: 80px;  left: -20px; top: 56px;  }
+.sc-puff-r1 { width: 175px; height: 145px; right: -75px; top: 0px;  }
+.sc-puff-r2 { width: 130px; height: 110px; right: -48px; top: 28px; }
+.sc-puff-r3 { width: 100px; height: 80px;  right: -20px; top: 56px; }
 
-/* Right puffs */
-.sc-puff-r1 {
-  width: 175px; height: 145px;
-  right: -75px; top: 0px;
-  animation: scPuffR 3.2s ease-out 0.1s forwards;
-}
-.sc-puff-r2 {
-  width: 130px; height: 110px;
-  right: -48px; top: 28px;
-  animation: scPuffR 3.2s ease-out 0.3s forwards;
-}
-.sc-puff-r3 {
-  width: 100px; height: 80px;
-  right: -20px; top: 56px;
-  animation: scPuffR 3.2s ease-out 0.5s forwards;
-}
+/*
+ * FIX: Animations are triggered by .sc-card--visible on the parent,
+ * NOT as unconditional class-level animations. This mirrors the HTML:
+ *   `.cv .pL1 { animation: pfL 3s ease-out 0s forwards; }`
+ */
+.sc-card--visible .sc-puff-l1 { animation: scPuffL 3.2s ease-out 0s    forwards; }
+.sc-card--visible .sc-puff-l2 { animation: scPuffL 3.2s ease-out 0.22s forwards; }
+.sc-card--visible .sc-puff-l3 { animation: scPuffL 3.2s ease-out 0.42s forwards; }
+.sc-card--visible .sc-puff-r1 { animation: scPuffR 3.2s ease-out 0.1s  forwards; }
+.sc-card--visible .sc-puff-r2 { animation: scPuffR 3.2s ease-out 0.3s  forwards; }
+.sc-card--visible .sc-puff-r3 { animation: scPuffR 3.2s ease-out 0.5s  forwards; }
 
 @keyframes scPuffL {
   0%   { opacity: 0;    transform: translateX(-78%) scaleY(0.48); }
@@ -311,8 +305,15 @@
 
 /* ═══════════════════════════════════════════════════════════════════
    4. GADGETS — RGB GLITCH + SCAN LINES
-   Three layers (cyan / magenta / yellow) clip-path flicker.
-   GlitchOverlay remounts on each enter → animations restart cleanly.
+
+   FIX 1: Glitch channel animations are gated by .sc-card--visible,
+   matching the HTML reference's `.cv .gC { animation: glC ... }`.
+
+   FIX 2: Scanlines use a CSS transition (opacity 0 → 1) instead of a
+   one-shot @keyframes animation. The old animation approach broke on
+   re-entry because `forwards` keeps the final state and the animation
+   won't re-fire when the class re-matches. A transition re-triggers
+   correctly every time .sc-card--visible is added/removed.
    ═══════════════════════════════════════════════════════════════════ */
 .sc-glitch-wrap {
   position: absolute;
@@ -329,7 +330,7 @@
   mix-blend-mode: screen;
 }
 
-/* Scanlines: persistent subtle texture */
+/* FIX: Scanlines use a transition, not an animation */
 .sc-scanlines {
   position: absolute;
   inset: 0;
@@ -343,54 +344,47 @@
     rgba(0, 0, 0, 0.13) 4px
   );
   opacity: 0;
-  animation: scScanIn 0.7s ease 0.1s forwards;
+  transition: opacity 0.6s ease 0.1s;
 }
+.sc-card--visible .sc-scanlines { opacity: 1; }
 
-@keyframes scScanIn {
-  to { opacity: 1; }
-}
-
-/* Cyan channel */
-.sc-gl-c {
-  animation: scGlC 2.7s steps(1) forwards;
-}
-/* Magenta channel */
-.sc-gl-m {
-  animation: scGlM 2.7s steps(1) 0.07s forwards;
-}
-/* Yellow channel */
-.sc-gl-y {
-  animation: scGlY 2.7s steps(1) 0.14s forwards;
-}
+/*
+ * FIX: Glitch channel animations only fire when parent has
+ * .sc-card--visible. The overlay remounts (via key prop) on every
+ * re-entry, giving each channel a fresh CSS animation state.
+ */
+.sc-card--visible .sc-gl-c { animation: scGlC 2.7s steps(1)        forwards; }
+.sc-card--visible .sc-gl-m { animation: scGlM 2.7s steps(1) 0.07s  forwards; }
+.sc-card--visible .sc-gl-y { animation: scGlY 2.7s steps(1) 0.14s  forwards; }
 
 @keyframes scGlC {
   0%   { opacity: 0; }
-  4%   { opacity: 1;   background: rgba(0,255,255,0.45); clip-path: inset(4% 0 83% 0);  transform: translateX(-8px);  }
+  4%   { opacity: 1;    background: rgba(0,255,255,0.45); clip-path: inset(4% 0 83% 0);  transform: translateX(-8px);  }
   8%   {               background: rgba(0,255,255,0.45); clip-path: inset(68% 0 4% 0);  transform: translateX(8px);   }
   12%  { opacity: 0; }
-  20%  { opacity: 0.7; background: rgba(0,255,255,0.28); clip-path: inset(33% 0 50% 0); transform: translateX(-5px);  }
+  20%  { opacity: 0.7;  background: rgba(0,255,255,0.28); clip-path: inset(33% 0 50% 0); transform: translateX(-5px);  }
   24%  { opacity: 0; }
-  30%  { opacity: 0.42;background: rgba(0,255,255,0.18); clip-path: inset(10% 0 78% 0); transform: translateX(3px);   }
+  30%  { opacity: 0.42; background: rgba(0,255,255,0.18); clip-path: inset(10% 0 78% 0); transform: translateX(3px);   }
   34%  { opacity: 0; }
   100% { opacity: 0; }
 }
 @keyframes scGlM {
   0%   { opacity: 0; }
-  4%   { opacity: 1;   background: rgba(255,0,255,0.45); clip-path: inset(44% 0 30% 0); transform: translateX(9px);   }
+  4%   { opacity: 1;    background: rgba(255,0,255,0.45); clip-path: inset(44% 0 30% 0); transform: translateX(9px);   }
   8%   {               background: rgba(255,0,255,0.45); clip-path: inset(16% 0 68% 0); transform: translateX(-9px);  }
   12%  { opacity: 0; }
-  20%  { opacity: 0.7; background: rgba(255,0,255,0.28); clip-path: inset(62% 0 16% 0); transform: translateX(5px);   }
+  20%  { opacity: 0.7;  background: rgba(255,0,255,0.28); clip-path: inset(62% 0 16% 0); transform: translateX(5px);   }
   24%  { opacity: 0; }
-  30%  { opacity: 0.36;background: rgba(255,0,255,0.16); clip-path: inset(80% 0 6% 0);  transform: translateX(-3px);  }
+  30%  { opacity: 0.36; background: rgba(255,0,255,0.16); clip-path: inset(80% 0 6% 0);  transform: translateX(-3px);  }
   34%  { opacity: 0; }
   100% { opacity: 0; }
 }
 @keyframes scGlY {
   0%   { opacity: 0; }
-  4%   { opacity: 0.9; background: rgba(255,255,0,0.35); clip-path: inset(84% 0 2% 0);  transform: translateX(-6px);  }
+  4%   { opacity: 0.9;  background: rgba(255,255,0,0.35); clip-path: inset(84% 0 2% 0);  transform: translateX(-6px);  }
   8%   {               background: rgba(255,255,0,0.35); clip-path: inset(26% 0 60% 0); transform: translateX(6px);   }
   12%  { opacity: 0; }
-  20%  { opacity: 0.5; background: rgba(255,255,0,0.22); clip-path: inset(48% 0 40% 0); transform: translateX(-4px);  }
+  20%  { opacity: 0.5;  background: rgba(255,255,0,0.22); clip-path: inset(48% 0 40% 0); transform: translateX(-4px);  }
   24%  { opacity: 0; }
   100% { opacity: 0; }
 }
@@ -428,17 +422,19 @@
 /* Respect reduced-motion preferences */
 @media (prefers-reduced-motion: reduce) {
   .sc-curtain-left,
-  .sc-curtain-right,
-  .sc-puff,
-  .sc-gl,
-  .sc-scanlines {
-    animation: none !important;
+  .sc-curtain-right {
     transition: none !important;
+  }
+  .sc-card--visible .sc-curtain-left  { transform: translateX(-100%) !important; }
+  .sc-card--visible .sc-curtain-right { transform: translateX(100%)  !important; }
+
+  .sc-puff,
+  .sc-gl {
+    animation: none !important;
     opacity: 0 !important;
   }
-  .sc-card--visible .sc-curtain-left,
-  .sc-card--visible .sc-curtain-right {
-    transform: translateX(-100%) !important;
-    /* just hide instantly */
+  .sc-scanlines {
+    transition: none !important;
+    opacity: 0 !important;
   }
 }
