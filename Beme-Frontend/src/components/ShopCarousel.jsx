@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import "./ShopCarousel.css";
 
-/* ─────────────────────────── HEART ICON ─────────────────────────── */
+/* ─────────────────────── HEART ICON ─────────────────────────────── */
 function IconHeart({ filled }) {
   return (
     <svg viewBox="0 0 24 24" className="sc-heart-svg">
@@ -15,111 +15,122 @@ function IconHeart({ filled }) {
   );
 }
 
-/* ──────────────────── CURTAIN OVERLAY (Fashion) ─────────────────── */
-/* CSS class .sc-card--visible drives the translateX transition.      */
-function CurtainOverlay({ cardBg }) {
+/* ─────────────────── CURTAIN OVERLAY (Fashion) ──────────────────── */
+function CurtainOverlay({ color }) {
   return (
     <div className="sc-curtain" aria-hidden="true">
-      <div className="sc-curtain-left" style={{ background: cardBg }} />
-      <div className="sc-curtain-right" style={{ background: cardBg }} />
+      <div className="sc-curtain-left"  style={{ background: color }} />
+      <div className="sc-curtain-right" style={{ background: color }} />
     </div>
   );
 }
 
-/* ──────────────────── KENTE OVERLAY (Mintah's Kente) ────────────── */
-/* Paths built once via DOM + RAF; animated via JS strokeDashoffset.  */
+/* ─────────────────── KENTE OVERLAY (Mintah's Kente) ─────────────── */
 function KenteOverlay({ isVisible }) {
-  const wrapRef = useRef(null);
+  const wrapRef  = useRef(null);
   const pathsRef = useRef([]);
   const builtRef = useRef(false);
+  const readyRef = useRef(false);
 
-  /* Build the SVG once on mount */
+  /* Build SVG once on mount */
   useEffect(() => {
     if (!wrapRef.current || builtRef.current) return;
     builtRef.current = true;
 
-    const ns = "http://www.w3.org/2000/svg";
+    const ns  = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(ns, "svg");
     svg.setAttribute("viewBox", "0 0 420 190");
     svg.setAttribute("preserveAspectRatio", "none");
     svg.style.cssText =
-      "position:absolute;inset:0;width:100%;height:100%;display:block;";
+      "position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible;";
 
     const stripes = [
-      { y: 18,  color: "#CC0000", sw: 14, amp: 10, period: 28, delay: 0.05 },
-      { y: 46,  color: "#FFD700", sw: 9,  amp: 7,  period: 20, delay: 0.15 },
-      { y: 72,  color: "#006B3F", sw: 14, amp: 10, period: 28, delay: 0.25 },
-      { y: 102, color: "#FFD700", sw: 9,  amp: 7,  period: 20, delay: 0.35 },
-      { y: 130, color: "#CC0000", sw: 14, amp: 10, period: 28, delay: 0.45 },
-      { y: 158, color: "#006B3F", sw: 9,  amp: 7,  period: 20, delay: 0.55 },
+      { y: 20,  color: "#CC0000", sw: 14, amp: 11, period: 30, delay: 0.0  },
+      { y: 48,  color: "#FFD700", sw: 9,  amp:  8, period: 22, delay: 0.12 },
+      { y: 74,  color: "#006B3F", sw: 14, amp: 11, period: 30, delay: 0.24 },
+      { y: 104, color: "#FFD700", sw: 9,  amp:  8, period: 22, delay: 0.36 },
+      { y: 132, color: "#CC0000", sw: 14, amp: 11, period: 30, delay: 0.48 },
+      { y: 160, color: "#006B3F", sw: 9,  amp:  8, period: 22, delay: 0.60 },
     ];
 
+    const entries = [];
     stripes.forEach((s) => {
-      const W = 420;
-      let d = `M 0 ${s.y}`;
-      let x = 0;
-      let goUp = true;
+      const W  = 420;
+      let d    = `M 0 ${s.y}`;
+      let x    = 0;
+      let up   = true;
       const hp = s.period / 2;
       while (x < W) {
         const cx = x + hp / 2;
-        const cy = goUp ? s.y - s.amp : s.y + s.amp;
+        const cy = up ? s.y - s.amp : s.y + s.amp;
         const ex = Math.min(x + hp, W);
         d += ` Q ${cx},${cy} ${ex},${s.y}`;
-        x = ex;
-        goUp = !goUp;
+        x  = ex;
+        up = !up;
       }
-
       const path = document.createElementNS(ns, "path");
       path.setAttribute("d", d);
       path.setAttribute("stroke", s.color);
       path.setAttribute("stroke-width", s.sw);
       path.setAttribute("fill", "none");
-      path.setAttribute("stroke-opacity", "0.68");
+      path.setAttribute("stroke-opacity", "0.72");
       path.setAttribute("stroke-linecap", "round");
+      path.style.strokeDasharray  = "9999";
+      path.style.strokeDashoffset = "9999";
       svg.appendChild(path);
-
-      /* Measure length on next paint, then hide */
-      requestAnimationFrame(() => {
-        const len = path.getTotalLength() + 4;
-        path.style.strokeDasharray = len;
-        path.style.strokeDashoffset = len;
-        pathsRef.current.push({ el: path, len, delay: s.delay });
-      });
+      entries.push({ el: path, delay: s.delay, len: 0 });
     });
 
     wrapRef.current.appendChild(svg);
+    pathsRef.current = entries;
+
+    /* Measure path lengths after browser paint */
+    const t = setTimeout(() => {
+      entries.forEach((kp) => {
+        try {
+          const len = kp.el.getTotalLength() + 8;
+          kp.len = len;
+          kp.el.style.strokeDasharray  = len;
+          kp.el.style.strokeDashoffset = len;
+        } catch (_) {
+          kp.len = 9999;
+        }
+      });
+      readyRef.current = true;
+    }, 100);
+
+    return () => clearTimeout(t);
   }, []);
 
-  /* Animate paths whenever isVisible changes */
+  /* Animate whenever isVisible changes */
   useEffect(() => {
-    const animate = () => {
-      if (!pathsRef.current.length) return false;
+    const run = () => {
+      const kps = pathsRef.current;
+      if (!kps.length || !readyRef.current) return false;
       if (isVisible) {
-        pathsRef.current.forEach((kp) => {
-          kp.el.style.transition = `stroke-dashoffset 1s ease-out ${kp.delay}s`;
+        kps.forEach((kp) => {
+          kp.el.style.transition       = `stroke-dashoffset 1.1s ease-out ${kp.delay}s`;
           kp.el.style.strokeDashoffset = 0;
         });
       } else {
-        pathsRef.current.forEach((kp) => {
-          kp.el.style.transition = "none";
+        kps.forEach((kp) => {
+          kp.el.style.transition       = "none";
           kp.el.style.strokeDashoffset = kp.len;
         });
       }
       return true;
     };
 
-    /* Retry if paths not built yet (first load race) */
-    if (!animate()) {
-      const t = setTimeout(animate, 140);
-      return () => clearTimeout(t);
+    if (!run()) {
+      const id = setInterval(() => { if (run()) clearInterval(id); }, 60);
+      return () => clearInterval(id);
     }
   }, [isVisible]);
 
   return <div className="sc-kente-wrap" ref={wrapRef} aria-hidden="true" />;
 }
 
-/* ──────────────────── SPRAY OVERLAY (Luxury Scents) ─────────────── */
-/* Remounted via key prop each time card enters view → animations reset */
+/* ─────────────────── SPRAY OVERLAY (Luxury Scents) ─────────────── */
 function SprayOverlay() {
   return (
     <div className="sc-spray-wrap" aria-hidden="true">
@@ -133,8 +144,7 @@ function SprayOverlay() {
   );
 }
 
-/* ──────────────────── GLITCH OVERLAY (Latest Gadgets) ───────────── */
-/* Remounted via key prop each time card enters view → animations reset */
+/* ─────────────────── GLITCH OVERLAY (Latest Gadgets) ────────────── */
 function GlitchOverlay() {
   return (
     <div className="sc-glitch-wrap" aria-hidden="true">
@@ -146,7 +156,7 @@ function GlitchOverlay() {
   );
 }
 
-/* ──────────────────── THEME → CSS CLASS MAP ─────────────────────── */
+/* ─────────────────── THEME → CSS CLASS MAP ──────────────────────── */
 const THEME_CLASS = {
   fashion:     "sc-theme-fashion",
   bestsellers: "sc-theme-bestsellers",
@@ -155,77 +165,82 @@ const THEME_CLASS = {
   gadgets:     "sc-theme-gadgets",
 };
 
-/* Background colour matching each curtain panel to its card colour   */
-const CURTAIN_BG = {
+const CURTAIN_COLOR = {
   fashion: "#1E3D2A",
 };
 
 /* ═══════════════════════════ MAIN COMPONENT ════════════════════════ */
 export default function ShopCarousel({ shops = [] }) {
-  const [saved, setSaved]         = useState({});
+  const [saved,       setSaved]       = useState({});
   const [activeIndex, setActiveIndex] = useState(0);
-  const [visibleSet, setVisibleSet]   = useState(new Set());
-  /* animKey increments each time a card enters view → remounts overlays */
-  const [animKeys, setAnimKeys]   = useState({});
+  const [visibleSet,  setVisibleSet]  = useState(() => new Set());
+  const [animKeys,    setAnimKeys]    = useState({});
 
   const trackRef = useRef(null);
   const cardRefs = useRef([]);
 
-  /* ── Heart toggle ───────────────────────────────────────────────── */
   const toggleSave = (e, id) => {
     e.stopPropagation();
-    setSaved((prev) => ({ ...prev, [id]: !prev[id] }));
+    setSaved((p) => ({ ...p, [id]: !p[id] }));
   };
 
-  /* ── Active dot on manual scroll ───────────────────────────────── */
   const onScroll = useCallback(() => {
-    if (!trackRef.current) return;
-    const el   = trackRef.current;
+    const el = trackRef.current;
+    if (!el) return;
     const card = el.querySelector(".sc-card-wrap");
     if (!card) return;
-    const CARD_W = card.offsetWidth;
-    const GAP    = 16;
-    const idx    = Math.round(el.scrollLeft / (CARD_W + GAP));
+    const idx = Math.round(el.scrollLeft / (card.offsetWidth + 16));
     setActiveIndex(Math.max(0, Math.min(shops.length - 1, idx)));
   }, [shops.length]);
 
-  /* ── Dot → scroll ──────────────────────────────────────────────── */
   const scrollTo = (idx) => {
-    if (!trackRef.current) return;
-    const el   = trackRef.current;
+    const el = trackRef.current;
+    if (!el) return;
     const card = el.querySelector(".sc-card-wrap");
     if (!card) return;
-    const CARD_W = card.offsetWidth;
-    const GAP    = 16;
-    el.scrollTo({ left: idx * (CARD_W + GAP), behavior: "smooth" });
+    el.scrollTo({ left: idx * (card.offsetWidth + 16), behavior: "smooth" });
     setActiveIndex(idx);
   };
 
-  /* ── IntersectionObserver — triggers animations on enter/leave ─── */
+  /* ── IntersectionObserver with root: null (viewport) ────────────── */
+  /* FIX: root: null is reliable on all mobile browsers.               */
+  /* root: scrollContainer fails when the container itself is off-screen */
   useEffect(() => {
-    if (!trackRef.current) return;
+    if (!shops.length) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           const idx = parseInt(entry.target.dataset.cardIndex, 10);
-          setVisibleSet((prev) => {
-            const next = new Set(prev);
-            if (entry.isIntersecting) {
+          if (isNaN(idx)) return;
+
+          if (entry.isIntersecting) {
+            setVisibleSet((prev) => {
+              const next = new Set(prev);
               next.add(idx);
-              /* Bump the key so CSS-animation overlays remount cleanly */
-              setAnimKeys((ak) => ({ ...ak, [idx]: (ak[idx] || 0) + 1 }));
-            } else {
+              return next;
+            });
+            setAnimKeys((prev) => ({
+              ...prev,
+              [idx]: (prev[idx] || 0) + 1,
+            }));
+          } else {
+            setVisibleSet((prev) => {
+              const next = new Set(prev);
               next.delete(idx);
-            }
-            return next;
-          });
+              return next;
+            });
+          }
         });
       },
-      { threshold: 0.38, root: trackRef.current }
+      {
+        root:      null,  /* viewport — works on all devices */
+        threshold: 0.15,  /* fire when 15% of the card is visible */
+      }
     );
 
-    cardRefs.current.forEach((el) => el && observer.observe(el));
+    const refs = cardRefs.current;
+    refs.forEach((el) => el && observer.observe(el));
     return () => observer.disconnect();
   }, [shops]);
 
@@ -244,15 +259,21 @@ export default function ShopCarousel({ shops = [] }) {
               key={shop.id}
               className="sc-card-wrap"
               ref={(el) => { cardRefs.current[i] = el; }}
-              data-card-index={i}
+              data-card-index={String(i)}
             >
               <div
-                className={`sc-card ${themeClass} ${isVisible ? "sc-card--visible" : ""}`}
+                className={[
+                  "sc-card",
+                  themeClass,
+                  isVisible ? "sc-card--visible" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 onClick={() => shop.onClick?.()}
                 role="button"
                 tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && shop.onClick?.()}
               >
-                {/* ── Heart ── */}
                 <button
                   className="sc-heart"
                   onClick={(e) => toggleSave(e, shop.id)}
@@ -261,7 +282,6 @@ export default function ShopCarousel({ shops = [] }) {
                   <IconHeart filled={!!saved[shop.id]} />
                 </button>
 
-                {/* ── Card body ── */}
                 <div className="sc-inner">
                   <div className="sc-content">
                     {shop.badge && (
@@ -276,22 +296,35 @@ export default function ShopCarousel({ shops = [] }) {
                     </button>
                   </div>
                   <div className="sc-image-wrap">
-                    <img src={shop.image} alt={shop.title} />
+                    {shop.image && (
+                      <img
+                        src={shop.image}
+                        alt={shop.title}
+                        loading="lazy"
+                        draggable={false}
+                      />
+                    )}
                   </div>
                 </div>
 
-                {/* ── Theme overlays ── */}
+                {/* 1. Fashion — curtain always mounted, CSS opens it */}
                 {shop.theme === "fashion" && (
-                  <CurtainOverlay cardBg={CURTAIN_BG.fashion} />
+                  <CurtainOverlay color={CURTAIN_COLOR.fashion} />
                 )}
+
+                {/* 2. Kente — JS strokeDashoffset, always mounted */}
                 {shop.theme === "kente" && (
                   <KenteOverlay isVisible={isVisible} />
                 )}
+
+                {/* 3. Scents — remount on enter restarts @keyframes */}
                 {shop.theme === "scents" && isVisible && (
-                  <SprayOverlay key={animKey} />
+                  <SprayOverlay key={`spray-${animKey}`} />
                 )}
+
+                {/* 4. Gadgets — remount on enter restarts @keyframes */}
                 {shop.theme === "gadgets" && isVisible && (
-                  <GlitchOverlay key={animKey} />
+                  <GlitchOverlay key={`glitch-${animKey}`} />
                 )}
               </div>
             </div>
@@ -304,7 +337,7 @@ export default function ShopCarousel({ shops = [] }) {
           {shops.map((_, i) => (
             <button
               key={i}
-              className={`sc-dot ${i === activeIndex ? "active" : ""}`}
+              className={`sc-dot${i === activeIndex ? " active" : ""}`}
               onClick={() => scrollTo(i)}
               aria-label={`Go to slide ${i + 1}`}
             />
@@ -316,48 +349,48 @@ export default function ShopCarousel({ shops = [] }) {
 }
 
 /*
-  ─────────────────────────── USAGE EXAMPLE ────────────────────────────
-  Pass a `theme` field on each shop object:
+  ───────────────────────── USAGE EXAMPLE ──────────────────────────
+  Add a `theme` field to each shop in your data array:
 
   const shops = [
     {
       id: "fashion",
-      theme: "fashion",           // ← curtain reveal, dark green
+      theme: "fashion",
       title: "Modern fashion essentials",
       subtitle: "Clean everyday style and curated wardrobe picks.",
-      image: "/images/fashion.png",
+      image: fashionImg,
       buttonText: "Shop Now",
       onClick: () => navigate("/fashion"),
     },
     {
       id: "bestsellers",
-      theme: "bestsellers",       // ← red card, no animation
+      theme: "bestsellers",
       title: "Everyday bestsellers",
       subtitle: "Mixed essentials, popular picks, and store highlights.",
-      image: "/images/bestsellers.png",
+      image: bestsellersImg,
     },
     {
       id: "kente",
-      theme: "kente",             // ← kente zigzag stripes draw in
+      theme: "kente",
       title: "Mintah's Kente",
       subtitle: "Premium woven styles with heritage appeal.",
-      image: "/images/kente.png",
+      image: kenteImg,
     },
     {
       id: "scents",
-      theme: "scents",            // ← cloudy white spray from sides
+      theme: "scents",
       title: "Luxury scents",
       subtitle: "Refined fragrances for daily wear and gifting.",
-      image: "/images/scents.png",
+      image: scentsImg,
     },
     {
       id: "gadgets",
-      theme: "gadgets",           // ← RGB glitch + scan lines
+      theme: "gadgets",
       title: "Latest gadgets",
       subtitle: "Smart devices and modern electronics for daily life.",
-      image: "/images/gadgets.png",
+      image: gadgetsImg,
     },
   ];
 
   <ShopCarousel shops={shops} />
-  ────────────────────────────────────────────────────────────────────── */
+  ─────────────────────────────────────────────────────────────────── */
