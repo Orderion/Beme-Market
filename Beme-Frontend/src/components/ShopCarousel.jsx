@@ -46,12 +46,12 @@ function KenteOverlay({ isVisible }) {
       "position:absolute;inset:0;width:100%;height:100%;display:block;";
 
     const stripes = [
-      { y: 18,  color: "#CC0000", sw: 14, amp: 10, period: 28, delay: 0.05 },
-      { y: 46,  color: "#FFD700", sw: 9,  amp: 7,  period: 20, delay: 0.15 },
-      { y: 72,  color: "#006B3F", sw: 14, amp: 10, period: 28, delay: 0.25 },
-      { y: 102, color: "#FFD700", sw: 9,  amp: 7,  period: 20, delay: 0.35 },
-      { y: 130, color: "#CC0000", sw: 14, amp: 10, period: 28, delay: 0.45 },
-      { y: 158, color: "#006B3F", sw: 9,  amp: 7,  period: 20, delay: 0.55 },
+      { y: 20,  color: "#CC0000", sw: 15, amp: 11, period: 30, delay: 0.05 },
+      { y: 48,  color: "#FFD700", sw: 10, amp: 8,  period: 22, delay: 0.15 },
+      { y: 72,  color: "#006B3F", sw: 15, amp: 11, period: 30, delay: 0.25 },
+      { y: 100, color: "#FFD700", sw: 10, amp: 8,  period: 22, delay: 0.35 },
+      { y: 126, color: "#CC0000", sw: 15, amp: 11, period: 30, delay: 0.45 },
+      { y: 154, color: "#006B3F", sw: 10, amp: 8,  period: 22, delay: 0.55 },
     ];
 
     stripes.forEach((s) => {
@@ -74,7 +74,7 @@ function KenteOverlay({ isVisible }) {
       path.setAttribute("stroke", s.color);
       path.setAttribute("stroke-width", s.sw);
       path.setAttribute("fill", "none");
-      path.setAttribute("stroke-opacity", "0.68");
+      path.setAttribute("stroke-opacity", "0.6");
       path.setAttribute("stroke-linecap", "round");
       svg.appendChild(path);
 
@@ -96,7 +96,7 @@ function KenteOverlay({ isVisible }) {
       if (!pathsRef.current.length) return false;
       if (isVisible) {
         pathsRef.current.forEach((kp) => {
-          kp.el.style.transition = `stroke-dashoffset 1s ease-out ${kp.delay}s`;
+          kp.el.style.transition = `stroke-dashoffset 0.95s ease-out ${kp.delay}s`;
           kp.el.style.strokeDashoffset = 0;
         });
       } else {
@@ -119,7 +119,12 @@ function KenteOverlay({ isVisible }) {
 }
 
 /* ──────────────────── SPRAY OVERLAY (Luxury Scents) ─────────────── */
-/* Remounted via key prop each time card enters view → animations reset */
+/*
+ * FIX: Always rendered (no isVisible gate here).
+ * Animations are gated by the .sc-card--visible parent selector in CSS,
+ * which mirrors the HTML reference's `.cv .pL1 { animation: ... }` pattern.
+ * Re-mounted via key prop each time the card enters view → animations reset.
+ */
 function SprayOverlay() {
   return (
     <div className="sc-spray-wrap" aria-hidden="true">
@@ -134,7 +139,10 @@ function SprayOverlay() {
 }
 
 /* ──────────────────── GLITCH OVERLAY (Latest Gadgets) ───────────── */
-/* Remounted via key prop each time card enters view → animations reset */
+/*
+ * FIX: Same approach as SprayOverlay — always rendered, animations
+ * triggered by .sc-card--visible parent, remounted via key on re-entry.
+ */
 function GlitchOverlay() {
   return (
     <div className="sc-glitch-wrap" aria-hidden="true">
@@ -162,11 +170,15 @@ const CURTAIN_BG = {
 
 /* ═══════════════════════════ MAIN COMPONENT ════════════════════════ */
 export default function ShopCarousel({ shops = [] }) {
-  const [saved, setSaved]         = useState({});
+  const [saved, setSaved]             = useState({});
   const [activeIndex, setActiveIndex] = useState(0);
   const [visibleSet, setVisibleSet]   = useState(new Set());
-  /* animKey increments each time a card enters view → remounts overlays */
-  const [animKeys, setAnimKeys]   = useState({});
+  /*
+   * animKey increments each time a card ENTERS view.
+   * Passing it as `key` to SprayOverlay / GlitchOverlay forces a fresh
+   * mount so CSS animations restart cleanly on every re-entry.
+   */
+  const [animKeys, setAnimKeys]       = useState({});
 
   const trackRef = useRef(null);
   const cardRefs = useRef([]);
@@ -205,50 +217,49 @@ export default function ShopCarousel({ shops = [] }) {
   useEffect(() => {
     if (!trackRef.current) return;
 
-    const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-    const idx = parseInt(entry.target.dataset.cardIndex, 10);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const idx = parseInt(entry.target.dataset.cardIndex, 10);
 
-      setVisibleSet((prev) => {
-        const next = new Set(prev);
+          if (entry.isIntersecting) {
+            /*
+             * FIX: Do NOT call setAnimKeys inside the setVisibleSet
+             * updater. Nesting setState calls is a React anti-pattern
+             * that breaks batching and causes double renders / animation
+             * restarts. Call them as two separate, top-level updates so
+             * React can batch them properly.
+             */
+            setVisibleSet((prev) => {
+              const next = new Set(prev);
+              next.add(idx);
+              return next;
+            });
+            /* Increment so animation overlays remount cleanly on re-entry */
+            setAnimKeys((ak) => ({ ...ak, [idx]: (ak[idx] || 0) + 1 }));
+          } else {
+            setVisibleSet((prev) => {
+              const next = new Set(prev);
+              next.delete(idx);
+              return next;
+            });
+          }
+        });
+      },
+      { threshold: 0.38, root: trackRef.current }
+    );
 
-        if (entry.isIntersecting) {
-          next.add(idx);
-          setAnimKeys((ak) => ({
-            ...ak,
-            [idx]: (ak[idx] || 0) + 1,
-          }));
-        } else {
-          next.delete(idx);
-        }
-
-        return next;
-      });
-    });
-  }, { threshold: 0.3 });
-
-  // 🔥 delay ensures refs are ready
-  const t = setTimeout(() => {
     cardRefs.current.forEach((el) => el && observer.observe(el));
-    }, 50);
-
-    return () => {
-       clearTimeout(t);
-       observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, [shops]);
 
-  useEffect(() => {
-   if (shops.length > 0) {
-      setVisibleSet(new Set([0])); // 👈 force first card animation
-    }
-  }, [shops]);
+  if (!shops.length) return null;
 
   return (
     <div className="sc-root">
       <div ref={trackRef} className="sc-track" onScroll={onScroll}>
         {shops.map((shop, i) => {
-          const isVisible = visibleSet.has(i) || i === 0;
+          const isVisible  = visibleSet.has(i);
           const animKey    = animKeys[i] || 0;
           const themeClass = THEME_CLASS[shop.theme] || "";
 
@@ -300,10 +311,22 @@ export default function ShopCarousel({ shops = [] }) {
                 {shop.theme === "kente" && (
                   <KenteOverlay isVisible={isVisible} />
                 )}
-                {shop.theme === "scents" && isVisible && (
+
+                {/*
+                  * FIX: SprayOverlay and GlitchOverlay are now ALWAYS
+                  * rendered when the theme matches (no `isVisible &&`).
+                  * Their CSS animations are gated by the
+                  * .sc-card--visible parent selector in ShopCarousel.css,
+                  * exactly mirroring how the HTML reference uses .cv.
+                  *
+                  * `key={animKey}` still forces a clean remount (fresh
+                  * CSS animation state) every time the card re-enters
+                  * the viewport.
+                  */}
+                {shop.theme === "scents" && (
                   <SprayOverlay key={animKey} />
                 )}
-                {shop.theme === "gadgets" && isVisible && (
+                {shop.theme === "gadgets" && (
                   <GlitchOverlay key={animKey} />
                 )}
               </div>
