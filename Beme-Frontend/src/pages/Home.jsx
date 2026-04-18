@@ -11,6 +11,16 @@ import fashionBanner from "../assets/fashion-banner.PNG";
 import kenteBanner from "../assets/kente-banner.PNG";
 import perfumeBanner from "../assets/perfume-banner.PNG";
 import techBanner from "../assets/tech-banner.PNG";
+
+/* ── Category images ── */
+import phoneImg       from "../assets/Phone.JPG";
+import laptopImg      from "../assets/Laptop.JPG";
+import shoeImg        from "../assets/Shoe.JPG";
+import clothingImg    from "../assets/Clothing .JPG";
+import kidsImg        from "../assets/Kids.JPG";
+import gameImg        from "../assets/Game.JPG";
+import homeAppImg     from "../assets/Home appliances .JPG";
+
 import "./Home.css";
 
 const COLLECTION_NAME = "Products";
@@ -49,6 +59,46 @@ const CATEGORY_BG = {
   home_appliances: "#D6F4EC",
   others:          "#FFF3DB",
 };
+
+/* ── Map category key → imported image ── */
+const CATEGORY_IMAGES = {
+  iphones:         phoneImg,
+  laptops:         laptopImg,
+  shoes:           shoeImg,
+  clothing:        clothingImg,
+  kids:            kidsImg,
+  game:            gameImg,
+  home_appliances: homeAppImg,
+};
+
+/* ── Fallback SVG for "others" (no image supplied) ── */
+function OthersFallback() {
+  return (
+    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+      <rect x="9" y="8" width="22" height="26" rx="3.5" fill="#D08020"/>
+      <rect x="9" y="8" width="22" height="26" rx="3.5" fill="white" fillOpacity="0.12"/>
+      <path d="M14 8V6h12v2" stroke="#A06010" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <rect x="13" y="16" width="14" height="2" rx="1" fill="#A06010" fillOpacity="0.8"/>
+      <rect x="13" y="21" width="14" height="2" rx="1" fill="#A06010" fillOpacity="0.6"/>
+      <rect x="13" y="26" width="9"  height="2" rx="1" fill="#A06010" fillOpacity="0.4"/>
+      <circle cx="29" cy="10" r="3" fill="#F0C060"/>
+    </svg>
+  );
+}
+
+/* ── Category image component ── */
+function CategoryImage({ type, label }) {
+  const src = CATEGORY_IMAGES[type];
+  if (!src) return <OthersFallback />;
+  return (
+    <img
+      src={src}
+      alt={label}
+      className="home-cat-img"
+      draggable={false}
+    />
+  );
+}
 
 function normalizeProduct(docSnap) {
   const d = docSnap.data() || {};
@@ -136,154 +186,70 @@ function buildSuggestions(products, term) {
     .slice(0, SUGGESTION_LIMIT);
 }
 
-function CategoryIcon({ type }) {
-  if (type === "iphones") return (
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-      <rect x="12" y="4" width="16" height="32" rx="3.5" fill="#5BA3E0"/>
-      <rect x="14" y="4" width="8" height="3" rx="1.5" fill="#2E6DAB"/>
-      <rect x="14" y="10" width="12" height="14" rx="1.5" fill="#A8D0F5"/>
-      <rect x="14" y="10" width="12" height="14" rx="1.5" fill="white" fillOpacity="0.25"/>
-      <circle cx="20" cy="32" r="1.8" fill="#2E6DAB"/>
-    </svg>
-  );
-  if (type === "laptops") return (
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-      <rect x="6" y="10" width="28" height="18" rx="2.5" fill="#7C6FD6"/>
-      <rect x="8" y="12" width="24" height="14" rx="1.5" fill="#B8B0F0"/>
-      <rect x="8" y="12" width="24" height="14" rx="1.5" fill="white" fillOpacity="0.2"/>
-      <path d="M4 30h32" stroke="#7C6FD6" strokeWidth="2.5" strokeLinecap="round"/>
-      <rect x="15" y="28" width="10" height="2" rx="1" fill="#9B90E0"/>
-    </svg>
-  );
-  if (type === "shoes") return (
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-      <path d="M7 26c3.5-1 5.5-4.5 7.5-7l2-2.5c.6 3 2.5 5.5 7 7l4.5 1.2c2.5.7 3.5 1.5 3.5 3.3v2.5H7V26z" fill="#E07050"/>
-      <path d="M7 26c3.5-1 5.5-4.5 7.5-7l2-2.5c.6 3 2.5 5.5 7 7l4.5 1.2c2.5.7 3.5 1.5 3.5 3.3v2.5H7V26z" fill="white" fillOpacity="0.12"/>
-      <path d="M16 27.5c1 .2 2.5.4 4 .5" stroke="#C05535" strokeWidth="1.2" strokeLinecap="round"/>
-    </svg>
-  );
-  if (type === "clothing") return (
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-      <path d="M15 7l5 3 5-3 6 5-4 4.5V34H13V16.5L9 12l6-5z" fill="#D4537E"/>
-      <path d="M15 7l5 3 5-3 6 5-4 4.5V34H13V16.5L9 12l6-5z" fill="white" fillOpacity="0.15"/>
-      <path d="M13 17h14" stroke="#B03060" strokeWidth="1.2"/>
-    </svg>
-  );
-  if (type === "kids") return (
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-      <circle cx="20" cy="14" r="6.5" fill="#F0A030"/>
-      <circle cx="18" cy="13" r="1.5" fill="#C07010"/>
-      <circle cx="22" cy="13" r="1.5" fill="#C07010"/>
-      <path d="M17.5 16.5c.7.8 1.5 1.2 2.5 1.2s1.8-.4 2.5-1.2" stroke="#C07010" strokeWidth="1.3" strokeLinecap="round" fill="none"/>
-      <path d="M14 34v-4a6 6 0 0 1 6-6h0a6 6 0 0 1 6 6v4" fill="#F0A030"/>
-    </svg>
-  );
-  if (type === "game") return (
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-      <rect x="5" y="15" width="30" height="14" rx="7" fill="#3DA060"/>
-      <rect x="5" y="15" width="30" height="14" rx="7" fill="white" fillOpacity="0.15"/>
-      <circle cx="13" cy="22" r="4" fill="#1E7040"/>
-      <circle cx="27" cy="22" r="4" fill="#1E7040"/>
-      <path d="M11 22h4M13 20v4" stroke="#7FD9A0" strokeWidth="2" strokeLinecap="round"/>
-      <circle cx="25" cy="21" r="1.3" fill="#7FD9A0"/>
-      <circle cx="29" cy="23" r="1.3" fill="#7FD9A0"/>
-    </svg>
-  );
-  if (type === "home_appliances") return (
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-      <rect x="10" y="6" width="20" height="28" rx="3.5" fill="#1D9E75"/>
-      <rect x="10" y="15" width="20" height="2" fill="#0F6E56"/>
-      <circle cx="20" cy="25" r="3.5" fill="#0F6E56"/>
-      <circle cx="20" cy="25" r="1.8" fill="#5DCAA5"/>
-      <circle cx="15" cy="11" r="1.2" fill="#5DCAA5"/>
-      <circle cx="19" cy="11" r="1.2" fill="#5DCAA5"/>
-    </svg>
-  );
-  return (
-    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-      <rect x="9" y="8" width="22" height="26" rx="3.5" fill="#D08020"/>
-      <rect x="9" y="8" width="22" height="26" rx="3.5" fill="white" fillOpacity="0.12"/>
-      <path d="M14 8V6h12v2" stroke="#A06010" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-      <rect x="13" y="16" width="14" height="2" rx="1" fill="#A06010" fillOpacity="0.8"/>
-      <rect x="13" y="21" width="14" height="2" rx="1" fill="#A06010" fillOpacity="0.6"/>
-      <rect x="13" y="26" width="9" height="2" rx="1" fill="#A06010" fillOpacity="0.4"/>
-      <circle cx="29" cy="10" r="3" fill="#F0C060"/>
-    </svg>
-  );
-}
-
 export default function Home() {
   const navigate = useNavigate();
 
-  const [search,           setSearch]           = useState("");
-  const [products,         setProducts]         = useState([]);
+  const [search,             setSearch]             = useState("");
+  const [products,           setProducts]           = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [suggestionsOpen,  setSuggestionsOpen]  = useState(false);
-  const [activeIndex,      setActiveIndex]      = useState(-1);
-  const [searchCollapsed,  setSearchCollapsed]  = useState(false);
-  const [activeCat,        setActiveCat]        = useState(null);
+  const [suggestionsOpen,    setSuggestionsOpen]    = useState(false);
+  const [activeIndex,        setActiveIndex]        = useState(-1);
+  const [searchCollapsed,    setSearchCollapsed]    = useState(false);
+  const [activeCat,          setActiveCat]          = useState(null);
 
   const searchWrapRef = useRef(null);
+  const inputRef      = useRef(null);
 
-  /* ─────────────────────────────────────────────────────────────────
-     THE FIX: each card now has a `theme` field that ShopCarousel
-     uses to pick the right animation and background colour.
-       fashion     → green curtain reveal
-       bestsellers → red card, no animation
-       kente       → zigzag stripe draw-in
-       scents      → translucent cloud spray
-       gadgets     → RGB glitch + scanlines
-  ───────────────────────────────────────────────────────────────── */
   const storeCards = useMemo(() => [
     {
-      id:         "fashion",
-      theme:      "fashion",          /* ← curtain reveal */
-      image:      fashionBanner,
-      chip:       "Fashion Shop",
-      title:      "Modern fashion essentials",
-      subtitle:   "Clean everyday style and curated wardrobe picks.",
-      onClick:    () => navigate("/shop?shop=fashion"),
-      ariaLabel:  "Open Fashion Shop",
+      id:        "fashion",
+      theme:     "fashion",
+      image:     fashionBanner,
+      chip:      "Fashion Shop",
+      title:     "Modern fashion essentials",
+      subtitle:  "Clean everyday style and curated wardrobe picks.",
+      onClick:   () => navigate("/shop?shop=fashion"),
+      ariaLabel: "Open Fashion Shop",
     },
     {
-      id:         "main",
-      theme:      "bestsellers",      /* ← red card, no animation */
-      image:      banner,
-      chip:       "Main Store",
-      title:      "Everyday bestsellers",
-      subtitle:   "Mixed essentials, popular picks, and store highlights.",
-      onClick:    () => navigate("/shop?shop=main"),
-      ariaLabel:  "Open Main Store",
+      id:        "main",
+      theme:     "bestsellers",
+      image:     banner,
+      chip:      "Main Store",
+      title:     "Everyday bestsellers",
+      subtitle:  "Mixed essentials, popular picks, and store highlights.",
+      onClick:   () => navigate("/shop?shop=main"),
+      ariaLabel: "Open Main Store",
     },
     {
-      id:         "kente",
-      theme:      "kente",            /* ← zigzag stripe draw-in */
-      image:      kenteBanner,
-      chip:       "Ghana Made",
-      title:      "Mintah's Kente",
-      subtitle:   "Premium woven styles with heritage appeal.",
-      onClick:    () => navigate("/shop?shop=kente"),
-      ariaLabel:  "Open Mintah's Kente collection",
+      id:        "kente",
+      theme:     "kente",
+      image:     kenteBanner,
+      chip:      "Ghana Made",
+      title:     "Mintah's Kente",
+      subtitle:  "Premium woven styles with heritage appeal.",
+      onClick:   () => navigate("/shop?shop=kente"),
+      ariaLabel: "Open Mintah's Kente collection",
     },
     {
-      id:         "perfume",
-      theme:      "scents",           /* ← cloud spray */
-      image:      perfumeBanner,
-      chip:       "Perfume Shop",
-      title:      "Luxury scents",
-      subtitle:   "Refined fragrances for daily wear and gifting.",
-      onClick:    () => navigate("/shop?shop=perfume"),
-      ariaLabel:  "Open Perfume Shop",
+      id:        "perfume",
+      theme:     "scents",
+      image:     perfumeBanner,
+      chip:      "Perfume Shop",
+      title:     "Luxury scents",
+      subtitle:  "Refined fragrances for daily wear and gifting.",
+      onClick:   () => navigate("/shop?shop=perfume"),
+      ariaLabel: "Open Perfume Shop",
     },
     {
-      id:         "tech",
-      theme:      "gadgets",          /* ← RGB glitch + scanlines */
-      image:      techBanner,
-      chip:       "Tech Shop",
-      title:      "Latest gadgets",
-      subtitle:   "Smart devices and modern electronics for daily life.",
-      onClick:    () => navigate("/shop?shop=tech"),
-      ariaLabel:  "Open Tech Shop",
+      id:        "tech",
+      theme:     "gadgets",
+      image:     techBanner,
+      chip:      "Tech Shop",
+      title:     "Latest gadgets",
+      subtitle:  "Smart devices and modern electronics for daily life.",
+      onClick:   () => navigate("/shop?shop=tech"),
+      ariaLabel: "Open Tech Shop",
     },
   ], [navigate]);
 
@@ -364,7 +330,15 @@ export default function Home() {
     setSuggestionsOpen(!!value.trim());
   };
 
-  const handleInputFocus  = () => { if (search.trim()) setSuggestionsOpen(true); };
+  /* ── Clear the search input ── */
+  const handleClear = () => {
+    setSearch("");
+    setSuggestionsOpen(false);
+    setActiveIndex(-1);
+    inputRef.current?.focus();
+  };
+
+  const handleInputFocus = () => { if (search.trim()) setSuggestionsOpen(true); };
 
   const handleKeyDown = (e) => {
     if (!suggestionsOpen || !suggestions.length) return;
@@ -390,7 +364,9 @@ export default function Home() {
                 <path d="M21 21l-4.3-4.3" />
               </svg>
             </span>
+
             <input
+              ref={inputRef}
               type="text"
               placeholder="Search products or stores"
               className="home-search-input"
@@ -402,6 +378,23 @@ export default function Home() {
               aria-expanded={suggestionsOpen}
               aria-label="Search products"
             />
+
+            {/* ── Clear button — visible only while typing ── */}
+            {search.length > 0 && (
+              <button
+                type="button"
+                className="home-search-clear"
+                onClick={handleClear}
+                aria-label="Clear search"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+
             <button type="submit" className="home-search-submit" aria-label="Search">
               <svg viewBox="0 0 24 24" className="home-search-filter-svg">
                 <path d="M4 7h10M18 7h2M4 17h6M14 17h6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
@@ -459,7 +452,7 @@ export default function Home() {
                 className="home-cat-circle"
                 style={{ backgroundColor: CATEGORY_BG[item.key] || "#F1EFE8" }}
               >
-                <CategoryIcon type={item.key} />
+                <CategoryImage type={item.key} label={item.label} />
               </div>
               <span className="home-cat-label">{item.label}</span>
             </button>
