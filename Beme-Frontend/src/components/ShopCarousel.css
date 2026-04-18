@@ -20,7 +20,7 @@
   scroll-snap-align:center;
 }
 
-/* ── Card shell — background set inline from THEME_BG in JSX ──────── */
+/* ── Card shell ─────────────────────────────────────────────────── */
 .sc-card {
   position:relative; height:190px;
   border-radius:20px; overflow:hidden;
@@ -98,14 +98,14 @@
 }
 .sc-dot.active { width:20px; background:#e86c2c; border-radius:999px; }
 
-/* ── Gadgets: cyan title glow ──────────────────────────────────────── */
+/* ── Gadgets: cyan title glow ───────────────────────────────────── */
 .sc-theme-gadgets .sc-title {
   text-shadow:0 0 18px rgba(0,220,255,0.6);
 }
 
+
 /* ════════════════════════════════════════════════════════════════════
-   1. FASHION — CURTAIN REVEAL
-   Two panels start at translateX(0) and slide apart on --visible.
+   1. FASHION — CURTAIN REVEAL (unchanged)
    ════════════════════════════════════════════════════════════════════ */
 .sc-curtain {
   position:absolute; inset:0; z-index:15;
@@ -115,57 +115,150 @@
 .sc-curtain-right {
   height:100%; width:50.5%;
   will-change:transform;
-  transform:translateX(0);                          /* EXPLICIT start */
+  transform:translateX(0);
   transition:transform 1.3s cubic-bezier(0.77,0,0.175,1);
 }
 .sc-card--visible .sc-curtain-left  { transform:translateX(-100%); }
 .sc-card--visible .sc-curtain-right { transform:translateX(100%);  }
 
+
 /* ════════════════════════════════════════════════════════════════════
-   2. KENTE — ZIGZAG STRIPES DRAW IN
+   2. KENTE — MULTI-DIRECTIONAL SLIM LINES, THEN EXIT RIGHT
    KenteSVG remounts on each activation (key prop) → @keyframes restart.
-   stroke-dasharray:2000 is larger than any path length (~1600px max).
+   Wrapper slides off to the right after lines are fully drawn.
    ════════════════════════════════════════════════════════════════════ */
 .sc-kente-wrap {
   position:absolute; inset:0; z-index:3;
-  pointer-events:none; overflow:hidden;
+  pointer-events:none;
+  /* Exit right after lines have drawn in */
+  animation:kenteWrapExit 0.45s ease-in 1.55s both;
 }
+
+@keyframes kenteWrapExit {
+  0%   { transform:translateX(0);    opacity:1; }
+  100% { transform:translateX(110%); opacity:0; }
+}
+
 .sc-kente-svg {
   position:absolute; inset:0;
   width:100%; height:100%;
   display:block;
 }
+
+/* All paths draw in; dasharray covers longest diagonal (~450 px) */
 .sc-kente-path {
-  stroke-dasharray:2000;
-  stroke-dashoffset:2000;
-  animation:kenteDrawIn 1.2s ease-out forwards;
+  stroke-dasharray:600;
+  stroke-dashoffset:600;
+  animation:kenteDrawIn 0.85s ease-out forwards;
 }
+
 @keyframes kenteDrawIn {
   to { stroke-dashoffset:0; }
 }
 
+
 /* ════════════════════════════════════════════════════════════════════
-   3. SCENTS — TRANSLUCENT CLOUD SPRAY
+   3. BESTSELLERS — INK STAMP DROP + PERCENTAGE COUNTER
+   StampOverlay remounts on each activation → @keyframes restart.
+   ════════════════════════════════════════════════════════════════════ */
+.sc-stamp-wrap {
+  position:absolute;
+  /* Sit in the right half of the card (image zone) */
+  right:10%;
+  top:50%;
+  transform:translateY(-50%);
+  z-index:13;
+  pointer-events:none;
+}
+
+/* The stamp itself animates independently of the wrapper's translate */
+.sc-stamp {
+  width:94px;
+  height:94px;
+  animation:scStampHit 0.55s cubic-bezier(0.36,0.07,0.19,0.97) 0.18s both;
+}
+
+@keyframes scStampHit {
+  0%   { transform:rotate(-16deg) scale(3.2) translateY(-24px); opacity:0; }
+  62%  { transform:rotate(-16deg) scale(0.90) translateY(4px);  opacity:1; }
+  78%  { transform:rotate(-16deg) scale(1.07) translateY(-3px); opacity:1; }
+  100% { transform:rotate(-16deg) scale(1)    translateY(0);    opacity:1; }
+}
+
+.sc-stamp-ring {
+  width:100%; height:100%;
+  border-radius:50%;
+  border:2.5px dashed rgba(255,128,60,0.88);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:
+    0 0 0 6px rgba(255,100,40,0.12),
+    inset 0 0 14px rgba(255,100,40,0.08);
+}
+
+.sc-stamp-body {
+  display:flex; flex-direction:column;
+  align-items:center; gap:1px;
+}
+
+.sc-stamp-top,
+.sc-stamp-star {
+  font-size:7px; font-weight:800;
+  color:rgba(255,150,80,0.95);
+  letter-spacing:0.7px; text-transform:uppercase;
+  text-align:center; line-height:1;
+}
+
+/* Clip window — exactly one slot tall */
+.sc-stamp-counter-clip {
+  height:28px;
+  overflow:hidden;
+}
+
+/* Scroll column — 5 slots × 28px = 140px tall */
+.sc-stamp-counter {
+  display:flex; flex-direction:column;
+  /* steps(4,end) ticks exactly 4 times across duration */
+  animation:scStampCount 1.6s steps(4, end) 0.72s both;
+}
+
+@keyframes scStampCount {
+  0%   { transform:translateY(0);     }
+  100% { transform:translateY(-112px);}
+}
+
+.sc-stamp-counter span {
+  height:28px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; font-weight:900;
+  color:rgba(255,120,55,0.96);
+  font-variant-numeric:tabular-nums;
+  line-height:1;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+   4. SCENTS — TRANSLUCENT CLOUD SPRAY FROM ALL DIRECTIONS
    SprayOverlay remounts on each activation → @keyframes restart.
    ════════════════════════════════════════════════════════════════════ */
 .sc-spray-wrap {
   position:absolute; inset:0; z-index:12;
   pointer-events:none; overflow:hidden;
 }
+
+/* Base puff shape */
 .sc-puff {
   position:absolute; border-radius:50%;
   background:radial-gradient(ellipse at center,
-    rgba(255,255,255,0.93) 0%,
-    rgba(255,255,255,0.38) 42%,
+    rgba(255,255,255,0.94) 0%,
+    rgba(255,255,255,0.38) 44%,
     transparent 70%);
   opacity:0;
 }
-.sc-puff-l1 { width:175px;height:145px;left:-75px;top:0;    animation:scPuffL 3.2s ease-out 0s    forwards; }
-.sc-puff-l2 { width:130px;height:110px;left:-48px;top:28px; animation:scPuffL 3.2s ease-out 0.22s forwards; }
-.sc-puff-l3 { width:100px;height: 80px;left:-20px;top:56px; animation:scPuffL 3.2s ease-out 0.42s forwards; }
-.sc-puff-r1 { width:175px;height:145px;right:-75px;top:0;   animation:scPuffR 3.2s ease-out 0.1s  forwards; }
-.sc-puff-r2 { width:130px;height:110px;right:-48px;top:28px;animation:scPuffR 3.2s ease-out 0.3s  forwards; }
-.sc-puff-r3 { width:100px;height: 80px;right:-20px;top:56px;animation:scPuffR 3.2s ease-out 0.5s  forwards; }
+
+/* ── Left ── */
+.sc-puff-l1 { width:175px;height:145px;left:-75px;top:0;     animation:scPuffL 3.2s ease-out 0s    forwards; }
+.sc-puff-l2 { width:130px;height:110px;left:-48px;top:28px;  animation:scPuffL 3.2s ease-out 0.22s forwards; }
+.sc-puff-l3 { width:100px;height: 80px;left:-20px;top:58px;  animation:scPuffL 3.2s ease-out 0.42s forwards; }
 
 @keyframes scPuffL {
   0%   { opacity:0;    transform:translateX(-80%) scaleY(0.45); }
@@ -173,6 +266,12 @@
   55%  { opacity:0.38; }
   100% { opacity:0;    transform:translateX(8%)   scaleY(1.2);  }
 }
+
+/* ── Right ── */
+.sc-puff-r1 { width:175px;height:145px;right:-75px;top:0;    animation:scPuffR 3.2s ease-out 0.10s forwards; }
+.sc-puff-r2 { width:130px;height:110px;right:-48px;top:28px; animation:scPuffR 3.2s ease-out 0.30s forwards; }
+.sc-puff-r3 { width:100px;height: 80px;right:-20px;top:58px; animation:scPuffR 3.2s ease-out 0.50s forwards; }
+
 @keyframes scPuffR {
   0%   { opacity:0;    transform:translateX(80%)  scaleY(0.45); }
   18%  { opacity:0.95; transform:translateX(0%)   scaleY(1);    }
@@ -180,87 +279,255 @@
   100% { opacity:0;    transform:translateX(-8%)  scaleY(1.2);  }
 }
 
+/* ── Top ── */
+.sc-puff-t1 { width:170px;height:130px;top:-60px;left:15%;   animation:scPuffT 3.2s ease-out 0.15s forwards; }
+.sc-puff-t2 { width:120px;height: 90px;top:-42px;left:50%;   animation:scPuffT 3.2s ease-out 0.35s forwards; }
+.sc-puff-t3 { width: 90px;height: 70px;top:-30px;left:72%;   animation:scPuffT 3.2s ease-out 0.55s forwards; }
+
+@keyframes scPuffT {
+  0%   { opacity:0;    transform:translateY(-70%) scaleX(0.5); }
+  18%  { opacity:0.88; transform:translateY(0%)   scaleX(1);   }
+  55%  { opacity:0.32; }
+  100% { opacity:0;    transform:translateY(10%)  scaleX(1.2); }
+}
+
+/* ── Bottom ── */
+.sc-puff-b1 { width:160px;height:120px;bottom:-55px;left:18%; animation:scPuffB 3.2s ease-out 0.20s forwards; }
+.sc-puff-b2 { width:110px;height: 82px;bottom:-38px;left:58%; animation:scPuffB 3.2s ease-out 0.40s forwards; }
+
+@keyframes scPuffB {
+  0%   { opacity:0;    transform:translateY(70%)  scaleX(0.5); }
+  18%  { opacity:0.82; transform:translateY(0%)   scaleX(1);   }
+  55%  { opacity:0.30; }
+  100% { opacity:0;    transform:translateY(-8%)  scaleX(1.2); }
+}
+
+/* ── Centre burst ── */
+.sc-puff-c1 {
+  width:210px; height:165px;
+  top:calc(50% - 82px); left:calc(50% - 105px);
+  animation:scPuffC 3.2s ease-out 0.05s forwards;
+}
+.sc-puff-c2 {
+  width:150px; height:110px;
+  top:calc(50% - 55px); left:calc(38% - 75px);
+  animation:scPuffC 3.2s ease-out 0.28s forwards;
+}
+.sc-puff-c3 {
+  width:110px; height: 80px;
+  top:calc(55% - 40px); left:calc(62% - 55px);
+  animation:scPuffC 3.2s ease-out 0.48s forwards;
+}
+
+@keyframes scPuffC {
+  0%   { opacity:0;    transform:scale(0.15); }
+  18%  { opacity:0.58; transform:scale(1);    }
+  55%  { opacity:0.22; }
+  100% { opacity:0;    transform:scale(1.55); }
+}
+
+
 /* ════════════════════════════════════════════════════════════════════
-   4. GADGETS — RGB GLITCH + SCANLINES
+   5. GADGETS — INTENSE RGB GLITCH + NEON BARS + FLICKER + NOISE
    GlitchOverlay remounts on each activation → @keyframes restart.
    ════════════════════════════════════════════════════════════════════ */
 .sc-glitch-wrap {
   position:absolute; inset:0; z-index:12;
   pointer-events:none; overflow:hidden;
 }
+
+/* ── RGB channel splits ── */
 .sc-gl {
   position:absolute; inset:0; opacity:0; mix-blend-mode:screen;
 }
+
+.sc-gl-c { animation:scGlC 2.8s steps(1) 0s    forwards; }
+.sc-gl-m { animation:scGlM 2.8s steps(1) 0.07s forwards; }
+.sc-gl-y { animation:scGlY 2.8s steps(1) 0.14s forwards; }
+.sc-gl-g { animation:scGlG 2.8s steps(1) 0.21s forwards; }
+
+@keyframes scGlC {
+  0%  { opacity:0; }
+  4%  { opacity:1;    background:rgba(0,255,255,0.52);  clip-path:inset(4%  0 83% 0); transform:translateX(-9px);  }
+  8%  {              background:rgba(0,255,255,0.52);  clip-path:inset(68% 0 4%  0); transform:translateX(9px);   }
+  12% { opacity:0; }
+  20% { opacity:0.75; background:rgba(0,255,255,0.32);  clip-path:inset(33% 0 50% 0); transform:translateX(-6px); }
+  24% { opacity:0; }
+  30% { opacity:0.42; background:rgba(0,255,255,0.20);  clip-path:inset(10% 0 78% 0); transform:translateX(4px);  }
+  34% { opacity:0; }
+  40% { opacity:0.28; background:rgba(0,255,255,0.14);  clip-path:inset(54% 0 36% 0); transform:translateX(-3px); }
+  44% { opacity:0; }
+ 100% { opacity:0; }
+}
+
+@keyframes scGlM {
+  0%  { opacity:0; }
+  4%  { opacity:1;    background:rgba(255,0,255,0.52);  clip-path:inset(44% 0 30% 0); transform:translateX(10px);  }
+  8%  {              background:rgba(255,0,255,0.52);  clip-path:inset(16% 0 68% 0); transform:translateX(-10px); }
+  12% { opacity:0; }
+  20% { opacity:0.72; background:rgba(255,0,255,0.32);  clip-path:inset(62% 0 16% 0); transform:translateX(6px);  }
+  24% { opacity:0; }
+  30% { opacity:0.38; background:rgba(255,0,255,0.18);  clip-path:inset(80% 0 6%  0); transform:translateX(-4px); }
+  34% { opacity:0; }
+  42% { opacity:0.22; background:rgba(255,0,255,0.12);  clip-path:inset(28% 0 60% 0); transform:translateX(2px);  }
+  46% { opacity:0; }
+ 100% { opacity:0; }
+}
+
+@keyframes scGlY {
+  0%  { opacity:0; }
+  4%  { opacity:0.9;  background:rgba(255,255,0,0.40); clip-path:inset(84% 0 2%  0); transform:translateX(-7px); }
+  8%  {              background:rgba(255,255,0,0.40); clip-path:inset(26% 0 60% 0); transform:translateX(7px);  }
+  12% { opacity:0; }
+  20% { opacity:0.55; background:rgba(255,255,0,0.24); clip-path:inset(48% 0 40% 0); transform:translateX(-5px); }
+  24% { opacity:0; }
+  32% { opacity:0.32; background:rgba(255,255,0,0.14); clip-path:inset(72% 0 18% 0); transform:translateX(3px);  }
+  36% { opacity:0; }
+ 100% { opacity:0; }
+}
+
+@keyframes scGlG {
+  0%  { opacity:0; }
+  5%  { opacity:0.82; background:rgba(0,255,100,0.44); clip-path:inset(55% 0 28% 0); transform:translateX(8px);  }
+  9%  {              background:rgba(0,255,100,0.44); clip-path:inset(8%  0 74% 0); transform:translateX(-8px); }
+  13% { opacity:0; }
+  22% { opacity:0.58; background:rgba(0,255,100,0.26); clip-path:inset(72% 0 12% 0); transform:translateX(5px);  }
+  26% { opacity:0; }
+  33% { opacity:0.34; background:rgba(0,255,100,0.16); clip-path:inset(35% 0 50% 0); transform:translateX(-3px); }
+  37% { opacity:0; }
+  44% { opacity:0.20; background:rgba(0,255,100,0.10); clip-path:inset(62% 0 24% 0); transform:translateX(2px);  }
+  48% { opacity:0; }
+ 100% { opacity:0; }
+}
+
+/* ── Neon horizontal glitch bars ── */
+.sc-glbar {
+  position:absolute; left:0; right:0;
+  mix-blend-mode:screen; opacity:0;
+}
+
+.sc-glbar-1 { height:3px; top:22%; background:rgba(0,255,255,0.92); animation:scGlBar 2.8s steps(1) 0s    forwards; }
+.sc-glbar-2 { height:2px; top:58%; background:rgba(255,0,255,0.82); animation:scGlBar 2.8s steps(1) 0.11s forwards; }
+.sc-glbar-3 { height:4px; top:78%; background:rgba(255,255,0,0.72); animation:scGlBar 2.8s steps(1) 0.22s forwards; }
+.sc-glbar-4 { height:2px; top:40%; background:rgba(0,255,100,0.82); animation:scGlBar 2.8s steps(1) 0.33s forwards; }
+
+@keyframes scGlBar {
+  0%   { opacity:0;   transform:translateX(0);    }
+  3%   { opacity:1;   transform:translateX(-16px); }
+  6%   { opacity:0;   transform:translateX(12px);  }
+  10%  { opacity:0.9; transform:translateX(0);     }
+  13%  { opacity:0; }
+  18%  { opacity:0.65; transform:translateX(-8px); }
+  21%  { opacity:0; }
+  28%  { opacity:0.45; transform:translateX(5px);  }
+  31%  { opacity:0; }
+  38%  { opacity:0.28; transform:translateX(-3px); }
+  41%  { opacity:0; }
+ 100%  { opacity:0; }
+}
+
+/* ── Screen-wide flicker ── */
+.sc-gl-flicker {
+  position:absolute; inset:0;
+  background:rgba(255,255,255,0.09);
+  opacity:0;
+  animation:scFlicker 2.8s steps(1) 0s forwards;
+}
+
+@keyframes scFlicker {
+  0%   { opacity:0; }
+  2%   { opacity:1; }
+  4%   { opacity:0; }
+  7%   { opacity:0.65; }
+  9%   { opacity:0; }
+  15%  { opacity:0.42; }
+  17%  { opacity:0; }
+  24%  { opacity:0.28; }
+  26%  { opacity:0; }
+  33%  { opacity:0.18; }
+  35%  { opacity:0; }
+ 100%  { opacity:0; }
+}
+
+/* ── Pixel noise grid ── */
+.sc-gl-noise {
+  position:absolute; inset:0;
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(0,255,255,0.06) 0px, rgba(0,255,255,0.06) 1px,
+      transparent 1px, transparent 5px),
+    repeating-linear-gradient(0deg,
+      rgba(255,0,255,0.04) 0px, rgba(255,0,255,0.04) 1px,
+      transparent 1px, transparent 7px);
+  mix-blend-mode:screen;
+  opacity:0;
+  animation:scNoise 2.8s steps(1) 0s forwards;
+}
+
+@keyframes scNoise {
+  0%   { opacity:0; background-position:0 0,0 0; }
+  5%   { opacity:1; background-position:0 0,0 0; }
+  10%  { opacity:1; background-position:-2px 3px,1px -2px; }
+  15%  { opacity:0; }
+  22%  { opacity:0.75; background-position:4px -2px,-3px 1px; }
+  28%  { opacity:0; }
+  35%  { opacity:0.55; background-position:-3px 1px,2px 3px; }
+  40%  { opacity:0; }
+  48%  { opacity:0.35; background-position:2px -3px,-1px 2px; }
+  53%  { opacity:0; }
+ 100%  { opacity:0; }
+}
+
+/* ── Scanlines (persistent after glitch starts) ── */
 .sc-scanlines {
   position:absolute; inset:0; z-index:4; pointer-events:none;
   background:repeating-linear-gradient(0deg,
     transparent,transparent 3px,
-    rgba(0,0,0,0.14) 3px,rgba(0,0,0,0.14) 4px);
+    rgba(0,0,0,0.15) 3px,rgba(0,0,0,0.15) 4px);
   opacity:0;
   animation:scScanIn 0.5s ease 0.05s forwards;
 }
 @keyframes scScanIn { to { opacity:1; } }
 
-.sc-gl-c { animation:scGlC 2.8s steps(1) 0s    forwards; }
-.sc-gl-m { animation:scGlM 2.8s steps(1) 0.07s forwards; }
-.sc-gl-y { animation:scGlY 2.8s steps(1) 0.14s forwards; }
 
-@keyframes scGlC {
-  0%  { opacity:0; }
-  4%  { opacity:1;    background:rgba(0,255,255,0.5);  clip-path:inset(4%  0 83% 0); transform:translateX(-8px); }
-  8%  {              background:rgba(0,255,255,0.5);  clip-path:inset(68% 0 4%  0); transform:translateX(8px);  }
-  12% { opacity:0; }
-  20% { opacity:0.7;  background:rgba(0,255,255,0.3);  clip-path:inset(33% 0 50% 0); transform:translateX(-5px); }
-  24% { opacity:0; }
-  30% { opacity:0.4;  background:rgba(0,255,255,0.18); clip-path:inset(10% 0 78% 0); transform:translateX(3px);  }
-  34% { opacity:0; }
- 100% { opacity:0; }
-}
-@keyframes scGlM {
-  0%  { opacity:0; }
-  4%  { opacity:1;    background:rgba(255,0,255,0.5);  clip-path:inset(44% 0 30% 0); transform:translateX(9px);  }
-  8%  {              background:rgba(255,0,255,0.5);  clip-path:inset(16% 0 68% 0); transform:translateX(-9px); }
-  12% { opacity:0; }
-  20% { opacity:0.7;  background:rgba(255,0,255,0.3);  clip-path:inset(62% 0 16% 0); transform:translateX(5px);  }
-  24% { opacity:0; }
-  30% { opacity:0.35; background:rgba(255,0,255,0.15); clip-path:inset(80% 0 6%  0); transform:translateX(-3px); }
-  34% { opacity:0; }
- 100% { opacity:0; }
-}
-@keyframes scGlY {
-  0%  { opacity:0; }
-  4%  { opacity:0.9;  background:rgba(255,255,0,0.38); clip-path:inset(84% 0 2%  0); transform:translateX(-6px); }
-  8%  {              background:rgba(255,255,0,0.38); clip-path:inset(26% 0 60% 0); transform:translateX(6px);  }
-  12% { opacity:0; }
-  20% { opacity:0.5;  background:rgba(255,255,0,0.22); clip-path:inset(48% 0 40% 0); transform:translateX(-4px); }
-  24% { opacity:0; }
- 100% { opacity:0; }
-}
-
-/* ── RESPONSIVE ────────────────────────────────────────────────────── */
+/* ── RESPONSIVE ─────────────────────────────────────────────────── */
 @media (max-width:360px) {
   .sc-card-wrap { width:calc(100vw - 40px); }
   .sc-card      { height:168px; }
   .sc-title     { font-size:13px; }
   .sc-subtitle  { font-size:10px; }
   .sc-btn       { font-size:10px; padding:6px 12px; margin-top:6px; }
+  .sc-stamp     { width:78px; height:78px; }
 }
+
 @media (min-width:640px) {
   .sc-card-wrap { width:clamp(340px,72vw,480px); }
   .sc-card      { height:210px; }
   .sc-title     { font-size:20px; }
   .sc-subtitle  { font-size:12px; }
   .sc-btn       { font-size:13px; padding:9px 18px; margin-top:10px; }
+  .sc-stamp     { width:106px; height:106px; }
 }
+
 @media (min-width:1024px) {
   .sc-card-wrap { width:clamp(380px,38vw,520px); }
   .sc-card      { height:220px; }
   .sc-track     { padding:4px 24px 6px; gap:20px; }
+  .sc-stamp     { width:112px; height:112px; }
 }
+
 @media (prefers-reduced-motion:reduce) {
+  /* Fashion */
   .sc-curtain-left,.sc-curtain-right { transition:none !important; }
-  .sc-puff,.sc-gl,.sc-scanlines      { animation:none !important; opacity:0 !important; }
   .sc-card--visible .sc-curtain-left  { transform:translateX(-100%) !important; }
   .sc-card--visible .sc-curtain-right { transform:translateX(100%)  !important; }
+  /* Kente */
   .sc-kente-path { animation:none !important; stroke-dashoffset:0 !important; }
+  .sc-kente-wrap { animation:none !important; }
+  /* Stamp */
+  .sc-stamp        { animation:none !important; transform:rotate(-16deg) scale(1); opacity:1; }
+  .sc-stamp-counter { animation:none !important; transform:translateY(-112px); }
+  /* Scents / Gadgets */
+  .sc-puff, .sc-gl, .sc-glbar, .sc-gl-flicker,
+  .sc-gl-noise, .sc-scanlines { animation:none !important; opacity:0 !important; }
 }
