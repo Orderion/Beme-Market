@@ -14,20 +14,43 @@ function IconHeart({ filled }) {
   );
 }
 
-/* Kente SVG — built in JSX, animated purely via CSS */
+/* ════════════════════════════════════════════════════════════════════
+   KENTE — multi-directional slim lines: horizontal, vertical, diagonal.
+   Wrapper slides off to the right after lines draw in.
+   KenteSVG remounts on each activation (key prop) → restarts all CSS.
+   ════════════════════════════════════════════════════════════════════ */
 function KenteSVG() {
-  const stripes = [
-    { y: 20,  color: "#CC0000", sw: 14, amp: 11, period: 30, delay: "0s"    },
-    { y: 48,  color: "#FFD700", sw: 9,  amp:  8, period: 22, delay: "0.15s" },
-    { y: 74,  color: "#006B3F", sw: 14, amp: 11, period: 30, delay: "0.3s"  },
-    { y: 104, color: "#FFD700", sw: 9,  amp:  8, period: 22, delay: "0.45s" },
-    { y: 132, color: "#CC0000", sw: 14, amp: 11, period: 30, delay: "0.6s"  },
-    { y: 160, color: "#006B3F", sw: 9,  amp:  8, period: 22, delay: "0.75s" },
+  const W = 420, H = 190;
+
+  /* Horizontal wavy paths */
+  const hLines = [
+    { y: 22,  color: "#CC0000", delay: "0s",    period: 28, amp: 4 },
+    { y: 50,  color: "#FFD700", delay: "0.10s", period: 20, amp: 3 },
+    { y: 80,  color: "#006B3F", delay: "0.22s", period: 28, amp: 4 },
+    { y: 110, color: "#CC0000", delay: "0.06s", period: 20, amp: 3 },
+    { y: 140, color: "#FFD700", delay: "0.18s", period: 28, amp: 4 },
+    { y: 168, color: "#006B3F", delay: "0.14s", period: 20, amp: 3 },
   ];
-  const buildD = ({ y, amp, period }) => {
-    const W = 420;
+
+  /* Vertical wavy paths */
+  const vLines = [
+    { x: 70,  color: "#FFD700", delay: "0.12s", period: 22, amp: 3 },
+    { x: 160, color: "#CC0000", delay: "0.26s", period: 26, amp: 4 },
+    { x: 260, color: "#006B3F", delay: "0.38s", period: 22, amp: 3 },
+    { x: 355, color: "#FFD700", delay: "0.20s", period: 26, amp: 4 },
+  ];
+
+  /* Diagonal straight lines */
+  const dLines = [
+    { d: "M -10,38 L 310,190",  color: "#CC0000", delay: "0.30s" },
+    { d: "M 115,0 L 430,155",   color: "#006B3F", delay: "0.44s" },
+    { d: "M 0,132 L 205,0",     color: "#FFD700", delay: "0.36s" },
+    { d: "M 220,190 L 420,82",  color: "#CC0000", delay: "0.52s" },
+  ];
+
+  const buildH = ({ y, period, amp }) => {
     let d = `M 0 ${y}`;
-    let x = 0, up = true;
+    let x = 0; let up = true;
     const hp = period / 2;
     while (x < W) {
       const cx = x + hp / 2;
@@ -38,21 +61,62 @@ function KenteSVG() {
     }
     return d;
   };
+
+  const buildV = ({ x, period, amp }) => {
+    let d = `M ${x} 0`;
+    let y = 0; let right = true;
+    const hp = period / 2;
+    while (y < H) {
+      const cy = y + hp / 2;
+      const cx = right ? x + amp : x - amp;
+      const ey = Math.min(y + hp, H);
+      d += ` Q ${cx},${cy} ${x},${ey}`;
+      y = ey; right = !right;
+    }
+    return d;
+  };
+
   return (
     <svg
-      viewBox="0 0 420 190"
+      viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="none"
       className="sc-kente-svg"
       aria-hidden="true"
     >
-      {stripes.map((s, i) => (
+      {hLines.map((s, i) => (
         <path
-          key={i}
-          d={buildD(s)}
+          key={`h${i}`}
+          d={buildH(s)}
           stroke={s.color}
-          strokeWidth={s.sw}
+          strokeWidth="1.8"
           fill="none"
-          strokeOpacity="0.8"
+          strokeOpacity="0.65"
+          strokeLinecap="round"
+          className="sc-kente-path"
+          style={{ animationDelay: s.delay }}
+        />
+      ))}
+      {vLines.map((s, i) => (
+        <path
+          key={`v${i}`}
+          d={buildV(s)}
+          stroke={s.color}
+          strokeWidth="1.5"
+          fill="none"
+          strokeOpacity="0.55"
+          strokeLinecap="round"
+          className="sc-kente-path"
+          style={{ animationDelay: s.delay }}
+        />
+      ))}
+      {dLines.map((s, i) => (
+        <path
+          key={`d${i}`}
+          d={s.d}
+          stroke={s.color}
+          strokeWidth="1.4"
+          fill="none"
+          strokeOpacity="0.45"
           strokeLinecap="round"
           className="sc-kente-path"
           style={{ animationDelay: s.delay }}
@@ -62,6 +126,9 @@ function KenteSVG() {
   );
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   FASHION — curtain panels (unchanged)
+   ════════════════════════════════════════════════════════════════════ */
 function CurtainOverlay({ color }) {
   return (
     <div className="sc-curtain" aria-hidden="true">
@@ -71,31 +138,92 @@ function CurtainOverlay({ color }) {
   );
 }
 
-function SprayOverlay() {
+/* ════════════════════════════════════════════════════════════════════
+   BESTSELLERS — ink stamp that drops & counter rolls 0 → 100 %
+   StampOverlay remounts on each activation → CSS restart.
+   ════════════════════════════════════════════════════════════════════ */
+function StampOverlay() {
   return (
-    <div className="sc-spray-wrap" aria-hidden="true">
-      <div className="sc-puff sc-puff-l1" />
-      <div className="sc-puff sc-puff-l2" />
-      <div className="sc-puff sc-puff-l3" />
-      <div className="sc-puff sc-puff-r1" />
-      <div className="sc-puff sc-puff-r2" />
-      <div className="sc-puff sc-puff-r3" />
+    <div className="sc-stamp-wrap" aria-hidden="true">
+      <div className="sc-stamp">
+        <div className="sc-stamp-ring">
+          <div className="sc-stamp-body">
+            <span className="sc-stamp-top">DEALS UP TO</span>
+            <div className="sc-stamp-counter-clip">
+              <div className="sc-stamp-counter">
+                <span>0%</span>
+                <span>25%</span>
+                <span>50%</span>
+                <span>75%</span>
+                <span>100%</span>
+              </div>
+            </div>
+            <span className="sc-stamp-star">★ OFF ★</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   SCENTS — translucent clouds from all directions + centre burst
+   SprayOverlay remounts on each activation → CSS restart.
+   ════════════════════════════════════════════════════════════════════ */
+function SprayOverlay() {
+  return (
+    <div className="sc-spray-wrap" aria-hidden="true">
+      {/* Left edge */}
+      <div className="sc-puff sc-puff-l1" />
+      <div className="sc-puff sc-puff-l2" />
+      <div className="sc-puff sc-puff-l3" />
+      {/* Right edge */}
+      <div className="sc-puff sc-puff-r1" />
+      <div className="sc-puff sc-puff-r2" />
+      <div className="sc-puff sc-puff-r3" />
+      {/* Top edge */}
+      <div className="sc-puff sc-puff-t1" />
+      <div className="sc-puff sc-puff-t2" />
+      <div className="sc-puff sc-puff-t3" />
+      {/* Bottom edge */}
+      <div className="sc-puff sc-puff-b1" />
+      <div className="sc-puff sc-puff-b2" />
+      {/* Centre burst */}
+      <div className="sc-puff sc-puff-c1" />
+      <div className="sc-puff sc-puff-c2" />
+      <div className="sc-puff sc-puff-c3" />
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   GADGETS — intense RGB glitch + neon bars + flicker + noise
+   GlitchOverlay remounts on each activation → CSS restart.
+   ════════════════════════════════════════════════════════════════════ */
 function GlitchOverlay() {
   return (
     <div className="sc-glitch-wrap" aria-hidden="true">
+      {/* RGB channel splits */}
       <div className="sc-gl sc-gl-c" />
       <div className="sc-gl sc-gl-m" />
       <div className="sc-gl sc-gl-y" />
+      <div className="sc-gl sc-gl-g" />
+      {/* Horizontal neon glitch bars */}
+      <div className="sc-glbar sc-glbar-1" />
+      <div className="sc-glbar sc-glbar-2" />
+      <div className="sc-glbar sc-glbar-3" />
+      <div className="sc-glbar sc-glbar-4" />
+      {/* Screen-wide flicker */}
+      <div className="sc-gl-flicker" />
+      {/* Pixel-grid noise overlay */}
+      <div className="sc-gl-noise" />
+      {/* Scanlines */}
       <div className="sc-scanlines" />
     </div>
   );
 }
 
-/* Map theme → card background colour */
+/* ── Map theme → card background colour ── */
 const THEME_BG = {
   fashion:     "#1E3D2A",
   bestsellers: "#7B1E1E",
@@ -117,7 +245,6 @@ export default function ShopCarousel({ shops = [] }) {
     setSaved((p) => ({ ...p, [id]: !p[id] }));
   };
 
-  /* Scroll → find which card centre is closest to track centre */
   const onScroll = useCallback(() => {
     const el = trackRef.current;
     if (!el) return;
@@ -197,26 +324,31 @@ export default function ShopCarousel({ shops = [] }) {
                   </div>
                 </div>
 
-                {/* ── Overlays ── */}
+                {/* ═══ Overlays ═══ */}
 
-                {/* 1. Fashion — curtain; always in DOM, CSS opens it */}
+                {/* 1. Fashion — curtain; always in DOM, CSS opens on --visible */}
                 {theme === "fashion" && (
                   <CurtainOverlay color={cardBg} />
                 )}
 
-                {/* 2. Kente — SVG remounts each activation → CSS restart */}
+                {/* 2. Kente — remount on activation; SVG draws in then wrapper exits right */}
                 {theme === "kente" && (
                   <div className="sc-kente-wrap" key={`kente-${animKey}`}>
                     <KenteSVG />
                   </div>
                 )}
 
-                {/* 3. Scents — remount → CSS restart */}
+                {/* 3. Bestsellers — stamp drops + counter rolls on activation */}
+                {theme === "bestsellers" && isActive && (
+                  <StampOverlay key={`stamp-${animKey}`} />
+                )}
+
+                {/* 4. Scents — clouds from all directions on activation */}
                 {theme === "scents" && isActive && (
                   <SprayOverlay key={`spray-${animKey}`} />
                 )}
 
-                {/* 4. Gadgets — remount → CSS restart */}
+                {/* 5. Gadgets — full RGB glitch on activation */}
                 {theme === "gadgets" && isActive && (
                   <GlitchOverlay key={`glitch-${animKey}`} />
                 )}
