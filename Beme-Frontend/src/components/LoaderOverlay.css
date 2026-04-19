@@ -11,16 +11,12 @@
   justify-content: center;
   opacity: 0;
   visibility: hidden;
-  transition: 
-    opacity var(--motion-slow) var(--response-delay),
-    visibility var(--motion-slow) var(--response-delay);
-  pointer-events: none;
+  transition: opacity var(--motion-slow), visibility var(--motion-slow);
 }
 
 .loader-overlay.show {
   opacity: 1;
   visibility: visible;
-  pointer-events: auto;
 }
 
 .loader-overlay-backdrop {
@@ -38,77 +34,60 @@
   position: relative;
   z-index: 1;
   text-align: center;
-  animation: fadeUpSoft var(--page-motion) var(--response-delay) both;
 }
 
 /* =========================
-   LOGO LOADER
+   LOGO
 ========================= */
 
 .loader-mark {
-  width: 96px;
-  height: 96px;
-  margin: 0 auto 26px;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 24px;
   perspective: 900px;
 }
 
-/* SVG */
 .loader-logo {
   width: 100%;
   height: 100%;
 }
 
-/* COLORS (auto theme) */
+/* COLORS */
 .logo-left {
   fill: #FF6600;
   transform-origin: right center;
-  animation: foldLeft 1600ms var(--ease-premium) infinite;
+  animation: foldLeft 1.6s var(--ease-premium) infinite;
 }
 
 .logo-right {
   fill: var(--text);
   transform-origin: left center;
-  animation: foldRight 1600ms var(--ease-premium) infinite;
+  animation: foldRight 1.6s var(--ease-premium) infinite;
+}
+
+.logo-inner {
+  fill: var(--text);
+  opacity: 0.9;
+  animation: pulseInner 1.6s var(--ease-premium) infinite;
 }
 
 /* =========================
-   FOLD ANIMATION
+   ANIMATION
 ========================= */
 
 @keyframes foldLeft {
-  0% {
-    transform: rotateY(0deg) scale(1);
-  }
-  25% {
-    transform: rotateY(-35deg) scale(0.96);
-  }
-  50% {
-    transform: rotateY(-55deg) scale(0.92);
-  }
-  75% {
-    transform: rotateY(-25deg) scale(0.97);
-  }
-  100% {
-    transform: rotateY(0deg) scale(1);
-  }
+  0%,100% { transform: rotateY(0deg); }
+  50% { transform: rotateY(-55deg); }
 }
 
 @keyframes foldRight {
-  0% {
-    transform: rotateY(0deg) scale(1);
-  }
-  25% {
-    transform: rotateY(35deg) scale(0.96);
-  }
-  50% {
-    transform: rotateY(55deg) scale(0.92);
-  }
-  75% {
-    transform: rotateY(25deg) scale(0.97);
-  }
-  100% {
-    transform: rotateY(0deg) scale(1);
-  }
+  0%,100% { transform: rotateY(0deg); }
+  50% { transform: rotateY(55deg); }
+}
+
+@keyframes pulseInner {
+  0%,100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
 }
 
 /* =========================
@@ -119,7 +98,6 @@
   font-family: var(--font-display);
   font-size: 20px;
   font-weight: 700;
-  margin: 0 0 4px;
 }
 
 .loader-sub {
@@ -137,9 +115,5 @@
   .loader-mark {
     width: 80px;
     height: 80px;
-  }
-
-  .loader-label {
-    font-size: 17px;
   }
 }
