@@ -8,7 +8,6 @@ export default function LoaderOverlay({
   subtext = "Beme Market",
 }) {
   const visible = typeof isVisible !== "undefined" ? isVisible : show;
-
   const [render, setRender] = useState(false);
 
   useEffect(() => {
@@ -17,9 +16,7 @@ export default function LoaderOverlay({
     if (visible) {
       setRender(true);
     } else {
-      timeout = setTimeout(() => {
-        setRender(false);
-      }, 500);
+      timeout = setTimeout(() => setRender(false), 500);
     }
 
     return () => clearTimeout(timeout);
@@ -28,34 +25,32 @@ export default function LoaderOverlay({
   if (!render) return null;
 
   return (
-    <div
-      className={`loader-overlay ${visible ? "show" : ""}`}
-      role="status"
-      aria-live="polite"
-      aria-busy={visible}
-    >
+    <div className={`loader-overlay ${visible ? "show" : ""}`}>
       <div className="loader-overlay-backdrop" />
 
       <div className="loader-overlay-center">
-        {/* 🔥 LOGO LOADER */}
-        <div className="loader-mark" aria-hidden="true">
-          <svg
-            className="loader-logo"
-            viewBox="0 0 100 100"
-            xmlns="http://www.w3.org/2000/svg"
-          >
+        <div className="loader-mark">
+          <svg viewBox="0 0 100 100" className="loader-logo">
+            {/* LEFT */}
             <path
               className="logo-left"
-              d="M20 70 L20 30 L40 50 L60 30 L60 45 L40 65 Z"
+              d="M15 70 L15 30 L35 50 L50 35 L50 48 L35 62 Z"
             />
+
+            {/* RIGHT */}
             <path
               className="logo-right"
-              d="M80 70 L80 30 L60 50 L40 30 L40 45 L60 65 Z"
+              d="M85 70 L85 30 L65 50 L50 35 L50 48 L65 62 Z"
+            />
+
+            {/* INNER */}
+            <path
+              className="logo-inner"
+              d="M30 70 L50 50 L70 70 L60 70 L50 58 L40 70 Z"
             />
           </svg>
         </div>
 
-        {/* TEXT */}
         <div className="loader-text">
           <p className="loader-label">{label}</p>
           <p className="loader-sub">{subtext}</p>
