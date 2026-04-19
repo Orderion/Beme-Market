@@ -7,7 +7,6 @@ export default function LoaderOverlay({
   label = "Loading",
   subtext = "Beme Market",
 }) {
-  // ✅ SUPPORT BOTH PROPS
   const visible = typeof isVisible !== "undefined" ? isVisible : show;
 
   const [render, setRender] = useState(false);
@@ -18,16 +17,14 @@ export default function LoaderOverlay({
     if (visible) {
       setRender(true);
     } else {
-      // ✅ WAIT FOR CSS TRANSITION TO FINISH BEFORE UNMOUNT
       timeout = setTimeout(() => {
         setRender(false);
-      }, 400); // matches your --motion-slow feel
+      }, 500);
     }
 
     return () => clearTimeout(timeout);
   }, [visible]);
 
-  // ✅ DO NOT RENDER UNTIL FIRST TRIGGER
   if (!render) return null;
 
   return (
@@ -40,16 +37,25 @@ export default function LoaderOverlay({
       <div className="loader-overlay-backdrop" />
 
       <div className="loader-overlay-center">
+        {/* 🔥 LOGO LOADER */}
         <div className="loader-mark" aria-hidden="true">
-          <div className="loader-ring" />
-          <div className="loader-bars">
-            <span className="loader-bar bar1"></span>
-            <span className="loader-bar bar2"></span>
-            <span className="loader-bar bar3"></span>
-            <span className="loader-bar bar4"></span>
-          </div>
+          <svg
+            className="loader-logo"
+            viewBox="0 0 100 100"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              className="logo-left"
+              d="M20 70 L20 30 L40 50 L60 30 L60 45 L40 65 Z"
+            />
+            <path
+              className="logo-right"
+              d="M80 70 L80 30 L60 50 L40 30 L40 45 L60 65 Z"
+            />
+          </svg>
         </div>
 
+        {/* TEXT */}
         <div className="loader-text">
           <p className="loader-label">{label}</p>
           <p className="loader-sub">{subtext}</p>
