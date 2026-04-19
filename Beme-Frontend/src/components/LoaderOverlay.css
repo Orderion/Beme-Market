@@ -1,4 +1,6 @@
-/* LoaderOverlay.css - Premium slow luxurious version */
+/* =========================
+   OVERLAY
+========================= */
 
 .loader-overlay {
   position: fixed;
@@ -25,100 +27,119 @@
   position: absolute;
   inset: 0;
   background: var(--overlay);
-  backdrop-filter: blur(12px);
-  transition: 
-    background var(--motion-slow) var(--response-delay),
-    backdrop-filter var(--motion-slow) var(--response-delay);
+  backdrop-filter: blur(14px);
 }
+
+/* =========================
+   CENTER
+========================= */
 
 .loader-overlay-center {
   position: relative;
   z-index: 1;
   text-align: center;
   animation: fadeUpSoft var(--page-motion) var(--response-delay) both;
-  will-change: opacity, transform;
 }
+
+/* =========================
+   LOGO LOADER
+========================= */
 
 .loader-mark {
-  position: relative;
-  width: 92px;
-  height: 92px;
-  margin: 0 auto 28px;
-  animation: floatSoft 2800ms var(--ease-premium) infinite;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 26px;
+  perspective: 900px;
 }
 
-.loader-ring {
-  position: absolute;
-  inset: 0;
-  border: 3px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 9999px;
-  animation: loaderSpin 1400ms linear infinite;
+/* SVG */
+.loader-logo {
+  width: 100%;
+  height: 100%;
 }
 
-@keyframes loaderSpin {
-  to { transform: rotate(360deg); }
+/* COLORS (auto theme) */
+.logo-left {
+  fill: #FF6600;
+  transform-origin: right center;
+  animation: foldLeft 1600ms var(--ease-premium) infinite;
 }
 
-.loader-bars {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
+.logo-right {
+  fill: var(--text);
+  transform-origin: left center;
+  animation: foldRight 1600ms var(--ease-premium) infinite;
 }
 
-.loader-bar {
-  width: 4px;
-  background: var(--accent);
-  border-radius: 999px;
-  animation: loaderBarPulse 1200ms var(--ease-premium) infinite;
-  opacity: 0.75;
+/* =========================
+   FOLD ANIMATION
+========================= */
+
+@keyframes foldLeft {
+  0% {
+    transform: rotateY(0deg) scale(1);
+  }
+  25% {
+    transform: rotateY(-35deg) scale(0.96);
+  }
+  50% {
+    transform: rotateY(-55deg) scale(0.92);
+  }
+  75% {
+    transform: rotateY(-25deg) scale(0.97);
+  }
+  100% {
+    transform: rotateY(0deg) scale(1);
+  }
 }
 
-.loader-bar.bar1 { height: 28px; animation-delay: 0ms; }
-.loader-bar.bar2 { height: 42px; animation-delay: 120ms; }
-.loader-bar.bar3 { height: 36px; animation-delay: 240ms; }
-.loader-bar.bar4 { height: 22px; animation-delay: 360ms; }
-
-@keyframes loaderBarPulse {
-  0%, 100% { transform: scaleY(0.6); opacity: 0.55; }
-  50% { transform: scaleY(1); opacity: 1; }
+@keyframes foldRight {
+  0% {
+    transform: rotateY(0deg) scale(1);
+  }
+  25% {
+    transform: rotateY(35deg) scale(0.96);
+  }
+  50% {
+    transform: rotateY(55deg) scale(0.92);
+  }
+  75% {
+    transform: rotateY(25deg) scale(0.97);
+  }
+  100% {
+    transform: rotateY(0deg) scale(1);
+  }
 }
 
-.loader-text {
-  transition: opacity var(--motion-slow) var(--response-delay);
-}
+/* =========================
+   TEXT
+========================= */
 
 .loader-label {
   font-family: var(--font-display);
-  font-size: 21px;
+  font-size: 20px;
   font-weight: 700;
-  letter-spacing: -0.02em;
   margin: 0 0 4px;
-  color: var(--text);
-  animation: fadeInSoft var(--motion-slow) var(--response-delay) both;
 }
 
 .loader-sub {
-  font-size: 13px;
-  opacity: 0.65;
-  margin: 0;
-  letter-spacing: 0.02em;
+  font-size: 12px;
+  opacity: 0.6;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  animation: fadeInSoft var(--motion-slow) calc(var(--response-delay) + 120ms) both;
 }
 
-/* Dark mode adjustments already covered by your root variables */
+/* =========================
+   MOBILE
+========================= */
 
 @media (max-width: 640px) {
   .loader-mark {
-    width: 78px;
-    height: 78px;
+    width: 80px;
+    height: 80px;
   }
-  
+
   .loader-label {
-    font-size: 18px;
+    font-size: 17px;
   }
 }
