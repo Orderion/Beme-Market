@@ -30,24 +30,11 @@ export default function LoaderOverlay({
 
       <div className="loader-overlay-center">
         <div className="loader-mark">
-          <svg viewBox="0 0 100 100" className="loader-logo">
-            {/* LEFT */}
-            <path
-              className="logo-left"
-              d="M15 70 L15 30 L35 50 L50 35 L50 48 L35 62 Z"
-            />
-
-            {/* RIGHT */}
-            <path
-              className="logo-right"
-              d="M85 70 L85 30 L65 50 L50 35 L50 48 L65 62 Z"
-            />
-
-            {/* INNER */}
-            <path
-              className="logo-inner"
-              d="M30 70 L50 50 L70 70 L60 70 L50 58 L40 70 Z"
-            />
+          <svg viewBox="0 0 120 100" className="loader-logo">
+            <path className="logo-left" d="M10 70 V20 L40 50 L60 30 V45 L40 65 Z"/>
+            <path className="logo-right" d="M110 70 V20 L80 50 L60 30 V45 L80 65 Z"/>
+            <path className="logo-inner-orange" d="M45 55 L60 40 L75 55 L75 65 L60 52 L45 65 Z"/>
+            <path className="logo-inner-base" d="M30 70 L60 50 L90 70 L80 70 L60 58 L40 70 Z"/>
           </svg>
         </div>
 
