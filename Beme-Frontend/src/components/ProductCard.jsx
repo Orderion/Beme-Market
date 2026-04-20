@@ -286,6 +286,17 @@ export default function ProductCard({ product }) {
                   <div className="p-stock-badge p-stock-badge--out">Out of stock</div>
                 )}
 
+                {/* ── Cart button — top-right corner of image ── */}
+                <button
+                  className={`p-cart-btn ${!inStock ? "p-cart-btn--disabled" : ""}`}
+                  onClick={handleAddToCart}
+                  aria-label={inStock ? "Add to cart" : "Product is out of stock"}
+                  type="button"
+                  disabled={!inStock}
+                >
+                  <CartIcon inStock={inStock} />
+                </button>
+
                 {imageCount > 1 && (
                   <>
                     <button
@@ -338,15 +349,6 @@ export default function ProductCard({ product }) {
             )}
           </div>
 
-          {/* ── Slim deal strip — only renders when a discount exists ── */}
-          {hasDiscount && (
-            <div className="p-deal-strip" aria-label={`Up to ${discountPct}% off`}>
-              <span className="p-deal-upto">Up to</span>
-              <span className="p-deal-pct">{discountPct}%</span>
-              <span className="p-deal-off">OFF</span>
-            </div>
-          )}
-
           {/* ── Card body ── */}
           <div className="p-body">
             {cardPopup && (
@@ -363,14 +365,20 @@ export default function ProductCard({ product }) {
               <div className="p-desc p-desc--empty" aria-hidden="true" />
             )}
 
-            {/* ── Price row with inline cart button ── */}
+            {/* ── Price row with inline discount badge ── */}
             <div className="p-prices">
               {price !== null ? (
                 <div className="p-price-col">
-                  <span className="p-price">{formatMoney(price)}</span>
+                  <div className="p-price-row">
+                    <span className="p-price">{formatMoney(price)}</span>
+                    {hasDiscount && (
+                      <span className="p-deal-badge" aria-label={`${discountPct}% off`}>
+                        {discountPct}% off
+                      </span>
+                    )}
+                  </div>
                   {hasDiscount && (
                     <div className="p-old-wrap">
-                      <span className="p-old-label">Was</span>
                       <span className="p-old">{formatMoney(oldPrice)}</span>
                     </div>
                   )}
@@ -378,16 +386,6 @@ export default function ProductCard({ product }) {
               ) : (
                 <span className="p-missing">No price</span>
               )}
-
-              <button
-                className={`p-cart-btn ${!inStock ? "p-cart-btn--disabled" : ""}`}
-                onClick={handleAddToCart}
-                aria-label={inStock ? "Add to cart" : "Product is out of stock"}
-                type="button"
-                disabled={!inStock}
-              >
-                <CartIcon inStock={inStock} />
-              </button>
             </div>
           </div>
         </div>
