@@ -41,8 +41,8 @@ export default function LoaderOverlay({
   if (!render) return null;
 
   const logoSrc = isDark
-    ? "/favicon_white.png"
-    : "/favicon_black.png";
+    ? "/favicon_black.png"
+    : "/favicon_white.png";
 
   return (
     <div
