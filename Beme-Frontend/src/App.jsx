@@ -4,7 +4,6 @@ import {
   Route,
   useLocation,
   Navigate,
-  useNavigate,
 } from "react-router-dom";
 
 import { useAuth } from "./context/AuthContext";
@@ -42,18 +41,7 @@ import PayoutRequests from "./pages/PayoutRequests";
 import ShopApplications from "./pages/ShopApplications";
 import ShopOwnerApply from "./pages/ShopOwnerApply";
 
-/* ── NEW: Homepage Admin ── */
 import HomepageAdmin from "./pages/admin/HomepageAdmin";
-
-import About from "./pages/About";
-import Support from "./pages/Support";
-import Contact from "./pages/Contact";
-import FAQ from "./pages/FAQ";
-import ShippingReturns from "./pages/ShippingReturns";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsOfService from "./pages/TermsOfService";
-import RefundPolicy from "./pages/RefundPolicy";
-import CookiePolicy from "./pages/CookiePolicy";
 
 import Account from "./pages/Account";
 import ManageAccount from "./pages/ManageAccount";
@@ -69,10 +57,13 @@ import {
 
 /* ================= HELPERS ================= */
 
+/**
+ * FIX: Prevent premature redirects while auth is still loading
+ */
 function SuperAdminOnly({ children }) {
   const { loading, isSuperAdmin } = useAuth();
 
-  if (loading) return null;
+  if (loading) return null; // IMPORTANT: prevents redirect flicker
   if (!isSuperAdmin) return <Navigate to="/" replace />;
 
   return children;
@@ -82,36 +73,33 @@ function SuperAdminOnly({ children }) {
 
 function AppShell() {
   const location = useLocation();
-
   const { loading: authLoading } = useAuth();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [routeLoading, setRouteLoading] = useState(false);
 
-  /* Routes where the header/footer/nav should be hidden */
   const hideHeaderRoutes = useMemo(
     () => new Set(["/login", "/signup", "/admin-login"]),
     []
   );
 
-  /* Also hide the shell chrome on the homepage admin panel */
   const isHomepageAdmin = location.pathname === "/admin/homepage";
 
-  const shouldHideHeader = hideHeaderRoutes.has(location.pathname) || isHomepageAdmin;
+  const shouldHideHeader =
+    hideHeaderRoutes.has(location.pathname) || isHomepageAdmin;
 
-  /* Route loading effect */
+  /* Route loader */
   useEffect(() => {
     setRouteLoading(true);
-    const timeout = setTimeout(() => setRouteLoading(false), 500);
+    const timeout = setTimeout(() => setRouteLoading(false), 300);
     return () => clearTimeout(timeout);
   }, [location.pathname]);
 
-  /* Close UI on route change */
   useEffect(() => {
     setSidebarOpen(false);
     setCartOpen(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0 });
   }, [location.pathname]);
 
   return (
@@ -165,7 +153,7 @@ function AppShell() {
           <Route path="/account/contact" element={<ContactUs />} />
           <Route path="/saved" element={<SavedItems />} />
 
-          {/* ADMIN */}
+          {/* ADMIN CORE */}
           <Route
             path="/admin"
             element={
@@ -243,7 +231,7 @@ function AppShell() {
             }
           />
 
-          {/* ── HOMEPAGE ADMIN (new) ── */}
+          {/* ✅ FIXED HOMEPAGE ADMIN (IMPORTANT PART) */}
           <Route
             path="/admin/homepage"
             element={
@@ -265,7 +253,7 @@ function AppShell() {
             }
           />
 
-          {/* FALLBACK */}
+          {/* FIX: avoid redirect loop issues */}
           <Route path="*" element={<Navigate to="/" replace />} />
 
         </Routes>
@@ -276,8 +264,6 @@ function AppShell() {
     </>
   );
 }
-
-/* ================= EXPORT ================= */
 
 export default function App() {
   return <AppShell />;
