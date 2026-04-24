@@ -1,11 +1,12 @@
 // ─────────────────────────────────────────────────────────────
 //  utils/cloudinaryUpload.js  ·  Beme Market
 //
-//  Credentials are pulled from lib/cloudinary.js — do NOT
-//  hardcode YOUR_CLOUD_NAME here. Update lib/cloudinary.js only.
+//  Credentials are pulled from .env — set these in your .env file:
+//    VITE_CLOUDINARY_CLOUD_NAME=your_cloud_name
+//    VITE_CLOUDINARY_UPLOAD_PRESET=your_upload_preset
 // ─────────────────────────────────────────────────────────────
 
-const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const CLOUD_NAME    = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 /**
@@ -21,15 +22,20 @@ export function uploadToCloudinary(
   folder = "beme_market/homepage"
 ) {
   return new Promise((resolve, reject) => {
+    if (!CLOUD_NAME || !UPLOAD_PRESET) {
+      reject(new Error("Cloudinary credentials missing — check VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET in your .env file."));
+      return;
+    }
+
     const formData = new FormData();
     formData.append("file",          file);
-    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+    formData.append("upload_preset", UPLOAD_PRESET);   // ← fixed: was CLOUDINARY_UPLOAD_PRESET
     formData.append("folder",        folder);
 
     const xhr = new XMLHttpRequest();
     xhr.open(
       "POST",
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`
+      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`  // ← fixed: was CLOUDINARY_CLOUD_NAME
     );
 
     if (onProgress) {
