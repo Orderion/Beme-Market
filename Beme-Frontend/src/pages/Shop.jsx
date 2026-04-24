@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductGrid from "../components/ProductGrid";
+import shopBanner from "../assets/shop-banner.png";
 import {
   DEPARTMENTS,
   KINDS,
@@ -354,8 +355,7 @@ const Shop = () => {
           <div className="shop-banner-wrap">
             <div className="shop-banner">
               <img
-                /* Replace YOUR_USERNAME with your GitHub username */
-                src="https://raw.githubusercontent.com/YOUR_USERNAME/Beme-Frontend/main/src/assets/shop-banner.png"
+                src={shopBanner}
                 alt="Beme Market banner"
                 className="shop-banner-img"
                 onError={(e) => { e.currentTarget.style.display = "none"; }}
@@ -433,7 +433,7 @@ const Shop = () => {
       </div>
 
       {/* ══════════════════════════════
-          SORT PANEL — mobile drawer
+          SORT PANEL — mobile drawer (slides from right)
       ══════════════════════════════ */}
       <div className={`shop-panel shop-panel--sort ${sortOpen ? "open" : ""}`} aria-hidden={!sortOpen}>
         <div className="shop-panel-inner">
