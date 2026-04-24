@@ -8,7 +8,6 @@ import {
 } from "react-router-dom";
 
 import { useAuth } from "./context/AuthContext";
-import { useCart } from "./context/CartContext";
 
 import AdminRoute from "./components/AdminRoute";
 import RequireAdmin from "./components/auth/RequireAdmin";
@@ -24,6 +23,7 @@ import BottomNav from "./components/navigation/BottomNav.jsx";
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
 import Offers from "./pages/Offers";
+import OfferDetail from "./pages/OfferDetail";
 import ProductDetails from "./pages/ProductDetails";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
@@ -41,6 +41,9 @@ import Analytics from "./pages/Analytics";
 import PayoutRequests from "./pages/PayoutRequests";
 import ShopApplications from "./pages/ShopApplications";
 import ShopOwnerApply from "./pages/ShopOwnerApply";
+
+/* ── NEW: Homepage Admin ── */
+import HomepageAdmin from "./pages/admin/HomepageAdmin";
 
 import About from "./pages/About";
 import Support from "./pages/Support";
@@ -75,51 +78,27 @@ function SuperAdminOnly({ children }) {
   return children;
 }
 
-/* ================= POPUP ================= */
-
-function CartAddedPopup({ onContinueShopping, onCheckout }) {
-  const { cartPopup, hideCartPopup } = useCart();
-
-  if (!cartPopup?.visible || !cartPopup?.item) return null;
-
-  const item = cartPopup.item;
-
-  return (
-    <div className="cart-added-popup-backdrop">
-      <div className="cart-added-popup">
-        <button onClick={hideCartPopup}>×</button>
-
-        <h4>Added to cart</h4>
-        <p>{item.name}</p>
-
-        <div className="cart-added-popup__actions">
-          <button onClick={onContinueShopping}>Continue Shopping</button>
-          <button onClick={onCheckout}>Checkout</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ================= APP SHELL ================= */
 
 function AppShell() {
   const location = useLocation();
-  const navigate = useNavigate();
 
-  const { hideCartPopup } = useCart();
   const { loading: authLoading } = useAuth();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [routeLoading, setRouteLoading] = useState(false);
 
+  /* Routes where the header/footer/nav should be hidden */
   const hideHeaderRoutes = useMemo(
     () => new Set(["/login", "/signup", "/admin-login"]),
     []
   );
 
-  const shouldHideHeader = hideHeaderRoutes.has(location.pathname);
+  /* Also hide the shell chrome on the homepage admin panel */
+  const isHomepageAdmin = location.pathname === "/admin/homepage";
+
+  const shouldHideHeader = hideHeaderRoutes.has(location.pathname) || isHomepageAdmin;
 
   /* Route loading effect */
   useEffect(() => {
@@ -134,14 +113,6 @@ function AppShell() {
     setCartOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [location.pathname]);
-
-  const handleContinueShopping = () => hideCartPopup();
-
-  const handleCheckoutFromPopup = () => {
-    hideCartPopup();
-    setCartOpen(false);
-    navigate("/checkout");
-  };
 
   return (
     <>
@@ -163,11 +134,6 @@ function AppShell() {
             isOpen={cartOpen}
             onClose={() => setCartOpen(false)}
           />
-
-          <CartAddedPopup
-            onContinueShopping={handleContinueShopping}
-            onCheckout={handleCheckoutFromPopup}
-          />
         </>
       )}
 
@@ -178,6 +144,7 @@ function AppShell() {
           <Route path="/" element={<Home />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/offers" element={<Offers />} />
+          <Route path="/offer/:id" element={<OfferDetail />} />
           <Route path="/flash-deals" element={<FlashDeals />} />
           <Route path="/product/:id" element={<ProductDetails />} />
           <Route path="/checkout" element={<Checkout />} />
@@ -271,6 +238,18 @@ function AppShell() {
               <AdminRoute>
                 <RequireAdmin>
                   <AccountManagement />
+                </RequireAdmin>
+              </AdminRoute>
+            }
+          />
+
+          {/* ── HOMEPAGE ADMIN (new) ── */}
+          <Route
+            path="/admin/homepage"
+            element={
+              <AdminRoute>
+                <RequireAdmin>
+                  <HomepageAdmin />
                 </RequireAdmin>
               </AdminRoute>
             }
