@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductGrid from "../components/ProductGrid";
-import shopBanner from "../assets/shop-banner.png";
+import shopBanner from "../assets/Shop-banner.JPG";
 import {
   DEPARTMENTS,
   KINDS,
