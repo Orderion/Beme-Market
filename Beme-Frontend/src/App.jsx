@@ -22,7 +22,6 @@ import BottomNav from "./components/navigation/BottomNav.jsx";
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
 import Offers from "./pages/Offers";
-import OfferDetail from "./pages/OfferDetail";
 import ProductDetails from "./pages/ProductDetails";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
@@ -43,6 +42,16 @@ import ShopOwnerApply from "./pages/ShopOwnerApply";
 
 import HomepageAdmin from "./pages/admin/HomepageAdmin";
 
+import About from "./pages/About";
+import Support from "./pages/Support";
+import Contact from "./pages/Contact";
+import FAQ from "./pages/FAQ";
+import ShippingReturns from "./pages/ShippingReturns";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import RefundPolicy from "./pages/RefundPolicy";
+import CookiePolicy from "./pages/CookiePolicy";
+
 import Account from "./pages/Account";
 import ManageAccount from "./pages/ManageAccount";
 import PaymentMethods from "./pages/PaymentMethods";
@@ -57,13 +66,10 @@ import {
 
 /* ================= HELPERS ================= */
 
-/**
- * FIX: Prevent premature redirects while auth is still loading
- */
 function SuperAdminOnly({ children }) {
   const { loading, isSuperAdmin } = useAuth();
 
-  if (loading) return null; // IMPORTANT: prevents redirect flicker
+  if (loading) return null;
   if (!isSuperAdmin) return <Navigate to="/" replace />;
 
   return children;
@@ -89,7 +95,6 @@ function AppShell() {
   const shouldHideHeader =
     hideHeaderRoutes.has(location.pathname) || isHomepageAdmin;
 
-  /* Route loader */
   useEffect(() => {
     setRouteLoading(true);
     const timeout = setTimeout(() => setRouteLoading(false), 300);
@@ -132,7 +137,6 @@ function AppShell() {
           <Route path="/" element={<Home />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/offers" element={<Offers />} />
-          <Route path="/offer/:id" element={<OfferDetail />} />
           <Route path="/flash-deals" element={<FlashDeals />} />
           <Route path="/product/:id" element={<ProductDetails />} />
           <Route path="/checkout" element={<Checkout />} />
@@ -153,7 +157,7 @@ function AppShell() {
           <Route path="/account/contact" element={<ContactUs />} />
           <Route path="/saved" element={<SavedItems />} />
 
-          {/* ADMIN CORE */}
+          {/* ADMIN */}
           <Route
             path="/admin"
             element={
@@ -231,7 +235,7 @@ function AppShell() {
             }
           />
 
-          {/* ✅ FIXED HOMEPAGE ADMIN (IMPORTANT PART) */}
+          {/* HOMEPAGE ADMIN */}
           <Route
             path="/admin/homepage"
             element={
@@ -253,7 +257,7 @@ function AppShell() {
             }
           />
 
-          {/* FIX: avoid redirect loop issues */}
+          {/* FALLBACK */}
           <Route path="*" element={<Navigate to="/" replace />} />
 
         </Routes>
