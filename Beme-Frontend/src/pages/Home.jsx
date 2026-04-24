@@ -5,6 +5,7 @@ import { db } from "../firebase";
 import ProductGrid from "../components/ProductGrid";
 import ShopCarousel from "../components/ShopCarousel";
 import FlashDealsBanner from "../components/FlashDealsBanner";
+import useHomepageConfig from "../hooks/useHomepageConfig";
 import { SHOPS } from "../constants/catalog";
 import banner from "../assets/home_banner.PNG";
 import fashionBanner from "../assets/fashion-banner.PNG";
@@ -13,29 +14,94 @@ import perfumeBanner from "../assets/perfume-banner.PNG";
 import techBanner from "../assets/tech-banner.PNG";
 
 /* ── Category images ── */
-import phoneImg       from "../assets/Phone.JPG";
-import laptopImg      from "../assets/Laptop.JPG";
-import shoeImg        from "../assets/Shoe.JPG";
-import clothingImg    from "../assets/Clothing .JPG";
-import kidsImg        from "../assets/Kids.JPG";
-import gameImg        from "../assets/Game.JPG";
-import homeAppImg     from "../assets/Home appliances .JPG";
+import phoneImg    from "../assets/Phone.JPG";
+import laptopImg   from "../assets/Laptop.JPG";
+import shoeImg     from "../assets/Shoe.JPG";
+import clothingImg from "../assets/Clothing .JPG";
+import kidsImg     from "../assets/Kids.JPG";
+import gameImg     from "../assets/Game.JPG";
+import homeAppImg  from "../assets/Home appliances .JPG";
 
 import "./Home.css";
 
-const COLLECTION_NAME = "Products";
+/* ─────────────────────────────────────────────
+   Constants
+───────────────────────────────────────────── */
+const COLLECTION_NAME      = "Products";
 const SEARCH_PREVIEW_LIMIT = 80;
-const SUGGESTION_LIMIT = 4;
+const SUGGESTION_LIMIT     = 4;
 
-const CATEGORY_CARDS = [
-  { key: "iphones",         label: "Iphones",        subtitle: "Smartphones and mobile essentials",        query: "iphone"      },
-  { key: "laptops",         label: "Laptops",         subtitle: "Portable power for work and study",        query: "laptop"      },
-  { key: "shoes",           label: "Shoes",           subtitle: "Sneakers, formal pairs, and daily comfort", query: "shoes"      },
-  { key: "clothing",        label: "Clothing",        subtitle: "Fresh fits and wardrobe staples",           query: "clothing"   },
-  { key: "kids",            label: "Kids",            subtitle: "Everyday picks for little ones",            query: "kids"       },
-  { key: "game",            label: "Game",            subtitle: "Consoles, accessories, and gaming gear",    query: "game"       },
-  { key: "home_appliances", label: "Home Appliances", subtitle: "Essentials for modern living",              query: "appliances" },
-  { key: "others",          label: "Others",          subtitle: "Accessories, extras, and more",             query: "accessories"},
+/* Fallback banners keyed by store card id */
+const BANNER_FALLBACKS = {
+  fashion: fashionBanner,
+  main:    banner,
+  kente:   kenteBanner,
+  perfume: perfumeBanner,
+  tech:    techBanner,
+};
+
+const HARDCODED_STORE_CARDS = [
+  {
+    id:        "fashion",
+    theme:     "fashion",
+    image:     fashionBanner,
+    chip:      "Fashion Shop",
+    title:     "Modern fashion essentials",
+    subtitle:  "Clean everyday style and curated wardrobe picks.",
+    shopLink:  "/shop?shop=fashion",
+    ariaLabel: "Open Fashion Shop",
+  },
+  {
+    id:        "main",
+    theme:     "bestsellers",
+    image:     banner,
+    chip:      "Main Store",
+    title:     "Everyday bestsellers",
+    subtitle:  "Mixed essentials, popular picks, and store highlights.",
+    shopLink:  "/shop?shop=main",
+    ariaLabel: "Open Main Store",
+  },
+  {
+    id:        "kente",
+    theme:     "kente",
+    image:     kenteBanner,
+    chip:      "Ghana Made",
+    title:     "Mintah's Kente",
+    subtitle:  "Premium woven styles with heritage appeal.",
+    shopLink:  "/shop?shop=kente",
+    ariaLabel: "Open Mintah's Kente collection",
+  },
+  {
+    id:        "perfume",
+    theme:     "scents",
+    image:     perfumeBanner,
+    chip:      "Perfume Shop",
+    title:     "Luxury scents",
+    subtitle:  "Refined fragrances for daily wear and gifting.",
+    shopLink:  "/shop?shop=perfume",
+    ariaLabel: "Open Perfume Shop",
+  },
+  {
+    id:        "tech",
+    theme:     "gadgets",
+    image:     techBanner,
+    chip:      "Tech Shop",
+    title:     "Latest gadgets",
+    subtitle:  "Smart devices and modern electronics for daily life.",
+    shopLink:  "/shop?shop=tech",
+    ariaLabel: "Open Tech Shop",
+  },
+];
+
+const HARDCODED_CATEGORY_CARDS = [
+  { key: "iphones",         label: "Iphones",        subtitle: "Smartphones and mobile essentials",         query: "iphone"      },
+  { key: "laptops",         label: "Laptops",         subtitle: "Portable power for work and study",         query: "laptop"      },
+  { key: "shoes",           label: "Shoes",           subtitle: "Sneakers, formal pairs, and daily comfort", query: "shoes"       },
+  { key: "clothing",        label: "Clothing",        subtitle: "Fresh fits and wardrobe staples",           query: "clothing"    },
+  { key: "kids",            label: "Kids",            subtitle: "Everyday picks for little ones",            query: "kids"        },
+  { key: "game",            label: "Game",            subtitle: "Consoles, accessories, and gaming gear",    query: "game"        },
+  { key: "home_appliances", label: "Home Appliances", subtitle: "Essentials for modern living",              query: "appliances"  },
+  { key: "others",          label: "Others",          subtitle: "Accessories, extras, and more",             query: "accessories" },
 ];
 
 const CATEGORY_KEYWORDS = [
@@ -60,7 +126,6 @@ const CATEGORY_BG = {
   others:          "#FFF3DB",
 };
 
-/* ── Map category key → imported image ── */
 const CATEGORY_IMAGES = {
   iphones:         phoneImg,
   laptops:         laptopImg,
@@ -71,7 +136,9 @@ const CATEGORY_IMAGES = {
   home_appliances: homeAppImg,
 };
 
-/* ── Fallback SVG for "others" (no image supplied) ── */
+/* ─────────────────────────────────────────────
+   Helpers
+───────────────────────────────────────────── */
 function OthersFallback() {
   return (
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
@@ -86,13 +153,13 @@ function OthersFallback() {
   );
 }
 
-/* ── Category image component ── */
-function CategoryImage({ type, label }) {
-  const src = CATEGORY_IMAGES[type];
-  if (!src) return <OthersFallback />;
+/* Accepts an explicit src (from Cloudinary) or falls back to local key-based image */
+function CategoryImage({ type, label, src }) {
+  const resolvedSrc = src || CATEGORY_IMAGES[type];
+  if (!resolvedSrc) return <OthersFallback />;
   return (
     <img
-      src={src}
+      src={resolvedSrc}
       alt={label}
       className="home-cat-img"
       draggable={false}
@@ -186,9 +253,16 @@ function buildSuggestions(products, term) {
     .slice(0, SUGGESTION_LIMIT);
 }
 
+/* ─────────────────────────────────────────────
+   Home component
+───────────────────────────────────────────── */
 export default function Home() {
   const navigate = useNavigate();
 
+  /* ── Homepage config from Firestore ── */
+  const { config, loading: configLoading } = useHomepageConfig();
+
+  /* ── Search state ── */
   const [search,             setSearch]             = useState("");
   const [products,           setProducts]           = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
@@ -200,59 +274,70 @@ export default function Home() {
   const searchWrapRef = useRef(null);
   const inputRef      = useRef(null);
 
-  const storeCards = useMemo(() => [
-    {
-      id:        "fashion",
-      theme:     "fashion",
-      image:     fashionBanner,
-      chip:      "Fashion Shop",
-      title:     "Modern fashion essentials",
-      subtitle:  "Clean everyday style and curated wardrobe picks.",
-      onClick:   () => navigate("/shop?shop=fashion"),
-      ariaLabel: "Open Fashion Shop",
-    },
-    {
-      id:        "main",
-      theme:     "bestsellers",
-      image:     banner,
-      chip:      "Main Store",
-      title:     "Everyday bestsellers",
-      subtitle:  "Mixed essentials, popular picks, and store highlights.",
-      onClick:   () => navigate("/shop?shop=main"),
-      ariaLabel: "Open Main Store",
-    },
-    {
-      id:        "kente",
-      theme:     "kente",
-      image:     kenteBanner,
-      chip:      "Ghana Made",
-      title:     "Mintah's Kente",
-      subtitle:  "Premium woven styles with heritage appeal.",
-      onClick:   () => navigate("/shop?shop=kente"),
-      ariaLabel: "Open Mintah's Kente collection",
-    },
-    {
-      id:        "perfume",
-      theme:     "scents",
-      image:     perfumeBanner,
-      chip:      "Perfume Shop",
-      title:     "Luxury scents",
-      subtitle:  "Refined fragrances for daily wear and gifting.",
-      onClick:   () => navigate("/shop?shop=perfume"),
-      ariaLabel: "Open Perfume Shop",
-    },
-    {
-      id:        "tech",
-      theme:     "gadgets",
-      image:     techBanner,
-      chip:      "Tech Shop",
-      title:     "Latest gadgets",
-      subtitle:  "Smart devices and modern electronics for daily life.",
-      onClick:   () => navigate("/shop?shop=tech"),
-      ariaLabel: "Open Tech Shop",
-    },
-  ], [navigate]);
+  /* ── Derive carousel cards from config (or hardcoded fallback) ── */
+  const carouselCards = useMemo(() => {
+    if (config?.storeCards?.length) {
+      return [...config.storeCards]
+        .filter((c) => c.active !== false)
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .map((c) => ({
+          id:        c.id,
+          theme:     c.theme,
+          /* Use the Cloudinary URL if uploaded, otherwise fall back to bundled asset */
+          image:     c.imageUrl || BANNER_FALLBACKS[c.id] || null,
+          chip:      c.chip,
+          title:     c.title,
+          subtitle:  c.subtitle,
+          onClick:   () => navigate(c.shopLink || "/shop"),
+          ariaLabel: `Open ${c.chip}`,
+        }));
+    }
+    /* Fallback: hardcoded cards with navigate callbacks */
+    return HARDCODED_STORE_CARDS.map((c) => ({
+      ...c,
+      onClick: () => navigate(c.shopLink),
+    }));
+  }, [config, navigate]);
 
+  /* ── Derive category cards from config (or hardcoded fallback) ── */
+  const categoryCards = useMemo(() => {
+    if (config?.categories?.length) {
+      return [...config.categories]
+        .filter((c) => c.active !== false)
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .map((c) => ({
+          key:      c.key,
+          label:    c.label,
+          subtitle: c.subtitle,
+          query:    c.query,
+          bgColor:  c.bgColor || CATEGORY_BG[c.key] || "#F1EFE8",
+          /* Cloudinary URL takes priority; local asset is fallback */
+          resolvedImage: c.imageUrl || CATEGORY_IMAGES[c.key] || null,
+        }));
+    }
+    return HARDCODED_CATEGORY_CARDS.map((c) => ({
+      ...c,
+      bgColor:       CATEGORY_BG[c.key] || "#F1EFE8",
+      resolvedImage: CATEGORY_IMAGES[c.key] || null,
+    }));
+  }, [config]);
+
+  /* ── Sorted active sections from config ── */
+  const activeSections = useMemo(() => {
+    if (!config?.sections?.length) {
+      return ["carousel", "categories", "flashDeals", "trending", "continueShopping"];
+    }
+    return [...config.sections]
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .filter((s) => s.active !== false)
+      .map((s) => s.id);
+  }, [config]);
+
+  /* ── Text labels from config ── */
+  const trendingText = config?.trendingText  || { heading: "Trending now",       seeAllText: "See featured" };
+  const continueText = config?.continueText  || { heading: "Continue shopping",  seeAllText: "See all"      };
+
+  /* ── Load products for search suggestions ── */
   useEffect(() => {
     let alive = true;
     async function load() {
@@ -274,6 +359,7 @@ export default function Home() {
     return () => { alive = false; };
   }, []);
 
+  /* ── Click-outside to close suggestions ── */
   useEffect(() => {
     const onPointerDown = (event) => {
       if (!searchWrapRef.current) return;
@@ -282,14 +368,15 @@ export default function Home() {
         setActiveIndex(-1);
       }
     };
-    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("mousedown",  onPointerDown);
     document.addEventListener("touchstart", onPointerDown);
     return () => {
-      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("mousedown",  onPointerDown);
       document.removeEventListener("touchstart", onPointerDown);
     };
   }, []);
 
+  /* ── Scroll-collapse search bar ── */
   useEffect(() => {
     const onScroll = () => {
       const scrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop;
@@ -302,6 +389,7 @@ export default function Home() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  /* ── Search logic ── */
   const suggestions = useMemo(() => buildSuggestions(products, search), [products, search]);
   const goToShop    = () => navigate("/shop");
 
@@ -330,7 +418,6 @@ export default function Home() {
     setSuggestionsOpen(!!value.trim());
   };
 
-  /* ── Clear the search input ── */
   const handleClear = () => {
     setSearch("");
     setSuggestionsOpen(false);
@@ -349,6 +436,102 @@ export default function Home() {
 
   const goToCategory = (item) => navigate(`/shop?q=${encodeURIComponent(item.query)}`);
 
+  /* ── Loading skeleton while config is being fetched ── */
+  if (configLoading) {
+    return (
+      <div className="home-skeleton">
+        <div className="home-skeleton-carousel" />
+        <div className="home-skeleton-cats">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="home-skeleton-cat" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Section renderers ── */
+  const renderSection = (sectionId) => {
+    switch (sectionId) {
+
+      case "carousel":
+        return (
+          <section key="carousel" className="home-section home-section--carousel">
+            <ShopCarousel shops={carouselCards} />
+          </section>
+        );
+
+      case "categories":
+        return (
+          <section key="categories" className="home-section home-section--cats">
+            <div className="home-sec-header">
+              <h3>Category</h3>
+              <button className="home-see-btn" onClick={goToShop}>See All</button>
+            </div>
+            <div className="home-cat-scroll">
+              {categoryCards.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={`home-cat-item ${activeCat === item.key ? "home-cat-item--active" : ""}`}
+                  onClick={() => { setActiveCat(item.key); goToCategory(item); }}
+                  aria-label={`Browse ${item.label}`}
+                >
+                  <div
+                    className="home-cat-circle"
+                    style={{ backgroundColor: item.bgColor }}
+                  >
+                    <CategoryImage
+                      type={item.key}
+                      label={item.label}
+                      src={item.resolvedImage}
+                    />
+                  </div>
+                  <span className="home-cat-label">{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        );
+
+      case "flashDeals":
+        return <FlashDealsBanner key="flashDeals" />;
+
+      case "trending":
+        return (
+          <section key="trending" className="home-section">
+            <div className="home-sec-header">
+              <div className="home-trending-head">
+                <span className="home-trending-dot" />
+                <h3>{trendingText.heading}</h3>
+              </div>
+              <button className="home-see-btn" onClick={() => navigate("/shop?featured=1")}>
+                {trendingText.seeAllText}
+              </button>
+            </div>
+            <ProductGrid sortBy="new" filter={{ featuredOnly: true }} infinite={false} />
+          </section>
+        );
+
+      case "continueShopping":
+        return (
+          <section key="continueShopping" className="home-section">
+            <div className="home-sec-header">
+              <h3>{continueText.heading}</h3>
+              <button className="home-see-btn" onClick={goToShop}>
+                {continueText.seeAllText}
+              </button>
+            </div>
+            <ProductGrid sortBy="new" filter={{ featuredOnly: false }} infinite={false} />
+          </section>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  /* ── Render ── */
   return (
     <div className="home">
 
@@ -379,7 +562,6 @@ export default function Home() {
               aria-label="Search products"
             />
 
-            {/* ── Clear button — visible only while typing ── */}
             {search.length > 0 && (
               <button
                 type="button"
@@ -428,61 +610,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Shop Carousel */}
-      <section className="home-section home-section--carousel">
-        <ShopCarousel shops={storeCards} />
-      </section>
-
-      {/* Categories */}
-      <section className="home-section home-section--cats">
-        <div className="home-sec-header">
-          <h3>Category</h3>
-          <button className="home-see-btn" onClick={goToShop}>See All</button>
-        </div>
-        <div className="home-cat-scroll">
-          {CATEGORY_CARDS.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              className={`home-cat-item ${activeCat === item.key ? "home-cat-item--active" : ""}`}
-              onClick={() => { setActiveCat(item.key); goToCategory(item); }}
-              aria-label={`Browse ${item.label}`}
-            >
-              <div
-                className="home-cat-circle"
-                style={{ backgroundColor: CATEGORY_BG[item.key] || "#F1EFE8" }}
-              >
-                <CategoryImage type={item.key} label={item.label} />
-              </div>
-              <span className="home-cat-label">{item.label}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Flash Deals */}
-      <FlashDealsBanner />
-
-      {/* Trending now */}
-      <section className="home-section">
-        <div className="home-sec-header">
-          <div className="home-trending-head">
-            <span className="home-trending-dot" />
-            <h3>Trending now</h3>
-          </div>
-          <button className="home-see-btn" onClick={() => navigate("/shop?featured=1")}>See featured</button>
-        </div>
-        <ProductGrid sortBy="new" filter={{ featuredOnly: true }} infinite={false} />
-      </section>
-
-      {/* Continue shopping */}
-      <section className="home-section">
-        <div className="home-sec-header">
-          <h3>Continue shopping</h3>
-          <button className="home-see-btn" onClick={goToShop}>See all</button>
-        </div>
-        <ProductGrid sortBy="new" filter={{ featuredOnly: false }} infinite={false} />
-      </section>
+      {/* Render sections in config order */}
+      {activeSections.map((id) => renderSection(id))}
 
     </div>
   );
