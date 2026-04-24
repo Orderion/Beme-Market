@@ -1,24 +1,32 @@
 // ─────────────────────────────────────────────────────────────
-//  Cloudinary Upload Utility  ·  Beme Market
-//  Replace CLOUD_NAME and UPLOAD_PRESET with your own values
+//  utils/cloudinaryUpload.js  ·  Beme Market
+//
+//  Credentials are pulled from lib/cloudinary.js — do NOT
+//  hardcode YOUR_CLOUD_NAME here. Update lib/cloudinary.js only.
 // ─────────────────────────────────────────────────────────────
 
-export const CLOUDINARY_CLOUD_NAME  = "YOUR_CLOUD_NAME";     // e.g. "dxyz123abc"
-export const CLOUDINARY_UPLOAD_PRESET = "YOUR_UPLOAD_PRESET"; // e.g. "beme_homepage"
+import {
+  CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_UPLOAD_PRESET,
+} from "../lib/cloudinary";
 
 /**
  * Upload a single file to Cloudinary.
- * @param {File}     file         - The file to upload
- * @param {Function} onProgress   - (percent: number) => void  (optional)
- * @param {string}   folder       - Cloudinary folder path (optional)
+ * @param {File}     file        - The file to upload
+ * @param {Function} onProgress  - (percent: number) => void  (optional)
+ * @param {string}   folder      - Cloudinary folder path (optional)
  * @returns {Promise<{ url: string, publicId: string }>}
  */
-export function uploadToCloudinary(file, onProgress = null, folder = "beme_market/homepage") {
+export function uploadToCloudinary(
+  file,
+  onProgress = null,
+  folder = "beme_market/homepage"
+) {
   return new Promise((resolve, reject) => {
     const formData = new FormData();
-    formData.append("file",           file);
-    formData.append("upload_preset",  CLOUDINARY_UPLOAD_PRESET);
-    formData.append("folder",         folder);
+    formData.append("file",          file);
+    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+    formData.append("folder",        folder);
 
     const xhr = new XMLHttpRequest();
     xhr.open(
@@ -28,7 +36,8 @@ export function uploadToCloudinary(file, onProgress = null, folder = "beme_marke
 
     if (onProgress) {
       xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+        if (e.lengthComputable)
+          onProgress(Math.round((e.loaded / e.total) * 100));
       };
     }
 
@@ -46,8 +55,8 @@ export function uploadToCloudinary(file, onProgress = null, folder = "beme_marke
       }
     };
 
-    xhr.onerror  = () => reject(new Error("Network error — check your connection."));
-    xhr.onabort  = () => reject(new Error("Upload cancelled."));
+    xhr.onerror = () => reject(new Error("Network error — check your connection."));
+    xhr.onabort = () => reject(new Error("Upload cancelled."));
     xhr.send(formData);
   });
 }
@@ -58,7 +67,10 @@ export function uploadToCloudinary(file, onProgress = null, folder = "beme_marke
  * @param {string} url
  * @param {{ width?: string|number, quality?: string, format?: string }} options
  */
-export function getOptimizedUrl(url, { width = "auto", quality = "auto", format = "auto" } = {}) {
+export function getOptimizedUrl(
+  url,
+  { width = "auto", quality = "auto", format = "auto" } = {}
+) {
   if (!url || !url.includes("cloudinary.com")) return url;
   return url.replace("/upload/", `/upload/w_${width},q_${quality},f_${format}/`);
 }
