@@ -5,10 +5,8 @@
 //  hardcode YOUR_CLOUD_NAME here. Update lib/cloudinary.js only.
 // ─────────────────────────────────────────────────────────────
 
-import {
-  CLOUDINARY_CLOUD_NAME,
-  CLOUDINARY_UPLOAD_PRESET,
-} from "../lib/cloudinary";
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 /**
  * Upload a single file to Cloudinary.
