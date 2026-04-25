@@ -7,7 +7,22 @@ import { uploadToCloudinary }          from "../../utils/cloudinaryUpload";
 import "./HomepageAdmin.css";
 
 /* ─────────────────────────────────────────────
-   Constants & defaults
+   Animation theme metadata
+   (maps exactly to ShopCarousel themes)
+───────────────────────────────────────────── */
+const ANIMATION_THEMES = [
+  { id: "fashion",     label: "Curtain Reveal",  desc: "Two panels slide apart to reveal the banner",   emoji: "🎭", defaultBg: "#1E3D2A" },
+  { id: "bestsellers", label: "Ink Stamp",        desc: "Stamp drops in with a spinning % counter",      emoji: "📮", defaultBg: "#7B1E1E" },
+  { id: "kente",       label: "Kente Lines",      desc: "Ghana-coloured lines draw in then sweep away",  emoji: "🎨", defaultBg: "#17260F" },
+  { id: "scents",      label: "Perfume Clouds",   desc: "Translucent mist clouds burst from all edges",  emoji: "✨", defaultBg: "#1E3D2A" },
+  { id: "gadgets",     label: "RGB Glitch",       desc: "Intense colour-channel glitch with neon bars",  emoji: "💻", defaultBg: "#070E1C" },
+  { id: "none",        label: "No Animation",     desc: "Clean card with no overlay effect",             emoji: "○",  defaultBg: "#1a1a2e" },
+];
+
+const ALL_DEFAULT_BGS = ANIMATION_THEMES.map((t) => t.defaultBg);
+
+/* ─────────────────────────────────────────────
+   Default data
 ───────────────────────────────────────────── */
 const DEFAULT_SECTIONS = [
   { id: "carousel",         label: "Shop Carousel",      active: true, order: 0 },
@@ -18,11 +33,11 @@ const DEFAULT_SECTIONS = [
 ];
 
 const DEFAULT_STORE_CARDS = [
-  { id: "fashion",  theme: "fashion",     chip: "Fashion Shop",  title: "Modern fashion essentials",    subtitle: "Clean everyday style and curated wardrobe picks.",        shopLink: "/shop?shop=fashion",  imageUrl: "", active: true, order: 0 },
-  { id: "main",     theme: "bestsellers", chip: "Main Store",    title: "Everyday bestsellers",         subtitle: "Mixed essentials, popular picks, and store highlights.",  shopLink: "/shop?shop=main",     imageUrl: "", active: true, order: 1 },
-  { id: "kente",    theme: "kente",       chip: "Ghana Made",    title: "Mintah's Kente",              subtitle: "Premium woven styles with heritage appeal.",              shopLink: "/shop?shop=kente",    imageUrl: "", active: true, order: 2 },
-  { id: "perfume",  theme: "scents",      chip: "Perfume Shop",  title: "Luxury scents",               subtitle: "Refined fragrances for daily wear and gifting.",          shopLink: "/shop?shop=perfume",  imageUrl: "", active: true, order: 3 },
-  { id: "tech",     theme: "gadgets",     chip: "Tech Shop",     title: "Latest gadgets",              subtitle: "Smart devices and modern electronics for daily life.",     shopLink: "/shop?shop=tech",     imageUrl: "", active: true, order: 4 },
+  { id: "fashion",  theme: "fashion",     cardBg: "#1E3D2A", chip: "Fashion Shop", title: "Modern fashion essentials",   subtitle: "Clean everyday style and curated wardrobe picks.",       buttonText: "Shop Now", shopLink: "/shop?shop=fashion",  imageUrl: "", active: true, order: 0 },
+  { id: "main",     theme: "bestsellers", cardBg: "#7B1E1E", chip: "Main Store",   title: "Everyday bestsellers",        subtitle: "Mixed essentials, popular picks, and store highlights.", buttonText: "Shop Now", shopLink: "/shop?shop=main",     imageUrl: "", active: true, order: 1 },
+  { id: "kente",    theme: "kente",       cardBg: "#17260F", chip: "Ghana Made",   title: "Mintah's Kente",             subtitle: "Premium woven styles with heritage appeal.",             buttonText: "Shop Now", shopLink: "/shop?shop=kente",    imageUrl: "", active: true, order: 2 },
+  { id: "perfume",  theme: "scents",      cardBg: "#1E3D2A", chip: "Perfume Shop", title: "Luxury scents",              subtitle: "Refined fragrances for daily wear and gifting.",         buttonText: "Shop Now", shopLink: "/shop?shop=perfume",  imageUrl: "", active: true, order: 3 },
+  { id: "tech",     theme: "gadgets",     cardBg: "#070E1C", chip: "Tech Shop",    title: "Latest gadgets",             subtitle: "Smart devices and modern electronics for daily life.",    buttonText: "Shop Now", shopLink: "/shop?shop=tech",     imageUrl: "", active: true, order: 4 },
 ];
 
 const DEFAULT_CATEGORIES = [
@@ -37,7 +52,7 @@ const DEFAULT_CATEGORIES = [
 ];
 
 /* ─────────────────────────────────────────────
-   Tiny reusable pieces
+   Primitives
 ───────────────────────────────────────────── */
 function Toggle({ on, onChange, label }) {
   return (
@@ -61,7 +76,7 @@ function Field({ label, value, onChange, placeholder, type = "text", hint }) {
       <input
         type={type}
         className="ha-input"
-        value={value}
+        value={value || ""}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder || ""}
       />
@@ -70,28 +85,53 @@ function Field({ label, value, onChange, placeholder, type = "text", hint }) {
 }
 
 /* ─────────────────────────────────────────────
-   Image Upload Zone
-   Supports multiple files, preview, progress
+   Animation picker
+───────────────────────────────────────────── */
+function AnimationPicker({ value, onThemeChange }) {
+  return (
+    <div className="ha-anim-picker">
+      <div className="ha-field-label" style={{ marginBottom: 10 }}>Card animation effect</div>
+      <div className="ha-anim-grid">
+        {ANIMATION_THEMES.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className={`ha-anim-tile ${value === t.id ? "ha-anim-tile--active" : ""}`}
+            onClick={() => onThemeChange(t)}
+            title={t.desc}
+          >
+            <span className="ha-anim-swatch" style={{ background: t.defaultBg }}>
+              <span className="ha-anim-emoji">{t.emoji}</span>
+            </span>
+            <span className="ha-anim-tile-label">{t.label}</span>
+            <span className="ha-anim-tile-desc">{t.desc}</span>
+            {value === t.id && <span className="ha-anim-check">✓</span>}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Image upload zone
 ───────────────────────────────────────────── */
 function ImageUploadZone({ currentUrl, onUploadComplete, label = "Image", folder = "beme_market/homepage" }) {
-  const [previews,  setPreviews]  = useState([]);   // { localId, file, previewUrl, progress, done, url, error }
+  const [previews,  setPreviews]  = useState([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
   const handlePick = (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    const newPreviews = files.map((file) => ({
-      localId:    Math.random().toString(36).slice(2),
-      file,
-      previewUrl: URL.createObjectURL(file),
-      progress:   0,
-      done:       false,
-      url:        null,
-      error:      null,
-    }));
-    setPreviews((prev) => [...prev, ...newPreviews]);
-    // Reset input so same file can be re-picked
+    setPreviews((prev) => [
+      ...prev,
+      ...files.map((file) => ({
+        localId: Math.random().toString(36).slice(2),
+        file, previewUrl: URL.createObjectURL(file),
+        progress: 0, done: false, url: null, error: null,
+      })),
+    ]);
     e.target.value = "";
   };
 
@@ -107,25 +147,13 @@ function ImageUploadZone({ currentUrl, onUploadComplete, label = "Image", folder
     try {
       const result = await uploadToCloudinary(
         preview.file,
-        (pct) => {
-          setPreviews((prev) =>
-            prev.map((p) => p.localId === preview.localId ? { ...p, progress: pct } : p)
-          );
-        },
+        (pct) => setPreviews((prev) => prev.map((p) => p.localId === preview.localId ? { ...p, progress: pct } : p)),
         folder
       );
-      setPreviews((prev) =>
-        prev.map((p) =>
-          p.localId === preview.localId ? { ...p, done: true, progress: 100, url: result.url } : p
-        )
-      );
+      setPreviews((prev) => prev.map((p) => p.localId === preview.localId ? { ...p, done: true, progress: 100, url: result.url } : p));
       return result.url;
     } catch (err) {
-      setPreviews((prev) =>
-        prev.map((p) =>
-          p.localId === preview.localId ? { ...p, error: err.message } : p
-        )
-      );
+      setPreviews((prev) => prev.map((p) => p.localId === preview.localId ? { ...p, error: err.message } : p));
       return null;
     }
   };
@@ -135,13 +163,8 @@ function ImageUploadZone({ currentUrl, onUploadComplete, label = "Image", folder
     if (!pending.length) return;
     setUploading(true);
     const urls = [];
-    for (const preview of pending) {
-      const url = await uploadOne(preview);
-      if (url) urls.push(url);
-    }
+    for (const preview of pending) { const url = await uploadOne(preview); if (url) urls.push(url); }
     setUploading(false);
-    // Call back with the LAST uploaded URL (for single-image fields)
-    // or all URLs (caller decides)
     if (urls.length && onUploadComplete) onUploadComplete(urls);
   };
 
@@ -151,7 +174,6 @@ function ImageUploadZone({ currentUrl, onUploadComplete, label = "Image", folder
     <div className="ha-imgzone">
       <div className="ha-imgzone-label">{label}</div>
 
-      {/* Current saved image */}
       {currentUrl && !previews.some((p) => p.done) && (
         <div className="ha-imgzone-current">
           <img src={currentUrl} alt="Current" className="ha-imgzone-current-img" />
@@ -159,69 +181,35 @@ function ImageUploadZone({ currentUrl, onUploadComplete, label = "Image", folder
         </div>
       )}
 
-      {/* Preview grid */}
       {previews.length > 0 && (
         <div className="ha-imgzone-grid">
           {previews.map((p) => (
             <div key={p.localId} className={`ha-imgzone-thumb ${p.done ? "done" : ""} ${p.error ? "error" : ""}`}>
               <img src={p.previewUrl} alt="" className="ha-imgzone-thumb-img" />
-
-              {/* Progress bar */}
               {!p.done && !p.error && (
                 <div className="ha-imgzone-progress">
                   <div className="ha-imgzone-progress-bar" style={{ width: `${p.progress}%` }} />
                 </div>
               )}
-
-              {/* Status badges */}
               {p.done  && <span className="ha-imgzone-badge ha-imgzone-badge--done">✓ Uploaded</span>}
-              {p.error && <span className="ha-imgzone-badge ha-imgzone-badge--err"  title={p.error}>✕ Failed</span>}
-
-              {/* Remove button */}
+              {p.error && <span className="ha-imgzone-badge ha-imgzone-badge--err" title={p.error}>✕ Failed</span>}
               {!uploading && (
-                <button
-                  type="button"
-                  className="ha-imgzone-remove"
-                  onClick={() => removePreview(p.localId)}
-                  aria-label="Remove"
-                >×</button>
+                <button type="button" className="ha-imgzone-remove" onClick={() => removePreview(p.localId)} aria-label="Remove">×</button>
               )}
             </div>
           ))}
         </div>
       )}
 
-      {/* Actions */}
       <div className="ha-imgzone-actions">
-        <button
-          type="button"
-          className="ha-btn ha-btn--ghost"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-        >
-          + Choose images
-        </button>
-
+        <button type="button" className="ha-btn ha-btn--ghost" onClick={() => fileInputRef.current?.click()} disabled={uploading}>+ Choose images</button>
         {pendingCount > 0 && (
-          <button
-            type="button"
-            className="ha-btn ha-btn--upload"
-            onClick={handleUploadAll}
-            disabled={uploading}
-          >
+          <button type="button" className="ha-btn ha-btn--upload" onClick={handleUploadAll} disabled={uploading}>
             {uploading ? "Uploading…" : `Upload ${pendingCount} image${pendingCount > 1 ? "s" : ""}`}
           </button>
         )}
       </div>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        style={{ display: "none" }}
-        onChange={handlePick}
-      />
+      <input ref={fileInputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={handlePick} />
     </div>
   );
 }
@@ -237,16 +225,14 @@ function SectionOrderPanel({ sections, onChange }) {
     [next[index], next[target]] = [next[target], next[index]];
     onChange(next.map((s, i) => ({ ...s, order: i })));
   };
-
   const toggle = (index) => {
     const next = [...sections];
     next[index] = { ...next[index], active: !next[index].active };
     onChange(next);
   };
-
   return (
     <div className="ha-order-panel">
-      <p className="ha-order-hint">Drag or use arrows to reorder. Toggle to show/hide each section.</p>
+      <p className="ha-order-hint">Use arrows to reorder. Toggle to show/hide each section on the live homepage.</p>
       <div className="ha-order-list">
         {sections.map((sec, i) => (
           <div key={sec.id} className={`ha-order-row ${!sec.active ? "ha-order-row--off" : ""}`}>
@@ -265,7 +251,7 @@ function SectionOrderPanel({ sections, onChange }) {
 }
 
 /* ─────────────────────────────────────────────
-   Carousel editor
+   Carousel editor  ← animation picker lives here
 ───────────────────────────────────────────── */
 function CarouselEditor({ cards, onChange }) {
   const [selected, setSelected] = useState(0);
@@ -276,8 +262,22 @@ function CarouselEditor({ cards, onChange }) {
     onChange(next);
   };
 
+  /* When admin picks a theme: set theme + auto-set cardBg to that theme's
+     default colour, UNLESS the card already has a non-default custom colour */
+  const handleThemeChange = (index, themeObj) => {
+    const card = cards[index];
+    const hasCustomBg = card.cardBg && !ALL_DEFAULT_BGS.includes(card.cardBg);
+    const next = [...cards];
+    next[index] = {
+      ...card,
+      theme:  themeObj.id,
+      cardBg: hasCustomBg ? card.cardBg : themeObj.defaultBg,
+    };
+    onChange(next);
+  };
+
   const move = (index, dir) => {
-    const next  = [...cards];
+    const next = [...cards];
     const target = index + dir;
     if (target < 0 || target >= next.length) return;
     [next[index], next[target]] = [next[target], next[index]];
@@ -287,15 +287,9 @@ function CarouselEditor({ cards, onChange }) {
 
   const addCard = () => {
     const newCard = {
-      id:       `card_${Date.now()}`,
-      theme:    "custom",
-      chip:     "New Store",
-      title:    "New card title",
-      subtitle: "Card subtitle here",
-      shopLink: "/shop",
-      imageUrl: "",
-      active:   true,
-      order:    cards.length,
+      id: `card_${Date.now()}`, theme: "none", cardBg: "#1a1a2e",
+      chip: "New Store", title: "New card title", subtitle: "Card subtitle here",
+      buttonText: "Shop Now", shopLink: "/shop", imageUrl: "", active: true, order: cards.length,
     };
     onChange([...cards, newCard]);
     setSelected(cards.length);
@@ -311,7 +305,8 @@ function CarouselEditor({ cards, onChange }) {
 
   return (
     <div className="ha-carousel-editor">
-      {/* Card tabs */}
+
+      {/* Card selector tabs */}
       <div className="ha-card-tabs">
         {cards.map((c, i) => (
           <button
@@ -320,23 +315,35 @@ function CarouselEditor({ cards, onChange }) {
             className={`ha-card-tab ${i === selected ? "active" : ""} ${!c.active ? "off" : ""}`}
             onClick={() => setSelected(i)}
           >
+            <span className="ha-card-tab-dot" style={{ background: c.cardBg || "#333" }} />
             {c.chip || `Card ${i + 1}`}
           </button>
         ))}
-        <button type="button" className="ha-card-tab ha-card-tab--add" onClick={addCard}>+ Add</button>
+        <button type="button" className="ha-card-tab ha-card-tab--add" onClick={addCard}>+ Add card</button>
       </div>
 
       {card && (
         <div className="ha-card-editor">
+
+          {/* Action bar */}
           <div className="ha-card-editor-top">
             <div className="ha-card-editor-actions">
-              <button type="button" className="ha-btn ha-btn--sm" onClick={() => move(selected, -1)} disabled={selected === 0}>← Move left</button>
-              <button type="button" className="ha-btn ha-btn--sm" onClick={() => move(selected, +1)} disabled={selected === cards.length - 1}>Move right →</button>
+              <button type="button" className="ha-btn ha-btn--sm" onClick={() => move(selected, -1)} disabled={selected === 0}>← Left</button>
+              <button type="button" className="ha-btn ha-btn--sm" onClick={() => move(selected, +1)} disabled={selected === cards.length - 1}>Right →</button>
               <Toggle on={card.active} onChange={(v) => update(selected, "active", v)} label="Card active" />
               <button type="button" className="ha-btn ha-btn--danger ha-btn--sm" onClick={() => removeCard(selected)}>Remove</button>
             </div>
           </div>
 
+          {/* Animation picker — full width row */}
+          <div className="ha-card-anim-section">
+            <AnimationPicker
+              value={card.theme || "none"}
+              onThemeChange={(themeObj) => handleThemeChange(selected, themeObj)}
+            />
+          </div>
+
+          {/* Image + text fields — two columns */}
           <div className="ha-card-editor-body">
             <div className="ha-card-editor-left">
               <ImageUploadZone
@@ -347,10 +354,37 @@ function CarouselEditor({ cards, onChange }) {
               />
             </div>
             <div className="ha-card-editor-right">
-              <Field label="Chip / Badge text" value={card.chip}     onChange={(v) => update(selected, "chip",     v)} placeholder="e.g. Fashion Shop" />
-              <Field label="Title"              value={card.title}    onChange={(v) => update(selected, "title",    v)} placeholder="Card title" />
-              <Field label="Subtitle"           value={card.subtitle} onChange={(v) => update(selected, "subtitle", v)} placeholder="Short description" />
-              <Field label="Shop link"          value={card.shopLink} onChange={(v) => update(selected, "shopLink", v)} placeholder="/shop?shop=fashion" hint="URL path or query" />
+              <Field label="Chip / Badge text" value={card.chip}       onChange={(v) => update(selected, "chip",       v)} placeholder="e.g. Fashion Shop" />
+              <Field label="Title"             value={card.title}      onChange={(v) => update(selected, "title",      v)} placeholder="Card title" />
+              <Field label="Subtitle"          value={card.subtitle}   onChange={(v) => update(selected, "subtitle",   v)} placeholder="Short description" />
+              <Field label="Button text"       value={card.buttonText} onChange={(v) => update(selected, "buttonText", v)} placeholder="Shop Now" hint='Label on the "Shop Now →" button' />
+              <Field label="Shop link"         value={card.shopLink}   onChange={(v) => update(selected, "shopLink",   v)} placeholder="/shop?shop=fashion" hint="URL the card navigates to" />
+
+              {/* Card background colour */}
+              <div className="ha-field">
+                <label className="ha-field-label">Card background colour</label>
+                <span className="ha-field-hint">Auto-set when you pick an animation. You can override freely.</span>
+                <div className="ha-color-row" style={{ marginTop: 6 }}>
+                  <input
+                    type="color"
+                    className="ha-color-swatch"
+                    value={card.cardBg || "#1a1a2e"}
+                    onChange={(e) => update(selected, "cardBg", e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    className="ha-input ha-input--color"
+                    value={card.cardBg || "#1a1a2e"}
+                    onChange={(e) => update(selected, "cardBg", e.target.value)}
+                    placeholder="#1a1a2e"
+                  />
+                  <span
+                    className="ha-color-live"
+                    style={{ background: card.cardBg || "#1a1a2e" }}
+                    title="Live background preview"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -364,44 +398,34 @@ function CarouselEditor({ cards, onChange }) {
 ───────────────────────────────────────────── */
 function CategoriesEditor({ categories, onChange }) {
   const [selected, setSelected] = useState(0);
-
   const update = (index, field, value) => {
     const next = [...categories];
     next[index] = { ...next[index], [field]: value };
     onChange(next);
   };
-
   const move = (index, dir) => {
-    const next   = [...categories];
+    const next = [...categories];
     const target = index + dir;
     if (target < 0 || target >= next.length) return;
     [next[index], next[target]] = [next[target], next[index]];
     onChange(next.map((c, i) => ({ ...c, order: i })));
     setSelected(target);
   };
-
   const cat = categories[selected];
-
   return (
     <div className="ha-cats-editor">
-      {/* Category list */}
       <div className="ha-cats-list">
         {categories.map((c, i) => (
-          <button
-            key={c.key}
-            type="button"
+          <button key={c.key} type="button"
             className={`ha-cats-item ${i === selected ? "active" : ""} ${!c.active ? "off" : ""}`}
-            onClick={() => setSelected(i)}
-          >
+            onClick={() => setSelected(i)}>
             {c.imageUrl
               ? <img src={c.imageUrl} alt="" className="ha-cats-item-img" />
-              : <span className="ha-cats-item-placeholder" style={{ background: c.bgColor }}>?</span>
-            }
+              : <span className="ha-cats-item-placeholder" style={{ background: c.bgColor }}>?</span>}
             <span>{c.label}</span>
           </button>
         ))}
       </div>
-
       {cat && (
         <div className="ha-cat-detail">
           <div className="ha-cat-detail-top">
@@ -412,36 +436,20 @@ function CategoriesEditor({ categories, onChange }) {
               <Toggle on={cat.active} onChange={(v) => update(selected, "active", v)} label="Category active" />
             </div>
           </div>
-
           <div className="ha-cat-detail-body">
             <div className="ha-cat-detail-left">
-              <ImageUploadZone
-                label="Category image"
-                currentUrl={cat.imageUrl}
-                folder="beme_market/homepage/categories"
-                onUploadComplete={(urls) => update(selected, "imageUrl", urls[urls.length - 1])}
-              />
+              <ImageUploadZone label="Category image" currentUrl={cat.imageUrl} folder="beme_market/homepage/categories"
+                onUploadComplete={(urls) => update(selected, "imageUrl", urls[urls.length - 1])} />
             </div>
             <div className="ha-cat-detail-right">
               <Field label="Label"    value={cat.label}    onChange={(v) => update(selected, "label",    v)} placeholder="Category name" />
               <Field label="Subtitle" value={cat.subtitle} onChange={(v) => update(selected, "subtitle", v)} placeholder="Short description" />
-              <Field label="Query"    value={cat.query}    onChange={(v) => update(selected, "query",    v)} placeholder="Search query (e.g. iphone)" hint="Used in URL when user clicks" />
+              <Field label="Query"    value={cat.query}    onChange={(v) => update(selected, "query",    v)} placeholder="e.g. iphone" hint="Used in URL when user clicks" />
               <div className="ha-field">
                 <label className="ha-field-label">Background colour</label>
                 <div className="ha-color-row">
-                  <input
-                    type="color"
-                    className="ha-color-swatch"
-                    value={cat.bgColor || "#F1EFE8"}
-                    onChange={(e) => update(selected, "bgColor", e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    className="ha-input ha-input--color"
-                    value={cat.bgColor || "#F1EFE8"}
-                    onChange={(e) => update(selected, "bgColor", e.target.value)}
-                    placeholder="#F1EFE8"
-                  />
+                  <input type="color" className="ha-color-swatch" value={cat.bgColor || "#F1EFE8"} onChange={(e) => update(selected, "bgColor", e.target.value)} />
+                  <input type="text"  className="ha-input ha-input--color" value={cat.bgColor || "#F1EFE8"} onChange={(e) => update(selected, "bgColor", e.target.value)} placeholder="#F1EFE8" />
                 </div>
               </div>
             </div>
@@ -453,49 +461,39 @@ function CategoriesEditor({ categories, onChange }) {
 }
 
 /* ─────────────────────────────────────────────
-   Text section editor (Trending / Continue)
+   Text section editor
 ───────────────────────────────────────────── */
 function TextSectionEditor({ value, onChange, fields }) {
   return (
     <div className="ha-text-editor">
       {fields.map((f) => (
-        <Field
-          key={f.key}
-          label={f.label}
-          value={value?.[f.key] || ""}
+        <Field key={f.key} label={f.label} value={value?.[f.key] || ""}
           onChange={(v) => onChange({ ...value, [f.key]: v })}
-          placeholder={f.placeholder}
-          hint={f.hint}
-        />
+          placeholder={f.placeholder} hint={f.hint} />
       ))}
     </div>
   );
 }
 
 /* ─────────────────────────────────────────────
-   Main HomepageAdmin component
+   Main HomepageAdmin
 ───────────────────────────────────────────── */
 export default function HomepageAdmin() {
   const navigate = useNavigate();
 
-  /* ── Auth & role check ── */
   const [authReady, setAuthReady] = useState(false);
   const [allowed,   setAllowed]   = useState(false);
-
-  /* ── Config state ── */
-  const [sections,      setSections]      = useState(DEFAULT_SECTIONS);
-  const [storeCards,    setStoreCards]    = useState(DEFAULT_STORE_CARDS);
-  const [categories,    setCategories]    = useState(DEFAULT_CATEGORIES);
-  const [trendingText,  setTrendingText]  = useState({ heading: "Trending now",      seeAllText: "See featured" });
-  const [continueText,  setContinueText]  = useState({ heading: "Continue shopping", seeAllText: "See all"      });
-
-  /* ── UI state ── */
-  const [activeTab,  setActiveTab]  = useState("order");   // order | carousel | categories | flash | trending | continue
+  const [sections,     setSections]     = useState(DEFAULT_SECTIONS);
+  const [storeCards,   setStoreCards]   = useState(DEFAULT_STORE_CARDS);
+  const [categories,   setCategories]   = useState(DEFAULT_CATEGORIES);
+  const [trendingText, setTrendingText] = useState({ heading: "Trending now",      seeAllText: "See featured" });
+  const [continueText, setContinueText] = useState({ heading: "Continue shopping", seeAllText: "See all"      });
+  const [activeTab,  setActiveTab]  = useState("order");
   const [saving,     setSaving]     = useState(false);
-  const [saveStatus, setSaveStatus] = useState(null);      // null | "saved" | "error"
+  const [saveStatus, setSaveStatus] = useState(null);
   const [loading,    setLoading]    = useState(true);
 
-  /* ── Role guard ── */
+  /* ── Role guard — matches your Firestore roles: "admin" | "super_admin" ── */
   useEffect(() => {
     const auth = getAuth();
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -503,16 +501,13 @@ export default function HomepageAdmin() {
       try {
         const snap = await getDoc(doc(db, "users", user.uid));
         const role = snap.data()?.role || "";
-        setAllowed(role === "admin" || role === "superadmin");
-      } catch (_) {
-        setAllowed(false);
-      }
+        setAllowed(role === "admin" || role === "super_admin");
+      } catch (_) { setAllowed(false); }
       setAuthReady(true);
     });
     return unsub;
   }, []);
 
-  /* ── Load existing config ── */
   useEffect(() => {
     if (!allowed) return;
     (async () => {
@@ -520,88 +515,55 @@ export default function HomepageAdmin() {
         const snap = await getDoc(doc(db, "homepage", "config"));
         if (snap.exists()) {
           const d = snap.data();
-          if (d.sections?.length)    setSections(d.sections);
-          if (d.storeCards?.length)  setStoreCards(d.storeCards);
-          if (d.categories?.length)  setCategories(d.categories);
-          if (d.trendingText)        setTrendingText(d.trendingText);
-          if (d.continueText)        setContinueText(d.continueText);
+          if (d.sections?.length)   setSections(d.sections);
+          if (d.storeCards?.length) setStoreCards(d.storeCards);
+          if (d.categories?.length) setCategories(d.categories);
+          if (d.trendingText)       setTrendingText(d.trendingText);
+          if (d.continueText)       setContinueText(d.continueText);
         }
-      } catch (err) {
-        console.error("Load config error:", err);
-      } finally {
-        setLoading(false);
-      }
+      } catch (err) { console.error("Load config error:", err); }
+      finally { setLoading(false); }
     })();
   }, [allowed]);
 
-  /* ── Save ── */
   const handleSave = async () => {
-    setSaving(true);
-    setSaveStatus(null);
+    setSaving(true); setSaveStatus(null);
     try {
-      await setDoc(
-        doc(db, "homepage", "config"),
+      await setDoc(doc(db, "homepage", "config"),
         { sections, storeCards, categories, trendingText, continueText },
         { merge: true }
       );
       setSaveStatus("saved");
-    } catch (err) {
-      console.error("Save error:", err);
-      setSaveStatus("error");
-    } finally {
-      setSaving(false);
-      setTimeout(() => setSaveStatus(null), 3000);
-    }
+    } catch (err) { console.error("Save error:", err); setSaveStatus("error"); }
+    finally { setSaving(false); setTimeout(() => setSaveStatus(null), 3000); }
   };
 
-  /* ── Guards ── */
-  if (!authReady) {
-    return (
-      <div className="ha-gate">
-        <div className="ha-gate-spinner" />
-        <p>Checking access…</p>
-      </div>
-    );
-  }
-
-  if (!allowed) {
-    return (
-      <div className="ha-gate ha-gate--denied">
-        <div className="ha-gate-icon">⊘</div>
-        <h2>Access denied</h2>
-        <p>This page is restricted to admins.</p>
-        <button className="ha-btn ha-btn--primary" onClick={() => navigate("/")}>Go home</button>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="ha-gate">
-        <div className="ha-gate-spinner" />
-        <p>Loading homepage config…</p>
-      </div>
-    );
-  }
+  if (!authReady) return <div className="ha-gate"><div className="ha-gate-spinner" /><p>Checking access…</p></div>;
+  if (!allowed)   return (
+    <div className="ha-gate ha-gate--denied">
+      <div className="ha-gate-icon">⊘</div>
+      <h2>Access denied</h2>
+      <p>This page is restricted to admins.</p>
+      <button className="ha-btn ha-btn--primary" onClick={() => navigate("/")}>Go home</button>
+    </div>
+  );
+  if (loading) return <div className="ha-gate"><div className="ha-gate-spinner" /><p>Loading homepage config…</p></div>;
 
   const TABS = [
-    { id: "order",          label: "Section order"     },
-    { id: "carousel",       label: "Shop carousel"     },
-    { id: "categories",     label: "Categories"        },
-    { id: "flash",          label: "Flash deals"       },
-    { id: "trending",       label: "Trending section"  },
-    { id: "continue",       label: "Continue shopping" },
+    { id: "order",      label: "Section order"     },
+    { id: "carousel",   label: "Shop carousel"     },
+    { id: "categories", label: "Categories"        },
+    { id: "flash",      label: "Flash deals"       },
+    { id: "trending",   label: "Trending section"  },
+    { id: "continue",   label: "Continue shopping" },
   ];
 
   return (
     <div className="ha-root">
 
-      {/* ── Header ── */}
       <header className="ha-header">
         <div className="ha-header-left">
-          <button type="button" className="ha-back-btn" onClick={() => navigate("/admin")} aria-label="Back to admin">
-            ←
-          </button>
+          <button type="button" className="ha-back-btn" onClick={() => navigate("/admin")} aria-label="Back">←</button>
           <div>
             <div className="ha-header-brand">Beme Market</div>
             <h1 className="ha-header-title">Homepage Editor</h1>
@@ -610,41 +572,23 @@ export default function HomepageAdmin() {
         <div className="ha-header-right">
           {saveStatus === "saved" && <span className="ha-save-badge ha-save-badge--ok">✓ Saved</span>}
           {saveStatus === "error" && <span className="ha-save-badge ha-save-badge--err">✕ Error</span>}
-          <a
-            href="/"
-            target="_blank"
-            rel="noreferrer"
-            className="ha-btn ha-btn--ghost ha-btn--sm"
-          >
-            Preview site ↗
-          </a>
-          <button
-            type="button"
-            className={`ha-btn ha-btn--primary ${saving ? "loading" : ""}`}
-            onClick={handleSave}
-            disabled={saving}
-          >
+          <a href="/" target="_blank" rel="noreferrer" className="ha-btn ha-btn--ghost ha-btn--sm">Preview site ↗</a>
+          <button type="button" className={`ha-btn ha-btn--primary ${saving ? "loading" : ""}`} onClick={handleSave} disabled={saving}>
             {saving ? "Saving…" : "Save all changes"}
           </button>
         </div>
       </header>
 
-      {/* ── Tab bar ── */}
       <nav className="ha-tabs" role="tablist">
         {TABS.map((t) => (
-          <button
-            key={t.id}
-            role="tab"
-            type="button"
+          <button key={t.id} role="tab" type="button"
             className={`ha-tab ${activeTab === t.id ? "active" : ""}`}
-            onClick={() => setActiveTab(t.id)}
-          >
+            onClick={() => setActiveTab(t.id)}>
             {t.label}
           </button>
         ))}
       </nav>
 
-      {/* ── Tab panels ── */}
       <main className="ha-main">
 
         {activeTab === "order" && (
@@ -661,7 +605,7 @@ export default function HomepageAdmin() {
           <div className="ha-panel">
             <div className="ha-panel-head">
               <h2>Shop carousel</h2>
-              <p>Edit the banner cards that scroll across the top of the homepage. Upload images, edit text, reorder, or hide cards.</p>
+              <p>Pick an animation effect, upload a banner image, edit text, button label, card background colour, and shop link for each card.</p>
             </div>
             <CarouselEditor cards={storeCards} onChange={setStoreCards} />
           </div>
@@ -681,18 +625,14 @@ export default function HomepageAdmin() {
           <div className="ha-panel">
             <div className="ha-panel-head">
               <h2>Flash Deals Banner</h2>
-              <p>
-                The Flash Deals banner pulls live data from your products. Use the{" "}
-                <strong>Section order</strong> tab to toggle it on or off.
-              </p>
+              <p>The Flash Deals banner pulls live data from products. Use Section order to toggle it.</p>
             </div>
             <div className="ha-flash-note">
               <div className="ha-flash-note-icon">⚡</div>
               <div>
-                <strong>No configuration needed here.</strong>
-                <br />
-                Flash deals are driven by products in Firestore marked with a flash deal flag.
-                To hide/show this section go to the <button type="button" className="ha-link" onClick={() => setActiveTab("order")}>Section order tab</button>.
+                <strong>No configuration needed here.</strong><br />
+                Flash deals are driven by products in Firestore with a flash deal flag. To hide/show this section go to the{" "}
+                <button type="button" className="ha-link" onClick={() => setActiveTab("order")}>Section order tab</button>.
               </div>
             </div>
           </div>
@@ -704,14 +644,10 @@ export default function HomepageAdmin() {
               <h2>Trending Now section</h2>
               <p>Edit the heading and button text for the Trending Now product grid.</p>
             </div>
-            <TextSectionEditor
-              value={trendingText}
-              onChange={setTrendingText}
-              fields={[
-                { key: "heading",    label: "Section heading",    placeholder: "Trending now",    hint: "Displayed above the product grid" },
-                { key: "seeAllText", label: '"See all" button text', placeholder: "See featured", hint: "Links to /shop?featured=1" },
-              ]}
-            />
+            <TextSectionEditor value={trendingText} onChange={setTrendingText} fields={[
+              { key: "heading",    label: "Section heading",       placeholder: "Trending now",    hint: "Displayed above the product grid" },
+              { key: "seeAllText", label: '"See all" button text', placeholder: "See featured",    hint: "Links to /shop?featured=1" },
+            ]} />
           </div>
         )}
 
@@ -721,27 +657,17 @@ export default function HomepageAdmin() {
               <h2>Continue Shopping section</h2>
               <p>Edit the heading and button text for the Continue Shopping product grid.</p>
             </div>
-            <TextSectionEditor
-              value={continueText}
-              onChange={setContinueText}
-              fields={[
-                { key: "heading",    label: "Section heading",    placeholder: "Continue shopping", hint: "Displayed above the product grid" },
-                { key: "seeAllText", label: '"See all" button text', placeholder: "See all",        hint: "Links to /shop" },
-              ]}
-            />
+            <TextSectionEditor value={continueText} onChange={setContinueText} fields={[
+              { key: "heading",    label: "Section heading",       placeholder: "Continue shopping", hint: "Displayed above the product grid" },
+              { key: "seeAllText", label: '"See all" button text', placeholder: "See all",           hint: "Links to /shop" },
+            ]} />
           </div>
         )}
 
       </main>
 
-      {/* ── Floating save bar on mobile ── */}
       <div className="ha-mobile-save">
-        <button
-          type="button"
-          className={`ha-btn ha-btn--primary ha-btn--full ${saving ? "loading" : ""}`}
-          onClick={handleSave}
-          disabled={saving}
-        >
+        <button type="button" className={`ha-btn ha-btn--primary ha-btn--full ${saving ? "loading" : ""}`} onClick={handleSave} disabled={saving}>
           {saving ? "Saving…" : "Save all changes"}
         </button>
       </div>
