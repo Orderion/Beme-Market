@@ -16,13 +16,10 @@ function IconHeart({ filled }) {
 
 /* ════════════════════════════════════════════════════════════════════
    KENTE — multi-directional slim lines: horizontal, vertical, diagonal.
-   Wrapper slides off to the right after lines draw in.
-   KenteSVG remounts on each activation (key prop) → restarts all CSS.
    ════════════════════════════════════════════════════════════════════ */
 function KenteSVG() {
   const W = 420, H = 190;
 
-  /* Horizontal wavy paths */
   const hLines = [
     { y: 22,  color: "#CC0000", delay: "0s",    period: 28, amp: 4 },
     { y: 50,  color: "#FFD700", delay: "0.10s", period: 20, amp: 3 },
@@ -32,7 +29,6 @@ function KenteSVG() {
     { y: 168, color: "#006B3F", delay: "0.14s", period: 20, amp: 3 },
   ];
 
-  /* Vertical wavy paths */
   const vLines = [
     { x: 70,  color: "#FFD700", delay: "0.12s", period: 22, amp: 3 },
     { x: 160, color: "#CC0000", delay: "0.26s", period: 26, amp: 4 },
@@ -40,7 +36,6 @@ function KenteSVG() {
     { x: 355, color: "#FFD700", delay: "0.20s", period: 26, amp: 4 },
   ];
 
-  /* Diagonal straight lines */
   const dLines = [
     { d: "M -10,38 L 310,190",  color: "#CC0000", delay: "0.30s" },
     { d: "M 115,0 L 430,155",   color: "#006B3F", delay: "0.44s" },
@@ -84,50 +79,26 @@ function KenteSVG() {
       aria-hidden="true"
     >
       {hLines.map((s, i) => (
-        <path
-          key={`h${i}`}
-          d={buildH(s)}
-          stroke={s.color}
-          strokeWidth="1.8"
-          fill="none"
-          strokeOpacity="0.65"
-          strokeLinecap="round"
-          className="sc-kente-path"
-          style={{ animationDelay: s.delay }}
-        />
+        <path key={`h${i}`} d={buildH(s)} stroke={s.color} strokeWidth="1.8"
+          fill="none" strokeOpacity="0.65" strokeLinecap="round"
+          className="sc-kente-path" style={{ animationDelay: s.delay }} />
       ))}
       {vLines.map((s, i) => (
-        <path
-          key={`v${i}`}
-          d={buildV(s)}
-          stroke={s.color}
-          strokeWidth="1.5"
-          fill="none"
-          strokeOpacity="0.55"
-          strokeLinecap="round"
-          className="sc-kente-path"
-          style={{ animationDelay: s.delay }}
-        />
+        <path key={`v${i}`} d={buildV(s)} stroke={s.color} strokeWidth="1.5"
+          fill="none" strokeOpacity="0.55" strokeLinecap="round"
+          className="sc-kente-path" style={{ animationDelay: s.delay }} />
       ))}
       {dLines.map((s, i) => (
-        <path
-          key={`d${i}`}
-          d={s.d}
-          stroke={s.color}
-          strokeWidth="1.4"
-          fill="none"
-          strokeOpacity="0.45"
-          strokeLinecap="round"
-          className="sc-kente-path"
-          style={{ animationDelay: s.delay }}
-        />
+        <path key={`d${i}`} d={s.d} stroke={s.color} strokeWidth="1.4"
+          fill="none" strokeOpacity="0.45" strokeLinecap="round"
+          className="sc-kente-path" style={{ animationDelay: s.delay }} />
       ))}
     </svg>
   );
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   FASHION — curtain panels (unchanged)
+   FASHION — curtain panels
    ════════════════════════════════════════════════════════════════════ */
 function CurtainOverlay({ color }) {
   return (
@@ -139,8 +110,7 @@ function CurtainOverlay({ color }) {
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   BESTSELLERS — ink stamp that drops & counter rolls 0 → 100 %
-   StampOverlay remounts on each activation → CSS restart.
+   BESTSELLERS — ink stamp + counter
    ════════════════════════════════════════════════════════════════════ */
 function StampOverlay() {
   return (
@@ -167,69 +137,45 @@ function StampOverlay() {
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   SCENTS — translucent clouds from all directions + centre burst
-   SprayOverlay remounts on each activation → CSS restart.
+   SCENTS — translucent clouds from all directions
    ════════════════════════════════════════════════════════════════════ */
 function SprayOverlay() {
   return (
     <div className="sc-spray-wrap" aria-hidden="true">
-      {/* Left edge */}
-      <div className="sc-puff sc-puff-l1" />
-      <div className="sc-puff sc-puff-l2" />
-      <div className="sc-puff sc-puff-l3" />
-      {/* Right edge */}
-      <div className="sc-puff sc-puff-r1" />
-      <div className="sc-puff sc-puff-r2" />
-      <div className="sc-puff sc-puff-r3" />
-      {/* Top edge */}
-      <div className="sc-puff sc-puff-t1" />
-      <div className="sc-puff sc-puff-t2" />
-      <div className="sc-puff sc-puff-t3" />
-      {/* Bottom edge */}
-      <div className="sc-puff sc-puff-b1" />
-      <div className="sc-puff sc-puff-b2" />
-      {/* Centre burst */}
-      <div className="sc-puff sc-puff-c1" />
-      <div className="sc-puff sc-puff-c2" />
-      <div className="sc-puff sc-puff-c3" />
+      <div className="sc-puff sc-puff-l1" /><div className="sc-puff sc-puff-l2" /><div className="sc-puff sc-puff-l3" />
+      <div className="sc-puff sc-puff-r1" /><div className="sc-puff sc-puff-r2" /><div className="sc-puff sc-puff-r3" />
+      <div className="sc-puff sc-puff-t1" /><div className="sc-puff sc-puff-t2" /><div className="sc-puff sc-puff-t3" />
+      <div className="sc-puff sc-puff-b1" /><div className="sc-puff sc-puff-b2" />
+      <div className="sc-puff sc-puff-c1" /><div className="sc-puff sc-puff-c2" /><div className="sc-puff sc-puff-c3" />
     </div>
   );
 }
 
 /* ════════════════════════════════════════════════════════════════════
    GADGETS — intense RGB glitch + neon bars + flicker + noise
-   GlitchOverlay remounts on each activation → CSS restart.
    ════════════════════════════════════════════════════════════════════ */
 function GlitchOverlay() {
   return (
     <div className="sc-glitch-wrap" aria-hidden="true">
-      {/* RGB channel splits */}
-      <div className="sc-gl sc-gl-c" />
-      <div className="sc-gl sc-gl-m" />
-      <div className="sc-gl sc-gl-y" />
-      <div className="sc-gl sc-gl-g" />
-      {/* Horizontal neon glitch bars */}
-      <div className="sc-glbar sc-glbar-1" />
-      <div className="sc-glbar sc-glbar-2" />
-      <div className="sc-glbar sc-glbar-3" />
-      <div className="sc-glbar sc-glbar-4" />
-      {/* Screen-wide flicker */}
+      <div className="sc-gl sc-gl-c" /><div className="sc-gl sc-gl-m" />
+      <div className="sc-gl sc-gl-y" /><div className="sc-gl sc-gl-g" />
+      <div className="sc-glbar sc-glbar-1" /><div className="sc-glbar sc-glbar-2" />
+      <div className="sc-glbar sc-glbar-3" /><div className="sc-glbar sc-glbar-4" />
       <div className="sc-gl-flicker" />
-      {/* Pixel-grid noise overlay */}
       <div className="sc-gl-noise" />
-      {/* Scanlines */}
       <div className="sc-scanlines" />
     </div>
   );
 }
 
-/* ── Map theme → card background colour ── */
+/* ── Default backgrounds per theme ── */
 const THEME_BG = {
   fashion:     "#1E3D2A",
   bestsellers: "#7B1E1E",
   kente:       "#17260F",
   scents:      "#1E3D2A",
   gadgets:     "#070E1C",
+  none:        "#1a1a2e",
 };
 
 export default function ShopCarousel({ shops = [] }) {
@@ -277,10 +223,15 @@ export default function ShopCarousel({ shops = [] }) {
     <div className="sc-root">
       <div ref={trackRef} className="sc-track" onScroll={onScroll}>
         {shops.map((shop, i) => {
-          const theme    = shop.theme || "fashion";
+          const theme    = shop.theme || "none";
           const isActive = i === activeIndex;
           const animKey  = animKeys[i] || 0;
-          const cardBg   = THEME_BG[theme] || "#1E3D2A";
+
+          /* Per-card bg: admin-set custom colour takes priority, then theme default */
+          const cardBg = shop.cardBg || THEME_BG[theme] || "#1E3D2A";
+
+          /* Per-card button text */
+          const btnText = shop.buttonText || "Shop Now";
 
           return (
             <div key={shop.id} className="sc-card-wrap">
@@ -308,9 +259,7 @@ export default function ShopCarousel({ shops = [] }) {
                     {shop.chip && <span className="sc-badge">{shop.chip}</span>}
                     <h3 className="sc-title">{shop.title}</h3>
                     <p className="sc-subtitle">{shop.subtitle || "Premium curated shop"}</p>
-                    <button className="sc-btn">
-                      {shop.buttonText || "Shop Now"} →
-                    </button>
+                    <button className="sc-btn">{btnText} →</button>
                   </div>
                   <div className="sc-image-wrap">
                     {shop.image && (
@@ -324,34 +273,37 @@ export default function ShopCarousel({ shops = [] }) {
                   </div>
                 </div>
 
-                {/* ═══ Overlays ═══ */}
+                {/* ═══ Overlays — keyed by theme ═══ */}
 
-                {/* 1. Fashion — curtain; always in DOM, CSS opens on --visible */}
+                {/* Fashion — curtain always in DOM, CSS triggers on --visible */}
                 {theme === "fashion" && (
                   <CurtainOverlay color={cardBg} />
                 )}
 
-                {/* 2. Kente — remount on activation; SVG draws in then wrapper exits right */}
+                {/* Kente — remount on activation */}
                 {theme === "kente" && (
                   <div className="sc-kente-wrap" key={`kente-${animKey}`}>
                     <KenteSVG />
                   </div>
                 )}
 
-                {/* 3. Bestsellers — stamp drops + counter rolls on activation */}
+                {/* Bestsellers — stamp + counter */}
                 {theme === "bestsellers" && isActive && (
                   <StampOverlay key={`stamp-${animKey}`} />
                 )}
 
-                {/* 4. Scents — clouds from all directions on activation */}
+                {/* Scents — clouds from all directions */}
                 {theme === "scents" && isActive && (
                   <SprayOverlay key={`spray-${animKey}`} />
                 )}
 
-                {/* 5. Gadgets — full RGB glitch on activation */}
+                {/* Gadgets — RGB glitch */}
                 {theme === "gadgets" && isActive && (
                   <GlitchOverlay key={`glitch-${animKey}`} />
                 )}
+
+                {/* theme === "none" — no overlay, intentionally blank */}
+
               </div>
             </div>
           );
