@@ -1,53 +1,41 @@
-/* ─────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════
    HomepageAdmin.css  ·  Beme Market
-   Dark, editorial admin aesthetic
-───────────────────────────────────────────── */
+   All --ha- vars scoped to .ha-root only.
+   Overrides bleeding globals too.
+═══════════════════════════════════════════════════ */
 
-/* ── All --ha- variables scoped to .ha-root only ──
-   This prevents ANY collision with the global --bg, --text, --border etc.
-   from index.css / global.css                                              */
 .ha-root {
-  --ha-bg:          #0f0f10;
-  --ha-surface:     #18181b;
-  --ha-surface2:    #222226;
-  --ha-surface3:    #2a2a2f;
-  --ha-border:      #2e2e34;
-  --ha-border2:     #3a3a42;
-  --ha-text:        #f0f0f2;
-  --ha-text2:       #9999a8;
-  --ha-text3:       #666672;
-  --ha-accent:      #e8e8f0;
-  --ha-primary:     #f0f0f2;
-  --ha-primary-bg:  #ffffff;
-  --ha-green:       #22c55e;
-  --ha-red:         #ef4444;
-  --ha-yellow:      #f59e0b;
-  --ha-blue:        #3b82f6;
-  --ha-radius:      10px;
-  --ha-radius-sm:   6px;
-  --ha-shadow:      0 4px 24px rgba(0,0,0,0.4);
-  --ha-font:        'DM Sans', 'Segoe UI', system-ui, sans-serif;
-  --ha-font-mono:   'JetBrains Mono', 'Fira Code', monospace;
-  --ha-header-h:    60px;
-  --ha-tabs-h:      44px;
+  --ha-bg:         #0f0f10;
+  --ha-surface:    #18181b;
+  --ha-surface2:   #222226;
+  --ha-surface3:   #2a2a2f;
+  --ha-border:     #2e2e34;
+  --ha-border2:    #3a3a42;
+  --ha-text:       #f0f0f2;
+  --ha-text2:      #9999a8;
+  --ha-text3:      #666672;
+  --ha-green:      #22c55e;
+  --ha-red:        #ef4444;
+  --ha-blue:       #3b82f6;
+  --ha-yellow:     #f59e0b;
+  --ha-primary-bg: #ffffff;
+  --ha-radius:     10px;
+  --ha-radius-sm:  6px;
+  --ha-font:       'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  --ha-header-h:   60px;
+  --ha-tabs-h:     44px;
 
-  /* ── Override any globals that bleed in ── */
+  /* ── Neutralise any bleeding global vars ── */
   --bg:     #0f0f10;
   --text:   #f0f0f2;
   --card:   #18181b;
   --border: #2e2e34;
-  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --shadow: 0 4px 24px rgba(0,0,0,.4);
   --radius: 10px;
   --muted:  #9999a8;
   --btn:    #ffffff;
   --btnText:#111111;
-}
 
-/* ── Reset scoped to admin only ── */
-.ha-root *, .ha-root *::before, .ha-root *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-/* ─── Root ─── */
-.ha-root {
   min-height: 100vh;
   background: var(--ha-bg);
   color: var(--ha-text);
@@ -58,7 +46,14 @@
   flex-direction: column;
 }
 
-/* ─── Gate (loading / denied) ─── */
+/* Scoped reset */
+.ha-root *, .ha-root *::before, .ha-root *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Gate (loading / denied) ── */
 .ha-gate {
   min-height: 100vh;
   display: flex;
@@ -73,9 +68,9 @@
   padding: 24px;
 }
 .ha-gate--denied { color: var(--ha-text); }
-.ha-gate-icon { font-size: 48px; opacity: .4; }
-.ha-gate h2 { font-size: 22px; font-weight: 600; color: var(--ha-text); }
-.ha-gate p  { color: var(--ha-text2); max-width: 280px; }
+.ha-gate-icon    { font-size: 48px; opacity: .4; }
+.ha-gate h2      { font-size: 22px; font-weight: 600; color: var(--ha-text); }
+.ha-gate p       { color: var(--ha-text2); max-width: 280px; }
 .ha-gate-spinner {
   width: 32px; height: 32px;
   border: 2px solid var(--ha-border2);
@@ -85,11 +80,11 @@
 }
 @keyframes ha-spin { to { transform: rotate(360deg); } }
 
-/* ─── Header ─── */
+/* ── Header ── */
 .ha-header {
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 200;
   height: var(--ha-header-h);
   display: flex;
   align-items: center;
@@ -97,13 +92,13 @@
   padding: 0 20px;
   background: var(--ha-surface);
   border-bottom: 1px solid var(--ha-border);
-  backdrop-filter: blur(12px);
   gap: 16px;
 }
 .ha-header-left  { display: flex; align-items: center; gap: 12px; }
 .ha-header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .ha-header-brand { font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ha-text3); }
 .ha-header-title { font-size: 16px; font-weight: 600; color: var(--ha-text); line-height: 1.2; }
+
 .ha-back-btn {
   width: 34px; height: 34px;
   display: flex; align-items: center; justify-content: center;
@@ -126,9 +121,9 @@
 }
 .ha-save-badge--ok  { background: rgba(34,197,94,.15);  color: var(--ha-green); }
 .ha-save-badge--err { background: rgba(239,68,68,.15);  color: var(--ha-red);   }
-@keyframes ha-fadein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@keyframes ha-fadein { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
 
-/* ─── Buttons ─── */
+/* ── Buttons ── */
 .ha-btn {
   display: inline-flex;
   align-items: center;
@@ -143,23 +138,24 @@
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
-  transition: background .15s, color .15s, border-color .15s, opacity .15s;
   text-decoration: none;
+  transition: background .15s, color .15s, border-color .15s, opacity .15s;
 }
-.ha-btn--primary { background: var(--ha-primary-bg); color: #111; border-color: transparent; }
-.ha-btn--primary:hover { background: #ddd; }
-.ha-btn--primary:disabled, .ha-btn--primary.loading { opacity: .55; cursor: not-allowed; }
-.ha-btn--ghost { background: transparent; border-color: var(--ha-border2); color: var(--ha-text2); }
+.ha-btn--primary { background: var(--ha-primary-bg); color: #111; }
+.ha-btn--primary:hover { background: #e0e0e0; }
+.ha-btn--primary:disabled,
+.ha-btn--primary.loading { opacity: .5; cursor: not-allowed; }
+.ha-btn--ghost  { background: transparent; border-color: var(--ha-border2); color: var(--ha-text2); }
 .ha-btn--ghost:hover { background: var(--ha-surface2); color: var(--ha-text); }
 .ha-btn--danger { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.3); color: var(--ha-red); }
-.ha-btn--danger:hover { background: rgba(239,68,68,.2); }
+.ha-btn--danger:hover { background: rgba(239,68,68,.22); }
 .ha-btn--upload { background: rgba(59,130,246,.15); border-color: rgba(59,130,246,.4); color: #7db8ff; }
 .ha-btn--upload:hover { background: rgba(59,130,246,.25); }
-.ha-btn--sm { height: 28px; padding: 0 10px; font-size: 12px; }
+.ha-btn--sm   { height: 28px; padding: 0 10px; font-size: 12px; }
 .ha-btn--full { width: 100%; }
 .ha-link { background: none; border: none; color: var(--ha-blue); cursor: pointer; font-size: inherit; padding: 0; text-decoration: underline; }
 
-/* ─── Tabs ─── */
+/* ── Tab bar ── */
 .ha-tabs {
   display: flex;
   height: var(--ha-tabs-h);
@@ -169,8 +165,12 @@
   gap: 2px;
   overflow-x: auto;
   scrollbar-width: none;
+  position: sticky;
+  top: var(--ha-header-h);
+  z-index: 100;
 }
 .ha-tabs::-webkit-scrollbar { display: none; }
+
 .ha-tab {
   position: relative;
   flex-shrink: 0;
@@ -186,21 +186,17 @@
   transition: color .15s;
 }
 .ha-tab:hover { color: var(--ha-text2); }
-.ha-tab.active {
-  color: var(--ha-text);
-}
+.ha-tab.active { color: var(--ha-text); }
 .ha-tab.active::after {
   content: '';
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 0; left: 0; right: 0;
   height: 2px;
   background: var(--ha-text);
   border-radius: 2px 2px 0 0;
 }
 
-/* ─── Main panel ─── */
+/* ── Main content ── */
 .ha-main {
   flex: 1;
   padding: 28px 24px 100px;
@@ -208,14 +204,15 @@
   width: 100%;
   margin: 0 auto;
 }
-.ha-panel-head { margin-bottom: 24px; }
-.ha-panel-head h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
-.ha-panel-head p  { color: var(--ha-text2); font-size: 13px; line-height: 1.6; max-width: 520px; }
+.ha-panel-head            { margin-bottom: 24px; }
+.ha-panel-head h2         { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+.ha-panel-head p          { color: var(--ha-text2); font-size: 13px; line-height: 1.6; max-width: 560px; }
 
-/* ─── Form fields ─── */
-.ha-field { display: flex; flex-direction: column; gap: 4px; }
-.ha-field-label { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ha-text3); }
+/* ── Form fields ── */
+.ha-field       { display: flex; flex-direction: column; gap: 4px; }
+.ha-field-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ha-text3); }
 .ha-field-hint  { font-size: 11px; color: var(--ha-text3); margin-top: -2px; }
+
 .ha-input {
   width: 100%;
   padding: 8px 12px;
@@ -225,12 +222,17 @@
   color: var(--ha-text);
   font-family: var(--ha-font);
   font-size: 13px;
-  transition: border-color .15s;
   outline: none;
+  transition: border-color .15s;
 }
-.ha-input:focus { border-color: var(--ha-border2); }
-.ha-input--color { flex: 1; }
-.ha-color-row { display: flex; align-items: center; gap: 8px; }
+.ha-input:focus     { border-color: var(--ha-border2); }
+.ha-input--color    { flex: 1; }
+
+.ha-color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .ha-color-swatch {
   width: 36px; height: 36px;
   padding: 2px;
@@ -238,9 +240,18 @@
   border-radius: var(--ha-radius-sm);
   background: var(--ha-surface2);
   cursor: pointer;
+  flex-shrink: 0;
+}
+/* Live preview dot next to the hex input */
+.ha-color-live {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.1);
+  flex-shrink: 0;
+  display: inline-block;
 }
 
-/* ─── Toggle ─── */
+/* ── Toggle ── */
 .ha-toggle {
   position: relative;
   width: 36px; height: 20px;
@@ -263,10 +274,10 @@
 }
 .ha-toggle--on .ha-toggle-knob { transform: translateX(16px); }
 
-/* ─── Section order panel ─── */
-.ha-order-panel { max-width: 480px; }
-.ha-order-hint { font-size: 12px; color: var(--ha-text3); margin-bottom: 14px; }
-.ha-order-list { display: flex; flex-direction: column; gap: 6px; }
+/* ── Section order ── */
+.ha-order-panel  { max-width: 500px; }
+.ha-order-hint   { font-size: 12px; color: var(--ha-text3); margin-bottom: 14px; }
+.ha-order-list   { display: flex; flex-direction: column; gap: 6px; }
 .ha-order-row {
   display: flex;
   align-items: center;
@@ -278,8 +289,8 @@
   transition: opacity .2s;
 }
 .ha-order-row--off { opacity: .4; }
-.ha-order-grip { color: var(--ha-text3); font-size: 18px; cursor: grab; flex-shrink: 0; }
-.ha-order-label { flex: 1; font-size: 13px; font-weight: 500; }
+.ha-order-grip     { color: var(--ha-text3); font-size: 18px; cursor: grab; flex-shrink: 0; }
+.ha-order-label    { flex: 1; font-size: 13px; font-weight: 500; }
 .ha-order-controls { display: flex; align-items: center; gap: 6px; }
 .ha-order-arrow {
   width: 26px; height: 26px;
@@ -295,10 +306,86 @@
 .ha-order-arrow:hover:not(:disabled) { background: var(--ha-surface3); color: var(--ha-text); }
 .ha-order-arrow:disabled { opacity: .3; cursor: not-allowed; }
 
-/* ─── Image Upload Zone ─── */
-.ha-imgzone { display: flex; flex-direction: column; gap: 10px; }
-.ha-imgzone-label { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ha-text3); }
-.ha-imgzone-current { position: relative; display: inline-block; }
+/* ══════════════════════════════════════════════
+   ANIMATION PICKER
+══════════════════════════════════════════════ */
+.ha-card-anim-section {
+  padding: 20px;
+  border-bottom: 1px solid var(--ha-border);
+  background: var(--ha-bg);
+}
+
+.ha-anim-picker { display: flex; flex-direction: column; gap: 10px; }
+
+.ha-anim-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.ha-anim-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px 10px;
+  background: var(--ha-surface);
+  border: 1.5px solid var(--ha-border);
+  border-radius: var(--ha-radius);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color .15s, background .15s, transform .1s;
+  font-family: var(--ha-font);
+}
+.ha-anim-tile:hover {
+  border-color: var(--ha-border2);
+  background: var(--ha-surface2);
+  transform: translateY(-1px);
+}
+.ha-anim-tile--active {
+  border-color: #fff;
+  background: var(--ha-surface2);
+}
+
+/* The coloured swatch circle */
+.ha-anim-swatch {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255,255,255,.08);
+  flex-shrink: 0;
+}
+.ha-anim-emoji {
+  font-size: 20px;
+  line-height: 1;
+}
+.ha-anim-tile-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ha-text);
+  letter-spacing: .02em;
+  line-height: 1.2;
+}
+.ha-anim-tile-desc {
+  font-size: 10px;
+  color: var(--ha-text3);
+  line-height: 1.4;
+}
+.ha-anim-check {
+  position: absolute;
+  top: 6px; right: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ha-green);
+}
+
+/* ── Image upload zone ── */
+.ha-imgzone          { display: flex; flex-direction: column; gap: 10px; }
+.ha-imgzone-label    { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ha-text3); }
+.ha-imgzone-current  { position: relative; display: inline-block; }
 .ha-imgzone-current-img {
   width: 100%;
   max-width: 260px;
@@ -316,10 +403,8 @@
   font-size: 10px; font-weight: 600;
   padding: 2px 8px;
   border-radius: 10px;
-  letter-spacing: .04em;
 }
 
-/* Preview grid */
 .ha-imgzone-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -335,12 +420,13 @@
 }
 .ha-imgzone-thumb.done  { border-color: rgba(34,197,94,.5); }
 .ha-imgzone-thumb.error { border-color: rgba(239,68,68,.5); }
-.ha-imgzone-thumb-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ha-imgzone-thumb-img   { width: 100%; height: 100%; object-fit: cover; display: block; }
+
 .ha-imgzone-progress {
   position: absolute;
   bottom: 0; left: 0; right: 0;
   height: 3px;
-  background: rgba(255,255,255,.15);
+  background: rgba(255,255,255,.12);
 }
 .ha-imgzone-progress-bar {
   height: 100%;
@@ -355,8 +441,9 @@
   padding: 2px 6px;
   border-radius: 8px;
 }
-.ha-imgzone-badge--done { background: rgba(34,197,94,.85);  color: #fff; }
+.ha-imgzone-badge--done { background: rgba(34,197,94,.85); color: #fff; }
 .ha-imgzone-badge--err  { background: rgba(239,68,68,.85);  color: #fff; }
+
 .ha-imgzone-remove {
   position: absolute;
   top: 5px; right: 5px;
@@ -372,12 +459,17 @@
   transition: background .15s;
 }
 .ha-imgzone-remove:hover { background: rgba(239,68,68,.8); }
-.ha-imgzone-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ha-imgzone-actions      { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-/* ─── Carousel editor ─── */
+/* ── Carousel editor ── */
 .ha-carousel-editor { display: flex; flex-direction: column; gap: 18px; }
+
+/* Card tabs row */
 .ha-card-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
 .ha-card-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 14px;
   background: var(--ha-surface);
   border: 1px solid var(--ha-border);
@@ -394,33 +486,42 @@
 .ha-card-tab.off    { opacity: .45; }
 .ha-card-tab--add   { border-style: dashed; }
 
+/* Colour dot inside each tab */
+.ha-card-tab-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,.12);
+}
+
+/* Card editor container */
 .ha-card-editor {
   background: var(--ha-surface);
   border: 1px solid var(--ha-border);
   border-radius: var(--ha-radius);
   overflow: hidden;
 }
+
+/* Action bar */
 .ha-card-editor-top {
   padding: 12px 16px;
   border-bottom: 1px solid var(--ha-border);
   background: var(--ha-surface2);
 }
 .ha-card-editor-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Image + fields two-column grid */
 .ha-card-editor-body {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0;
 }
 .ha-card-editor-left  { padding: 20px; border-right: 1px solid var(--ha-border); }
 .ha-card-editor-right { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
 
-/* ─── Categories editor ─── */
+/* ── Categories editor ── */
 .ha-cats-editor { display: flex; flex-direction: column; gap: 18px; }
-.ha-cats-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+.ha-cats-list   { display: flex; flex-wrap: wrap; gap: 8px; }
+
 .ha-cats-item {
   display: flex;
   align-items: center;
@@ -439,11 +540,7 @@
 .ha-cats-item:hover  { background: var(--ha-surface2); color: var(--ha-text); }
 .ha-cats-item.active { background: var(--ha-surface2); border-color: var(--ha-border2); color: var(--ha-text); }
 .ha-cats-item.off    { opacity: .45; }
-.ha-cats-item-img {
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  object-fit: cover;
-}
+.ha-cats-item-img    { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
 .ha-cats-item-placeholder {
   width: 28px; height: 28px;
   border-radius: 50%;
@@ -467,17 +564,16 @@
   background: var(--ha-surface2);
   flex-wrap: wrap;
 }
-.ha-cat-detail-title { font-size: 14px; font-weight: 600; }
+.ha-cat-detail-title    { font-size: 14px; font-weight: 600; }
 .ha-cat-detail-controls { display: flex; align-items: center; gap: 8px; }
 .ha-cat-detail-body {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0;
 }
 .ha-cat-detail-left  { padding: 20px; border-right: 1px solid var(--ha-border); }
 .ha-cat-detail-right { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
 
-/* ─── Text editor ─── */
+/* ── Text section editor ── */
 .ha-text-editor {
   max-width: 480px;
   display: flex;
@@ -489,7 +585,7 @@
   padding: 24px;
 }
 
-/* ─── Flash note ─── */
+/* ── Flash note ── */
 .ha-flash-note {
   display: flex;
   gap: 16px;
@@ -502,10 +598,10 @@
   color: var(--ha-text2);
   line-height: 1.6;
 }
-.ha-flash-note-icon { font-size: 24px; flex-shrink: 0; line-height: 1; }
+.ha-flash-note-icon   { font-size: 24px; flex-shrink: 0; line-height: 1; }
 .ha-flash-note strong { color: var(--ha-text); }
 
-/* ─── Mobile save bar ─── */
+/* ── Mobile save bar ── */
 .ha-mobile-save {
   display: none;
   position: fixed;
@@ -516,44 +612,18 @@
   z-index: 50;
 }
 
-/* ─── Responsive ─── */
-@media (max-width: 700px) {
-  .ha-header { padding: 0 14px; }
-  .ha-header-title { font-size: 14px; }
-  .ha-header-right .ha-btn:not(.ha-btn--primary) { display: none; }
-  .ha-header-right .ha-btn--primary { display: none; } /* Use mobile bar */
-  .ha-mobile-save { display: block; }
-  .ha-main { padding: 20px 14px 90px; }
-  .ha-card-editor-body,
-  .ha-cat-detail-body { grid-template-columns: 1fr; }
-  .ha-card-editor-left  { border-right: none; border-bottom: 1px solid var(--ha-border); }
-  .ha-cat-detail-left   { border-right: none; border-bottom: 1px solid var(--ha-border); }
-  .ha-tabs { padding: 0 12px; }
-  .ha-tab  { padding: 0 10px; font-size: 12px; }
-}
-
-@media (max-width: 400px) {
-  .ha-card-tab { font-size: 11px; padding: 5px 10px; }
-}
-
-/* ─── Home skeleton (used in Home.jsx) ─── */
-.home-skeleton { padding: 0 0 32px; }
-.home-skeleton-carousel {
-  width: 100%;
-  height: 220px;
+/* ── Skeleton loaders (used in Home.jsx) ── */
+.home-skeleton           { padding: 0 0 32px; }
+.home-skeleton-carousel  {
+  width: 100%; height: 220px;
   background: linear-gradient(90deg, #1a1a1e 25%, #22222a 50%, #1a1a1e 75%);
   background-size: 200% 100%;
   animation: ha-shimmer 1.4s infinite;
   border-radius: 12px;
   margin-bottom: 24px;
 }
-.home-skeleton-cats {
-  display: flex;
-  gap: 12px;
-  padding: 0 16px;
-  overflow: hidden;
-}
-.home-skeleton-cat {
+.home-skeleton-cats { display: flex; gap: 12px; padding: 0 16px; overflow: hidden; }
+.home-skeleton-cat  {
   flex-shrink: 0;
   width: 64px; height: 64px;
   border-radius: 50%;
@@ -564,4 +634,29 @@
 @keyframes ha-shimmer {
   0%   { background-position: 200% center; }
   100% { background-position: -200% center; }
+}
+
+/* ── Responsive ── */
+@media (max-width: 700px) {
+  .ha-header        { padding: 0 14px; }
+  .ha-header-title  { font-size: 14px; }
+  .ha-header-right .ha-btn:not(.ha-btn--primary) { display: none; }
+  .ha-header-right .ha-btn--primary              { display: none; }
+  .ha-mobile-save   { display: block; }
+  .ha-main          { padding: 20px 14px 90px; }
+
+  .ha-card-editor-body,
+  .ha-cat-detail-body { grid-template-columns: 1fr; }
+  .ha-card-editor-left,
+  .ha-cat-detail-left  { border-right: none; border-bottom: 1px solid var(--ha-border); }
+
+  .ha-anim-grid { grid-template-columns: repeat(2, 1fr); }
+
+  .ha-tabs { padding: 0 12px; }
+  .ha-tab  { padding: 0 10px; font-size: 12px; }
+}
+
+@media (max-width: 400px) {
+  .ha-card-tab  { font-size: 11px; padding: 5px 10px; }
+  .ha-anim-grid { grid-template-columns: 1fr 1fr; }
 }
