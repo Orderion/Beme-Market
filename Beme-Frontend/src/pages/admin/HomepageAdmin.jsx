@@ -3,7 +3,7 @@ import { useNavigate }                  from "react-router-dom";
 import { doc, getDoc, setDoc }         from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { db }                          from "../../firebase";
-import { uploadToCloudinary }          from "../../utils/cloudinaryUpload";
+import { uploadImageToCloudinary }     from "../../utils/cloudinaryUpload";
 import "./HomepageAdmin.css";
 
 /* ─────────────────────────────────────────────
@@ -145,11 +145,9 @@ function ImageUploadZone({ currentUrl, onUploadComplete, label = "Image", folder
 
   const uploadOne = async (preview) => {
     try {
-      const result = await uploadToCloudinary(
-        preview.file,
-        (pct) => setPreviews((prev) => prev.map((p) => p.localId === preview.localId ? { ...p, progress: pct } : p)),
-        folder
-      );
+      /* Simulate progress at 50% while the fetch is in flight */
+      setPreviews((prev) => prev.map((p) => p.localId === preview.localId ? { ...p, progress: 50 } : p));
+      const result = await uploadImageToCloudinary(preview.file, folder);
       setPreviews((prev) => prev.map((p) => p.localId === preview.localId ? { ...p, done: true, progress: 100, url: result.url } : p));
       return result.url;
     } catch (err) {
