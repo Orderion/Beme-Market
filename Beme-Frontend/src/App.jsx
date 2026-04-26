@@ -64,6 +64,10 @@ import {
   ContactUs,
 } from "./pages/AccountSubPages";
 
+/* ── NEW: Product Request Pages ── */
+import UserRequests from "./pages/UserRequests";
+import ProductRequests from "./pages/ProductRequests";
+
 /* ================= HELPERS ================= */
 
 function SuperAdminOnly({ children }) {
@@ -157,6 +161,9 @@ function AppShell() {
           <Route path="/account/contact" element={<ContactUs />} />
           <Route path="/saved" element={<SavedItems />} />
 
+          {/* ── NEW: User product requests ── */}
+          <Route path="/account/requests" element={<UserRequests />} />
+
           {/* ADMIN */}
           <Route
             path="/admin"
@@ -242,6 +249,18 @@ function AppShell() {
               <AdminRoute>
                 <RequireAdmin>
                   <HomepageAdmin />
+                </RequireAdmin>
+              </AdminRoute>
+            }
+          />
+
+          {/* ── NEW: Admin product requests panel ── */}
+          <Route
+            path="/admin/product-requests"
+            element={
+              <AdminRoute>
+                <RequireAdmin>
+                  <ProductRequests />
                 </RequireAdmin>
               </AdminRoute>
             }
