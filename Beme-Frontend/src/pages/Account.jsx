@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
+import { useUserUnreadCount } from "../hooks/useNotifications";
 import "./Account.css";
 
 /* ── Icons ── */
@@ -106,6 +107,18 @@ function IconShield() {
   );
 }
 
+/* ── NEW: Request icon ── */
+function IconRequest() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+      <circle cx="11" cy="11" r="8"/>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      <line x1="11" y1="8" x2="11" y2="14"/>
+      <line x1="8" y1="11" x2="14" y2="11"/>
+    </svg>
+  );
+}
+
 /* ── Quick action tile ── */
 function QuickTile({ icon, label, onClick, badge }) {
   return (
@@ -165,6 +178,9 @@ export default function Account() {
   const { user, logout } = useAuth();
   const [showLogoutSheet, setShowLogoutSheet] = useState(false);
   const [savedCount, setSavedCount] = useState(null);
+
+  /* Real-time unread notification count badge */
+  const { unreadCount } = useUserUnreadCount();
 
   useEffect(() => {
     if (!user) { setSavedCount(0); return; }
@@ -255,20 +271,34 @@ export default function Account() {
             badge={savedCount > 0 ? savedCount : undefined}
             onClick={() => navigate("/saved")}
           />
+          {/* ── NEW: My requests row ── */}
+          <Row
+            icon={<IconRequest />}
+            label="My requests"
+            sub="Track your product requests"
+            onClick={() => navigate("/account/requests")}
+          />
         </div>
 
         {/* ── Settings rows ── */}
         <div className="acc-list-group">
-          <Row icon={<IconSettings />}  label="Manage account"   sub="Name, password & preferences"  onClick={() => navigate("/account/manage")} />
-          <Row icon={<IconLocation />}  label="Delivery addresses" sub="Saved locations in Ghana"     onClick={() => navigate("/account/addresses")} />
-          <Row icon={<IconCard />}      label="Payment methods"  sub="Paystack & saved cards"         onClick={() => navigate("/account/payments")} />
-          <Row icon={<IconBell />}      label="Notifications"    sub="Order updates & alerts"         onClick={() => navigate("/account/notifications")} />
+          <Row icon={<IconSettings />}  label="Manage account"     sub="Name, password & preferences"  onClick={() => navigate("/account/manage")} />
+          <Row icon={<IconLocation />}  label="Delivery addresses" sub="Saved locations in Ghana"       onClick={() => navigate("/account/addresses")} />
+          <Row icon={<IconCard />}      label="Payment methods"    sub="Paystack & saved cards"         onClick={() => navigate("/account/payments")} />
+          {/* ── Notifications row — now shows live unread badge ── */}
+          <Row
+            icon={<IconBell />}
+            label="Notifications"
+            sub="Order updates & alerts"
+            badge={unreadCount > 0 ? unreadCount : undefined}
+            onClick={() => navigate("/account/notifications")}
+          />
         </div>
 
         {/* ── Support rows ── */}
         <div className="acc-list-group">
-          <Row icon={<IconHelp />}     label="Help & support"  sub="FAQs and guides"                 onClick={() => navigate("/account/help")} />
-          <Row icon={<IconMail />}     label="Contact us"      sub="supportbememarket@gmail.com"      onClick={() => navigate("/account/contact")} />
+          <Row icon={<IconHelp />} label="Help & support" sub="FAQs and guides"           onClick={() => navigate("/account/help")} />
+          <Row icon={<IconMail />} label="Contact us"     sub="supportbememarket@gmail.com" onClick={() => navigate("/account/contact")} />
         </div>
 
         {/* ── Logout ── */}
