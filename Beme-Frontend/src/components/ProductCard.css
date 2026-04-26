@@ -15,7 +15,7 @@
 /* ── Card shell ── */
 
 .p-card {
-  background: #f7f7f7;
+  background: var(--bg);
   border: 1px solid rgba(17, 17, 17, 0.06);
   border-radius: 16px;
   overflow: hidden;
@@ -33,7 +33,7 @@
 }
 
 body.dark .p-card {
-  background: #151515;
+  background: var(--bg);
   border-color: rgba(255, 255, 255, 0.06);
   box-shadow:
     0 18px 45px rgba(0, 0, 0, 0.34),
