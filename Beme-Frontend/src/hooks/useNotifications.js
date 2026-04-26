@@ -1,209 +1,244 @@
-// src/hooks/useProductRequests.js
+// src/hooks/useNotifications.js
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
-  addProductRequest,
-  getAllRequests,
-  getUserRequests,
-  updateRequestStatus,
-} from "../services/productRequestService";
+  subscribeToAdminNotifications,
+  subscribeToAdminUnreadCount,
+  subscribeToUserNotifications,
+  subscribeToUserUnreadCount,
+  markAdminNotifRead,
+  markAllAdminNotifsRead,
+  markUserNotifRead,
+  markAllUserNotifsRead,
+  formatNotifTime,
+} from "../services/notificationService";
 
-// ─── USER HOOK ───────────────────────────────────────────────────────────────
+// ─── ADMIN NOTIFICATIONS HOOK ────────────────────────────────────────────────
 /**
- * Hook for customers — submit and view their own product requests.
+ * Real-time hook for super_admin notifications.
  *
  * Returns:
- *  - requests       : Array of the user's own requests
- *  - loading        : fetch loading state
- *  - submitting     : form submit loading state
- *  - error          : error message string or null
- *  - submitRequest  : async fn to submit a new request
- *  - refresh        : manually re-fetch requests
+ *  - notifications   : Array of admin notification objects
+ *  - unreadCount     : number of unread notifications
+ *  - loading         : initial load state
+ *  - error           : error string or null
+ *  - markRead        : mark a single notification as read
+ *  - markAllRead     : mark all notifications as read
+ *  - formatTime      : helper to format createdAt date
  */
-export function useUserProductRequests() {
-  const { user } = useAuth();
+export function useAdminNotifications() {
+  const { isSuperAdmin } = useAuth();
 
-  const [requests,   setRequests]   = useState([]);
-  const [loading,    setLoading]    = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error,      setError]      = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount,   setUnreadCount]   = useState(0);
+  const [loading,       setLoading]       = useState(true);
+  const [error,         setError]         = useState(null);
 
-  // ── Fetch user's requests ──
-  const fetchRequests = useCallback(async () => {
-    if (!user?.uid) {
-      setRequests([]);
+  // ── Real-time listener for all notifications ──
+  useEffect(() => {
+    if (!isSuperAdmin) {
+      setNotifications([]);
+      setLoading(false);
       return;
     }
+
     setLoading(true);
-    setError(null);
+
+    const unsub = subscribeToAdminNotifications(
+      (data) => {
+        setNotifications(data);
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        console.error("[useAdminNotifications] error:", err);
+        setError("Failed to load notifications.");
+        setLoading(false);
+      }
+    );
+
+    return () => unsub();
+  }, [isSuperAdmin]);
+
+  // ── Real-time listener for unread count (badge) ──
+  useEffect(() => {
+    if (!isSuperAdmin) {
+      setUnreadCount(0);
+      return;
+    }
+
+    const unsub = subscribeToAdminUnreadCount((count) => {
+      setUnreadCount(count);
+    });
+
+    return () => unsub();
+  }, [isSuperAdmin]);
+
+  // ── Mark single as read ──
+  const markRead = useCallback(async (notifId) => {
     try {
-      const data = await getUserRequests(user.uid);
-      setRequests(data);
+      await markAdminNotifRead(notifId);
     } catch (err) {
-      console.error("[useUserProductRequests] fetch error:", err);
-      setError("Failed to load your requests. Please try again.");
-    } finally {
+      console.error("[useAdminNotifications] markRead error:", err);
+    }
+  }, []);
+
+  // ── Mark all as read ──
+  const markAllRead = useCallback(async () => {
+    try {
+      await markAllAdminNotifsRead();
+    } catch (err) {
+      console.error("[useAdminNotifications] markAllRead error:", err);
+    }
+  }, []);
+
+  return {
+    notifications,
+    unreadCount,
+    loading,
+    error,
+    markRead,
+    markAllRead,
+    formatTime: formatNotifTime,
+  };
+}
+
+// ─── USER NOTIFICATIONS HOOK ─────────────────────────────────────────────────
+/**
+ * Real-time hook for customer notifications.
+ *
+ * Returns:
+ *  - notifications   : Array of user notification objects
+ *  - unreadCount     : number of unread notifications
+ *  - loading         : initial load state
+ *  - error           : error string or null
+ *  - markRead        : mark a single notification as read
+ *  - markAllRead     : mark all notifications as read
+ *  - formatTime      : helper to format createdAt date
+ */
+export function useUserNotifications() {
+  const { user } = useAuth();
+
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount,   setUnreadCount]   = useState(0);
+  const [loading,       setLoading]       = useState(true);
+  const [error,         setError]         = useState(null);
+
+  // ── Real-time listener for all user notifications ──
+  useEffect(() => {
+    if (!user?.uid) {
+      setNotifications([]);
       setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    const unsub = subscribeToUserNotifications(
+      user.uid,
+      (data) => {
+        setNotifications(data);
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        console.error("[useUserNotifications] error:", err);
+        setError("Failed to load notifications.");
+        setLoading(false);
+      }
+    );
+
+    return () => unsub();
+  }, [user?.uid]);
+
+  // ── Real-time listener for unread count (badge) ──
+  useEffect(() => {
+    if (!user?.uid) {
+      setUnreadCount(0);
+      return;
+    }
+
+    const unsub = subscribeToUserUnreadCount(user.uid, (count) => {
+      setUnreadCount(count);
+    });
+
+    return () => unsub();
+  }, [user?.uid]);
+
+  // ── Mark single as read ──
+  const markRead = useCallback(async (notifId) => {
+    try {
+      await markUserNotifRead(notifId);
+    } catch (err) {
+      console.error("[useUserNotifications] markRead error:", err);
+    }
+  }, []);
+
+  // ── Mark all as read ──
+  const markAllRead = useCallback(async () => {
+    if (!user?.uid) return;
+    try {
+      await markAllUserNotifsRead(user.uid);
+    } catch (err) {
+      console.error("[useUserNotifications] markAllRead error:", err);
     }
   }, [user?.uid]);
 
-  useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
-
-  // ── Submit a new request ──
-  const submitRequest = useCallback(
-    async (formData, imageFile) => {
-      if (!user?.uid) throw new Error("You must be logged in to submit a request.");
-
-      setSubmitting(true);
-      setError(null);
-
-      try {
-        const requestId = await addProductRequest(formData, imageFile, {
-          uid:   user.uid,
-          email: user.email,
-        });
-
-        // Optimistically re-fetch so the user sees their new request immediately
-        await fetchRequests();
-
-        return requestId;
-      } catch (err) {
-        console.error("[useUserProductRequests] submit error:", err);
-        setError("Failed to submit your request. Please try again.");
-        throw err;
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [user, fetchRequests]
-  );
-
   return {
-    requests,
+    notifications,
+    unreadCount,
     loading,
-    submitting,
     error,
-    submitRequest,
-    refresh: fetchRequests,
+    markRead,
+    markAllRead,
+    formatTime: formatNotifTime,
   };
 }
 
-// ─── ADMIN HOOK ──────────────────────────────────────────────────────────────
+// ─── UNREAD BADGE HOOK ───────────────────────────────────────────────────────
 /**
- * Hook for super_admin — view all requests and update their status.
+ * Lightweight hook — only subscribes to the unread count.
+ * Use this in Header, BottomNav, or Account page for the badge dot.
+ * Avoids fetching full notification payloads unnecessarily.
  *
- * @param {string|null} statusFilter - "pending"|"sourcing"|"available"|"rejected"|null
- *
- * Returns:
- *  - requests        : Array of all product requests
- *  - loading         : fetch loading state
- *  - updating        : update loading state
- *  - error           : error message string or null
- *  - changeStatus    : async fn to update a request's status
- *  - refresh         : manually re-fetch
- *  - statusFilter    : current filter value
- *  - setStatusFilter : update the filter
+ * @returns {{ unreadCount: number }}
  */
-export function useAdminProductRequests(initialFilter = null) {
-  const [requests,      setRequests]      = useState([]);
-  const [loading,       setLoading]       = useState(false);
-  const [updating,      setUpdating]      = useState(false);
-  const [error,         setError]         = useState(null);
-  const [statusFilter,  setStatusFilter]  = useState(initialFilter);
+export function useUserUnreadCount() {
+  const { user } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  // ── Fetch all requests ──
-  const fetchRequests = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getAllRequests(statusFilter);
-      setRequests(data);
-    } catch (err) {
-      console.error("[useAdminProductRequests] fetch error:", err);
-      setError("Failed to load product requests.");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (!user?.uid) {
+      setUnreadCount(0);
+      return;
     }
-  }, [statusFilter]);
+
+    const unsub = subscribeToUserUnreadCount(user.uid, setUnreadCount);
+    return () => unsub();
+  }, [user?.uid]);
+
+  return { unreadCount };
+}
+
+/**
+ * Lightweight hook for admin unread badge.
+ * Use in admin sidebar or header.
+ *
+ * @returns {{ unreadCount: number }}
+ */
+export function useAdminUnreadCount() {
+  const { isSuperAdmin } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+    if (!isSuperAdmin) {
+      setUnreadCount(0);
+      return;
+    }
 
-  // ── Update request status ──
-  const changeStatus = useCallback(
-    async (requestId, status, extras = {}) => {
-      setUpdating(true);
-      setError(null);
-      try {
-        await updateRequestStatus(requestId, status, extras);
+    const unsub = subscribeToAdminUnreadCount(setUnreadCount);
+    return () => unsub();
+  }, [isSuperAdmin]);
 
-        // Update local state immediately for snappy UI
-        setRequests((prev) =>
-          prev.map((r) =>
-            r.id === requestId
-              ? {
-                  ...r,
-                  status,
-                  ...(extras.adminResponse   !== undefined && { adminResponse:    extras.adminResponse }),
-                  ...(extras.offeredProductId !== undefined && { offeredProductId: extras.offeredProductId }),
-                }
-              : r
-          )
-        );
-      } catch (err) {
-        console.error("[useAdminProductRequests] update error:", err);
-        setError("Failed to update request status.");
-        throw err;
-      } finally {
-        setUpdating(false);
-      }
-    },
-    []
-  );
-
-  return {
-    requests,
-    loading,
-    updating,
-    error,
-    changeStatus,
-    refresh:         fetchRequests,
-    statusFilter,
-    setStatusFilter,
-  };
-}
-
-// ─── STATUS HELPERS ──────────────────────────────────────────────────────────
-/**
- * Returns a display label for a request status value.
- * @param {string} status
- * @returns {string}
- */
-export function getStatusLabel(status) {
-  const labels = {
-    pending:   "Pending",
-    sourcing:  "Sourcing",
-    available: "Available",
-    rejected:  "Rejected",
-  };
-  return labels[status] ?? status;
-}
-
-/**
- * Returns a CSS class suffix for a request status value.
- * Used to apply colour styles in components.
- * @param {string} status
- * @returns {"pending"|"sourcing"|"available"|"rejected"}
- */
-export function getStatusClass(status) {
-  const map = {
-    pending:   "pending",
-    sourcing:  "sourcing",
-    available: "available",
-    rejected:  "rejected",
-  };
-  return map[status] ?? "pending";
+  return { unreadCount };
 }
