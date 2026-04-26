@@ -11,8 +11,6 @@
 
 /* ══════════════════════════════════════════
    TWO-COLUMN LAYOUT
-   desktop: sidebar (fixed width) + main
-   mobile: sidebar hidden (drawer), main full
 ══════════════════════════════════════════ */
 
 .shop-layout {
@@ -184,6 +182,72 @@ body.dark .shop-sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,2
   border-radius: 12px !important;
 }
 
+/* ── NEW: Sidebar request button ── */
+.shop-sidebar-request-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 13px;
+  border-radius: 13px;
+  border: 1.5px dashed rgba(17,17,17,0.14);
+  background: rgba(var(--grtheme-rgb, 34,160,88), 0.04);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s, background 0.2s, transform 0.18s var(--ease-premium);
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+body.dark .shop-sidebar-request-btn {
+  border-color: rgba(255,255,255,0.12);
+}
+
+.shop-sidebar-request-btn:hover {
+  border-color: var(--grtheme);
+  background: rgba(var(--grtheme-rgb, 34,160,88), 0.07);
+  transform: translateY(-1px);
+}
+
+.shop-sidebar-request-btn:active {
+  transform: scale(0.98);
+}
+
+.shop-sidebar-request-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--grtheme);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.shop-sidebar-request-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.shop-sidebar-request-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+  font-family: var(--font-main);
+  display: block;
+}
+
+.shop-sidebar-request-sub {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  font-family: var(--font-main);
+  display: block;
+}
+
 /* ══════════════════════════════════════════
    MAIN CONTENT AREA
 ══════════════════════════════════════════ */
@@ -295,7 +359,7 @@ body.dark .shop-sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,2
 
 /* ── Mobile Filter / Sort controls bar ── */
 .shop-controls {
-  display: none; /* hidden on desktop — sidebar handles filters */
+  display: none;
   margin: 12px 16px 0;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -403,6 +467,101 @@ body.dark .shop-sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,2
 
 .shop-active-clearall:hover { opacity: 1; transform: translateY(-1px); }
 
+/* ── NEW: Search request banner ── */
+.shop-request-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 18px 0;
+  padding: 13px 16px;
+  border-radius: 16px;
+  background: rgba(var(--grtheme-rgb, 34,160,88), 0.06);
+  border: 1.5px solid rgba(var(--grtheme-rgb, 34,160,88), 0.18);
+  animation: fadeUpSoft 0.28s var(--ease-premium);
+}
+
+body.dark .shop-request-banner {
+  background: rgba(var(--grtheme-rgb, 34,160,88), 0.08);
+  border-color: rgba(var(--grtheme-rgb, 34,160,88), 0.22);
+}
+
+.shop-request-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.shop-request-banner-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--grtheme);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.shop-request-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.shop-request-banner-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: var(--font-main);
+  margin: 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shop-request-banner-title strong {
+  font-weight: 800;
+  color: var(--grtheme);
+}
+
+.shop-request-banner-sub {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  font-family: var(--font-main);
+  margin: 0;
+}
+
+.shop-request-banner-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 11px;
+  background: var(--grtheme);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  font-family: var(--font-main);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.18s, transform 0.18s var(--ease-premium);
+}
+
+.shop-request-banner-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.shop-request-banner-btn:active {
+  transform: scale(0.97);
+}
+
 /* ── Meta / count ── */
 .shop-meta {
   padding: 12px 18px 6px;
@@ -412,6 +571,68 @@ body.dark .shop-sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,2
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
+}
+
+/* ── NEW: Bottom request strip ── */
+.shop-request-strip {
+  margin: 28px 18px 24px;
+  border-radius: 18px;
+  border: 1.5px dashed rgba(17,17,17,0.1);
+  background: var(--card);
+  overflow: hidden;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+body.dark .shop-request-strip {
+  border-color: rgba(255,255,255,0.08);
+}
+
+.shop-request-strip:hover {
+  border-color: var(--grtheme);
+  background: rgba(var(--grtheme-rgb, 34,160,88), 0.03);
+}
+
+.shop-request-strip-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+}
+
+.shop-request-strip-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+  font-family: var(--font-main);
+  margin: 0;
+}
+
+.shop-request-strip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  background: var(--grtheme);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  font-family: var(--font-main);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.18s, transform 0.18s var(--ease-premium);
+}
+
+.shop-request-strip-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.shop-request-strip-btn:active {
+  transform: scale(0.97);
 }
 
 /* ══════════════════════════════════════════
@@ -625,7 +846,6 @@ body.dark .shop-range input:focus { border-color: rgba(255,255,255,0.24); }
 
 /* ══════════════════════════════════════════
    MOBILE  (≤ 1023px)
-   Sidebar becomes a left-side drawer
 ══════════════════════════════════════════ */
 
 @media (max-width: 1023px) {
@@ -665,6 +885,22 @@ body.dark .shop-range input:focus { border-color: rgba(255,255,255,0.24); }
   .shop-banner-title { font-size: 20px; }
   .shop-meta        { padding: 12px 14px 6px; }
   .shop-active-pills-wrap { padding: 10px 14px 0; }
+
+  .shop-request-banner {
+    margin: 12px 14px 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .shop-request-banner-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .shop-request-strip { margin: 22px 14px 20px; }
+  .shop-request-strip-inner { padding: 16px 18px; gap: 12px; }
+  .shop-request-strip-text  { font-size: 13px; }
 }
 
 @media (max-width: 640px) {
@@ -676,6 +912,17 @@ body.dark .shop-range input:focus { border-color: rgba(255,255,255,0.24); }
   .shop-btn       { flex: 1; text-align: center; }
   .shop-range     { grid-template-columns: 1fr; }
   .shop-range-dash { display: none; }
+
+  .shop-request-strip-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .shop-request-strip-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* ══════════════════════════════════════════
@@ -691,6 +938,8 @@ body.dark .shop-range input:focus { border-color: rgba(255,255,255,0.24); }
   .shop-banner-wrap { padding: 18px 24px 0; }
   .shop-meta { padding: 14px 24px 6px; }
   .shop-active-pills-wrap { padding: 14px 24px 0; }
+  .shop-request-banner { margin: 14px 24px 0; }
+  .shop-request-strip  { margin: 28px 24px 24px; }
 }
 
 @media (min-width: 1280px) {
@@ -706,7 +955,10 @@ body.dark .shop-range input:focus { border-color: rgba(255,255,255,0.24); }
 @media (prefers-reduced-motion: reduce) {
   .shop-page, .shop-sidebar, .shop-banner-img, .shop-banner-btn,
   .sidebar-item, .shop-active-pill, .shop-active-clearall,
-  .shop-control-btn, .shop-panel, .shop-btn, .shop-panel-action {
+  .shop-control-btn, .shop-panel, .shop-btn, .shop-panel-action,
+  .shop-request-banner, .shop-request-banner-btn,
+  .shop-request-strip, .shop-request-strip-btn,
+  .shop-sidebar-request-btn {
     transition: none !important;
     animation: none !important;
   }
