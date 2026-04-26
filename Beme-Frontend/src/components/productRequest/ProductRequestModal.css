@@ -1,0 +1,424 @@
+/* src/components/productRequest/ProductRequestModal.css */
+
+/* ── Backdrop ── */
+.prm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 300;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: prm-fade-in 220ms var(--ease-premium) both;
+}
+
+@keyframes prm-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Sheet ── */
+.prm-sheet {
+  width: 100%;
+  max-width: 560px;
+  background: var(--card);
+  border-radius: 28px 28px 0 0;
+  padding: 12px 22px 48px;
+  border-top: 1.5px solid rgba(17,17,17,0.08);
+  animation: prm-slide-up 340ms var(--ease-premium) both;
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+body.dark .prm-sheet {
+  border-top-color: rgba(255,255,255,0.08);
+}
+
+@keyframes prm-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* ── Handle bar ── */
+.prm-bar {
+  width: 36px;
+  height: 4px;
+  background: rgba(17,17,17,0.12);
+  border-radius: 99px;
+  margin: 0 auto 20px;
+}
+
+body.dark .prm-bar {
+  background: rgba(255,255,255,0.16);
+}
+
+/* ── Header ── */
+.prm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.prm-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  margin: 0;
+}
+
+.prm-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(17,17,17,0.06);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--muted);
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: background 0.18s, color 0.18s, transform 0.18s var(--ease-premium);
+}
+
+body.dark .prm-close-btn {
+  background: rgba(255,255,255,0.08);
+}
+
+.prm-close-btn:hover {
+  background: rgba(17,17,17,0.1);
+  color: var(--text);
+}
+
+.prm-close-btn:active {
+  transform: scale(0.92);
+}
+
+.prm-subtitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 0 0 24px;
+  line-height: 1.6;
+  font-family: var(--font-main);
+}
+
+/* ── Form ── */
+.prm-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Field ── */
+.prm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.prm-label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-family: var(--font-main);
+}
+
+.prm-label span {
+  color: var(--grtheme);
+  margin-left: 2px;
+}
+
+.prm-input,
+.prm-textarea,
+.prm-select {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(17,17,17,0.1);
+  background: var(--soft);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-main);
+  outline: none;
+  transition: border-color 0.2s var(--ease-premium), box-shadow 0.2s;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+body.dark .prm-input,
+body.dark .prm-textarea,
+body.dark .prm-select {
+  border-color: rgba(255,255,255,0.1);
+}
+
+.prm-input:focus,
+.prm-textarea:focus,
+.prm-select:focus {
+  border-color: var(--grtheme);
+  box-shadow: 0 0 0 3px rgba(var(--grtheme-rgb, 34,160,88), 0.12);
+}
+
+.prm-input::placeholder,
+.prm-textarea::placeholder {
+  color: var(--muted);
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.prm-textarea {
+  min-height: 90px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.prm-select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+/* ── Image upload ── */
+.prm-upload-box {
+  border: 1.5px dashed rgba(17,17,17,0.18);
+  border-radius: 14px;
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  background: var(--soft);
+  transition: border-color 0.2s, background 0.2s;
+  position: relative;
+  text-align: center;
+}
+
+body.dark .prm-upload-box {
+  border-color: rgba(255,255,255,0.14);
+}
+
+.prm-upload-box:hover {
+  border-color: var(--grtheme);
+  background: rgba(var(--grtheme-rgb, 34,160,88), 0.04);
+}
+
+.prm-upload-box input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.prm-upload-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(17,17,17,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+
+body.dark .prm-upload-icon {
+  background: rgba(255,255,255,0.08);
+}
+
+.prm-upload-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: var(--font-main);
+}
+
+.prm-upload-sub {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  font-family: var(--font-main);
+}
+
+/* ── Image preview ── */
+.prm-image-preview {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1.5px solid rgba(17,17,17,0.08);
+}
+
+body.dark .prm-image-preview {
+  border-color: rgba(255,255,255,0.08);
+}
+
+.prm-image-preview img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+}
+
+.prm-image-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #fff;
+  transition: background 0.18s;
+}
+
+.prm-image-remove:hover {
+  background: rgba(0,0,0,0.75);
+}
+
+/* ── Error message ── */
+.prm-error {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(217,79,79,0.08);
+  border: 1px solid rgba(217,79,79,0.2);
+  font-size: 13px;
+  font-weight: 600;
+  color: #d94f4f;
+  font-family: var(--font-main);
+}
+
+/* ── Submit button ── */
+.prm-submit-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--grtheme);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  font-family: var(--font-main);
+  border: none;
+  cursor: pointer;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 0.18s, transform 0.18s var(--ease-premium);
+}
+
+.prm-submit-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.prm-submit-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.prm-submit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── Spinner ── */
+.prm-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: prm-spin 0.7s linear infinite;
+}
+
+@keyframes prm-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Success state ── */
+.prm-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 24px 0 12px;
+  text-align: center;
+}
+
+.prm-success-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(var(--grtheme-rgb, 34,160,88), 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--grtheme);
+}
+
+.prm-success-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  margin: 0;
+}
+
+.prm-success-sub {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.6;
+  font-family: var(--font-main);
+  max-width: 300px;
+}
+
+.prm-success-btn {
+  width: 100%;
+  padding: 15px;
+  border-radius: 16px;
+  background: var(--grtheme);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  font-family: var(--font-main);
+  border: none;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: opacity 0.18s, transform 0.18s var(--ease-premium);
+}
+
+.prm-success-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .prm-backdrop, .prm-sheet, .prm-submit-btn,
+  .prm-close-btn, .prm-upload-box {
+    animation: none !important;
+    transition: none !important;
+  }
+}
