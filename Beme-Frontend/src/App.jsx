@@ -41,6 +41,7 @@ import ShopApplications from "./pages/ShopApplications";
 import ShopOwnerApply from "./pages/ShopOwnerApply";
 
 import HomepageAdmin from "./pages/admin/HomepageAdmin";
+import MediaManager from "./pages/admin/MediaManager";
 
 import About from "./pages/About";
 import Support from "./pages/Support";
@@ -161,7 +162,7 @@ function AppShell() {
           <Route path="/account/contact" element={<ContactUs />} />
           <Route path="/saved" element={<SavedItems />} />
 
-          {/* ── NEW: User product requests ── */}
+          {/* ── User product requests ── */}
           <Route path="/account/requests" element={<UserRequests />} />
 
           {/* ADMIN */}
@@ -254,13 +255,25 @@ function AppShell() {
             }
           />
 
-          {/* ── NEW: Admin product requests panel ── */}
+          {/* ── Admin product requests panel ── */}
           <Route
             path="/admin/product-requests"
             element={
               <AdminRoute>
                 <RequireAdmin>
                   <ProductRequests />
+                </RequireAdmin>
+              </AdminRoute>
+            }
+          />
+
+          {/* ── Media Manager ── */}
+          <Route
+            path="/admin/media"
+            element={
+              <AdminRoute>
+                <RequireAdmin>
+                  <MediaManager />
                 </RequireAdmin>
               </AdminRoute>
             }
