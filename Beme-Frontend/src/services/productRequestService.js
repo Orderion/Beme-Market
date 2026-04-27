@@ -11,8 +11,11 @@ import {
   orderBy,
   serverTimestamp,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "../firebase";
+import { db } from "../firebase";
+
+// ─── CLOUDINARY CONFIG ────────────────────────────────────────────────────────
+const CLOUD_NAME    = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 // ─── COLLECTION NAMES ────────────────────────────────────────────────────────
 const REQUESTS_COL    = "product_requests";
@@ -30,18 +33,51 @@ function sortByCreatedAtDesc(docs) {
   return [...docs].sort((a, b) => toDate(b.createdAt) - toDate(a.createdAt));
 }
 
-// ─── UPLOAD REFERENCE IMAGE ──────────────────────────────────────────────────
-async function uploadReferenceImage(file, userId) {
+// ─── UPLOAD REFERENCE IMAGE (Cloudinary) ─────────────────────────────────────
+/**
+ * Uploads image to Cloudinary using unsigned upload preset.
+ * Always returns null on failure — never blocks request submission.
+ */
+async function uploadReferenceImage(file) {
   if (!file) return null;
-  const path = `product_requests/${userId}/${Date.now()}_${file.name}`;
-  const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
-  return getDownloadURL(storageRef);
+
+  if (!CLOUD_NAME || !UPLOAD_PRESET) {
+    console.warn("[uploadReferenceImage] Cloudinary env vars missing — skipping image.");
+    return null;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append("file",           file);
+    formData.append("upload_preset",  UPLOAD_PRESET);
+    formData.append("folder",         "product_requests");
+
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+      { method: "POST", body: formData }
+    );
+
+    if (!res.ok) {
+      console.warn("[uploadReferenceImage] Cloudinary error:", res.statusText);
+      return null;
+    }
+
+    const data = await res.json();
+    return data.secure_url || null;
+  } catch (err) {
+    console.warn("[uploadReferenceImage] Upload failed (non-critical):", err.message);
+    return null;
+  }
 }
 
 // ─── ADD PRODUCT REQUEST ─────────────────────────────────────────────────────
+/**
+ * Creates a product request in Firestore and notifies super_admin.
+ * Image upload is best-effort — request submits even without it.
+ */
 export async function addProductRequest(data, imageFile, user) {
-  const referenceImageUrl = await uploadReferenceImage(imageFile, user.uid);
+  // Upload image to Cloudinary first (non-blocking)
+  const referenceImageUrl = await uploadReferenceImage(imageFile);
 
   const payload = {
     productName:       data.productName.trim(),
@@ -157,9 +193,7 @@ export async function getAllRequests(statusFilter = null) {
 // ─── FETCH USER'S OWN REQUESTS ───────────────────────────────────────────────
 export async function getUserRequests(userId) {
   if (!userId) return [];
-
   try {
-    // Requires composite index: userId ASC + createdAt DESC
     const q = query(
       collection(db, REQUESTS_COL),
       where("userId", "==", userId),
@@ -168,7 +202,6 @@ export async function getUserRequests(userId) {
     const snap = await getDocs(q);
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   } catch (err) {
-    // Index not yet built — fall back to simple where + client sort
     console.warn("[getUserRequests] index fallback:", err.message);
     const q    = query(collection(db, REQUESTS_COL), where("userId", "==", userId));
     const snap = await getDocs(q);
