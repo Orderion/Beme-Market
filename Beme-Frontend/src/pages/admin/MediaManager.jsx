@@ -1,20 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import "./MediaManager.css";
 
-const CLOUD   = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-const PRESET  = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-const API_KEY = import.meta.env.VITE_CLOUDINARY_API_KEY;
-const SECRET  = import.meta.env.VITE_CLOUDINARY_API_SECRET;
+/* Only public/safe values allowed here — secret lives in /api/cloudinary.js */
+const CLOUD  = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 /* ── Helpers ─────────────────────────────────── */
-const b64  = (s) => btoa(s);
-const sha1 = async (s) => {
-  const buf = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(s));
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-};
-
 const fmt = (bytes) => {
   if (!bytes && bytes !== 0) return "—";
   if (bytes >= 1_073_741_824) return (bytes / 1_073_741_824).toFixed(2) + " GB";
@@ -33,7 +24,6 @@ const fmtDuration = (secs) => {
 const pct = (used, limit) =>
   limit ? Math.min(100, (used / limit) * 100) : 0;
 
-/* Download a remote file as blob, fallback to new tab */
 const downloadAsset = async (url, filename) => {
   try {
     const r    = await fetch(url);
@@ -110,12 +100,12 @@ const EmptyIcon = () => (
 function StorageGraph({ usage }) {
   if (!usage) return null;
 
-  const storageUsed  = usage.storage?.usage  || 0;
-  const storageLimit = usage.storage?.limit  || 0;
+  const storageUsed  = usage.storage?.usage        || 0;
+  const storageLimit = usage.storage?.limit        || 0;
   const storageFree  = storageLimit ? storageLimit - storageUsed : null;
   const storagePct   = pct(storageUsed, storageLimit);
-  const bandUsed     = usage.bandwidth?.usage || 0;
-  const bandLimit    = usage.bandwidth?.limit || 0;
+  const bandUsed     = usage.bandwidth?.usage      || 0;
+  const bandLimit    = usage.bandwidth?.limit      || 0;
   const bandPct      = pct(bandUsed, bandLimit);
   const txUsed       = usage.transformations?.usage || 0;
   const txLimit      = usage.transformations?.limit || 0;
@@ -125,9 +115,33 @@ function StorageGraph({ usage }) {
     p > 85 ? "#FF6600" : p > 65 ? "#f0a500" : "var(--text)";
 
   const rows = [
-    { label: "Storage",         used: storageUsed, limit: storageLimit, pct: storagePct, fmtUsed: fmt(storageUsed), fmtLimit: storageLimit ? fmt(storageLimit) : null, free: storageFree !== null ? fmt(storageFree) + " free" : "Unlimited" },
-    { label: "Bandwidth",       used: bandUsed,    limit: bandLimit,    pct: bandPct,    fmtUsed: fmt(bandUsed),    fmtLimit: bandLimit    ? fmt(bandLimit)    : null, free: null },
-    { label: "Transformations", used: txUsed,      limit: txLimit,      pct: txPct,      fmtUsed: txUsed.toLocaleString(), fmtLimit: txLimit ? txLimit.toLocaleString() : null, free: null, isCount: true },
+    {
+      label:    "Storage",
+      pct:      storagePct,
+      fmtUsed:  fmt(storageUsed),
+      fmtLimit: storageLimit ? fmt(storageLimit) : null,
+      free:     storageFree !== null ? fmt(storageFree) + " free" : "Unlimited",
+      limit:    storageLimit,
+      isCount:  false,
+    },
+    {
+      label:    "Bandwidth",
+      pct:      bandPct,
+      fmtUsed:  fmt(bandUsed),
+      fmtLimit: bandLimit ? fmt(bandLimit) : null,
+      free:     null,
+      limit:    bandLimit,
+      isCount:  false,
+    },
+    {
+      label:    "Transformations",
+      pct:      txPct,
+      fmtUsed:  txUsed.toLocaleString(),
+      fmtLimit: txLimit ? txLimit.toLocaleString() : null,
+      free:     null,
+      limit:    txLimit,
+      isCount:  true,
+    },
   ];
 
   return (
@@ -154,17 +168,10 @@ function StorageGraph({ usage }) {
               <div
                 className="mm-track-fill"
                 style={{
-                  width: row.limit > 0 ? storagePct + "%" : "0%",
-                  ...(row.label === "Storage"         && { width: storagePct + "%" }),
-                  ...(row.label === "Bandwidth"       && { width: bandPct    + "%" }),
-                  ...(row.label === "Transformations" && { width: txPct      + "%" }),
-                  background: barColor(
-                    row.label === "Storage"         ? storagePct :
-                    row.label === "Bandwidth"       ? bandPct    : txPct
-                  ),
+                  width:      `${row.pct}%`,
+                  background: barColor(row.pct),
                 }}
               />
-              {/* Tick marks at 25 / 50 / 75% */}
               {[25, 50, 75].map((t) => (
                 <div key={t} className="mm-track-tick" style={{ left: t + "%" }} />
               ))}
@@ -174,9 +181,9 @@ function StorageGraph({ usage }) {
               <span>0</span>
               {row.fmtLimit ? (
                 <>
-                  <span>{row.fmtLimit ? (row.isCount ? Math.round(row.limit / 4).toLocaleString() : fmt(row.limit / 4)) : ""}</span>
-                  <span>{row.fmtLimit ? (row.isCount ? Math.round(row.limit / 2).toLocaleString() : fmt(row.limit / 2)) : ""}</span>
-                  <span>{row.fmtLimit ? (row.isCount ? Math.round((row.limit * 3) / 4).toLocaleString() : fmt((row.limit * 3) / 4)) : ""}</span>
+                  <span>{row.isCount ? Math.round(row.limit / 4).toLocaleString() : fmt(row.limit / 4)}</span>
+                  <span>{row.isCount ? Math.round(row.limit / 2).toLocaleString() : fmt(row.limit / 2)}</span>
+                  <span>{row.isCount ? Math.round((row.limit * 3) / 4).toLocaleString() : fmt((row.limit * 3) / 4)}</span>
                   <span>{row.fmtLimit}</span>
                 </>
               ) : (
@@ -185,7 +192,13 @@ function StorageGraph({ usage }) {
             </div>
 
             {row.pct > 0 && row.limit > 0 && (
-              <div className="mm-pct-badge" style={{ left: `min(${row.pct}%, calc(100% - 42px))`, background: barColor(row.pct) }}>
+              <div
+                className="mm-pct-badge"
+                style={{
+                  left:       `min(${row.pct}%, calc(100% - 42px))`,
+                  background: barColor(row.pct),
+                }}
+              >
                 {Math.round(row.pct)}%
               </div>
             )}
@@ -218,53 +231,46 @@ export default function MediaManager() {
   const [drag,        setDrag]        = useState(false);
   const fileRef = useRef();
 
-  /* Guard: check env vars are present */
-  const credsOk = CLOUD && API_KEY && SECRET;
+  /* Guard: only cloud name + preset needed on the client now */
+  const credsOk = Boolean(CLOUD && PRESET);
 
   /* Toast */
   const notify = (msg, type = "success") => {
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 3500);
   };
 
-  const AUTH = credsOk ? b64(`${API_KEY}:${SECRET}`) : "";
+  /* ── Fetch via our secure serverless route ── */
+  const apiFetch = useCallback(async (params, options = {}) => {
+    const qs  = new URLSearchParams(params).toString();
+    const res = await fetch(`/api/cloudinary?${qs}`, options);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  }, []);
 
-  /* Fetch all pages of a resource type */
-  const fetchAll = useCallback(async (resourceType) => {
-    let all = [], cursor = "";
-    do {
-      const url =
-        `https://api.cloudinary.com/v1_1/${CLOUD}/resources/${resourceType}` +
-        `?max_results=100${cursor ? "&next_cursor=" + cursor : ""}`;
-      const r = await fetch(url, { headers: { Authorization: `Basic ${AUTH}` } });
-      if (!r.ok) {
-        const e = await r.json().catch(() => ({}));
-        throw new Error(e.error?.message || `HTTP ${r.status} — check your API Key & Secret`);
-      }
-      const d = await r.json();
-      all    = all.concat(d.resources || []);
-      cursor = d.next_cursor || "";
-    } while (cursor);
-    return all;
-  }, [AUTH]);
+  const fetchResourceType = useCallback(async (type) => {
+    const data = await apiFetch({ action: "resources", type });
+    return data.resources || [];
+  }, [apiFetch]);
 
   const loadAll = useCallback(async () => {
     if (!credsOk) {
-      setLoadError("Missing env vars — add VITE_CLOUDINARY_API_KEY and VITE_CLOUDINARY_API_SECRET to your .env file.");
+      setLoadError(
+        "Missing env vars — add VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET to your .env file."
+      );
       setLoading(false);
       return;
     }
     setLoading(true);
     setLoadError(null);
     try {
-      const [usageRes, imgs, vids] = await Promise.all([
-        fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/usage`, {
-          headers: { Authorization: `Basic ${AUTH}` },
-        }),
-        fetchAll("image"),
-        fetchAll("video"),
+      const [usageData, imgs, vids] = await Promise.all([
+        apiFetch({ action: "usage" }),
+        fetchResourceType("image"),
+        fetchResourceType("video"),
       ]);
-      if (usageRes.ok) setUsage(await usageRes.json());
+      setUsage(usageData);
       setImages(imgs);
       setVideos(vids);
     } catch (e) {
@@ -272,12 +278,12 @@ export default function MediaManager() {
       notify(e.message, "error");
     }
     setLoading(false);
-  }, [AUTH, credsOk, fetchAll]);
+  }, [apiFetch, credsOk, fetchResourceType]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
   useEffect(() => { setPage(0); }, [tab, search, folder]);
 
-  /* Merged list */
+  /* ── Derived lists ── */
   const allAssets = [
     ...images.map((a) => ({ ...a, _type: "image" })),
     ...videos.map((a) => ({ ...a, _type: "video" })),
@@ -298,29 +304,27 @@ export default function MediaManager() {
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const folders    = [...new Set(allAssets.map((a) => a.folder || "(root)"))].sort();
 
-  /* Delete */
+  /* ── Delete (goes through serverless — secret never touches browser) ── */
   const deleteAsset = async (publicId, resourceType) => {
     if (!confirm(`Delete "${publicId}"?\n\nThis cannot be undone.`)) return;
     setDeleting(publicId);
     try {
-      const ts  = Math.floor(Date.now() / 1000);
-      const sig = await sha1(`public_ids[]=${publicId}&timestamp=${ts}${SECRET}`);
-      const body = new URLSearchParams({ timestamp: ts, signature: sig, api_key: API_KEY });
-      body.append("public_ids[]", publicId);
-      const r = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUD}/resources/${resourceType}/upload`,
-        { method: "DELETE", body }
-      );
-      const d = await r.json();
+      const data = await apiFetch({ action: "delete" }, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ publicId, resourceType }),
+      });
+
       const ok =
-        d.deleted?.[publicId] === "deleted" ||
-        Object.values(d.deleted || {}).includes("deleted");
+        data.deleted?.[publicId] === "deleted" ||
+        Object.values(data.deleted || {}).includes("deleted");
+
       if (ok) {
         if (resourceType === "image") setImages((p) => p.filter((a) => a.public_id !== publicId));
         else                          setVideos((p) => p.filter((a) => a.public_id !== publicId));
-        notify("Deleted");
+        notify("Deleted successfully");
       } else {
-        notify("Delete failed — " + JSON.stringify(d.deleted), "error");
+        notify("Delete failed — " + JSON.stringify(data.deleted), "error");
       }
     } catch (e) {
       notify("Error: " + e.message, "error");
@@ -328,7 +332,7 @@ export default function MediaManager() {
     setDeleting(null);
   };
 
-  /* Download */
+  /* ── Download ── */
   const handleDownload = async (asset) => {
     const name     = asset.public_id.split("/").pop();
     const filename = name + "." + (asset.format || (asset._type === "video" ? "mp4" : "jpg"));
@@ -338,7 +342,7 @@ export default function MediaManager() {
     setDownloading(null);
   };
 
-  /* Upload */
+  /* ── Upload (unsigned — only needs cloud name + preset, no secret) ── */
   const uploadFiles = async (files) => {
     if (!files?.length) return;
     setUploading(true);
@@ -346,8 +350,8 @@ export default function MediaManager() {
     for (const file of files) {
       const isVid = file.type.startsWith("video/");
       const fd    = new FormData();
-      fd.append("file", file);
-      fd.append("upload_preset", PRESET);
+      fd.append("file",           file);
+      fd.append("upload_preset",  PRESET);
       try {
         const r = await fetch(
           `https://api.cloudinary.com/v1_1/${CLOUD}/${isVid ? "video" : "image"}/upload`,
@@ -367,16 +371,16 @@ export default function MediaManager() {
     }
     if (done) {
       notify(`Uploaded ${done} file${done > 1 ? "s" : ""}`);
-      /* Refresh usage */
-      const ur = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/usage`, {
-        headers: { Authorization: `Basic ${AUTH}` },
-      });
-      if (ur.ok) setUsage(await ur.json());
+      /* Refresh usage counter */
+      try {
+        const usageData = await apiFetch({ action: "usage" });
+        setUsage(usageData);
+      } catch (_) {}
     }
     setUploading(false);
   };
 
-  /* Copy URL */
+  /* ── Copy URL ── */
   const copyURL = (url) =>
     navigator.clipboard.writeText(url)
       .then(() => notify("URL copied!"))
@@ -415,15 +419,18 @@ export default function MediaManager() {
           <div>
             <p className="mm-warn-title">Missing credentials</p>
             <p className="mm-warn-body">
-              Add these to your <code>.env</code> file and redeploy:
+              Add these to your <code>.env</code> file and to Vercel's Environment Variables:
             </p>
-            <pre className="mm-warn-pre">{`VITE_CLOUDINARY_API_KEY=your_api_key\nVITE_CLOUDINARY_API_SECRET=your_api_secret`}</pre>
-            <p className="mm-warn-body">Find them in Cloudinary Console → Settings → Access Keys.</p>
+            <pre className="mm-warn-pre">{`VITE_CLOUDINARY_CLOUD_NAME=your_cloud_name\nVITE_CLOUDINARY_UPLOAD_PRESET=your_upload_preset\nVITE_CLOUDINARY_API_KEY=your_api_key\nVITE_CLOUDINARY_API_SECRET=your_api_secret`}</pre>
+            <p className="mm-warn-body">
+              Note: <code>API_KEY</code> and <code>API_SECRET</code> are only used by the
+              server-side <code>/api/cloudinary</code> route — they are never sent to the browser.
+            </p>
           </div>
         </div>
       )}
 
-      {/* Storage linear graph */}
+      {/* Storage graph */}
       <StorageGraph usage={usage} />
 
       {/* Stats row */}
@@ -532,20 +539,29 @@ export default function MediaManager() {
             const thumb    = isVideo
               ? `https://res.cloudinary.com/${CLOUD}/video/upload/w_320,h_320,c_fill,so_0/${a.public_id}.jpg`
               : a.secure_url.replace("/upload/", "/upload/w_320,h_320,c_fill/");
-            const isDel  = deleting    === a.public_id;
-            const isDl   = downloading === a.public_id;
-            const dur    = isVideo ? fmtDuration(a.duration) : null;
+            const isDel = deleting    === a.public_id;
+            const isDl  = downloading === a.public_id;
+            const dur   = isVideo ? fmtDuration(a.duration) : null;
 
             return (
               <div className={`mm-card${isVideo ? " mm-card--vid" : ""}`} key={a.public_id + a._type}>
                 <div className="mm-thumb">
-                  <img src={thumb} alt={name} loading="lazy" />
+                  <img
+                    src={thumb}
+                    alt={name}
+                    loading="lazy"
+                    onError={(e) => { e.currentTarget.style.opacity = "0.3"; }}
+                  />
                   {isVideo && <div className="mm-play"><PlayIcon /></div>}
                   {dur      && <span className="mm-dur">{dur}</span>}
                   <div className="mm-overlay">
                     <button className="mm-ob mm-ob--copy"  onClick={() => copyURL(a.secure_url)} title="Copy URL"><CopyIcon /></button>
-                    <button className={`mm-ob mm-ob--dl${isDl ? " mm-ob--spin" : ""}`} onClick={() => handleDownload(a)} disabled={isDl} title="Download">{isDl ? <span className="mm-mini-spin" /> : <DownloadIcon />}</button>
-                    <button className="mm-ob mm-ob--del"   onClick={() => deleteAsset(a.public_id, a._type)} disabled={isDel} title="Delete">{isDel ? <span className="mm-mini-spin" /> : <TrashIcon />}</button>
+                    <button className={`mm-ob mm-ob--dl${isDl ? " mm-ob--spin" : ""}`} onClick={() => handleDownload(a)} disabled={isDl} title="Download">
+                      {isDl ? <span className="mm-mini-spin" /> : <DownloadIcon />}
+                    </button>
+                    <button className="mm-ob mm-ob--del" onClick={() => deleteAsset(a.public_id, a._type)} disabled={isDel} title="Delete">
+                      {isDel ? <span className="mm-mini-spin" /> : <TrashIcon />}
+                    </button>
                   </div>
                 </div>
 
