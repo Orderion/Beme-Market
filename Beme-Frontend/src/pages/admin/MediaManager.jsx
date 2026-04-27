@@ -7,129 +7,239 @@ const API_KEY = import.meta.env.VITE_CLOUDINARY_API_KEY;
 const SECRET  = import.meta.env.VITE_CLOUDINARY_API_SECRET;
 
 /* ── Helpers ─────────────────────────────────── */
-const b64  = (s) => btoa(unescape(encodeURIComponent(s)));
+const b64  = (s) => btoa(s);
 const sha1 = async (s) => {
   const buf = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(s));
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 };
-const fmtBytes = (bytes) => {
+
+const fmt = (bytes) => {
   if (!bytes && bytes !== 0) return "—";
   if (bytes >= 1_073_741_824) return (bytes / 1_073_741_824).toFixed(2) + " GB";
   if (bytes >= 1_048_576)     return (bytes / 1_048_576).toFixed(1)     + " MB";
   if (bytes >= 1_024)         return (bytes / 1_024).toFixed(0)         + " KB";
   return bytes + " B";
 };
-const fmtDur = (s) => {
-  if (!s) return null;
-  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
-  return `${m}:${String(sec).padStart(2, "0")}`;
-};
-const clamp = (v) => Math.min(100, Math.max(0, v));
 
-/* Download blob → fallback new tab */
-const dlAsset = async (url, filename) => {
+const fmtDuration = (secs) => {
+  if (!secs) return null;
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+};
+
+const pct = (used, limit) =>
+  limit ? Math.min(100, (used / limit) * 100) : 0;
+
+/* Download a remote file as blob, fallback to new tab */
+const downloadAsset = async (url, filename) => {
   try {
-    const r = await fetch(url);
+    const r    = await fetch(url);
     const blob = await r.blob();
-    const a = Object.assign(document.createElement("a"), {
-      href: URL.createObjectURL(blob),
-      download: filename,
-    });
+    const a    = document.createElement("a");
+    a.href     = URL.createObjectURL(blob);
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 15_000);
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
   } catch {
     window.open(url, "_blank");
   }
 };
 
 /* ── Icons ───────────────────────────────────── */
-const Icon = ({ d, size = 16, fill = "none", strokeWidth = 2 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill}
-    stroke="currentColor" strokeWidth={strokeWidth}
-    strokeLinecap="round" strokeLinejoin="round">
-    {Array.isArray(d) ? d.map((p, i) => <path key={i} d={p} />) : <path d={d} />}
+const UploadIcon = () => (
+  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="17 8 12 3 7 8"/>
+    <line x1="12" y1="3" x2="12" y2="15"/>
+  </svg>
+);
+const CopyIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="9" y="9" width="13" height="13" rx="2"/>
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+  </svg>
+);
+const TrashIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"/>
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+    <path d="M10 11v6"/><path d="M14 11v6"/>
+    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+  </svg>
+);
+const DownloadIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="7 10 12 15 17 10"/>
+    <line x1="12" y1="15" x2="12" y2="3"/>
+  </svg>
+);
+const RefreshIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="23 4 23 10 17 10"/>
+    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+  </svg>
+);
+const PlayIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+    <polygon points="5 3 19 12 5 21 5 3"/>
+  </svg>
+);
+const WarnIcon = () => (
+  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+  </svg>
+);
+const EmptyIcon = () => (
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/>
+    <circle cx="8.5" cy="8.5" r="1.5"/>
+    <polyline points="21 15 16 10 5 21"/>
   </svg>
 );
 
-function UploadIcon() {
+/* ─────────────────────────────────────────────
+   STORAGE GRAPH COMPONENT
+───────────────────────────────────────────── */
+function StorageGraph({ usage }) {
+  if (!usage) return null;
+
+  const storageUsed  = usage.storage?.usage  || 0;
+  const storageLimit = usage.storage?.limit  || 0;
+  const storageFree  = storageLimit ? storageLimit - storageUsed : null;
+  const storagePct   = pct(storageUsed, storageLimit);
+  const bandUsed     = usage.bandwidth?.usage || 0;
+  const bandLimit    = usage.bandwidth?.limit || 0;
+  const bandPct      = pct(bandUsed, bandLimit);
+  const txUsed       = usage.transformations?.usage || 0;
+  const txLimit      = usage.transformations?.limit || 0;
+  const txPct        = pct(txUsed, txLimit);
+
+  const barColor = (p) =>
+    p > 85 ? "#FF6600" : p > 65 ? "#f0a500" : "var(--text)";
+
+  const rows = [
+    { label: "Storage",         used: storageUsed, limit: storageLimit, pct: storagePct, fmtUsed: fmt(storageUsed), fmtLimit: storageLimit ? fmt(storageLimit) : null, free: storageFree !== null ? fmt(storageFree) + " free" : "Unlimited" },
+    { label: "Bandwidth",       used: bandUsed,    limit: bandLimit,    pct: bandPct,    fmtUsed: fmt(bandUsed),    fmtLimit: bandLimit    ? fmt(bandLimit)    : null, free: null },
+    { label: "Transformations", used: txUsed,      limit: txLimit,      pct: txPct,      fmtUsed: txUsed.toLocaleString(), fmtLimit: txLimit ? txLimit.toLocaleString() : null, free: null, isCount: true },
+  ];
+
   return (
-    <svg width="34" height="34" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-      <polyline points="17 8 12 3 7 8"/>
-      <line x1="12" y1="3" x2="12" y2="15"/>
-    </svg>
+    <div className="mm-graph-card">
+      <div className="mm-graph-title">Resource Usage</div>
+      <div className="mm-graph-rows">
+        {rows.map((row) => (
+          <div className="mm-graph-row" key={row.label}>
+            <div className="mm-graph-meta">
+              <span className="mm-graph-label">{row.label}</span>
+              <div className="mm-graph-nums">
+                {row.free && <span className="mm-graph-free">{row.free}</span>}
+                <span className="mm-graph-used" style={{ color: barColor(row.pct) }}>
+                  {row.fmtUsed}
+                </span>
+                {row.fmtLimit && (
+                  <span className="mm-graph-limit">/ {row.fmtLimit}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Linear track */}
+            <div className="mm-track">
+              <div
+                className="mm-track-fill"
+                style={{
+                  width: row.limit > 0 ? storagePct + "%" : "0%",
+                  ...(row.label === "Storage"         && { width: storagePct + "%" }),
+                  ...(row.label === "Bandwidth"       && { width: bandPct    + "%" }),
+                  ...(row.label === "Transformations" && { width: txPct      + "%" }),
+                  background: barColor(
+                    row.label === "Storage"         ? storagePct :
+                    row.label === "Bandwidth"       ? bandPct    : txPct
+                  ),
+                }}
+              />
+              {/* Tick marks at 25 / 50 / 75% */}
+              {[25, 50, 75].map((t) => (
+                <div key={t} className="mm-track-tick" style={{ left: t + "%" }} />
+              ))}
+            </div>
+
+            <div className="mm-track-labels">
+              <span>0</span>
+              {row.fmtLimit ? (
+                <>
+                  <span>{row.fmtLimit ? (row.isCount ? Math.round(row.limit / 4).toLocaleString() : fmt(row.limit / 4)) : ""}</span>
+                  <span>{row.fmtLimit ? (row.isCount ? Math.round(row.limit / 2).toLocaleString() : fmt(row.limit / 2)) : ""}</span>
+                  <span>{row.fmtLimit ? (row.isCount ? Math.round((row.limit * 3) / 4).toLocaleString() : fmt((row.limit * 3) / 4)) : ""}</span>
+                  <span>{row.fmtLimit}</span>
+                </>
+              ) : (
+                <span className="mm-track-unlimited">Unlimited</span>
+              )}
+            </div>
+
+            {row.pct > 0 && row.limit > 0 && (
+              <div className="mm-pct-badge" style={{ left: `min(${row.pct}%, calc(100% - 42px))`, background: barColor(row.pct) }}>
+                {Math.round(row.pct)}%
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
-function PlayIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24"
-      fill="currentColor" stroke="none">
-      <polygon points="5 3 19 12 5 21 5 3"/>
-    </svg>
-  );
-}
-function RefreshIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="23 4 23 10 17 10"/>
-      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-    </svg>
-  );
-}
-function CopyIcon()     { return <Icon d="M8 17.929H6c-1.105 0-2-.912-2-2.036V5.036C4 3.91 4.895 3 6 3h8c1.105 0 2 .911 2 2.036v1.806M10 20.971h8c1.105 0 2-.911 2-2.036V9.978c0-1.124-.895-2.036-2-2.036h-8c-1.105 0-2 .912-2 2.036v8.957c0 1.124.895 2.036 2 2.036z" size={13}/> }
-function DownloadIcon() { return <Icon d={["M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4","M7 10l5 5 5-5","M12 15V3"]} size={13}/> }
-function TrashIcon()    { return <Icon d={["M3 6h18","M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6","M10 11v6","M14 11v6","M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"]} size={13}/> }
-function EmptyIcon()    { return <Icon d={["M21 15l-5-5L5 21","M3.5 3.5l17 17","M10.5 6C8 6 6 8 6 10.5","M3 3l18 18"]} size={50} strokeWidth={1.2}/> }
 
 /* ─────────────────────────────────────────────
-   COMPONENT
+   MAIN COMPONENT
 ───────────────────────────────────────────── */
-const PER = 28;
+const PER_PAGE = 28;
 
 export default function MediaManager() {
-  const [images,    setImages]    = useState([]);
-  const [videos,    setVideos]    = useState([]);
-  const [usage,     setUsage]     = useState(null);
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState("");
-  const [tab,       setTab]       = useState("all");
-  const [search,    setSearch]    = useState("");
-  const [folder,    setFolder]    = useState("");
-  const [page,      setPage]      = useState(0);
-  const [uploading, setUploading] = useState(false);
-  const [deleting,  setDeleting]  = useState(null);
-  const [dlActive,  setDlActive]  = useState(null);
-  const [toast,     setToast]     = useState(null);
-  const [drag,      setDrag]      = useState(false);
+  const [images,      setImages]      = useState([]);
+  const [videos,      setVideos]      = useState([]);
+  const [usage,       setUsage]       = useState(null);
+  const [loading,     setLoading]     = useState(true);
+  const [loadError,   setLoadError]   = useState(null);
+  const [tab,         setTab]         = useState("all");
+  const [search,      setSearch]      = useState("");
+  const [folder,      setFolder]      = useState("");
+  const [page,        setPage]        = useState(0);
+  const [uploading,   setUploading]   = useState(false);
+  const [deleting,    setDeleting]    = useState(null);
+  const [downloading, setDownloading] = useState(null);
+  const [toast,       setToast]       = useState(null);
+  const [drag,        setDrag]        = useState(false);
   const fileRef = useRef();
 
-  const AUTH = b64(`${API_KEY}:${SECRET}`);
+  /* Guard: check env vars are present */
+  const credsOk = CLOUD && API_KEY && SECRET;
 
   /* Toast */
-  const notify = useCallback((msg, type = "success") => {
+  const notify = (msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
-  }, []);
+  };
 
-  /* Fetch all pages of a resource type — images or video */
+  const AUTH = credsOk ? b64(`${API_KEY}:${SECRET}`) : "";
+
+  /* Fetch all pages of a resource type */
   const fetchAll = useCallback(async (resourceType) => {
     let all = [], cursor = "";
     do {
       const url =
         `https://api.cloudinary.com/v1_1/${CLOUD}/resources/${resourceType}` +
-        `?max_results=100&tags=true&context=true${cursor ? "&next_cursor=" + cursor : ""}`;
-      const r = await fetch(url, {
-        headers: { Authorization: `Basic ${AUTH}` },
-      });
+        `?max_results=100${cursor ? "&next_cursor=" + cursor : ""}`;
+      const r = await fetch(url, { headers: { Authorization: `Basic ${AUTH}` } });
       if (!r.ok) {
-        const body = await r.json().catch(() => ({}));
-        throw new Error(body.error?.message || `HTTP ${r.status} loading ${resourceType}s`);
+        const e = await r.json().catch(() => ({}));
+        throw new Error(e.error?.message || `HTTP ${r.status} — check your API Key & Secret`);
       }
       const d = await r.json();
       all    = all.concat(d.resources || []);
@@ -138,41 +248,36 @@ export default function MediaManager() {
     return all;
   }, [AUTH]);
 
-  /* Load everything */
   const loadAll = useCallback(async () => {
-    if (!CLOUD || !API_KEY || !SECRET) {
-      setError("Missing env vars: VITE_CLOUDINARY_CLOUD_NAME / VITE_CLOUDINARY_API_KEY / VITE_CLOUDINARY_API_SECRET");
+    if (!credsOk) {
+      setLoadError("Missing env vars — add VITE_CLOUDINARY_API_KEY and VITE_CLOUDINARY_API_SECRET to your .env file.");
       setLoading(false);
       return;
     }
     setLoading(true);
-    setError("");
-
-    /* Usage — non-fatal, fetched in parallel */
-    fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/usage`, {
-      headers: { Authorization: `Basic ${AUTH}` },
-    })
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => d && setUsage(d))
-      .catch(() => {/* usage is optional */});
-
+    setLoadError(null);
     try {
-      const [imgs, vids] = await Promise.all([
+      const [usageRes, imgs, vids] = await Promise.all([
+        fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/usage`, {
+          headers: { Authorization: `Basic ${AUTH}` },
+        }),
         fetchAll("image"),
-        fetchAll("video").catch(() => []),   // videos may not exist yet
+        fetchAll("video"),
       ]);
+      if (usageRes.ok) setUsage(await usageRes.json());
       setImages(imgs);
       setVideos(vids);
     } catch (e) {
-      setError(e.message);
+      setLoadError(e.message);
+      notify(e.message, "error");
     }
     setLoading(false);
-  }, [AUTH, fetchAll]);
+  }, [AUTH, credsOk, fetchAll]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
   useEffect(() => { setPage(0); }, [tab, search, folder]);
 
-  /* Combined + filtered list */
+  /* Merged list */
   const allAssets = [
     ...images.map((a) => ({ ...a, _type: "image" })),
     ...videos.map((a) => ({ ...a, _type: "video" })),
@@ -183,33 +288,15 @@ export default function MediaManager() {
     allAssets;
 
   const filtered = baseList.filter((a) => {
-    const q = search.toLowerCase();
-    return (
-      (!q      || a.public_id.toLowerCase().includes(q)) &&
-      (!folder || (a.folder || "(root)") === folder)
-    );
+    const q        = search.toLowerCase();
+    const nameOk   = !q      || a.public_id.toLowerCase().includes(q);
+    const folderOk = !folder || (a.folder || "(root)") === folder;
+    return nameOk && folderOk;
   });
 
-  const slice      = filtered.slice(page * PER, (page + 1) * PER);
-  const totalPages = Math.ceil(filtered.length / PER);
+  const slice      = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const folders    = [...new Set(allAssets.map((a) => a.folder || "(root)"))].sort();
-
-  /* Storage bar data */
-  const storUsed  = usage?.storage?.usage  ?? 0;
-  const storLimit = usage?.storage?.limit  ?? 0;
-  const storFree  = storLimit ? storLimit - storUsed : null;
-  const storPct   = clamp(storLimit ? (storUsed / storLimit) * 100 : 0);
-  const storColour =
-    storPct > 85 ? "#FF6600" :
-    storPct > 65 ? "#f0a500" :
-    "var(--accent)";
-
-  const bandUsed  = usage?.bandwidth?.usage        ?? 0;
-  const bandLimit = usage?.bandwidth?.limit        ?? 0;
-  const bandPct   = clamp(bandLimit ? (bandUsed / bandLimit) * 100 : 0);
-  const txUsed    = usage?.transformations?.usage  ?? 0;
-  const txLimit   = usage?.transformations?.limit  ?? 0;
-  const txPct     = clamp(txLimit ? (txUsed / txLimit) * 100 : 0);
 
   /* Delete */
   const deleteAsset = async (publicId, resourceType) => {
@@ -225,26 +312,30 @@ export default function MediaManager() {
         { method: "DELETE", body }
       );
       const d = await r.json();
-      if (Object.values(d.deleted || {}).includes("deleted")) {
+      const ok =
+        d.deleted?.[publicId] === "deleted" ||
+        Object.values(d.deleted || {}).includes("deleted");
+      if (ok) {
         if (resourceType === "image") setImages((p) => p.filter((a) => a.public_id !== publicId));
         else                          setVideos((p) => p.filter((a) => a.public_id !== publicId));
         notify("Deleted");
       } else {
-        notify("Delete failed — check console", "error");
-        console.error(d);
+        notify("Delete failed — " + JSON.stringify(d.deleted), "error");
       }
-    } catch (e) { notify("Error: " + e.message, "error"); }
+    } catch (e) {
+      notify("Error: " + e.message, "error");
+    }
     setDeleting(null);
   };
 
   /* Download */
   const handleDownload = async (asset) => {
-    const ext  = asset.format || (asset._type === "video" ? "mp4" : "jpg");
-    const name = asset.public_id.split("/").pop() + "." + ext;
-    setDlActive(asset.public_id);
+    const name     = asset.public_id.split("/").pop();
+    const filename = name + "." + (asset.format || (asset._type === "video" ? "mp4" : "jpg"));
+    setDownloading(asset.public_id);
     notify("Starting download…");
-    await dlAsset(asset.secure_url, name);
-    setDlActive(null);
+    await downloadAsset(asset.secure_url, filename);
+    setDownloading(null);
   };
 
   /* Upload */
@@ -253,146 +344,120 @@ export default function MediaManager() {
     setUploading(true);
     let done = 0;
     for (const file of files) {
-      const type = file.type.startsWith("video/") ? "video" : "image";
-      const fd   = new FormData();
+      const isVid = file.type.startsWith("video/");
+      const fd    = new FormData();
       fd.append("file", file);
       fd.append("upload_preset", PRESET);
       try {
-        const r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/${type}/upload`, {
-          method: "POST", body: fd,
-        });
+        const r = await fetch(
+          `https://api.cloudinary.com/v1_1/${CLOUD}/${isVid ? "video" : "image"}/upload`,
+          { method: "POST", body: fd }
+        );
         const d = await r.json();
         if (d.secure_url) {
-          if (type === "video") setVideos((p) => [{ ...d, _type: "video" }, ...p]);
-          else                  setImages((p) => [{ ...d, _type: "image" }, ...p]);
+          if (isVid) setVideos((p) => [{ ...d, _type: "video" }, ...p]);
+          else       setImages((p) => [{ ...d, _type: "image" }, ...p]);
           done++;
-        } else notify("Upload failed: " + (d.error?.message || "unknown"), "error");
-      } catch (e) { notify("Upload error: " + e.message, "error"); }
+        } else {
+          notify("Upload failed: " + (d.error?.message || "unknown"), "error");
+        }
+      } catch (e) {
+        notify("Upload error: " + e.message, "error");
+      }
     }
-    if (done) notify(`Uploaded ${done} file${done > 1 ? "s" : ""}`);
+    if (done) {
+      notify(`Uploaded ${done} file${done > 1 ? "s" : ""}`);
+      /* Refresh usage */
+      const ur = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/usage`, {
+        headers: { Authorization: `Basic ${AUTH}` },
+      });
+      if (ur.ok) setUsage(await ur.json());
+    }
     setUploading(false);
-    /* refresh usage */
-    fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/usage`, {
-      headers: { Authorization: `Basic ${AUTH}` },
-    }).then((r) => r.ok ? r.json() : null).then((d) => d && setUsage(d)).catch(() => {});
   };
 
+  /* Copy URL */
   const copyURL = (url) =>
     navigator.clipboard.writeText(url)
       .then(() => notify("URL copied!"))
-      .catch(() => window.prompt("Copy URL:", url));
+      .catch(()  => window.prompt("Copy this URL:", url));
 
   /* ── Render ── */
   return (
-    <div className="mm">
+    <div className="mm-page">
 
-      {/* ── Toast ── */}
-      {toast && <div className={`mm-toast mm-toast--${toast.type}`}>{toast.msg}</div>}
+      {/* Toast */}
+      {toast && (
+        <div className={`mm-toast mm-toast--${toast.type}`}>{toast.msg}</div>
+      )}
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="mm-header">
         <div>
           <h1 className="mm-title">Media Manager</h1>
-          <p className="mm-sub">Cloudinary · {CLOUD || "not configured"}</p>
+          <p className="mm-subtitle">Cloudinary · {CLOUD || "—"}</p>
         </div>
-        <button className="mm-ghost-btn" onClick={loadAll} disabled={loading}>
-          <RefreshIcon /> Refresh
+        <button
+          className="mm-refresh-btn"
+          onClick={loadAll}
+          disabled={loading}
+          title="Refresh"
+        >
+          <span className={loading ? "mm-spin" : ""}><RefreshIcon /></span>
+          <span>Refresh</span>
         </button>
       </div>
 
-      {/* ── Error banner ── */}
-      {error && (
-        <div className="mm-error-banner">
-          <strong>Load failed:</strong> {error}
-          <button onClick={loadAll}>Retry</button>
+      {/* Missing creds warning */}
+      {!credsOk && (
+        <div className="mm-warn-card">
+          <span className="mm-warn-icon"><WarnIcon /></span>
+          <div>
+            <p className="mm-warn-title">Missing credentials</p>
+            <p className="mm-warn-body">
+              Add these to your <code>.env</code> file and redeploy:
+            </p>
+            <pre className="mm-warn-pre">{`VITE_CLOUDINARY_API_KEY=your_api_key\nVITE_CLOUDINARY_API_SECRET=your_api_secret`}</pre>
+            <p className="mm-warn-body">Find them in Cloudinary Console → Settings → Access Keys.</p>
+          </div>
         </div>
       )}
 
-      {/* ── Storage linear graph ── */}
-      <div className="mm-storage-section">
-        <div className="mm-storage-header">
-          <span className="mm-storage-title">Storage</span>
-          <span className="mm-storage-vals">
-            <strong>{fmtBytes(storUsed)}</strong>
-            {storFree !== null && <span className="mm-storage-free"> · {fmtBytes(storFree)} free</span>}
-            {storLimit > 0    && <span className="mm-storage-limit"> of {fmtBytes(storLimit)}</span>}
-          </span>
-        </div>
+      {/* Storage linear graph */}
+      <StorageGraph usage={usage} />
 
-        {/* Linear bar */}
-        <div className="mm-bar-track">
-          <div
-            className="mm-bar-fill"
-            style={{ width: storPct + "%", background: storColour }}
-          />
-          {/* tick marks every 25% */}
-          {[25, 50, 75].map((t) => (
-            <div key={t} className="mm-bar-tick" style={{ left: t + "%" }} />
-          ))}
-        </div>
-        <div className="mm-bar-labels">
-          <span>0</span>
-          <span>25%</span>
-          <span>50%</span>
-          <span>75%</span>
-          <span>100%</span>
-        </div>
-
-        {/* Sub-stats row */}
-        <div className="mm-stat-row">
-          <div className="mm-stat-pill">
-            <span className="mm-stat-pill-label">Images</span>
-            <span className="mm-stat-pill-val">{images.length.toLocaleString()}</span>
+      {/* Stats row */}
+      {!loading && !loadError && (
+        <div className="mm-stats-row">
+          <div className="mm-stat">
+            <span className="mm-stat-n">{images.length.toLocaleString()}</span>
+            <span className="mm-stat-l">Images</span>
           </div>
-          <div className="mm-stat-pill">
-            <span className="mm-stat-pill-label">Videos</span>
-            <span className="mm-stat-pill-val">{videos.length.toLocaleString()}</span>
+          <div className="mm-stat">
+            <span className="mm-stat-n">{videos.length.toLocaleString()}</span>
+            <span className="mm-stat-l">Videos</span>
           </div>
-
-          {/* Bandwidth mini bar */}
-          {bandLimit > 0 && (
-            <div className="mm-stat-pill mm-stat-pill--wide">
-              <div className="mm-mini-bar-row">
-                <span className="mm-stat-pill-label">Bandwidth</span>
-                <span className="mm-stat-pill-val">{fmtBytes(bandUsed)} / {fmtBytes(bandLimit)}</span>
-              </div>
-              <div className="mm-mini-track">
-                <div className="mm-mini-fill" style={{ width: bandPct + "%",
-                  background: bandPct > 85 ? "#FF6600" : bandPct > 65 ? "#f0a500" : "var(--accent)" }} />
-              </div>
-            </div>
-          )}
-
-          {/* Transforms mini bar */}
-          {txLimit > 0 && (
-            <div className="mm-stat-pill mm-stat-pill--wide">
-              <div className="mm-mini-bar-row">
-                <span className="mm-stat-pill-label">Transforms</span>
-                <span className="mm-stat-pill-val">{txUsed.toLocaleString()} / {txLimit.toLocaleString()}</span>
-              </div>
-              <div className="mm-mini-track">
-                <div className="mm-mini-fill" style={{ width: txPct + "%",
-                  background: txPct > 85 ? "#FF6600" : txPct > 65 ? "#f0a500" : "var(--accent)" }} />
-              </div>
-            </div>
-          )}
+          <div className="mm-stat">
+            <span className="mm-stat-n">{allAssets.length.toLocaleString()}</span>
+            <span className="mm-stat-l">Total files</span>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* ── Upload zone ── */}
+      {/* Upload zone */}
       <div
-        className={`mm-drop${drag ? " mm-drop--over" : ""}${uploading ? " mm-drop--busy" : ""}`}
+        className={`mm-drop${drag ? " mm-drop--drag" : ""}${uploading ? " mm-drop--busy" : ""}`}
         onClick={() => !uploading && fileRef.current?.click()}
-        onDragOver={(e)  => { e.preventDefault(); setDrag(true);  }}
+        onDragOver={(e)  => { e.preventDefault(); setDrag(true); }}
         onDragLeave={()  => setDrag(false)}
         onDrop={(e)      => { e.preventDefault(); setDrag(false); uploadFiles(e.dataTransfer.files); }}
       >
         <span className="mm-drop-icon"><UploadIcon /></span>
-        <span className="mm-drop-main">
+        <span className="mm-drop-primary">
           {uploading ? "Uploading…" : drag ? "Drop to upload" : "Drop files or click to browse"}
         </span>
-        <span className="mm-drop-hint">
-          Images: PNG · JPG · WebP · GIF · SVG &nbsp;|&nbsp; Videos: MP4 · MOV · AVI · WebM
+        <span className="mm-drop-sub">
+          Images: PNG · JPG · WebP · GIF &nbsp;|&nbsp; Videos: MP4 · MOV · WebM
         </span>
       </div>
       <input
@@ -404,25 +469,28 @@ export default function MediaManager() {
         onChange={(e) => uploadFiles(e.target.files)}
       />
 
-      {/* ── Tabs ── */}
+      {/* Tabs */}
       <div className="mm-tabs">
         {[
-          { id: "all",    label: `All (${allAssets.length})` },
-          { id: "images", label: `Images (${images.length})` },
-          { id: "videos", label: `Videos (${videos.length})` },
-        ].map(({ id, label }) => (
+          { key: "all",    label: `All (${allAssets.length})` },
+          { key: "images", label: `Images (${images.length})` },
+          { key: "videos", label: `Videos (${videos.length})` },
+        ].map((t) => (
           <button
-            key={id}
-            className={`mm-tab${tab === id ? " mm-tab--on" : ""}`}
-            onClick={() => setTab(id)}
-          >{label}</button>
+            key={t.key}
+            className={`mm-tab${tab === t.key ? " mm-tab--on" : ""}`}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+          </button>
         ))}
       </div>
 
-      {/* ── Toolbar ── */}
+      {/* Toolbar */}
       <div className="mm-toolbar">
         <input
           className="mm-search"
+          type="text"
           placeholder="Search by name…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -438,55 +506,63 @@ export default function MediaManager() {
         <span className="mm-count">{filtered.length} file{filtered.length !== 1 ? "s" : ""}</span>
       </div>
 
-      {/* ── Grid ── */}
+      {/* Content */}
       {loading ? (
         <div className="mm-center">
           <div className="mm-spinner" />
           <p>Loading your media library…</p>
         </div>
+      ) : loadError ? (
+        <div className="mm-center mm-center--err">
+          <WarnIcon />
+          <p>{loadError}</p>
+          <button className="mm-refresh-btn" onClick={loadAll}>Try again</button>
+        </div>
       ) : filtered.length === 0 ? (
-        <div className="mm-center mm-empty">
+        <div className="mm-center">
           <EmptyIcon />
-          <p>{error ? "Failed to load — check your API credentials" : "No files found"}</p>
+          <p>No files found</p>
         </div>
       ) : (
         <div className="mm-grid">
           {slice.map((a) => {
-            const isVid  = a._type === "video";
-            const name   = a.public_id.split("/").pop();
-            const ext    = a.format || (isVid ? "mp4" : "jpg");
-            const thumb  = isVid
+            const isVideo  = a._type === "video";
+            const name     = a.public_id.split("/").pop();
+            const filename = name + "." + (a.format || (isVideo ? "mp4" : "jpg"));
+            const thumb    = isVideo
               ? `https://res.cloudinary.com/${CLOUD}/video/upload/w_320,h_320,c_fill,so_0/${a.public_id}.jpg`
               : a.secure_url.replace("/upload/", "/upload/w_320,h_320,c_fill/");
-            const dur    = isVid ? fmtDur(a.duration) : null;
-            const isDel  = deleting === a.public_id;
-            const isDl   = dlActive === a.public_id;
+            const isDel  = deleting    === a.public_id;
+            const isDl   = downloading === a.public_id;
+            const dur    = isVideo ? fmtDuration(a.duration) : null;
 
             return (
-              <div className={`mm-card${isVid ? " mm-card--vid" : ""}`} key={a.public_id + a._type}>
+              <div className={`mm-card${isVideo ? " mm-card--vid" : ""}`} key={a.public_id + a._type}>
                 <div className="mm-thumb">
                   <img src={thumb} alt={name} loading="lazy" />
-                  {isVid && <div className="mm-play"><PlayIcon /></div>}
-                  {dur   && <span className="mm-dur">{dur}</span>}
-                  <div className="mm-hover-actions">
-                    <button className="mm-ha mm-ha--copy" onClick={() => copyURL(a.secure_url)} title="Copy URL"><CopyIcon /></button>
-                    <button className={`mm-ha mm-ha--dl${isDl ? " mm-ha--spin" : ""}`} onClick={() => handleDownload(a)} disabled={isDl} title="Download">
-                      {isDl ? <span className="mm-mini-spin" /> : <DownloadIcon />}
-                    </button>
-                    <button className="mm-ha mm-ha--del" onClick={() => deleteAsset(a.public_id, a._type)} disabled={isDel} title="Delete">
-                      {isDel ? <span className="mm-mini-spin" /> : <TrashIcon />}
-                    </button>
+                  {isVideo && <div className="mm-play"><PlayIcon /></div>}
+                  {dur      && <span className="mm-dur">{dur}</span>}
+                  <div className="mm-overlay">
+                    <button className="mm-ob mm-ob--copy"  onClick={() => copyURL(a.secure_url)} title="Copy URL"><CopyIcon /></button>
+                    <button className={`mm-ob mm-ob--dl${isDl ? " mm-ob--spin" : ""}`} onClick={() => handleDownload(a)} disabled={isDl} title="Download">{isDl ? <span className="mm-mini-spin" /> : <DownloadIcon />}</button>
+                    <button className="mm-ob mm-ob--del"   onClick={() => deleteAsset(a.public_id, a._type)} disabled={isDel} title="Delete">{isDel ? <span className="mm-mini-spin" /> : <TrashIcon />}</button>
                   </div>
                 </div>
-                <div className="mm-card-body">
+
+                <div className="mm-body">
                   <p className="mm-name" title={a.public_id}>{name}</p>
-                  <div className="mm-meta">
-                    <span className={`mm-badge${isVid ? " mm-badge--vid" : ""}`}>{ext.toUpperCase()}</span>
-                    {a.bytes > 0 && <span className="mm-size">{fmtBytes(a.bytes)}</span>}
+                  <div className="mm-row">
+                    <span className={`mm-tag${isVideo ? " mm-tag--v" : ""}`}>
+                      {a.format?.toUpperCase() || (isVideo ? "VID" : "IMG")}
+                    </span>
+                    {a.bytes > 0 && <span className="mm-size">{fmt(a.bytes)}</span>}
+                    {a.width && a.height && !isVideo && (
+                      <span className="mm-size">{a.width}×{a.height}</span>
+                    )}
                   </div>
-                  <div className="mm-card-actions">
-                    <button className="mm-copy-btn" onClick={() => copyURL(a.secure_url)}>Copy URL</button>
-                    <button className="mm-dl-btn" onClick={() => handleDownload(a)} disabled={isDl} title="Download">
+                  <div className="mm-btns">
+                    <button className="mm-btn-copy" onClick={() => copyURL(a.secure_url)}>Copy URL</button>
+                    <button className="mm-btn-dl" onClick={() => handleDownload(a)} disabled={isDl} title="Download">
                       {isDl ? <span className="mm-mini-spin" /> : <DownloadIcon />}
                     </button>
                   </div>
@@ -497,12 +573,12 @@ export default function MediaManager() {
         </div>
       )}
 
-      {/* ── Pagination ── */}
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="mm-pager">
-          <button className="mm-ghost-btn" onClick={() => setPage((p) => p - 1)} disabled={page === 0}>← Prev</button>
-          <span className="mm-pager-info">Page {page + 1} / {totalPages}</span>
-          <button className="mm-ghost-btn" onClick={() => setPage((p) => p + 1)} disabled={page >= totalPages - 1}>Next →</button>
+          <button className="mm-pg-btn" onClick={() => setPage((p) => p - 1)} disabled={page === 0}>← Prev</button>
+          <span className="mm-pg-info">Page {page + 1} of {totalPages}</span>
+          <button className="mm-pg-btn" onClick={() => setPage((p) => p + 1)} disabled={page >= totalPages - 1}>Next →</button>
         </div>
       )}
     </div>
