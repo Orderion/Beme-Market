@@ -31,7 +31,7 @@ function IconChevronLeft()  { return <svg viewBox="0 0 24 24" width="16" height=
 function IconExpand()       { return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m10 8 4 4-4 4"/></svg>; }
 function IconCollapse()     { return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m14 8-4 4 4 4"/></svg>; }
 
-/* ── NEW: My Requests icon ── */
+/* ── My Requests icon ── */
 function IconRequest() {
   return (
     <svg viewBox="0 0 24 24" className="sb-svg" fill="none" stroke="currentColor"
@@ -44,13 +44,25 @@ function IconRequest() {
   );
 }
 
-/* ── NEW: Admin product requests icon ── */
+/* ── Admin product requests icon ── */
 function IconInbox() {
   return (
     <svg viewBox="0 0 24 24" className="sb-svg" fill="none" stroke="currentColor"
       strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
       <path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/>
+    </svg>
+  );
+}
+
+/* ── Media Manager icon ── */
+function IconMedia() {
+  return (
+    <svg viewBox="0 0 24 24" className="sb-svg" fill="none" stroke="currentColor"
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <circle cx="8.5" cy="8.5" r="1.5"/>
+      <polyline points="21 15 16 10 5 21"/>
     </svg>
   );
 }
@@ -209,16 +221,17 @@ export default function Sidebar({ isOpen, onClose }) {
       title: "Admin Controls",
       icon: <IconAdmin />,
       items: [
-        { label: "Product Manager",    path: "/admin",                icon: <IconAdmin /> },
-        { label: "Review Queue",       path: "/admin-review-queue",   icon: <IconAdmin /> },
-        { label: "Marketplace Orders", path: "/admin-orders",         icon: <IconAdmin /> },
-        { label: "Analytics",          path: "/analytics",            icon: <IconAdmin /> },
-        { label: "Payout Requests",    path: "/payout-requests",      icon: <IconAdmin /> },
-        { label: "Shop Applications",  path: "/shop-applications",    icon: <IconAdmin /> },
-        { label: "Account Management", path: "/account-management",   icon: <IconAdmin /> },
-        /* ── NEW: Product Requests admin panel ── */
-        { label: "Product Requests",   path: "/admin/product-requests", icon: <IconInbox /> },
-        { label: "Own a Shop",         path: "/own-a-shop",           icon: <IconAdmin /> },
+        { label: "Product Manager",    path: "/admin",                      icon: <IconAdmin />  },
+        { label: "Review Queue",       path: "/admin-review-queue",         icon: <IconAdmin />  },
+        { label: "Marketplace Orders", path: "/admin-orders",               icon: <IconAdmin />  },
+        { label: "Analytics",          path: "/analytics",                  icon: <IconAdmin />  },
+        { label: "Payout Requests",    path: "/payout-requests",            icon: <IconAdmin />  },
+        { label: "Shop Applications",  path: "/shop-applications",          icon: <IconAdmin />  },
+        { label: "Account Management", path: "/account-management",         icon: <IconAdmin />  },
+        { label: "Product Requests",   path: "/admin/product-requests",     icon: <IconInbox />  },
+        /* ── Media Manager ── */
+        { label: "Media Manager",      path: "/admin/media",                icon: <IconMedia />  },
+        { label: "Own a Shop",         path: "/own-a-shop",                 icon: <IconAdmin />  },
       ],
     },
     shopAdminControls: {
@@ -268,15 +281,14 @@ export default function Sidebar({ isOpen, onClose }) {
             {user && (
               <>
                 <IconRow label="Orders"      icon={<IconOrders />}  onClick={() => go("/orders")}            active={isActive("/orders")} />
-                {/* ── NEW: My Requests (collapsed) ── */}
                 <IconRow label="My Requests" icon={<IconRequest />} onClick={() => go("/account/requests")}  active={isActive("/account/requests")} />
               </>
             )}
             {isSuperAdmin && (
               <>
-                <IconRow label="Admin Controls" icon={<IconAdmin />} onClick={() => { setDesktopExpanded(true); setSubScreen("adminControls"); }} />
-                {/* ── NEW: Product Requests shortcut (collapsed) ── */}
-                <IconRow label="Product Requests" icon={<IconInbox />} onClick={() => go("/admin/product-requests")} active={isActive("/admin/product-requests")} />
+                <IconRow label="Admin Controls"   icon={<IconAdmin />}  onClick={() => { setDesktopExpanded(true); setSubScreen("adminControls"); }} />
+                <IconRow label="Product Requests" icon={<IconInbox />}  onClick={() => go("/admin/product-requests")} active={isActive("/admin/product-requests")} />
+                <IconRow label="Media Manager"    icon={<IconMedia />}  onClick={() => go("/admin/media")}             active={isActive("/admin/media")} />
               </>
             )}
             {isShopAdmin && (
@@ -319,15 +331,14 @@ export default function Sidebar({ isOpen, onClose }) {
             {user && (
               <>
                 <MenuRow label="Orders"      icon={<IconOrders />}  onClick={() => go("/orders")}           active={isActive("/orders")} />
-                {/* ── NEW: My Requests (expanded) ── */}
                 <MenuRow label="My Requests" icon={<IconRequest />} onClick={() => go("/account/requests")} active={isActive("/account/requests")} />
               </>
             )}
             {isSuperAdmin && (
               <>
-                <MenuRow label="Admin Controls" icon={<IconAdmin />} onClick={() => setSubScreen("adminControls")} hasArrow />
-                {/* ── NEW: Product Requests shortcut (expanded) ── */}
-                <MenuRow label="Product Requests" icon={<IconInbox />} onClick={() => go("/admin/product-requests")} active={isActive("/admin/product-requests")} />
+                <MenuRow label="Admin Controls"   icon={<IconAdmin />}  onClick={() => setSubScreen("adminControls")} hasArrow />
+                <MenuRow label="Product Requests" icon={<IconInbox />}  onClick={() => go("/admin/product-requests")} active={isActive("/admin/product-requests")} />
+                <MenuRow label="Media Manager"    icon={<IconMedia />}  onClick={() => go("/admin/media")}             active={isActive("/admin/media")} />
               </>
             )}
             {isShopAdmin && (
@@ -440,16 +451,11 @@ export default function Sidebar({ isOpen, onClose }) {
               {user && (
                 <>
                   <MenuRow label="Orders"      icon={<IconOrders />}  onClick={() => go("/orders")}           active={isActive("/orders")} />
-                  {/* ── NEW: My Requests (mobile) ── */}
                   <MenuRow label="My Requests" icon={<IconRequest />} onClick={() => go("/account/requests")} active={isActive("/account/requests")} />
                 </>
               )}
               {isSuperAdmin && (
-                <>
-                  <MenuRow label="Admin Controls" icon={<IconAdmin />} onClick={() => setSubScreen("adminControls")} hasArrow />
-                  {/* ── NEW: Product Requests shortcut (mobile) ── */}
-                  <MenuRow label="Product Requests" icon={<IconInbox />} onClick={() => go("/admin/product-requests")} active={isActive("/admin/product-requests")} />
-                </>
+                <MenuRow label="Admin Controls" icon={<IconAdmin />} onClick={() => setSubScreen("adminControls")} hasArrow />
               )}
               {isShopAdmin && (
                 <MenuRow
