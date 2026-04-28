@@ -13,7 +13,7 @@
   --button-text: #ffffff;
   --fsrh: #000;
   --caru: #EEF1F6;
-  --grtheme: #FF6600;
+  --grtheme: #4A9F45;
   --txdark: #111111;
 
   --border: none;
@@ -52,7 +52,7 @@ body.dark {
   --button-text: #000000;
   --fsrh: #fff;
   --caru: #3A3F45;
-  --grtheme: #FF6600;
+  --grtheme: #4A9F45;
 
   --border: #30363d;
   --shadow: 0 16px 42px rgba(0, 0, 0, 0.34);
