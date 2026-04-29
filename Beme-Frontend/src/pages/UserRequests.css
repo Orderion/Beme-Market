@@ -1,10 +1,20 @@
 /* src/pages/UserRequests.css */
 
+/* ── Page shell ── */
 .ur-page {
   min-height: 100vh;
   background: var(--bg);
   padding: 0 0 110px;
   animation: fadeUpSoft 0.4s var(--ease-premium);
+  /* offset for the sidebar nav */
+  padding-left: 64px;
+}
+
+/* ── Centered content wrapper ── */
+.ur-content-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* ── Top bar ── */
@@ -12,12 +22,21 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px 16px 14px;
+  padding: 18px 24px 14px;
   position: sticky;
   top: 0;
   z-index: 10;
   background: var(--bg);
   border-bottom: 1px solid rgba(17,17,17,0.06);
+}
+
+.ur-topbar-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 body.dark .ur-topbar {
@@ -59,7 +78,7 @@ body.dark .ur-back-btn {
 }
 
 .ur-request-btn {
-  padding: 9px 15px;
+  padding: 9px 16px;
   border-radius: 11px;
   background: var(--grtheme);
   color: #fff;
@@ -73,6 +92,7 @@ body.dark .ur-back-btn {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .ur-request-btn:hover {
@@ -86,7 +106,7 @@ body.dark .ur-back-btn {
 
 /* ── Body ── */
 .ur-body {
-  padding: 18px 16px 0;
+  padding: 20px 24px 0;
 }
 
 /* ── How It Works ── */
@@ -148,8 +168,8 @@ body.dark .ur-howto-body {
 }
 
 .ur-howto-steps {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 14px;
   padding: 14px 0 12px;
 }
@@ -229,7 +249,7 @@ body.dark .ur-howto-note {
   background: var(--card);
   border: 1.5px solid rgba(17,17,17,0.07);
   border-radius: 14px;
-  padding: 12px 12px 10px;
+  padding: 14px 16px 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -251,7 +271,7 @@ body.dark .ur-sum-card {
 
 .ur-sum-val {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.05em;
   color: var(--text);
@@ -290,7 +310,7 @@ body.dark .ur-card {
   display: flex;
   align-items: flex-start;
   gap: 13px;
-  padding: 15px 16px 12px;
+  padding: 16px 18px 14px;
 }
 
 .ur-card-icon {
@@ -374,6 +394,7 @@ body.dark .ur-meta-pill {
   font-family: var(--font-main);
   flex-shrink: 0;
   white-space: nowrap;
+  align-self: flex-start;
 }
 
 .ur-status--pending   { background: rgba(201,125,16,0.1);  color: #c97d10; }
@@ -383,7 +404,7 @@ body.dark .ur-meta-pill {
 
 /* ── Sourced-for-you badge ── */
 .ur-sourced-badge {
-  margin: 0 16px 10px;
+  margin: 0 18px 10px;
   padding: 8px 13px;
   border-radius: 11px;
   background: rgba(34,160,88,0.07);
@@ -409,7 +430,7 @@ body.dark .ur-meta-pill {
 
 /* ── Expired notice ── */
 .ur-expired-notice {
-  margin: 0 16px 10px;
+  margin: 0 18px 10px;
   padding: 8px 13px;
   border-radius: 11px;
   background: rgba(217,79,79,0.06);
@@ -422,15 +443,16 @@ body.dark .ur-meta-pill {
 
 /* ── Card CTA (available) ── */
 .ur-card-cta {
-  padding: 0 16px 12px;
+  padding: 0 18px 14px;
   display: flex;
   gap: 8px;
+  /* Don't stretch buttons — align to start */
+  justify-content: flex-start;
 }
 
 .ur-btn-view {
-  flex: 1;
-  padding: 11px;
-  border-radius: 12px;
+  padding: 10px 24px;
+  border-radius: 11px;
   background: var(--grtheme);
   color: #fff;
   font-size: 13px;
@@ -439,6 +461,7 @@ body.dark .ur-meta-pill {
   border: none;
   cursor: pointer;
   transition: opacity 0.18s, transform 0.18s var(--ease-premium);
+  white-space: nowrap;
 }
 
 .ur-btn-view:hover {
@@ -451,9 +474,8 @@ body.dark .ur-meta-pill {
 }
 
 .ur-btn-order {
-  flex: 1;
-  padding: 11px;
-  border-radius: 12px;
+  padding: 10px 24px;
+  border-radius: 11px;
   background: transparent;
   color: var(--text);
   font-size: 13px;
@@ -462,6 +484,7 @@ body.dark .ur-meta-pill {
   border: 1.5px solid rgba(17,17,17,0.12);
   cursor: pointer;
   transition: border-color 0.18s, color 0.18s, transform 0.18s var(--ease-premium);
+  white-space: nowrap;
 }
 
 body.dark .ur-btn-order {
@@ -480,7 +503,7 @@ body.dark .ur-btn-order {
 
 /* ── Admin note ── */
 .ur-admin-note {
-  margin: 0 16px 12px;
+  margin: 0 18px 12px;
   padding: 10px 13px;
   border-radius: 11px;
   background: rgba(17,17,17,0.04);
@@ -499,9 +522,8 @@ body.dark .ur-admin-note {
 
 /* ── Chat row ── */
 .ur-card-chat-row {
-  padding: 0 16px 14px;
+  padding: 12px 18px 14px;
   border-top: 1px solid rgba(17,17,17,0.05);
-  padding-top: 12px;
 }
 
 body.dark .ur-card-chat-row {
@@ -575,7 +597,7 @@ body.dark .ur-chat-btn--open {
 
 /* ── Empty ── */
 .ur-empty {
-  padding: 56px 24px;
+  padding: 64px 24px;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -618,11 +640,11 @@ body.dark .ur-empty-icon {
 }
 
 .ur-empty-btn {
-  padding: 14px 28px;
-  border-radius: 14px;
+  padding: 12px 28px;
+  border-radius: 12px;
   background: var(--grtheme);
   color: #fff;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   font-family: var(--font-main);
   border: none;
@@ -641,7 +663,7 @@ body.dark .ur-empty-icon {
   background: var(--card);
   border: 1.5px solid rgba(17,17,17,0.07);
   border-radius: 18px;
-  padding: 16px;
+  padding: 16px 18px;
   display: flex;
   gap: 13px;
   align-items: flex-start;
@@ -685,7 +707,7 @@ body.dark .ur-skel-card {
 
 /* ── Not logged in ── */
 .ur-login-prompt {
-  padding: 56px 24px;
+  padding: 64px 24px;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -702,11 +724,11 @@ body.dark .ur-skel-card {
 }
 
 .ur-login-btn {
-  padding: 13px 28px;
-  border-radius: 13px;
+  padding: 12px 28px;
+  border-radius: 12px;
   background: var(--grtheme);
   color: #fff;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   font-family: var(--font-main);
   border: none;
@@ -719,8 +741,88 @@ body.dark .ur-skel-card {
   transform: translateY(-1px);
 }
 
-/* ── Responsive ── */
-@media (max-width: 400px) {
-  .ur-summary { grid-template-columns: 1fr 1fr; }
-  .ur-sum-val { font-size: 20px; }
+/* ═══════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+═══════════════════════════════════════════ */
+
+/* ── Large desktop (1200px+) ── */
+@media (min-width: 1200px) {
+  .ur-content-wrap {
+    max-width: 800px;
+  }
+}
+
+/* ── Medium desktop / tablet landscape (768px–1199px) ── */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .ur-page {
+    padding-left: 64px;
+  }
+  .ur-body {
+    padding: 20px 28px 0;
+  }
+  .ur-topbar {
+    padding: 18px 28px 14px;
+  }
+}
+
+/* ── Small tablet / large phone (481px–767px) ── */
+@media (min-width: 481px) and (max-width: 767px) {
+  .ur-page {
+    padding-left: 0;
+  }
+  .ur-content-wrap {
+    max-width: 100%;
+  }
+  .ur-howto-steps {
+    grid-template-columns: 1fr;
+  }
+  .ur-summary {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ── Mobile (480px and below) ── */
+@media (max-width: 480px) {
+  .ur-page {
+    padding-left: 0;
+  }
+  .ur-content-wrap {
+    max-width: 100%;
+  }
+  .ur-topbar {
+    padding: 14px 16px 12px;
+  }
+  .ur-body {
+    padding: 16px 16px 0;
+  }
+  .ur-howto-steps {
+    grid-template-columns: 1fr;
+  }
+  .ur-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ur-sum-val {
+    font-size: 22px;
+  }
+  .ur-card-top {
+    padding: 14px 14px 12px;
+  }
+  .ur-card-cta {
+    padding: 0 14px 12px;
+  }
+  .ur-sourced-badge,
+  .ur-expired-notice,
+  .ur-admin-note {
+    margin-left: 14px;
+    margin-right: 14px;
+  }
+  .ur-card-chat-row {
+    padding: 10px 14px 12px;
+  }
+  .ur-btn-view,
+  .ur-btn-order {
+    /* On very small screens, allow slight flex growth but cap width */
+    padding: 10px 18px;
+    font-size: 12px;
+  }
 }

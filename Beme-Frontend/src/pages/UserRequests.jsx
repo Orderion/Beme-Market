@@ -328,16 +328,20 @@ export default function UserRequests() {
     return (
       <div className="ur-page">
         <div className="ur-topbar">
-          <button type="button" className="ur-back-btn" onClick={() => navigate(-1)}>
-            <IconBack />
-          </button>
-          <h1 className="ur-topbar-title">My Requests</h1>
+          <div className="ur-topbar-inner">
+            <button type="button" className="ur-back-btn" onClick={() => navigate(-1)}>
+              <IconBack />
+            </button>
+            <h1 className="ur-topbar-title">My Requests</h1>
+          </div>
         </div>
-        <div className="ur-login-prompt">
-          <p>Please log in to view your product requests.</p>
-          <button type="button" className="ur-login-btn" onClick={() => navigate("/login")}>
-            Log in
-          </button>
+        <div className="ur-content-wrap">
+          <div className="ur-login-prompt">
+            <p>Please log in to view your product requests.</p>
+            <button type="button" className="ur-login-btn" onClick={() => navigate("/login")}>
+              Log in
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -348,94 +352,99 @@ export default function UserRequests() {
 
       {/* ── Top bar ── */}
       <div className="ur-topbar">
-        <button type="button" className="ur-back-btn" onClick={() => navigate(-1)}>
-          <IconBack />
-        </button>
-        <h1 className="ur-topbar-title">My Requests</h1>
-        <button
-          type="button"
-          className="ur-request-btn"
-          onClick={() => setModalOpen(true)}
-        >
-          <IconPlus /> New request
-        </button>
+        <div className="ur-topbar-inner">
+          <button type="button" className="ur-back-btn" onClick={() => navigate(-1)}>
+            <IconBack />
+          </button>
+          <h1 className="ur-topbar-title">My Requests</h1>
+          <button
+            type="button"
+            className="ur-request-btn"
+            onClick={() => setModalOpen(true)}
+          >
+            <IconPlus /> New request
+          </button>
+        </div>
       </div>
 
+      {/* ── Centered content ── */}
       <div className="ur-body">
+        <div className="ur-content-wrap">
 
-        {/* ── How it works ── */}
-        <HowItWorks />
+          {/* ── How it works ── */}
+          <HowItWorks />
 
-        {/* ── Summary strip ── */}
-        {!loading && requests.length > 0 && (
-          <div className="ur-summary">
-            <div className="ur-sum-card">
-              <span className="ur-sum-label">Total</span>
-              <span className="ur-sum-val">{requests.length}</span>
+          {/* ── Summary strip ── */}
+          {!loading && requests.length > 0 && (
+            <div className="ur-summary">
+              <div className="ur-sum-card">
+                <span className="ur-sum-label">Total</span>
+                <span className="ur-sum-val">{requests.length}</span>
+              </div>
+              <div className="ur-sum-card">
+                <span className="ur-sum-label">Pending</span>
+                <span className="ur-sum-val ur-sum-val--amber">{counts.pending + counts.sourcing}</span>
+              </div>
+              <div className="ur-sum-card">
+                <span className="ur-sum-label">Available</span>
+                <span className="ur-sum-val ur-sum-val--green">{counts.available}</span>
+              </div>
+              <div className="ur-sum-card">
+                <span className="ur-sum-label">Rejected</span>
+                <span className="ur-sum-val ur-sum-val--red">{counts.rejected}</span>
+              </div>
             </div>
-            <div className="ur-sum-card">
-              <span className="ur-sum-label">Pending</span>
-              <span className="ur-sum-val ur-sum-val--amber">{counts.pending + counts.sourcing}</span>
+          )}
+
+          {/* ── Loading ── */}
+          {loading && <Skeleton />}
+
+          {/* ── Error ── */}
+          {!loading && error && (
+            <div style={{
+              padding: "14px 16px",
+              borderRadius: "14px",
+              background: "rgba(217,79,79,0.07)",
+              border: "1px solid rgba(217,79,79,0.18)",
+              fontSize: "13px",
+              fontWeight: 600,
+              color: "#d94f4f",
+              fontFamily: "var(--font-main)",
+            }}>
+              {error}
             </div>
-            <div className="ur-sum-card">
-              <span className="ur-sum-label">Available</span>
-              <span className="ur-sum-val ur-sum-val--green">{counts.available}</span>
+          )}
+
+          {/* ── Empty ── */}
+          {!loading && !error && requests.length === 0 && (
+            <div className="ur-empty">
+              <div className="ur-empty-icon">
+                <IconSearch />
+              </div>
+              <p className="ur-empty-title">No requests yet</p>
+              <p className="ur-empty-sub">
+                Can't find a product? Submit a request and we'll source it for you.
+              </p>
+              <button
+                type="button"
+                className="ur-empty-btn"
+                onClick={() => setModalOpen(true)}
+              >
+                Request a product
+              </button>
             </div>
-            <div className="ur-sum-card">
-              <span className="ur-sum-label">Rejected</span>
-              <span className="ur-sum-val ur-sum-val--red">{counts.rejected}</span>
+          )}
+
+          {/* ── List ── */}
+          {!loading && !error && requests.length > 0 && (
+            <div className="ur-list">
+              {requests.map((req) => (
+                <RequestCard key={req.id} request={req} currentUser={user} />
+              ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ── Loading ── */}
-        {loading && <Skeleton />}
-
-        {/* ── Error ── */}
-        {!loading && error && (
-          <div style={{
-            padding: "14px 16px",
-            borderRadius: "14px",
-            background: "rgba(217,79,79,0.07)",
-            border: "1px solid rgba(217,79,79,0.18)",
-            fontSize: "13px",
-            fontWeight: 600,
-            color: "#d94f4f",
-            fontFamily: "var(--font-main)",
-          }}>
-            {error}
-          </div>
-        )}
-
-        {/* ── Empty ── */}
-        {!loading && !error && requests.length === 0 && (
-          <div className="ur-empty">
-            <div className="ur-empty-icon">
-              <IconSearch />
-            </div>
-            <p className="ur-empty-title">No requests yet</p>
-            <p className="ur-empty-sub">
-              Can't find a product? Submit a request and we'll source it for you.
-            </p>
-            <button
-              type="button"
-              className="ur-empty-btn"
-              onClick={() => setModalOpen(true)}
-            >
-              Request a product
-            </button>
-          </div>
-        )}
-
-        {/* ── List ── */}
-        {!loading && !error && requests.length > 0 && (
-          <div className="ur-list">
-            {requests.map((req) => (
-              <RequestCard key={req.id} request={req} currentUser={user} />
-            ))}
-          </div>
-        )}
-
+        </div>
       </div>
 
       {/* ── Modal ── */}
