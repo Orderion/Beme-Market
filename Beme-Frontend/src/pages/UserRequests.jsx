@@ -1,9 +1,11 @@
 // src/pages/UserRequests.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useUserProductRequests, getStatusLabel, getStatusClass } from "../hooks/useProductRequests";
 import ProductRequestModal from "../components/productRequest/ProductRequestModal";
+import ChatPanel from "../components/productRequest/ChatPanel";
+import { subscribeToUnreadCount } from "../services/productRequestService";
 import "./UserRequests.css";
 
 // ─── ICONS ───────────────────────────────────────────────────────────────────
@@ -51,6 +53,96 @@ function IconSearch() {
   );
 }
 
+function IconChat() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2"
+      strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+    </svg>
+  );
+}
+
+function IconChevron({ open }) {
+  return (
+    <svg
+      width="14" height="14" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.5"
+      strokeLinecap="round" strokeLinejoin="round"
+      style={{ transition: "transform 0.25s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+    >
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  );
+}
+
+// ─── HOW IT WORKS ─────────────────────────────────────────────────────────────
+const HOW_STEPS = [
+  {
+    icon: "📋",
+    title: "Submit a request",
+    desc: "Tell us what product you're looking for — include a description, budget, and a reference image if you have one.",
+  },
+  {
+    icon: "🔍",
+    title: "We source it",
+    desc: "Our team searches for the product. Status changes to Sourcing while we work on it.",
+  },
+  {
+    icon: "💬",
+    title: "Chat for updates",
+    desc: "Use the chat on each request to ask questions or give more details. We'll reply directly.",
+  },
+  {
+    icon: "🛍️",
+    title: "Order when ready",
+    desc: "Once sourced, you'll get a notification and an exclusive link to order — available for 7 days.",
+  },
+];
+
+function HowItWorks() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="ur-howto">
+      <button
+        type="button"
+        className="ur-howto-toggle"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="ur-howto-toggle-label">
+          <span className="ur-howto-toggle-icon">✦</span>
+          How product requests work
+        </span>
+        <IconChevron open={open} />
+      </button>
+
+      {open && (
+        <div className="ur-howto-body">
+          <div className="ur-howto-steps">
+            {HOW_STEPS.map((step, i) => (
+              <div key={i} className="ur-howto-step">
+                <div className="ur-howto-step-num">
+                  <span className="ur-howto-step-emoji">{step.icon}</span>
+                </div>
+                <div>
+                  <p className="ur-howto-step-title">{step.title}</p>
+                  <p className="ur-howto-step-desc">{step.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="ur-howto-note">
+            <strong>🔒 Sourced products are exclusive to you.</strong>{" "}
+            When we find your product, it's linked to your account only and expires after 7 days.
+            Other customers won't see it.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── SKELETON ─────────────────────────────────────────────────────────────────
 function Skeleton() {
   return (
@@ -70,11 +162,26 @@ function Skeleton() {
 }
 
 // ─── REQUEST CARD ─────────────────────────────────────────────────────────────
-function RequestCard({ request }) {
-  const navigate     = useNavigate();
-  const isAvailable  = request.status === "available";
-  const statusClass  = getStatusClass(request.status);
-  const statusLabel  = getStatusLabel(request.status);
+function RequestCard({ request, currentUser }) {
+  const navigate    = useNavigate();
+  const isAvailable = request.status === "available";
+  const statusClass = getStatusClass(request.status);
+  const statusLabel = getStatusLabel(request.status);
+
+  const [chatOpen, setChatOpen] = useState(false);
+  const [unread,   setUnread]   = useState(0);
+
+  // ── Real-time unread badge ──
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    const unsub = subscribeToUnreadCount(request.id, currentUser.uid, setUnread);
+    return unsub;
+  }, [request.id, currentUser?.uid]);
+
+  // ── Mark messages read when chat opens ──
+  useEffect(() => {
+    if (chatOpen) setUnread(0);
+  }, [chatOpen]);
 
   const createdAt = request.createdAt?.toDate?.()
     ? request.createdAt.toDate().toLocaleDateString("en-GH", {
@@ -82,22 +189,31 @@ function RequestCard({ request }) {
       })
     : "—";
 
+  // ── Expiry badge for available requests ──
+  const isExpired = (() => {
+    if (!isAvailable || !request.expiresAt) return false;
+    const exp = typeof request.expiresAt.toDate === "function"
+      ? request.expiresAt.toDate()
+      : new Date(request.expiresAt);
+    return exp < new Date();
+  })();
+
   function handleViewProduct() {
-    if (request.offeredProductId) navigate(`/product/${request.offeredProductId}`);
+    if (request.offeredProductId && !isExpired) navigate(`/product/${request.offeredProductId}`);
   }
 
   function handleOrderNow() {
-    if (request.offeredProductId) {
+    if (request.offeredProductId && !isExpired) {
       navigate(`/checkout?productId=${request.offeredProductId}&qty=1&source=request`);
     }
   }
 
   return (
-    <div className={`ur-card${isAvailable ? " ur-card--available" : ""}`}>
+    <div className={`ur-card${isAvailable && !isExpired ? " ur-card--available" : ""}`}>
 
       {/* ── Top ── */}
       <div className="ur-card-top">
-        <div className={`ur-card-icon${isAvailable ? " ur-card-icon--available" : ""}`}>
+        <div className={`ur-card-icon${isAvailable && !isExpired ? " ur-card-icon--available" : ""}`}>
           <IconBox />
         </div>
 
@@ -122,6 +238,32 @@ function RequestCard({ request }) {
         </span>
       </div>
 
+      {/* ── Sourced-for-you badge ── */}
+      {isAvailable && !isExpired && (
+        <div className="ur-sourced-badge">
+          <span className="ur-sourced-badge-icon">✦</span>
+          Sourced exclusively for you
+          {request.expiresAt && (() => {
+            const exp = typeof request.expiresAt.toDate === "function"
+              ? request.expiresAt.toDate()
+              : new Date(request.expiresAt);
+            const daysLeft = Math.ceil((exp - new Date()) / (1000 * 60 * 60 * 24));
+            return daysLeft > 0 ? (
+              <span className="ur-sourced-badge-expiry">
+                · Expires in {daysLeft} day{daysLeft !== 1 ? "s" : ""}
+              </span>
+            ) : null;
+          })()}
+        </div>
+      )}
+
+      {/* ── Expired notice ── */}
+      {isAvailable && isExpired && (
+        <div className="ur-expired-notice">
+          This product link has expired. Contact support to renew.
+        </div>
+      )}
+
       {/* ── Admin note ── */}
       {request.adminResponse && (
         <p className="ur-admin-note">
@@ -129,8 +271,8 @@ function RequestCard({ request }) {
         </p>
       )}
 
-      {/* ── CTA — only if available ── */}
-      {isAvailable && request.offeredProductId && (
+      {/* ── CTA — only if available and not expired ── */}
+      {isAvailable && !isExpired && request.offeredProductId && (
         <div className="ur-card-cta">
           <button type="button" className="ur-btn-view" onClick={handleViewProduct}>
             View product
@@ -139,6 +281,30 @@ function RequestCard({ request }) {
             Order now
           </button>
         </div>
+      )}
+
+      {/* ── Chat toggle ── */}
+      <div className="ur-card-chat-row">
+        <button
+          type="button"
+          className={`ur-chat-btn${chatOpen ? " ur-chat-btn--open" : ""}`}
+          onClick={() => setChatOpen((v) => !v)}
+        >
+          <IconChat />
+          {chatOpen ? "Close chat" : "Chat with us"}
+          {!chatOpen && unread > 0 && (
+            <span className="ur-chat-badge">{unread > 9 ? "9+" : unread}</span>
+          )}
+        </button>
+      </div>
+
+      {/* ── Chat panel ── */}
+      {chatOpen && (
+        <ChatPanel
+          requestId={request.id}
+          currentUser={currentUser}
+          currentUserRole="customer"
+        />
       )}
     </div>
   );
@@ -196,6 +362,9 @@ export default function UserRequests() {
       </div>
 
       <div className="ur-body">
+
+        {/* ── How it works ── */}
+        <HowItWorks />
 
         {/* ── Summary strip ── */}
         {!loading && requests.length > 0 && (
@@ -262,7 +431,7 @@ export default function UserRequests() {
         {!loading && !error && requests.length > 0 && (
           <div className="ur-list">
             {requests.map((req) => (
-              <RequestCard key={req.id} request={req} />
+              <RequestCard key={req.id} request={req} currentUser={user} />
             ))}
           </div>
         )}
