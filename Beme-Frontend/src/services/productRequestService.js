@@ -9,6 +9,7 @@ import {
   query,
   where,
   orderBy,
+  onSnapshot,
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
@@ -33,6 +34,27 @@ function sortByCreatedAtDesc(docs) {
   return [...docs].sort((a, b) => toDate(b.createdAt) - toDate(a.createdAt));
 }
 
+/**
+ * Extracts a clean Firestore document ID from either a full URL or a raw ID.
+ * Fixes the bug where admin pastes full product URL instead of just the ID.
+ *
+ * Examples:
+ *   "https://beme-market.vercel.app/product/abc123" → "abc123"
+ *   "abc123"                                         → "abc123"
+ */
+export function extractProductId(input) {
+  if (!input) return "";
+  const trimmed = input.trim();
+  try {
+    const url      = new URL(trimmed);
+    const segments = url.pathname.split("/").filter(Boolean);
+    return segments[segments.length - 1] || trimmed;
+  } catch {
+    // Not a URL — return as-is
+    return trimmed;
+  }
+}
+
 // ─── UPLOAD REFERENCE IMAGE (Cloudinary) ─────────────────────────────────────
 /**
  * Uploads image to Cloudinary using unsigned upload preset.
@@ -48,9 +70,9 @@ async function uploadReferenceImage(file) {
 
   try {
     const formData = new FormData();
-    formData.append("file",           file);
-    formData.append("upload_preset",  UPLOAD_PRESET);
-    formData.append("folder",         "product_requests");
+    formData.append("file",          file);
+    formData.append("upload_preset", UPLOAD_PRESET);
+    formData.append("folder",        "product_requests");
 
     const res = await fetch(
       `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
@@ -76,7 +98,6 @@ async function uploadReferenceImage(file) {
  * Image upload is best-effort — request submits even without it.
  */
 export async function addProductRequest(data, imageFile, user) {
-  // Upload image to Cloudinary first (non-blocking)
   const referenceImageUrl = await uploadReferenceImage(imageFile);
 
   const payload = {
@@ -274,4 +295,150 @@ export async function markAllUserNotifsRead(userId) {
   );
   const snap = await getDocs(q);
   await Promise.all(snap.docs.map((d) => updateDoc(d.ref, { isRead: true })));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CHAT / MESSAGES — subcollection: product_requests/{requestId}/messages
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Sends a chat message inside a product request thread.
+ *
+ * @param {string} requestId   - The product request document ID
+ * @param {string} text        - Message text (1–1000 chars)
+ * @param {{ uid: string, email: string, displayName?: string }} user
+ * @param {"customer"|"super_admin"} senderRole
+ */
+export async function sendMessage(requestId, text, user, senderRole) {
+  if (!requestId || !text?.trim() || !user?.uid) return;
+
+  const messagesRef = collection(db, REQUESTS_COL, requestId, "messages");
+
+  await addDoc(messagesRef, {
+    senderId:   user.uid,
+    senderRole,
+    senderName: user.displayName || user.email || "User",
+    text:       text.trim(),
+    createdAt:  serverTimestamp(),
+    isRead:     false,
+  });
+}
+
+/**
+ * Subscribes to real-time chat messages for a request thread.
+ * Messages are ordered by createdAt ascending (oldest first = natural chat order).
+ *
+ * @param {string}   requestId
+ * @param {Function} onUpdate  - Called with Array of message objects on every change
+ * @param {Function} onError   - Called with Error on failure
+ * @returns {Function} unsubscribe — call on component unmount
+ */
+export function subscribeToMessages(requestId, onUpdate, onError) {
+  if (!requestId) {
+    onUpdate([]);
+    return () => {};
+  }
+
+  const q = query(
+    collection(db, REQUESTS_COL, requestId, "messages"),
+    orderBy("createdAt", "asc")
+  );
+
+  return onSnapshot(
+    q,
+    (snap) => {
+      const messages = snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+        createdAt: d.data().createdAt?.toDate?.() ?? null,
+      }));
+      onUpdate(messages);
+    },
+    (err) => {
+      console.error("[subscribeToMessages] error:", err);
+      if (onError) onError(err);
+    }
+  );
+}
+
+/**
+ * Marks all unread messages in a thread as read for the given reader.
+ * Only marks messages sent by the OTHER party (not own messages).
+ *
+ * @param {string} requestId
+ * @param {string} readerUid   - The reader's uid
+ */
+export async function markMessagesRead(requestId, readerUid) {
+  if (!requestId || !readerUid) return;
+
+  const q = query(
+    collection(db, REQUESTS_COL, requestId, "messages"),
+    where("isRead",   "==", false),
+    where("senderId", "!=", readerUid)
+  );
+
+  try {
+    const snap = await getDocs(q);
+    await Promise.all(snap.docs.map((d) => updateDoc(d.ref, { isRead: true })));
+  } catch (err) {
+    // Non-critical — index may not exist for this compound query yet
+    console.warn("[markMessagesRead] fallback (non-critical):", err.message);
+  }
+}
+
+/**
+ * Returns count of unread messages sent by the OTHER party in a thread.
+ * Used to show badge on chat toggle button.
+ *
+ * @param {string} requestId
+ * @param {string} readerUid
+ * @returns {Promise<number>}
+ */
+export async function getUnreadMessageCount(requestId, readerUid) {
+  if (!requestId || !readerUid) return 0;
+  try {
+    const q = query(
+      collection(db, REQUESTS_COL, requestId, "messages"),
+      where("isRead",   "==", false),
+      where("senderId", "!=", readerUid)
+    );
+    const snap = await getDocs(q);
+    return snap.size;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Subscribes to real-time unread message count for a request thread.
+ * Uses only where("isRead", "==", false) to avoid composite index requirement,
+ * then filters client-side by senderId to exclude own messages.
+ *
+ * @param {string}   requestId
+ * @param {string}   readerUid  - Messages from this uid are excluded from count
+ * @param {Function} onCount    - Called with number on every change
+ * @returns {Function} unsubscribe
+ */
+export function subscribeToUnreadCount(requestId, readerUid, onCount) {
+  if (!requestId || !readerUid) {
+    onCount(0);
+    return () => {};
+  }
+
+  const q = query(
+    collection(db, REQUESTS_COL, requestId, "messages"),
+    where("isRead", "==", false)
+  );
+
+  return onSnapshot(
+    q,
+    (snap) => {
+      // Filter client-side: only count messages NOT sent by this reader
+      const count = snap.docs.filter(
+        (d) => d.data().senderId !== readerUid
+      ).length;
+      onCount(count);
+    },
+    () => onCount(0)
+  );
 }
