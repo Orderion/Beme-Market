@@ -1,15 +1,36 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { doc, getDoc, collection, onSnapshot } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
-import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import { useUserUnreadCount } from "../hooks/useNotifications";
 import "./Account.css";
 
+/* ─── Onboarding label maps ──────────────────────────────────── */
+
+const PREF_LABELS = {
+  kids:        { emoji: "👶", label: "Kids & Family"   },
+  women:       { emoji: "👗", label: "Women's Fashion" },
+  men:         { emoji: "👔", label: "Men's Fashion"   },
+  home:        { emoji: "🏠", label: "Home & Living"   },
+  electronics: { emoji: "⚡", label: "Electronics"     },
+  savvy:       { emoji: "🛍️", label: "Savvy Deals"     },
+  everything:  { emoji: "🌍", label: "Shop Everything" },
+};
+
+const AGE_LABELS = {
+  under18: "Under 18",
+  "18-24": "18 – 24",
+  "25-34": "25 – 34",
+  "35-44": "35 – 44",
+  "45plus": "45+",
+};
+
 /* ── Icons ── */
 function IconOrders() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
       <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
       <line x1="3" y1="6" x2="21" y2="6"/>
       <path d="M16 10a4 4 0 01-8 0"/>
@@ -18,14 +39,16 @@ function IconOrders() {
 }
 function IconHeart() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
       <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
     </svg>
   );
 }
 function IconSettings() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
       <circle cx="12" cy="12" r="3"/>
       <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
     </svg>
@@ -33,7 +56,8 @@ function IconSettings() {
 }
 function IconLocation() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
       <circle cx="12" cy="10" r="3"/>
     </svg>
@@ -41,7 +65,8 @@ function IconLocation() {
 }
 function IconCard() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
       <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
       <line x1="1" y1="10" x2="23" y2="10"/>
     </svg>
@@ -49,7 +74,8 @@ function IconCard() {
 }
 function IconBell() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
       <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
       <path d="M13.73 21a2 2 0 01-3.46 0"/>
     </svg>
@@ -57,7 +83,8 @@ function IconBell() {
 }
 function IconHelp() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
       <circle cx="12" cy="12" r="10"/>
       <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
       <line x1="12" y1="17" x2="12.01" y2="17"/>
@@ -66,7 +93,8 @@ function IconHelp() {
 }
 function IconMail() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
       <polyline points="22,6 12,13 2,6"/>
     </svg>
@@ -74,47 +102,40 @@ function IconMail() {
 }
 function IconLogout() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
       <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
       <polyline points="16 17 21 12 16 7"/>
       <line x1="21" y1="12" x2="9" y2="12"/>
     </svg>
   );
 }
-function IconBusiness() {
+function IconRequest() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
-      <rect x="2" y="7" width="20" height="14" rx="2"/>
-      <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
-      <line x1="12" y1="12" x2="12" y2="16"/>
-      <line x1="10" y1="14" x2="14" y2="14"/>
-    </svg>
-  );
-}
-function IconStar() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+      <circle cx="11" cy="11" r="8"/>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      <line x1="11" y1="8" x2="11" y2="14"/>
+      <line x1="8" y1="11" x2="14" y2="11"/>
     </svg>
   );
 }
 function IconShield() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="28" height="28">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" width="28" height="28">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
       <polyline points="9 12 11 14 15 10"/>
     </svg>
   );
 }
-
-/* ── NEW: Request icon ── */
-function IconRequest() {
+function IconEdit() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
-      <circle cx="11" cy="11" r="8"/>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      <line x1="11" y1="8" x2="11" y2="14"/>
-      <line x1="8" y1="11" x2="14" y2="11"/>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
     </svg>
   );
 }
@@ -137,7 +158,11 @@ function QuickTile({ icon, label, onClick, badge }) {
 /* ── List Row ── */
 function Row({ icon, label, sub, onClick, danger, badge }) {
   return (
-    <button type="button" className={`acc-row${danger ? " acc-row--danger" : ""}`} onClick={onClick}>
+    <button
+      type="button"
+      className={`acc-row${danger ? " acc-row--danger" : ""}`}
+      onClick={onClick}
+    >
       <div className="acc-row-left">
         <div className="acc-row-icon-wrap">{icon}</div>
         <div className="acc-row-text">
@@ -149,7 +174,9 @@ function Row({ icon, label, sub, onClick, danger, badge }) {
         {badge != null && badge > 0 && (
           <span className="acc-row-badge">{badge}</span>
         )}
-        <svg className="acc-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg className="acc-row-chevron" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2.5"
+          strokeLinecap="round" strokeLinejoin="round">
           <polyline points="9 18 15 12 9 6"/>
         </svg>
       </div>
@@ -164,41 +191,100 @@ function LogoutSheet({ onConfirm, onCancel }) {
       <div className="acc-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="acc-sheet__bar" />
         <p className="acc-sheet__title">Log out?</p>
-        <p className="acc-sheet__sub">Are you sure you want to log out of your Beme Market account?</p>
-        <button type="button" className="acc-sheet__btn acc-sheet__btn--danger" onClick={onConfirm}>Log out</button>
-        <button type="button" className="acc-sheet__btn acc-sheet__btn--cancel" onClick={onCancel}>Cancel</button>
+        <p className="acc-sheet__sub">
+          Are you sure you want to log out of your Beme Market account?
+        </p>
+        <button
+          type="button"
+          className="acc-sheet__btn acc-sheet__btn--danger"
+          onClick={onConfirm}
+        >
+          Log out
+        </button>
+        <button
+          type="button"
+          className="acc-sheet__btn acc-sheet__btn--cancel"
+          onClick={onCancel}
+        >
+          Cancel
+        </button>
       </div>
     </div>
   );
 }
 
-/* ── Main ── */
+/* ── Star icon for member pill ── */
+function IconStar() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+    </svg>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN ACCOUNT PAGE
+═══════════════════════════════════════════════════════════════ */
 export default function Account() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const [showLogoutSheet, setShowLogoutSheet] = useState(false);
-  const [savedCount, setSavedCount] = useState(null);
 
-  /* Real-time unread notification count badge */
+  const [showLogoutSheet, setShowLogoutSheet] = useState(false);
+  const [savedCount,      setSavedCount]      = useState(null);
+
+  /* Onboarding profile data from Firestore */
+  const [profile,        setProfile]        = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  /* Real-time unread notification count */
   const { unreadCount } = useUserUnreadCount();
 
+  /* ── Saved items (wishlist) real-time count ── */
   useEffect(() => {
     if (!user) { setSavedCount(0); return; }
     const colRef = collection(db, "users", user.uid, "wishlist");
-    const unsub = onSnapshot(colRef, (snap) => setSavedCount(snap.size));
+    const unsub  = onSnapshot(colRef, (snap) => setSavedCount(snap.size));
     return () => unsub();
   }, [user]);
 
+  /* ── Fetch onboarding profile from Firestore ── */
+  useEffect(() => {
+    if (!user) { setProfileLoading(false); return; }
+    let cancelled = false;
+
+    getDoc(doc(db, "users", user.uid))
+      .then((snap) => {
+        if (cancelled) return;
+        if (snap.exists()) setProfile(snap.data());
+      })
+      .catch((err) => console.error("Profile fetch error:", err))
+      .finally(() => { if (!cancelled) setProfileLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [user]);
+
+  /* ── Logout ── */
   const handleLogout = async () => {
     await logout();
     navigate("/");
   };
 
-  const initials = user?.displayName
-    ? user.displayName.charAt(0).toUpperCase()
-    : (user?.email?.charAt(0).toUpperCase() || "U");
+  /* ── Derived display values ── */
+  /*
+   * Priority: Firebase Auth displayName (set by updateProfile in Onboarding)
+   * → Firestore displayName → fallback "Beme Customer"
+   */
+  const displayName =
+    user?.displayName ||
+    profile?.displayName ||
+    "Beme Customer";
 
-  const displayName = user?.displayName || "Beme Customer";
+  const initials = displayName.charAt(0).toUpperCase();
+
+  const age           = profile?.age  || null;
+  const shoppingPrefs = Array.isArray(profile?.shoppingPreference)
+    ? profile.shoppingPreference
+    : [];
 
   return (
     <div className="acc-page">
@@ -225,6 +311,49 @@ export default function Account() {
           </button>
         </div>
 
+        {/* ── Profile summary card (name + age + preferences) ── */}
+        {!profileLoading && (age || shoppingPrefs.length > 0) && (
+          <div className="acc-profile-card">
+            <div className="acc-profile-card__top">
+              <div className="acc-profile-card__info">
+                <p className="acc-profile-card__name">{displayName}</p>
+                {age && (
+                  <span className="acc-profile-card__age">
+                    {AGE_LABELS[age] || age}
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                className="acc-profile-card__edit"
+                onClick={() => navigate("/account/manage")}
+                aria-label="Edit profile"
+              >
+                <IconEdit />
+                <span>Edit</span>
+              </button>
+            </div>
+
+            {shoppingPrefs.length > 0 && (
+              <>
+                <p className="acc-profile-card__pref-label">Shopping preferences</p>
+                <div className="acc-pref-pills">
+                  {shoppingPrefs.map((id) => {
+                    const entry = PREF_LABELS[id];
+                    if (!entry) return null;
+                    return (
+                      <span key={id} className="acc-pref-pill">
+                        <span aria-hidden="true">{entry.emoji}</span>
+                        {entry.label}
+                      </span>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* ── Quick tiles ── */}
         <div className="acc-tiles-row">
           <QuickTile
@@ -246,10 +375,15 @@ export default function Account() {
         </div>
 
         {/* ── Promo card ── */}
-        <div className="acc-promo-card" onClick={() => navigate("/account/manage")}>
+        <div
+          className="acc-promo-card"
+          onClick={() => navigate("/account/manage")}
+        >
           <div className="acc-promo-text">
             <p className="acc-promo-title">Complete your profile</p>
-            <p className="acc-promo-sub">Add your address & payment method for faster checkout</p>
+            <p className="acc-promo-sub">
+              Add your address &amp; payment method for faster checkout
+            </p>
           </div>
           <div className="acc-promo-icon">
             <IconShield />
@@ -271,7 +405,6 @@ export default function Account() {
             badge={savedCount > 0 ? savedCount : undefined}
             onClick={() => navigate("/saved")}
           />
-          {/* ── NEW: My requests row ── */}
           <Row
             icon={<IconRequest />}
             label="My requests"
@@ -282,10 +415,24 @@ export default function Account() {
 
         {/* ── Settings rows ── */}
         <div className="acc-list-group">
-          <Row icon={<IconSettings />}  label="Manage account"     sub="Name, password & preferences"  onClick={() => navigate("/account/manage")} />
-          <Row icon={<IconLocation />}  label="Delivery addresses" sub="Saved locations in Ghana"       onClick={() => navigate("/account/addresses")} />
-          <Row icon={<IconCard />}      label="Payment methods"    sub="Paystack & saved cards"         onClick={() => navigate("/account/payments")} />
-          {/* ── Notifications row — now shows live unread badge ── */}
+          <Row
+            icon={<IconSettings />}
+            label="Manage account"
+            sub="Name, password & preferences"
+            onClick={() => navigate("/account/manage")}
+          />
+          <Row
+            icon={<IconLocation />}
+            label="Delivery addresses"
+            sub="Saved locations in Ghana"
+            onClick={() => navigate("/account/addresses")}
+          />
+          <Row
+            icon={<IconCard />}
+            label="Payment methods"
+            sub="Paystack & saved cards"
+            onClick={() => navigate("/account/payments")}
+          />
           <Row
             icon={<IconBell />}
             label="Notifications"
@@ -297,21 +444,39 @@ export default function Account() {
 
         {/* ── Support rows ── */}
         <div className="acc-list-group">
-          <Row icon={<IconHelp />} label="Help & support" sub="FAQs and guides"           onClick={() => navigate("/account/help")} />
-          <Row icon={<IconMail />} label="Contact us"     sub="supportbememarket@gmail.com" onClick={() => navigate("/account/contact")} />
+          <Row
+            icon={<IconHelp />}
+            label="Help & support"
+            sub="FAQs and guides"
+            onClick={() => navigate("/account/help")}
+          />
+          <Row
+            icon={<IconMail />}
+            label="Contact us"
+            sub="supportbememarket@gmail.com"
+            onClick={() => navigate("/account/contact")}
+          />
         </div>
 
         {/* ── Logout ── */}
         <div className="acc-list-group acc-list-group--last">
-          <Row icon={<IconLogout />} label="Log out" sub="Sign out of your account" onClick={() => setShowLogoutSheet(true)} danger />
+          <Row
+            icon={<IconLogout />}
+            label="Log out"
+            sub="Sign out of your account"
+            onClick={() => setShowLogoutSheet(true)}
+            danger
+          />
         </div>
 
         <p className="acc-footer-note">Beme Market · Ghana 🇬🇭</p>
-
       </div>
 
       {showLogoutSheet && (
-        <LogoutSheet onConfirm={handleLogout} onCancel={() => setShowLogoutSheet(false)} />
+        <LogoutSheet
+          onConfirm={handleLogout}
+          onCancel={() => setShowLogoutSheet(false)}
+        />
       )}
     </div>
   );
