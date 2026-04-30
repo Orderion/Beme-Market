@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
@@ -20,6 +20,7 @@ function EyeIcon({ open }) {
     </svg>
   );
 }
+
 function CheckIcon() {
   return (
     <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
@@ -29,30 +30,13 @@ function CheckIcon() {
   );
 }
 
-function WaveText({ text, className = "", baseDelay = 0, step = 0.056 }) {
-  return (
-    <span className={className} aria-hidden="true">
-      {text.split("").map((ch, i) => (
-        <span
-          key={i}
-          className="auth-letter"
-          style={{ animationDelay: `${(baseDelay + i * step).toFixed(3)}s` }}
-        >
-          {ch === " " ? "\u00A0" : ch}
-        </span>
-      ))}
-    </span>
-  );
-}
-
 function Spinner() {
   return <span className="auth-spinner" aria-hidden="true" />;
 }
 
 export default function Signup() {
-  const navigate      = useNavigate();
-  const location      = useLocation();
-  const { signup }    = useAuth();
+  const navigate   = useNavigate();
+  const { signup } = useAuth();
 
   const [email,         setEmail]         = useState("");
   const [password,      setPassword]      = useState("");
@@ -67,24 +51,24 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const [err,     setErr]     = useState("");
 
-  const redirectTo = location.state?.from || "/";
-
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr("");
     const emailTrim    = email.trim();
     const passwordTrim = password.trim();
-    if (!emailTrim || !passwordTrim)  { setErr("Enter email and password."); return; }
-    if (!isValidEmail(emailTrim))     { setErr("Enter a valid email address."); return; }
-    if (!agreedToTerms)               { setErr("Please agree to the terms of use to continue."); return; }
+    if (!emailTrim || !passwordTrim) { setErr("Enter email and password.");                    return; }
+    if (!isValidEmail(emailTrim))    { setErr("Enter a valid email address.");                 return; }
+    if (passwordTrim.length < 6)     { setErr("Password must be at least 6 characters.");     return; }
+    if (!agreedToTerms)              { setErr("Please agree to the terms of use to continue."); return; }
     setLoading(true);
     try {
       await signup(emailTrim, passwordTrim);
-      navigate(redirectTo, { replace: true });
+      /* Always go to onboarding after a fresh signup */
+      navigate("/onboarding", { replace: true });
     } catch (e) {
       const code = e?.code || "";
       if (code.includes("auth/email-already-in-use"))
-        setErr("Email already in use.");
+        setErr("An account with this email already exists. Log in instead.");
       else if (code.includes("auth/weak-password"))
         setErr("Password too weak. Use at least 6 characters.");
       else if (code.includes("auth/invalid-email"))
@@ -115,111 +99,92 @@ export default function Signup() {
 
   return (
     <div className="auth-page">
-      <div className="auth-banner">Welcome to Beme Market</div>
+
+      {/* ── Promo banner ── */}
+      <div className="auth-banner">
+        Welcome to Beme Market — Ghana's favourite shop 🇬🇭
+      </div>
 
       <div className="auth-wrap">
 
-        {/* ══ HERO — beam · flare · wave text ══ */}
-        <div className="auth-grad">
-          <div className="auth-grad-bg" />
-
-          <svg className="auth-dot-grid" aria-hidden="true"
-            xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="auth-dots-s" width="22" height="22"
-                patternUnits="userSpaceOnUse">
-                <circle cx="1.5" cy="1.5" r="1.2"
-                  fill="var(--grtheme,#FF6600)" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#auth-dots-s)" />
-          </svg>
-
-          <div className="auth-beam" aria-hidden="true">
-            <div className="auth-beam-core" />
-            <div className="auth-beam-glow" />
-          </div>
-
-          <div className="auth-flare" aria-hidden="true">
-            <div className="auth-flare-ring auth-flare-ring--1" />
-            <div className="auth-flare-ring auth-flare-ring--2" />
-            <div className="auth-flare-ring auth-flare-ring--3" />
-            <div className="auth-flare-core" />
-            <div className="auth-flare-outer" />
-            <div className="auth-streak auth-streak--hr" />
-            <div className="auth-streak auth-streak--hl" />
-            <div className="auth-streak auth-streak--vt" />
-            <div className="auth-streak auth-streak--vb" />
-            <div className="auth-streak auth-streak--d1" />
-            <div className="auth-streak auth-streak--d2" />
-            <div className="auth-streak auth-streak--d3" />
-            <div className="auth-streak auth-streak--d4" />
-          </div>
-
-          <div className="auth-orb auth-orb--1" aria-hidden="true" />
-          <div className="auth-orb auth-orb--2" aria-hidden="true" />
-          <div className="auth-orb auth-orb--3" aria-hidden="true" />
-
-          <div className="auth-hero-text">
-            <p className="sr-only">Welcome to Beme Market</p>
-            <span className="auth-hero-eyebrow" aria-hidden="true">
-              Create your account
-            </span>
-
-            <div className="auth-hero-line" role="presentation">
-              <WaveText text="Welcome" className="auth-word-plain"  baseDelay={0.78} />
-            </div>
-            <div className="auth-hero-line" role="presentation">
-              <WaveText text="to Beme" className="auth-word-grad1" baseDelay={1.22} />
-            </div>
-            <div className="auth-hero-line" role="presentation">
-              <WaveText text="Market"  className="auth-word-grad2" baseDelay={1.65} />
-            </div>
-            <span className="auth-hero-underline" aria-hidden="true" />
-          </div>
+        {/* ── Brand ── */}
+        <div className="auth-brand">
+          <h1 className="auth-brand-name">Beme Market</h1>
+          <p className="auth-brand-tagline">
+            Want 10% off your first purchase? Sign up to unlock!
+          </p>
         </div>
 
-        {/* ══ Form body ══ */}
+        {/* ── Tabs ── */}
+        <div className="auth-tabs">
+          <Link to="/login" className="auth-tab">
+            Log In
+          </Link>
+          <button type="button" className="auth-tab auth-tab--active">
+            Sign Up
+          </button>
+        </div>
+
+        {/* ── Form + newsletter ── */}
         <div className="auth-body">
           <form className="auth-card" onSubmit={onSubmit} noValidate>
 
             <div className="auth-field">
               <label className="auth-field-label" htmlFor="su-email">
-                Your Email Address
+                Email Address
               </label>
-              <input id="su-email" className="auth-input" type="email"
-                placeholder="your@email.com" value={email}
+              <input
+                id="su-email"
+                className="auth-input"
+                type="email"
+                placeholder="your@email.com"
+                value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email" disabled={loading} />
+                autoComplete="email"
+                disabled={loading}
+              />
             </div>
 
             <div className="auth-field">
               <label className="auth-field-label" htmlFor="su-pass">
-                Choose a Password
+                Create a Password
               </label>
               <div className="auth-pass-wrap">
-                <input id="su-pass" className="auth-input"
+                <input
+                  id="su-pass"
+                  className="auth-input"
                   type={showPass ? "text" : "password"}
-                  placeholder="min. 6 characters" value={password}
+                  placeholder="min. 6 characters"
+                  value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="new-password" disabled={loading} />
-                <button type="button" className="auth-eye"
+                  autoComplete="new-password"
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className="auth-eye"
                   onClick={() => setShowPass((v) => !v)}
-                  aria-label={showPass ? "Hide password" : "Show password"}>
+                  aria-label={showPass ? "Hide password" : "Show password"}
+                >
                   <EyeIcon open={showPass} />
                 </button>
               </div>
             </div>
 
             <div className="auth-check-row">
-              <button type="button"
+              <button
+                type="button"
                 className={`auth-checkbox ${agreedToTerms ? "auth-checkbox--on" : ""}`}
                 onClick={() => setAgreedToTerms((v) => !v)}
                 aria-pressed={agreedToTerms}
-                aria-label="I agree with terms of use">
+                aria-label="I agree with terms of use"
+              >
                 {agreedToTerms && <CheckIcon />}
               </button>
-              <span className="auth-check-label">I agree with terms of use</span>
+              <span className="auth-check-label">
+                I agree to the{" "}
+                <Link className="auth-link" to="/terms">terms of use</Link>
+              </span>
             </div>
 
             {err && <div className="auth-alert auth-alert--error" role="alert">{err}</div>}
@@ -237,12 +202,24 @@ export default function Signup() {
 
             <div className="auth-divider"><span>or</span></div>
 
-            <button type="button" className="auth-ghost"
-              onClick={() => navigate("/checkout")} disabled={loading}>
+            <button
+              type="button"
+              className="auth-ghost"
+              onClick={() => navigate("/checkout")}
+              disabled={loading}
+            >
               Continue as guest
             </button>
+
+            <p className="auth-terms-note">
+              By continuing, you agree to the Beme Market{" "}
+              <Link className="auth-link" to="/terms">Terms of Use</Link> and{" "}
+              <Link className="auth-link" to="/privacy">Privacy Policy</Link>.
+              Standard message and data rates may apply.
+            </p>
           </form>
 
+          {/* ── Newsletter ── */}
           <section className="auth-news">
             <span className="auth-news-eyebrow">Offers and deals</span>
             <h2 className="auth-news-title">Sign up and save</h2>
@@ -251,18 +228,25 @@ export default function Signup() {
               once-in-a-lifetime deals.
             </p>
             <div className="auth-news-row">
-              <input className="auth-news-input" placeholder="Enter your email"
-                type="email" value={newsEmail}
+              <input
+                className="auth-news-input"
+                placeholder="Enter your email"
+                type="email"
+                value={newsEmail}
                 onChange={(e) => setNewsEmail(e.target.value)}
-                disabled={newsLoading} />
-              <button className="auth-news-btn" type="button"
-                aria-label="Subscribe" onClick={onSubscribe}
-                disabled={newsLoading}>
+                disabled={newsLoading}
+              />
+              <button
+                className="auth-news-btn"
+                type="button"
+                aria-label="Subscribe"
+                onClick={onSubscribe}
+                disabled={newsLoading}
+              >
                 {newsLoading ? <Spinner /> : (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" strokeWidth="2.5"
-                    strokeLinecap="round" strokeLinejoin="round"
-                    aria-hidden="true">
+                    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
                 )}
@@ -271,7 +255,7 @@ export default function Signup() {
             {newsErr && <div className="auth-alert auth-alert--error-dark" role="alert">{newsErr}</div>}
             {newsMsg && <div className="auth-alert auth-alert--ok-dark"    role="status">{newsMsg}</div>}
             <div className="auth-pay-row" aria-hidden="true">
-              {["VISA","MC","AMEX","APPLE PAY","PAYSTACK"].map((t,i) => (
+              {["VISA", "MC", "AMEX", "APPLE PAY", "PAYSTACK"].map((t, i) => (
                 <div className="auth-pay" key={i}>{t}</div>
               ))}
             </div>
