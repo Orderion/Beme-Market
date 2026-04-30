@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, getDocs, limit, query, where } from "firebase/firestore";
+import { collection, getDocs, limit, query } from "firebase/firestore";
 import { db } from "../firebase";
 import ProductGrid from "../components/ProductGrid";
 import ShopCarousel from "../components/ShopCarousel";
@@ -338,16 +338,17 @@ export default function Home() {
   const continueText = config?.continueText  || { heading: "Continue shopping",  seeAllText: "See all"      };
 
   /* ── Load products for search suggestions ── */
+  /* FIX: removed where("isCustomRequest", "!=", true) — Firestore's != operator
+     silently drops documents where the field doesn't exist, which excluded ALL
+     regular products (none of which have the isCustomRequest field). Privacy for
+     custom-request products is enforced at the product detail page level instead. */
   useEffect(() => {
     let alive = true;
     async function load() {
       setLoadingSuggestions(true);
       try {
-        // ✅ FIX: filter out custom-request products so Firestore
-        // can verify every returned doc passes the security rule.
         const qRef = query(
           collection(db, COLLECTION_NAME),
-          where("isCustomRequest", "!=", true),
           limit(SEARCH_PREVIEW_LIMIT)
         );
         const snap = await getDocs(qRef);
