@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import "./Login.css";
 
@@ -31,7 +31,6 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = RESET_TIMEOUT_MS)
   }
 }
 
-/* ─── Icons ─────────────────────────────────── */
 function EyeIcon({ open }) {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -43,6 +42,7 @@ function EyeIcon({ open }) {
     </svg>
   );
 }
+
 function CheckIcon() {
   return (
     <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
@@ -52,31 +52,10 @@ function CheckIcon() {
   );
 }
 
-/* ─── Per-letter wave component ─────────────── */
-function WaveText({ text, className = "", baseDelay = 0, step = 0.056 }) {
-  return (
-    <span className={className} aria-hidden="true">
-      {text.split("").map((ch, i) => (
-        <span
-          key={i}
-          className="auth-letter"
-          style={{ animationDelay: `${(baseDelay + i * step).toFixed(3)}s` }}
-        >
-          {ch === " " ? "\u00A0" : ch}
-        </span>
-      ))}
-    </span>
-  );
-}
-
-/* ─── Button spinner ─────────────────────────── */
 function Spinner() {
   return <span className="auth-spinner" aria-hidden="true" />;
 }
 
-/* ═══════════════════════════════════════════════
-   LOGIN PAGE
-═══════════════════════════════════════════════ */
 export default function Login() {
   const navigate  = useNavigate();
   const location  = useLocation();
@@ -104,7 +83,6 @@ export default function Login() {
     return rem > 0 ? Math.ceil(rem / 1000) : 0;
   }, [lastResetAt]);
 
-  /* submit */
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr(""); setMsg("");
@@ -114,13 +92,22 @@ export default function Login() {
     if (!isValidEmail(emailTrim))    { setErr("Enter a valid email address.");   return; }
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, emailTrim, passwordTrim);
+      const cred = await signInWithEmailAndPassword(auth, emailTrim, passwordTrim);
+      try {
+        const userSnap = await getDoc(doc(db, "users", cred.user.uid));
+        if (!userSnap.exists() || !userSnap.data()?.onboardingComplete) {
+          navigate("/onboarding", { replace: true });
+          return;
+        }
+      } catch (_) { /* safe to continue */ }
       navigate(redirectTo, { replace: true });
     } catch (e) {
       const code = e?.code || "";
-      if (code.includes("auth/invalid-credential") ||
-          code.includes("auth/user-not-found") ||
-          code.includes("auth/wrong-password"))
+      if (
+        code.includes("auth/invalid-credential") ||
+        code.includes("auth/user-not-found") ||
+        code.includes("auth/wrong-password")
+      )
         setErr("Invalid email or password.");
       else if (code.includes("auth/invalid-email"))
         setErr("Invalid email address.");
@@ -131,7 +118,6 @@ export default function Login() {
     } finally { setLoading(false); }
   };
 
-  /* forgot */
   const onForgot = async () => {
     if (loading || resetLoading) return;
     setErr(""); setMsg("");
@@ -147,23 +133,27 @@ export default function Login() {
     try {
       const response = await fetchWithTimeout(
         `${getApiBaseUrl()}/api/auth/forgot-password`,
-        { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: emailTrim }) }
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: emailTrim }),
+        }
       );
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data?.message || "Could not send reset email.");
       setLastResetAt(Date.now());
-      setMsg(data?.message ||
-        "If an account exists for this email, a password reset link has been sent.");
+      setMsg(
+        data?.message ||
+        "If an account exists for this email, a password reset link has been sent."
+      );
     } catch (e) {
       if (e?.name === "AbortError")
-        setErr("Reset request timed out. Check your backend SMTP settings or Render logs.");
+        setErr("Reset request timed out.");
       else
         setErr(e?.message || "Could not send reset email. Try again.");
     } finally { setResetLoading(false); }
   };
 
-  /* newsletter */
   const onSubscribe = async () => {
     setNewsErr(""); setNewsMsg("");
     const emailTrim = normalizeEmail(newsEmail);
@@ -185,87 +175,33 @@ export default function Login() {
 
   return (
     <div className="auth-page">
+
+      {/* ── Promo banner ── */}
       <div className="auth-banner">
         Get 10% discount on any product above GHS 1,000
       </div>
 
       <div className="auth-wrap">
 
-        {/* ══ HERO — beam · flare · wave text (no lock) ══ */}
-        <div className="auth-grad">
-          <div className="auth-grad-bg" />
-
-          <svg className="auth-dot-grid" aria-hidden="true"
-            xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="auth-dots-l" width="22" height="22"
-                patternUnits="userSpaceOnUse">
-                <circle cx="1.5" cy="1.5" r="1.2"
-                  fill="var(--grtheme,#FF6600)" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#auth-dots-l)" />
-          </svg>
-
-          {/* diagonal beam */}
-          <div className="auth-beam" aria-hidden="true">
-            <div className="auth-beam-core" />
-            <div className="auth-beam-glow" />
-          </div>
-
-          {/* lens flare */}
-          <div className="auth-flare" aria-hidden="true">
-            <div className="auth-flare-ring auth-flare-ring--1" />
-            <div className="auth-flare-ring auth-flare-ring--2" />
-            <div className="auth-flare-ring auth-flare-ring--3" />
-            <div className="auth-flare-core" />
-            <div className="auth-flare-outer" />
-            <div className="auth-streak auth-streak--hr" />
-            <div className="auth-streak auth-streak--hl" />
-            <div className="auth-streak auth-streak--vt" />
-            <div className="auth-streak auth-streak--vb" />
-            <div className="auth-streak auth-streak--d1" />
-            <div className="auth-streak auth-streak--d2" />
-            <div className="auth-streak auth-streak--d3" />
-            <div className="auth-streak auth-streak--d4" />
-          </div>
-
-          {/* ambient dots */}
-          <div className="auth-orb auth-orb--1" aria-hidden="true" />
-          <div className="auth-orb auth-orb--2" aria-hidden="true" />
-          <div className="auth-orb auth-orb--3" aria-hidden="true" />
-
-          {/* forgot password */}
-          <button
-            type="button"
-            className="auth-grad-forgot"
-            onClick={onForgot}
-            disabled={loading || resetLoading}
-          >
-            {resetLoading ? "Sending..."
-              : resetCooldownLeft > 0 ? `Retry in ${resetCooldownLeft}s`
-              : "Forgot Password?"}
-          </button>
-
-          {/* letter-wave text */}
-          <div className="auth-hero-text">
-            <p className="sr-only">Welcome to Beme Market</p>
-            <span className="auth-hero-eyebrow" aria-hidden="true">Hello there</span>
-
-            <div className="auth-hero-line" role="presentation">
-              <WaveText text="Welcome" className="auth-word-plain"  baseDelay={0.78} />
-            </div>
-            <div className="auth-hero-line" role="presentation">
-              <WaveText text="to Beme" className="auth-word-grad1" baseDelay={1.22} />
-            </div>
-            <div className="auth-hero-line" role="presentation">
-              <WaveText text="Market"  className="auth-word-grad2" baseDelay={1.65} />
-            </div>
-            <span className="auth-hero-underline" aria-hidden="true" />
-          </div>
+        {/* ── Brand ── */}
+        <div className="auth-brand">
+          <h1 className="auth-brand-name">Beme Market</h1>
+          <p className="auth-brand-tagline">
+            Want 10% off your first purchase? Sign in to unlock!
+          </p>
         </div>
 
-        {/* ══ Form body ══ */}
+        {/* ── Tabs ── */}
+        <div className="auth-tabs">
+          <button type="button" className="auth-tab auth-tab--active">
+            Log In
+          </button>
+          <Link to="/signup" className="auth-tab">
+            Sign Up
+          </Link>
+        </div>
+
+        {/* ── Form + newsletter ── */}
         <div className="auth-body">
           <form className="auth-card" onSubmit={onSubmit} noValidate>
 
@@ -273,10 +209,16 @@ export default function Login() {
               <label className="auth-field-label" htmlFor="auth-email">
                 Email Address
               </label>
-              <input id="auth-email" className="auth-input" type="email"
-                placeholder="your@email.com" value={email}
+              <input
+                id="auth-email"
+                className="auth-input"
+                type="email"
+                placeholder="your@email.com"
+                value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email" disabled={loading || resetLoading} />
+                autoComplete="email"
+                disabled={loading || resetLoading}
+              />
             </div>
 
             <div className="auth-field">
@@ -284,35 +226,63 @@ export default function Login() {
                 Password
               </label>
               <div className="auth-pass-wrap">
-                <input id="auth-pass" className="auth-input"
+                <input
+                  id="auth-pass"
+                  className="auth-input"
                   type={showPass ? "text" : "password"}
-                  placeholder="* * * * * * * *" value={password}
+                  placeholder="Enter your password"
+                  value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
-                  disabled={loading || resetLoading} />
-                <button type="button" className="auth-eye"
+                  disabled={loading || resetLoading}
+                />
+                <button
+                  type="button"
+                  className="auth-eye"
                   onClick={() => setShowPass((v) => !v)}
-                  aria-label={showPass ? "Hide password" : "Show password"}>
+                  aria-label={showPass ? "Hide password" : "Show password"}
+                >
                   <EyeIcon open={showPass} />
                 </button>
               </div>
             </div>
 
-            <div className="auth-check-row">
-              <button type="button"
-                className={`auth-checkbox ${rememberMe ? "auth-checkbox--on" : ""}`}
-                onClick={() => setRememberMe((v) => !v)}
-                aria-pressed={rememberMe} aria-label="Remember me next time">
-                {rememberMe && <CheckIcon />}
+            {/* Remember me + forgot password on same row */}
+            <div className="auth-row-between">
+              <div className="auth-check-row">
+                <button
+                  type="button"
+                  className={`auth-checkbox ${rememberMe ? "auth-checkbox--on" : ""}`}
+                  onClick={() => setRememberMe((v) => !v)}
+                  aria-pressed={rememberMe}
+                  aria-label="Remember me"
+                >
+                  {rememberMe && <CheckIcon />}
+                </button>
+                <span className="auth-check-label">Remember me</span>
+              </div>
+              <button
+                type="button"
+                className="auth-forgot-inline"
+                onClick={onForgot}
+                disabled={loading || resetLoading}
+              >
+                {resetLoading
+                  ? "Sending..."
+                  : resetCooldownLeft > 0
+                  ? `Retry in ${resetCooldownLeft}s`
+                  : "Forgot password?"}
               </button>
-              <span className="auth-check-label">Remember me next time</span>
             </div>
 
             {err && <div className="auth-alert auth-alert--error" role="alert">{err}</div>}
             {msg && <div className="auth-alert auth-alert--ok"    role="status">{msg}</div>}
 
-            <button className="auth-cta" type="submit"
-              disabled={loading || resetLoading}>
+            <button
+              className="auth-cta"
+              type="submit"
+              disabled={loading || resetLoading}
+            >
               {loading ? <><Spinner /> Signing in...</> : "Log in"}
             </button>
 
@@ -325,14 +295,23 @@ export default function Login() {
 
             <div className="auth-divider"><span>or</span></div>
 
-            <button type="button" className="auth-ghost"
+            <button
+              type="button"
+              className="auth-ghost"
               onClick={() => navigate("/checkout")}
-              disabled={loading || resetLoading}>
+              disabled={loading || resetLoading}
+            >
               Continue as guest
             </button>
+
+            <p className="auth-terms-note">
+              By continuing, you agree to the Beme Market{" "}
+              <Link className="auth-link" to="/terms">Terms of Use</Link> and{" "}
+              <Link className="auth-link" to="/privacy">Privacy Policy</Link>.
+            </p>
           </form>
 
-          {/* newsletter */}
+          {/* ── Newsletter ── */}
           <section className="auth-news">
             <span className="auth-news-eyebrow">Offers and deals</span>
             <h2 className="auth-news-title">Sign up and save</h2>
@@ -341,18 +320,25 @@ export default function Login() {
               once-in-a-lifetime deals.
             </p>
             <div className="auth-news-row">
-              <input className="auth-news-input" placeholder="Enter your email"
-                type="email" value={newsEmail}
+              <input
+                className="auth-news-input"
+                placeholder="Enter your email"
+                type="email"
+                value={newsEmail}
                 onChange={(e) => setNewsEmail(e.target.value)}
-                disabled={newsLoading} />
-              <button className="auth-news-btn" type="button"
-                aria-label="Subscribe" onClick={onSubscribe}
-                disabled={newsLoading}>
+                disabled={newsLoading}
+              />
+              <button
+                className="auth-news-btn"
+                type="button"
+                aria-label="Subscribe"
+                onClick={onSubscribe}
+                disabled={newsLoading}
+              >
                 {newsLoading ? <Spinner /> : (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" strokeWidth="2.5"
-                    strokeLinecap="round" strokeLinejoin="round"
-                    aria-hidden="true">
+                    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
                 )}
@@ -361,7 +347,7 @@ export default function Login() {
             {newsErr && <div className="auth-alert auth-alert--error-dark" role="alert">{newsErr}</div>}
             {newsMsg && <div className="auth-alert auth-alert--ok-dark"    role="status">{newsMsg}</div>}
             <div className="auth-pay-row" aria-hidden="true">
-              {["VISA","MC","AMEX","APPLE PAY","PAYSTACK"].map((t,i) => (
+              {["VISA", "MC", "AMEX", "APPLE PAY", "PAYSTACK"].map((t, i) => (
                 <div className="auth-pay" key={i}>{t}</div>
               ))}
             </div>
