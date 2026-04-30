@@ -1,0 +1,460 @@
+/* ================================================================
+   ONBOARDING — Onboarding.css
+   Matches Login.css design language exactly.
+   Uses global CSS variables from globals.css / theme.
+================================================================ */
+
+/* ── page shell ── */
+.ob-page {
+  min-height: 100vh;
+  background: var(--bg, #FFFDF8);
+  color: var(--text, #111);
+}
+
+/* ── banner ── */
+.ob-banner {
+  background: var(--text, #111);
+  color: var(--button-text, #fff);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-main, "Manrope", sans-serif);
+  letter-spacing: 0.02em;
+  padding: 11px 16px;
+}
+
+/* ── outer wrapper ── */
+.ob-wrap {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 28px 20px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ================================================================
+   PROGRESS BAR
+================================================================ */
+.ob-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.ob-progress-track {
+  flex: 1;
+  height: 5px;
+  background: rgba(17,17,17,0.08);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+body.dark .ob-progress-track {
+  background: rgba(255,255,255,0.1);
+}
+
+.ob-progress-fill {
+  height: 100%;
+  background: var(--grtheme, #FF6600);
+  border-radius: 99px;
+  transition: width 0.4s cubic-bezier(0.22,1,0.36,1);
+}
+
+.ob-progress-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted, rgba(17,17,17,0.45));
+  font-family: var(--font-main, "Manrope", sans-serif);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ================================================================
+   CARD
+================================================================ */
+.ob-card {
+  background: var(--card, #fff);
+  border-radius: 24px;
+  border: 1.5px solid rgba(17,17,17,0.07);
+  padding: 26px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: var(--shadow, 0 4px 28px rgba(17,17,17,0.05));
+}
+
+body.dark .ob-card {
+  border-color: rgba(255,255,255,0.08);
+}
+
+/* ── card header ── */
+.ob-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ob-step-eyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--grtheme, #FF6600);
+  font-family: var(--font-main, "Manrope", sans-serif);
+}
+
+.ob-question {
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text, #111);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.ob-hint {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--muted, rgba(17,17,17,0.55));
+  font-family: var(--font-main, "Manrope", sans-serif);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ================================================================
+   STEP 1 — NAME INPUT
+================================================================ */
+.ob-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+}
+
+.ob-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted, rgba(17,17,17,0.55));
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-family: var(--font-main, "Manrope", sans-serif);
+}
+
+.ob-input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(17,17,17,0.09);
+  background: var(--bg, #FFFDF8);
+  color: var(--text, #111);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--font-main, "Manrope", sans-serif);
+  outline: none;
+  -webkit-appearance: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+body.dark .ob-input {
+  border-color: rgba(255,255,255,0.1);
+  background: var(--soft, #1e1e1e);
+}
+
+.ob-input:focus {
+  border-color: var(--grtheme, #FF6600);
+  box-shadow: 0 0 0 3px rgba(255,102,0,0.10);
+}
+
+body.dark .ob-input:focus {
+  box-shadow: 0 0 0 3px rgba(255,102,0,0.14);
+}
+
+.ob-input::placeholder {
+  color: var(--muted, #aaa);
+  opacity: 0.7;
+  font-weight: 400;
+}
+
+.ob-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ob-char-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted, rgba(17,17,17,0.35));
+  font-family: var(--font-main, "Manrope", sans-serif);
+  text-align: right;
+  margin-top: 2px;
+}
+
+/* ================================================================
+   STEP 2 — AGE PILLS
+================================================================ */
+.ob-options--age {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ob-option-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 20px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(17,17,17,0.10);
+  background: transparent;
+  color: var(--text, #111);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-main, "Manrope", sans-serif);
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s, color 0.18s, box-shadow 0.18s;
+}
+
+body.dark .ob-option-pill {
+  border-color: rgba(255,255,255,0.12);
+}
+
+.ob-option-pill:hover:not(.ob-option-pill--on) {
+  border-color: rgba(17,17,17,0.22);
+  background: rgba(17,17,17,0.03);
+}
+
+body.dark .ob-option-pill:hover:not(.ob-option-pill--on) {
+  border-color: rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.04);
+}
+
+.ob-option-pill--on {
+  background: var(--grtheme, #FF6600);
+  border-color: var(--grtheme, #FF6600);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(255,102,0,0.28);
+}
+
+.ob-pill-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ================================================================
+   STEP 3 — SHOPPING PREFERENCE GRID
+================================================================ */
+.ob-options--grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.ob-option-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px 14px;
+  border-radius: 18px;
+  border: 1.5px solid rgba(17,17,17,0.08);
+  background: transparent;
+  color: var(--text, #111);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+}
+
+body.dark .ob-option-card {
+  border-color: rgba(255,255,255,0.10);
+}
+
+.ob-option-card:hover:not(.ob-option-card--on) {
+  border-color: rgba(17,17,17,0.18);
+  background: rgba(17,17,17,0.02);
+}
+
+body.dark .ob-option-card:hover:not(.ob-option-card--on) {
+  background: rgba(255,255,255,0.03);
+}
+
+.ob-option-card--on {
+  border-color: var(--grtheme, #FF6600);
+  background: rgba(255,102,0,0.05);
+  box-shadow: 0 0 0 1px var(--grtheme, #FF6600);
+}
+
+body.dark .ob-option-card--on {
+  background: rgba(255,102,0,0.08);
+}
+
+.ob-card-emoji {
+  font-size: 26px;
+  line-height: 1;
+  display: block;
+}
+
+.ob-card-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text, #111);
+  font-family: var(--font-main, "Manrope", sans-serif);
+  line-height: 1.2;
+}
+
+/* tick badge on selected cards */
+.ob-card-tick {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--grtheme, #FF6600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ================================================================
+   ALERTS
+================================================================ */
+.ob-alert {
+  padding: 11px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  font-family: var(--font-main, "Manrope", sans-serif);
+}
+
+.ob-alert--error {
+  background: rgba(220,38,38,0.07);
+  border: 1px solid rgba(220,38,38,0.14);
+  color: #991b1b;
+}
+
+body.dark .ob-alert--error {
+  background: rgba(220,38,38,0.15);
+  color: #fca5a5;
+}
+
+/* ================================================================
+   BUTTONS
+================================================================ */
+/* primary CTA */
+.ob-cta {
+  width: 100%;
+  padding: 15px 20px;
+  border-radius: 16px;
+  background: var(--grtheme, #FF6600);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  font-family: var(--font-main, "Manrope", sans-serif);
+  letter-spacing: -0.01em;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 4px 18px rgba(255,102,0,0.24);
+  transition: opacity 0.18s, transform 0.18s, box-shadow 0.18s;
+}
+
+.ob-cta--flex {
+  width: auto;
+  flex: 1;
+}
+
+.ob-cta:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ob-cta:not(:disabled):hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 26px rgba(255,102,0,0.32);
+}
+
+.ob-cta:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+/* back button */
+.ob-back {
+  padding: 15px 20px;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text, #111);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font-main, "Manrope", sans-serif);
+  border: 1.5px solid rgba(17,17,17,0.12);
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s;
+  white-space: nowrap;
+}
+
+body.dark .ob-back {
+  border-color: rgba(255,255,255,0.12);
+}
+
+.ob-back:hover {
+  background: rgba(17,17,17,0.04);
+  border-color: rgba(17,17,17,0.20);
+}
+
+body.dark .ob-back:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+.ob-back:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* back + cta on same row */
+.ob-btn-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ================================================================
+   SPINNER
+================================================================ */
+@keyframes ob-spin { to { transform: rotate(360deg); } }
+
+.ob-spinner {
+  display: inline-block;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(255,255,255,0.28);
+  border-top-color: #fff;
+  flex-shrink: 0;
+  animation: ob-spin 0.72s linear infinite;
+}
+
+/* ================================================================
+   MOBILE
+================================================================ */
+@media (max-width: 480px) {
+  .ob-wrap         { padding: 22px 14px 56px; }
+  .ob-card         { padding: 22px 16px; gap: 16px; }
+  .ob-question     { font-size: 21px; }
+  .ob-cta          { padding: 14px 18px; font-size: 14px; }
+  .ob-back         { padding: 14px 16px; font-size: 13px; }
+  .ob-options--grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ob-card-emoji   { font-size: 22px; }
+  .ob-card-label   { font-size: 12px; }
+}
