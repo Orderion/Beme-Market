@@ -168,6 +168,8 @@ input, select, textarea {
   border-radius: 14px;
   padding: 10px 12px;
   outline: none;
+  /* iOS Safari auto-zoom fix: font-size must be >= 16px to prevent zoom on focus */
+  font-size: 16px;
   transition: border-color var(--motion-fast) var(--response-delay),
               transform var(--motion-fast) var(--response-delay),
               background var(--motion-smooth) var(--response-delay),
