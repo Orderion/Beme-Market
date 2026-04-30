@@ -30,6 +30,7 @@ import FlashDeals from "./pages/FlashDeals";
 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import Onboarding from "./pages/Onboarding";   // ← NEW
 import AdminLogin from "./pages/AdminLogin";
 
 import Admin from "./pages/Admin";
@@ -65,7 +66,7 @@ import {
   ContactUs,
 } from "./pages/AccountSubPages";
 
-/* ── NEW: Product Request Pages ── */
+/* ── Product Request Pages ── */
 import UserRequests from "./pages/UserRequests";
 import ProductRequests from "./pages/ProductRequests";
 
@@ -90,8 +91,13 @@ function AppShell() {
   const [cartOpen, setCartOpen] = useState(false);
   const [routeLoading, setRouteLoading] = useState(false);
 
+  /*
+   * Routes where the global header, footer and bottom nav are hidden.
+   * /onboarding is added here so the questionnaire is a clean full-screen
+   * experience with no navigation chrome around it.
+   */
   const hideHeaderRoutes = useMemo(
-    () => new Set(["/login", "/signup", "/admin-login"]),
+    () => new Set(["/login", "/signup", "/admin-login", "/onboarding"]),
     []
   );
 
@@ -149,21 +155,20 @@ function AppShell() {
           <Route path="/orders" element={<Orders />} />
 
           {/* AUTH */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          <Route path="/login"      element={<Login />}      />
+          <Route path="/signup"     element={<Signup />}     />
+          <Route path="/onboarding" element={<Onboarding />} />  {/* ← NEW */}
           <Route path="/admin-login" element={<AdminLogin />} />
 
           {/* ACCOUNT */}
-          <Route path="/account" element={<Account />} />
-          <Route path="/account/manage" element={<ManageAccount />} />
-          <Route path="/account/payments" element={<PaymentMethods hasCompletedOrder={false} />} />
+          <Route path="/account"               element={<Account />} />
+          <Route path="/account/manage"        element={<ManageAccount />} />
+          <Route path="/account/payments"      element={<PaymentMethods hasCompletedOrder={false} />} />
           <Route path="/account/notifications" element={<Notifications />} />
-          <Route path="/account/help" element={<HelpSupport />} />
-          <Route path="/account/contact" element={<ContactUs />} />
-          <Route path="/saved" element={<SavedItems />} />
-
-          {/* ── User product requests ── */}
-          <Route path="/account/requests" element={<UserRequests />} />
+          <Route path="/account/help"          element={<HelpSupport />} />
+          <Route path="/account/contact"       element={<ContactUs />} />
+          <Route path="/saved"                 element={<SavedItems />} />
+          <Route path="/account/requests"      element={<UserRequests />} />
 
           {/* ADMIN */}
           <Route
@@ -255,7 +260,7 @@ function AppShell() {
             }
           />
 
-          {/* ── Admin product requests panel ── */}
+          {/* Admin product requests panel */}
           <Route
             path="/admin/product-requests"
             element={
@@ -267,7 +272,7 @@ function AppShell() {
             }
           />
 
-          {/* ── Media Manager ── */}
+          {/* Media Manager */}
           <Route
             path="/admin/media"
             element={
