@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, getDocs, limit, query } from "firebase/firestore";
+import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import { db } from "../firebase";
 import ProductGrid from "../components/ProductGrid";
 import ShopCarousel from "../components/ShopCarousel";
@@ -343,7 +343,13 @@ export default function Home() {
     async function load() {
       setLoadingSuggestions(true);
       try {
-        const qRef = query(collection(db, COLLECTION_NAME), limit(SEARCH_PREVIEW_LIMIT));
+        // ✅ FIX: filter out custom-request products so Firestore
+        // can verify every returned doc passes the security rule.
+        const qRef = query(
+          collection(db, COLLECTION_NAME),
+          where("isCustomRequest", "!=", true),
+          limit(SEARCH_PREVIEW_LIMIT)
+        );
         const snap = await getDocs(qRef);
         if (!alive) return;
         setProducts(snap.docs.map(normalizeProduct));
