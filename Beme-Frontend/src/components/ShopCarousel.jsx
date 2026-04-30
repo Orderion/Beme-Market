@@ -1,6 +1,9 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import "./ShopCarousel.css";
 
+/* ════════════════════════════════════════════════════════════════════
+   ICON — Heart
+   ════════════════════════════════════════════════════════════════════ */
 function IconHeart({ filled }) {
   return (
     <svg viewBox="0 0 24 24" className="sc-heart-svg">
@@ -15,11 +18,10 @@ function IconHeart({ filled }) {
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   KENTE — multi-directional slim lines: horizontal, vertical, diagonal.
+   KENTE — multi-directional slim lines
    ════════════════════════════════════════════════════════════════════ */
 function KenteSVG() {
   const W = 420, H = 190;
-
   const hLines = [
     { y: 22,  color: "#CC0000", delay: "0s",    period: 28, amp: 4 },
     { y: 50,  color: "#FFD700", delay: "0.10s", period: 20, amp: 3 },
@@ -28,71 +30,33 @@ function KenteSVG() {
     { y: 140, color: "#FFD700", delay: "0.18s", period: 28, amp: 4 },
     { y: 168, color: "#006B3F", delay: "0.14s", period: 20, amp: 3 },
   ];
-
   const vLines = [
     { x: 70,  color: "#FFD700", delay: "0.12s", period: 22, amp: 3 },
     { x: 160, color: "#CC0000", delay: "0.26s", period: 26, amp: 4 },
     { x: 260, color: "#006B3F", delay: "0.38s", period: 22, amp: 3 },
     { x: 355, color: "#FFD700", delay: "0.20s", period: 26, amp: 4 },
   ];
-
   const dLines = [
     { d: "M -10,38 L 310,190",  color: "#CC0000", delay: "0.30s" },
     { d: "M 115,0 L 430,155",   color: "#006B3F", delay: "0.44s" },
     { d: "M 0,132 L 205,0",     color: "#FFD700", delay: "0.36s" },
     { d: "M 220,190 L 420,82",  color: "#CC0000", delay: "0.52s" },
   ];
-
   const buildH = ({ y, period, amp }) => {
-    let d = `M 0 ${y}`;
-    let x = 0; let up = true;
-    const hp = period / 2;
-    while (x < W) {
-      const cx = x + hp / 2;
-      const cy = up ? y - amp : y + amp;
-      const ex = Math.min(x + hp, W);
-      d += ` Q ${cx},${cy} ${ex},${y}`;
-      x = ex; up = !up;
-    }
+    let d = `M 0 ${y}`; let x = 0; let up = true; const hp = period / 2;
+    while (x < W) { const cx = x + hp / 2; const cy = up ? y - amp : y + amp; const ex = Math.min(x + hp, W); d += ` Q ${cx},${cy} ${ex},${y}`; x = ex; up = !up; }
     return d;
   };
-
   const buildV = ({ x, period, amp }) => {
-    let d = `M ${x} 0`;
-    let y = 0; let right = true;
-    const hp = period / 2;
-    while (y < H) {
-      const cy = y + hp / 2;
-      const cx = right ? x + amp : x - amp;
-      const ey = Math.min(y + hp, H);
-      d += ` Q ${cx},${cy} ${x},${ey}`;
-      y = ey; right = !right;
-    }
+    let d = `M ${x} 0`; let y = 0; let right = true; const hp = period / 2;
+    while (y < H) { const cy = y + hp / 2; const cx = right ? x + amp : x - amp; const ey = Math.min(y + hp, H); d += ` Q ${cx},${cy} ${x},${ey}`; y = ey; right = !right; }
     return d;
   };
-
   return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="none"
-      className="sc-kente-svg"
-      aria-hidden="true"
-    >
-      {hLines.map((s, i) => (
-        <path key={`h${i}`} d={buildH(s)} stroke={s.color} strokeWidth="1.8"
-          fill="none" strokeOpacity="0.65" strokeLinecap="round"
-          className="sc-kente-path" style={{ animationDelay: s.delay }} />
-      ))}
-      {vLines.map((s, i) => (
-        <path key={`v${i}`} d={buildV(s)} stroke={s.color} strokeWidth="1.5"
-          fill="none" strokeOpacity="0.55" strokeLinecap="round"
-          className="sc-kente-path" style={{ animationDelay: s.delay }} />
-      ))}
-      {dLines.map((s, i) => (
-        <path key={`d${i}`} d={s.d} stroke={s.color} strokeWidth="1.4"
-          fill="none" strokeOpacity="0.45" strokeLinecap="round"
-          className="sc-kente-path" style={{ animationDelay: s.delay }} />
-      ))}
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="sc-kente-svg" aria-hidden="true">
+      {hLines.map((s, i) => (<path key={`h${i}`} d={buildH(s)} stroke={s.color} strokeWidth="1.8" fill="none" strokeOpacity="0.65" strokeLinecap="round" className="sc-kente-path" style={{ animationDelay: s.delay }} />))}
+      {vLines.map((s, i) => (<path key={`v${i}`} d={buildV(s)} stroke={s.color} strokeWidth="1.5" fill="none" strokeOpacity="0.55" strokeLinecap="round" className="sc-kente-path" style={{ animationDelay: s.delay }} />))}
+      {dLines.map((s, i) => (<path key={`d${i}`} d={s.d} stroke={s.color} strokeWidth="1.4" fill="none" strokeOpacity="0.45" strokeLinecap="round" className="sc-kente-path" style={{ animationDelay: s.delay }} />))}
     </svg>
   );
 }
@@ -121,11 +85,7 @@ function StampOverlay() {
             <span className="sc-stamp-top">DEALS UP TO</span>
             <div className="sc-stamp-counter-clip">
               <div className="sc-stamp-counter">
-                <span>0%</span>
-                <span>25%</span>
-                <span>50%</span>
-                <span>75%</span>
-                <span>100%</span>
+                <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
               </div>
             </div>
             <span className="sc-stamp-star">★ OFF ★</span>
@@ -178,19 +138,36 @@ const THEME_BG = {
   none:        "#1a1a2e",
 };
 
-export default function ShopCarousel({ shops = [] }) {
+/* ════════════════════════════════════════════════════════════════════
+   MAIN COMPONENT
+   Props:
+     shops      — array of shop objects (from admin / Firestore)
+     autoPlay   — boolean (default true). Pass false in admin preview.
+     interval   — ms between auto-advances (default 3500)
+   ════════════════════════════════════════════════════════════════════ */
+export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3500 }) {
   const [saved,       setSaved]       = useState({});
   const [activeIndex, setActiveIndex] = useState(0);
   const [animKeys,    setAnimKeys]    = useState({ 0: 1 });
 
-  const trackRef   = useRef(null);
-  const prevActive = useRef(0);
+  const trackRef      = useRef(null);
+  const prevActive    = useRef(0);
+  const autoPlayTimer = useRef(null);
+  const pauseTimer    = useRef(null);
+  const isPaused      = useRef(false);
 
-  const toggleSave = (e, id) => {
-    e.stopPropagation();
-    setSaved((p) => ({ ...p, [id]: !p[id] }));
-  };
+  /* ── Scroll a specific index into view ── */
+  const scrollTo = useCallback((idx) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const card = el.querySelector(".sc-card-wrap");
+    if (!card) return;
+    const cardW = card.offsetWidth;
+    const gap   = 12; // must match CSS gap
+    el.scrollTo({ left: idx * (cardW + gap), behavior: "smooth" });
+  }, []);
 
+  /* ── Active-index detection on manual scroll ── */
   const onScroll = useCallback(() => {
     const el = trackRef.current;
     if (!el) return;
@@ -209,29 +186,74 @@ export default function ShopCarousel({ shops = [] }) {
     }
   }, []);
 
-  const scrollTo = (idx) => {
-    const el = trackRef.current;
-    if (!el) return;
-    const card = el.querySelector(".sc-card-wrap");
-    if (!card) return;
-    el.scrollTo({ left: idx * (card.offsetWidth + 16), behavior: "smooth" });
+  /* ── Auto-play ── */
+  const startAutoPlay = useCallback(() => {
+    if (!autoPlay || shops.length <= 1) return;
+    clearInterval(autoPlayTimer.current);
+    autoPlayTimer.current = setInterval(() => {
+      if (isPaused.current) return;
+      setActiveIndex((prev) => {
+        const next = (prev + 1) % shops.length;
+        prevActive.current = next;
+        setAnimKeys((k) => ({ ...k, [next]: (k[next] || 0) + 1 }));
+        // Use rAF so state is committed before we scroll
+        requestAnimationFrame(() => scrollTo(next));
+        return next;
+      });
+    }, interval);
+  }, [autoPlay, shops.length, interval, scrollTo]);
+
+  useEffect(() => {
+    startAutoPlay();
+    return () => {
+      clearInterval(autoPlayTimer.current);
+      clearTimeout(pauseTimer.current);
+    };
+  }, [startAutoPlay]);
+
+  /* ── Pause on touch / pointer, resume after 6 s of inactivity ── */
+  const pauseAutoPlay = useCallback(() => {
+    isPaused.current = true;
+    clearTimeout(pauseTimer.current);
+    pauseTimer.current = setTimeout(() => { isPaused.current = false; }, 6000);
+  }, []);
+
+  /* ── Dot click: pause + jump ── */
+  const handleDotClick = useCallback((idx) => {
+    pauseAutoPlay();
+    scrollTo(idx);
+  }, [pauseAutoPlay, scrollTo]);
+
+  const toggleSave = (e, id) => {
+    e.stopPropagation();
+    setSaved((p) => ({ ...p, [id]: !p[id] }));
   };
 
   if (!shops.length) return null;
 
+  /* Active shops only, sorted by order */
+  const activeShops = [...shops]
+    .filter((s) => s.active !== false)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+  if (!activeShops.length) return null;
+
   return (
     <div className="sc-root">
-      <div ref={trackRef} className="sc-track" onScroll={onScroll}>
-        {shops.map((shop, i) => {
+      {/* ── Track ── */}
+      <div
+        ref={trackRef}
+        className="sc-track"
+        onScroll={onScroll}
+        onTouchStart={pauseAutoPlay}
+        onMouseDown={pauseAutoPlay}
+      >
+        {activeShops.map((shop, i) => {
           const theme    = shop.theme || "none";
           const isActive = i === activeIndex;
           const animKey  = animKeys[i] || 0;
-
-          /* Per-card bg: admin-set custom colour takes priority, then theme default */
-          const cardBg = shop.cardBg || THEME_BG[theme] || "#1E3D2A";
-
-          /* Per-card button text */
-          const btnText = shop.buttonText || "Shop Now";
+          const cardBg   = shop.cardBg || THEME_BG[theme] || "#1E3D2A";
+          const btnText  = shop.buttonText || "Shop Now";
 
           return (
             <div key={shop.id} className="sc-card-wrap">
@@ -262,61 +284,43 @@ export default function ShopCarousel({ shops = [] }) {
                     <button className="sc-btn">{btnText} →</button>
                   </div>
                   <div className="sc-image-wrap">
-                    {shop.image && (
+                    {shop.imageUrl || shop.image ? (
                       <img
-                        src={shop.image}
+                        src={shop.imageUrl || shop.image}
                         alt={shop.title}
                         loading="lazy"
                         draggable={false}
                       />
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
-                {/* ═══ Overlays — keyed by theme ═══ */}
-
-                {/* Fashion — curtain always in DOM, CSS triggers on --visible */}
-                {theme === "fashion" && (
-                  <CurtainOverlay color={cardBg} />
-                )}
-
-                {/* Kente — remount on activation */}
+                {/* ═══ Overlays — keyed by theme (untouched) ═══ */}
+                {theme === "fashion" && <CurtainOverlay color={cardBg} />}
                 {theme === "kente" && (
                   <div className="sc-kente-wrap" key={`kente-${animKey}`}>
                     <KenteSVG />
                   </div>
                 )}
-
-                {/* Bestsellers — stamp + counter */}
-                {theme === "bestsellers" && isActive && (
-                  <StampOverlay key={`stamp-${animKey}`} />
-                )}
-
-                {/* Scents — clouds from all directions */}
-                {theme === "scents" && isActive && (
-                  <SprayOverlay key={`spray-${animKey}`} />
-                )}
-
-                {/* Gadgets — RGB glitch */}
-                {theme === "gadgets" && isActive && (
-                  <GlitchOverlay key={`glitch-${animKey}`} />
-                )}
-
-                {/* theme === "none" — no overlay, intentionally blank */}
-
+                {theme === "bestsellers" && isActive && <StampOverlay key={`stamp-${animKey}`} />}
+                {theme === "scents"      && isActive && <SprayOverlay key={`spray-${animKey}`} />}
+                {theme === "gadgets"     && isActive && <GlitchOverlay key={`glitch-${animKey}`} />}
               </div>
             </div>
           );
         })}
       </div>
 
-      {shops.length > 1 && (
-        <div className="sc-dots">
-          {shops.map((_, i) => (
+      {/* ── Dots ── */}
+      {activeShops.length > 1 && (
+        <div className="sc-dots" role="tablist" aria-label="Carousel navigation">
+          {activeShops.map((_, i) => (
             <button
               key={i}
+              role="tab"
+              aria-selected={i === activeIndex}
               className={`sc-dot${i === activeIndex ? " active" : ""}`}
-              onClick={() => scrollTo(i)}
+              onClick={() => handleDotClick(i)}
               aria-label={`Go to slide ${i + 1}`}
             />
           ))}
