@@ -1,22 +1,31 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { doc, getDoc, collection, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, onSnapshot, serverTimestamp } from "firebase/firestore";
+import { updateProfile } from "firebase/auth";
 import { useAuth } from "../context/AuthContext";
-import { db } from "../firebase";
+import { auth, db } from "../firebase";
 import { useUserUnreadCount } from "../hooks/useNotifications";
 import "./Account.css";
 
-/* ─── Onboarding label maps ──────────────────────────────────── */
+/* ─── Label maps ─────────────────────────────────────────────── */
 
-const PREF_LABELS = {
-  kids:        { emoji: "👶", label: "Kids & Family"   },
-  women:       { emoji: "👗", label: "Women's Fashion" },
-  men:         { emoji: "👔", label: "Men's Fashion"   },
-  home:        { emoji: "🏠", label: "Home & Living"   },
-  electronics: { emoji: "⚡", label: "Electronics"     },
-  savvy:       { emoji: "🛍️", label: "Savvy Deals"     },
-  everything:  { emoji: "🌍", label: "Shop Everything" },
-};
+const PREF_OPTIONS = [
+  { id: "kids",        emoji: "👶", label: "Kids & Family"   },
+  { id: "women",       emoji: "👗", label: "Women's Fashion" },
+  { id: "men",         emoji: "👔", label: "Men's Fashion"   },
+  { id: "home",        emoji: "🏠", label: "Home & Living"   },
+  { id: "electronics", emoji: "⚡", label: "Electronics"     },
+  { id: "savvy",       emoji: "🛍️", label: "Savvy Deals"     },
+  { id: "everything",  emoji: "🌍", label: "Shop Everything" },
+];
+
+const AGE_OPTIONS = [
+  { id: "under18", label: "Under 18" },
+  { id: "18-24",   label: "18 – 24"  },
+  { id: "25-34",   label: "25 – 34"  },
+  { id: "35-44",   label: "35 – 44"  },
+  { id: "45plus",  label: "45+"      },
+];
 
 const AGE_LABELS = {
   under18: "Under 18",
@@ -26,7 +35,11 @@ const AGE_LABELS = {
   "45plus": "45+",
 };
 
-/* ── Icons ── */
+function normalizeUsername(v) {
+  return String(v || "").trim().toLowerCase().replace(/\s+/g, "_");
+}
+
+/* ─── Icons ──────────────────────────────────────────────────── */
 function IconOrders() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
@@ -130,17 +143,45 @@ function IconShield() {
     </svg>
   );
 }
-function IconEdit() {
+function IconCheck() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
-      strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+      strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  );
+}
+function IconStar() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+    </svg>
+  );
+}
+function IconClose() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+      strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
+      <line x1="18" y1="6" x2="6" y2="18"/>
+      <line x1="6" y1="6" x2="18" y2="18"/>
     </svg>
   );
 }
 
-/* ── Quick action tile ── */
+function Spinner() {
+  return <span className="acc-spinner" aria-hidden="true" />;
+}
+
+function CheckboxIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <polyline points="2,6 5,9 10,3" stroke="white" strokeWidth="1.8"
+        strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </svg>
+  );
+}
+
+/* ─── QuickTile ──────────────────────────────────────────────── */
 function QuickTile({ icon, label, onClick, badge }) {
   return (
     <button type="button" className="acc-tile" onClick={onClick}>
@@ -155,14 +196,12 @@ function QuickTile({ icon, label, onClick, badge }) {
   );
 }
 
-/* ── List Row ── */
+/* ─── Row ────────────────────────────────────────────────────── */
 function Row({ icon, label, sub, onClick, danger, badge }) {
   return (
-    <button
-      type="button"
+    <button type="button"
       className={`acc-row${danger ? " acc-row--danger" : ""}`}
-      onClick={onClick}
-    >
+      onClick={onClick}>
       <div className="acc-row-left">
         <div className="acc-row-icon-wrap">{icon}</div>
         <div className="acc-row-text">
@@ -184,7 +223,7 @@ function Row({ icon, label, sub, onClick, danger, badge }) {
   );
 }
 
-/* ── Logout sheet ── */
+/* ─── Logout sheet ───────────────────────────────────────────── */
 function LogoutSheet({ onConfirm, onCancel }) {
   return (
     <div className="acc-sheet-backdrop" onClick={onCancel}>
@@ -194,103 +233,250 @@ function LogoutSheet({ onConfirm, onCancel }) {
         <p className="acc-sheet__sub">
           Are you sure you want to log out of your Beme Market account?
         </p>
+        <button type="button" className="acc-sheet__btn acc-sheet__btn--danger"
+          onClick={onConfirm}>Log out</button>
+        <button type="button" className="acc-sheet__btn acc-sheet__btn--cancel"
+          onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Edit Profile Modal ─────────────────────────────────────── */
+function EditProfileModal({ profile, displayName, onClose, onSaved }) {
+  const { user } = useAuth();
+
+  const [name,    setName]    = useState(displayName || "");
+  const [age,     setAge]     = useState(profile?.age || "");
+  const [prefs,   setPrefs]   = useState(
+    Array.isArray(profile?.shoppingPreference) ? profile.shoppingPreference : []
+  );
+  const [saving,  setSaving]  = useState(false);
+  const [err,     setErr]     = useState("");
+
+  const togglePref = (id) =>
+    setPrefs((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+    );
+
+  const handleSave = async () => {
+    setErr("");
+    const trimmed = name.trim();
+    if (trimmed.length < 2)  { setErr("Name must be at least 2 characters."); return; }
+    if (trimmed.length > 30) { setErr("Name can be at most 30 characters.");  return; }
+    if (!age)                { setErr("Please select your age range.");       return; }
+    if (prefs.length === 0)  { setErr("Please select at least one preference."); return; }
+
+    setSaving(true);
+    try {
+      const normalizedKey     = normalizeUsername(trimmed);
+      const oldNormalizedKey  = normalizeUsername(displayName || "");
+      const nameChanged       = normalizedKey !== oldNormalizedKey;
+
+      /* If name changed, check new name isn't already taken */
+      if (nameChanged) {
+        const snap = await getDoc(doc(db, "usernames", normalizedKey));
+        if (snap.exists() && snap.data()?.uid !== user.uid) {
+          setErr("That name is already taken. Please choose another.");
+          setSaving(false);
+          return;
+        }
+      }
+
+      /* Update Firebase Auth display name */
+      await updateProfile(auth.currentUser, { displayName: trimmed });
+
+      /* Update Firestore user doc */
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          displayName:        trimmed,
+          age,
+          shoppingPreference: prefs,
+          updatedAt:          serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      /* Reserve new username, release old one if name changed */
+      if (nameChanged) {
+        await setDoc(doc(db, "usernames", normalizedKey), {
+          uid:         user.uid,
+          displayName: trimmed,
+          createdAt:   serverTimestamp(),
+        });
+        /* Note: old username doc is left as a tombstone — super_admin
+           can clean up if needed. We don't delete it client-side to avoid
+           race conditions where another user grabs it before the write lands. */
+      }
+
+      onSaved({ displayName: trimmed, age, shoppingPreference: prefs });
+      onClose();
+    } catch (e) {
+      console.error("Profile update error:", e);
+      setErr("Could not save. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="acc-modal-backdrop" onClick={onClose}>
+      <div className="acc-modal" onClick={(e) => e.stopPropagation()}>
+
+        {/* header */}
+        <div className="acc-modal__head">
+          <h2 className="acc-modal__title">Edit Profile</h2>
+          <button type="button" className="acc-modal__close"
+            onClick={onClose} aria-label="Close">
+            <IconClose />
+          </button>
+        </div>
+
+        {/* name */}
+        <div className="acc-modal__section">
+          <label className="acc-modal__label" htmlFor="ep-name">
+            Display Name
+          </label>
+          <input
+            id="ep-name"
+            className="acc-modal__input"
+            type="text"
+            value={name}
+            onChange={(e) => { setName(e.target.value); setErr(""); }}
+            maxLength={30}
+            placeholder="Your name"
+            disabled={saving}
+          />
+          <span className="acc-modal__charcount">{name.trim().length} / 30</span>
+        </div>
+
+        {/* age */}
+        <div className="acc-modal__section">
+          <p className="acc-modal__label">Age Range</p>
+          <div className="acc-modal__pills">
+            {AGE_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                className={`acc-modal__pill ${age === opt.id ? "acc-modal__pill--on" : ""}`}
+                onClick={() => { setAge(opt.id); setErr(""); }}
+                disabled={saving}
+              >
+                {age === opt.id && <CheckboxIcon />}
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* shopping prefs */}
+        <div className="acc-modal__section">
+          <p className="acc-modal__label">Shopping Preferences</p>
+          <div className="acc-modal__grid">
+            {PREF_OPTIONS.map((opt) => {
+              const on = prefs.includes(opt.id);
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  className={`acc-modal__pref ${on ? "acc-modal__pref--on" : ""}`}
+                  onClick={() => { togglePref(opt.id); setErr(""); }}
+                  disabled={saving}
+                  aria-pressed={on}
+                >
+                  <span aria-hidden="true">{opt.emoji}</span>
+                  <span>{opt.label}</span>
+                  {on && (
+                    <span className="acc-modal__pref-tick">
+                      <CheckboxIcon />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {err && (
+          <div className="acc-modal__err" role="alert">{err}</div>
+        )}
+
         <button
           type="button"
-          className="acc-sheet__btn acc-sheet__btn--danger"
-          onClick={onConfirm}
+          className="acc-modal__save"
+          onClick={handleSave}
+          disabled={saving}
         >
-          Log out
-        </button>
-        <button
-          type="button"
-          className="acc-sheet__btn acc-sheet__btn--cancel"
-          onClick={onCancel}
-        >
-          Cancel
+          {saving ? <><Spinner /> Saving...</> : "Save changes"}
         </button>
       </div>
     </div>
   );
 }
 
-/* ── Star icon for member pill ── */
-function IconStar() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-    </svg>
-  );
-}
-
 /* ═══════════════════════════════════════════════════════════════
-   MAIN ACCOUNT PAGE
+   MAIN
 ═══════════════════════════════════════════════════════════════ */
 export default function Account() {
-  const navigate = useNavigate();
+  const navigate        = useNavigate();
   const { user, logout } = useAuth();
 
   const [showLogoutSheet, setShowLogoutSheet] = useState(false);
+  const [showEditModal,   setShowEditModal]   = useState(false);
   const [savedCount,      setSavedCount]      = useState(null);
+  const [profile,         setProfile]         = useState(null);
+  const [profileLoading,  setProfileLoading]  = useState(true);
 
-  /* Onboarding profile data from Firestore */
-  const [profile,        setProfile]        = useState(null);
-  const [profileLoading, setProfileLoading] = useState(true);
-
-  /* Real-time unread notification count */
   const { unreadCount } = useUserUnreadCount();
 
-  /* ── Saved items (wishlist) real-time count ── */
+  /* ── wishlist count ── */
   useEffect(() => {
     if (!user) { setSavedCount(0); return; }
-    const colRef = collection(db, "users", user.uid, "wishlist");
-    const unsub  = onSnapshot(colRef, (snap) => setSavedCount(snap.size));
+    const unsub = onSnapshot(
+      collection(db, "users", user.uid, "wishlist"),
+      (snap) => setSavedCount(snap.size)
+    );
     return () => unsub();
   }, [user]);
 
-  /* ── Fetch onboarding profile from Firestore ── */
+  /* ── profile fetch ── */
   useEffect(() => {
     if (!user) { setProfileLoading(false); return; }
     let cancelled = false;
-
     getDoc(doc(db, "users", user.uid))
-      .then((snap) => {
-        if (cancelled) return;
-        if (snap.exists()) setProfile(snap.data());
-      })
-      .catch((err) => console.error("Profile fetch error:", err))
+      .then((snap) => { if (!cancelled && snap.exists()) setProfile(snap.data()); })
+      .catch(console.error)
       .finally(() => { if (!cancelled) setProfileLoading(false); });
-
     return () => { cancelled = true; };
   }, [user]);
 
-  /* ── Logout ── */
-  const handleLogout = async () => {
-    await logout();
-    navigate("/");
+  const handleLogout = async () => { await logout(); navigate("/"); };
+
+  /* ── derived values ── */
+  const displayName =
+    user?.displayName || profile?.displayName || "Beme Customer";
+  const initials    = displayName.charAt(0).toUpperCase();
+  const age         = profile?.age || null;
+  const shoppingPrefs = Array.isArray(profile?.shoppingPreference)
+    ? profile.shoppingPreference : [];
+
+  /* Profile is "complete" when name, age AND at least one pref are all set */
+  const profileComplete =
+    !!profile?.displayName && !!profile?.age && shoppingPrefs.length > 0;
+
+  /* When edit modal saves successfully, update local state immediately */
+  const handleProfileSaved = (updated) => {
+    setProfile((prev) => ({ ...prev, ...updated }));
   };
 
-  /* ── Derived display values ── */
-  /*
-   * Priority: Firebase Auth displayName (set by updateProfile in Onboarding)
-   * → Firestore displayName → fallback "Beme Customer"
-   */
-  const displayName =
-    user?.displayName ||
-    profile?.displayName ||
-    "Beme Customer";
-
-  const initials = displayName.charAt(0).toUpperCase();
-
-  const age           = profile?.age  || null;
-  const shoppingPrefs = Array.isArray(profile?.shoppingPreference)
-    ? profile.shoppingPreference
-    : [];
+  if (!user) return null;
 
   return (
     <div className="acc-page">
       <div className="acc-body">
 
-        {/* ── Header hero ── */}
+        {/* ── Hero header ── */}
         <div className="acc-header">
           <div className="acc-header-left">
             <h1 className="acc-hero-name">{displayName}</h1>
@@ -299,47 +485,44 @@ export default function Account() {
               <span>Beme Member</span>
             </div>
           </div>
-          <button
-            type="button"
-            className="acc-avatar-btn"
-            onClick={() => navigate("/account/manage")}
-            aria-label="Edit profile"
-          >
+          <button type="button" className="acc-avatar-btn"
+            onClick={() => setShowEditModal(true)}
+            aria-label="Edit profile">
             <div className="acc-avatar-ring">
               <span className="acc-avatar-letter">{initials}</span>
             </div>
           </button>
         </div>
 
-        {/* ── Profile summary card (name + age + preferences) ── */}
+        {/* ── Profile summary card ── */}
         {!profileLoading && (age || shoppingPrefs.length > 0) && (
           <div className="acc-profile-card">
-            <div className="acc-profile-card__top">
-              <div className="acc-profile-card__info">
+            <div className="acc-profile-card__row">
+              <div>
                 <p className="acc-profile-card__name">{displayName}</p>
                 {age && (
-                  <span className="acc-profile-card__age">
-                    {AGE_LABELS[age] || age}
-                  </span>
+                  <p className="acc-profile-card__age">{AGE_LABELS[age] || age}</p>
                 )}
               </div>
-              <button
-                type="button"
-                className="acc-profile-card__edit"
-                onClick={() => navigate("/account/manage")}
-                aria-label="Edit profile"
-              >
-                <IconEdit />
-                <span>Edit</span>
+              <button type="button" className="acc-profile-card__edit-btn"
+                onClick={() => setShowEditModal(true)}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.2"
+                  strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Edit
               </button>
             </div>
 
             {shoppingPrefs.length > 0 && (
               <>
+                <div className="acc-profile-card__divider" />
                 <p className="acc-profile-card__pref-label">Shopping preferences</p>
                 <div className="acc-pref-pills">
                   {shoppingPrefs.map((id) => {
-                    const entry = PREF_LABELS[id];
+                    const entry = PREF_OPTIONS.find((o) => o.id === id);
                     if (!entry) return null;
                     return (
                       <span key={id} className="acc-pref-pill">
@@ -356,126 +539,93 @@ export default function Account() {
 
         {/* ── Quick tiles ── */}
         <div className="acc-tiles-row">
-          <QuickTile
-            icon={<IconOrders />}
-            label="Orders"
-            onClick={() => navigate("/orders")}
-          />
-          <QuickTile
-            icon={<IconHeart />}
-            label="Saved"
-            onClick={() => navigate("/saved")}
-            badge={savedCount}
-          />
-          <QuickTile
-            icon={<IconSettings />}
-            label="Settings"
-            onClick={() => navigate("/account/manage")}
-          />
+          <QuickTile icon={<IconOrders />}  label="Orders"   onClick={() => navigate("/orders")} />
+          <QuickTile icon={<IconHeart />}   label="Saved"    onClick={() => navigate("/saved")}   badge={savedCount} />
+          <QuickTile icon={<IconSettings />} label="Settings" onClick={() => navigate("/account/manage")} />
         </div>
 
-        {/* ── Promo card ── */}
-        <div
-          className="acc-promo-card"
-          onClick={() => navigate("/account/manage")}
-        >
-          <div className="acc-promo-text">
-            <p className="acc-promo-title">Complete your profile</p>
-            <p className="acc-promo-sub">
-              Add your address &amp; payment method for faster checkout
-            </p>
-          </div>
-          <div className="acc-promo-icon">
-            <IconShield />
-          </div>
-        </div>
+        {/* ── Profile status card ── */}
+        {!profileLoading && (
+          profileComplete ? (
+            /* COMPLETED STATE */
+            <div className="acc-promo-card acc-promo-card--done"
+              onClick={() => setShowEditModal(true)}>
+              <div className="acc-promo-text">
+                <p className="acc-promo-title acc-promo-title--done">
+                  Profile completed ✓
+                </p>
+                <p className="acc-promo-sub">
+                  Tap to edit your name, age or preferences
+                </p>
+              </div>
+              <div className="acc-promo-icon acc-promo-icon--done">
+                <IconCheck />
+              </div>
+            </div>
+          ) : (
+            /* INCOMPLETE STATE */
+            <div className="acc-promo-card"
+              onClick={() => navigate("/account/manage")}>
+              <div className="acc-promo-text">
+                <p className="acc-promo-title">Complete your profile</p>
+                <p className="acc-promo-sub">
+                  Add your address &amp; payment method for faster checkout
+                </p>
+              </div>
+              <div className="acc-promo-icon">
+                <IconShield />
+              </div>
+            </div>
+          )
+        )}
 
         {/* ── Personal rows ── */}
-        <div className="acc-list-group">
-          <Row
-            icon={<IconOrders />}
-            label="My orders"
-            sub="Track & manage your orders"
-            onClick={() => navigate("/orders")}
-          />
-          <Row
-            icon={<IconHeart />}
-            label="Saved items"
-            sub="Your wishlist"
-            badge={savedCount > 0 ? savedCount : undefined}
-            onClick={() => navigate("/saved")}
-          />
-          <Row
-            icon={<IconRequest />}
-            label="My requests"
-            sub="Track your product requests"
-            onClick={() => navigate("/account/requests")}
-          />
+        <div className="acc-group acc-section">
+          <Row icon={<IconOrders />}  label="My orders"    sub="Track & manage your orders"    onClick={() => navigate("/orders")} />
+          <Row icon={<IconHeart />}   label="Saved items"  sub="Your wishlist"
+            badge={savedCount > 0 ? savedCount : undefined} onClick={() => navigate("/saved")} />
+          <Row icon={<IconRequest />} label="My requests"  sub="Track your product requests"   onClick={() => navigate("/account/requests")} />
         </div>
 
         {/* ── Settings rows ── */}
-        <div className="acc-list-group">
-          <Row
-            icon={<IconSettings />}
-            label="Manage account"
-            sub="Name, password & preferences"
-            onClick={() => navigate("/account/manage")}
-          />
-          <Row
-            icon={<IconLocation />}
-            label="Delivery addresses"
-            sub="Saved locations in Ghana"
-            onClick={() => navigate("/account/addresses")}
-          />
-          <Row
-            icon={<IconCard />}
-            label="Payment methods"
-            sub="Paystack & saved cards"
-            onClick={() => navigate("/account/payments")}
-          />
-          <Row
-            icon={<IconBell />}
-            label="Notifications"
-            sub="Order updates & alerts"
-            badge={unreadCount > 0 ? unreadCount : undefined}
-            onClick={() => navigate("/account/notifications")}
-          />
+        <div className="acc-group acc-section">
+          <Row icon={<IconSettings />} label="Manage account"     sub="Name, password & preferences"  onClick={() => navigate("/account/manage")} />
+          <Row icon={<IconLocation />} label="Delivery addresses" sub="Saved locations in Ghana"       onClick={() => navigate("/account/addresses")} />
+          <Row icon={<IconCard />}     label="Payment methods"    sub="Paystack & saved cards"         onClick={() => navigate("/account/payments")} />
+          <Row icon={<IconBell />}     label="Notifications"      sub="Order updates & alerts"
+            badge={unreadCount > 0 ? unreadCount : undefined}  onClick={() => navigate("/account/notifications")} />
         </div>
 
         {/* ── Support rows ── */}
-        <div className="acc-list-group">
-          <Row
-            icon={<IconHelp />}
-            label="Help & support"
-            sub="FAQs and guides"
-            onClick={() => navigate("/account/help")}
-          />
-          <Row
-            icon={<IconMail />}
-            label="Contact us"
-            sub="supportbememarket@gmail.com"
-            onClick={() => navigate("/account/contact")}
-          />
+        <div className="acc-group acc-section">
+          <Row icon={<IconHelp />} label="Help & support" sub="FAQs and guides"              onClick={() => navigate("/account/help")} />
+          <Row icon={<IconMail />} label="Contact us"     sub="supportbememarket@gmail.com"  onClick={() => navigate("/account/contact")} />
         </div>
 
         {/* ── Logout ── */}
-        <div className="acc-list-group acc-list-group--last">
-          <Row
-            icon={<IconLogout />}
-            label="Log out"
-            sub="Sign out of your account"
-            onClick={() => setShowLogoutSheet(true)}
-            danger
-          />
+        <div className="acc-group acc-section acc-section--last">
+          <Row icon={<IconLogout />} label="Log out" sub="Sign out of your account"
+            onClick={() => setShowLogoutSheet(true)} danger />
         </div>
 
         <p className="acc-footer-note">Beme Market · Ghana 🇬🇭</p>
       </div>
 
+      {/* ── Logout bottom sheet ── */}
       {showLogoutSheet && (
         <LogoutSheet
           onConfirm={handleLogout}
           onCancel={() => setShowLogoutSheet(false)}
+        />
+      )}
+
+      {/* ── Edit profile modal ── */}
+      {showEditModal && (
+        <EditProfileModal
+          profile={profile}
+          displayName={displayName}
+          onClose={() => setShowEditModal(false)}
+          onSaved={handleProfileSaved}
         />
       )}
     </div>
