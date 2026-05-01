@@ -67,9 +67,7 @@ body.dark .acc-rating-pill {
   margin-top: 4px;
 }
 
-.acc-avatar-btn:active {
-  transform: scale(0.95);
-}
+.acc-avatar-btn:active { transform: scale(0.95); }
 
 .acc-avatar-ring {
   width: 58px;
@@ -96,32 +94,35 @@ body.dark .acc-rating-pill {
 ================================================================ */
 .acc-profile-card {
   background: var(--card);
-  border-radius: 20px;
+  border-radius: 22px;
   border: 1.5px solid rgba(17, 17, 17, 0.07);
-  padding: 18px 16px;
+  padding: 20px 18px 18px;
   margin-top: 20px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 2px 16px rgba(17, 17, 17, 0.05);
 }
 
 body.dark .acc-profile-card {
   border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
 }
 
+/* top row: name+age on left, edit button on right */
 .acc-profile-card__row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .acc-profile-card__name {
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   color: var(--text);
-  margin: 0 0 4px;
+  margin: 0 0 5px;
+  line-height: 1.1;
 }
 
 .acc-profile-card__age {
@@ -130,44 +131,86 @@ body.dark .acc-profile-card {
   color: var(--muted);
   font-family: var(--font-main);
   margin: 0;
+  line-height: 1;
 }
 
+/* Edit button — reset ALL browser defaults explicitly */
 .acc-profile-card__edit-btn {
-  background: rgba(17, 17, 17, 0.06);
-  border: none;
-  border-radius: 10px;
-  padding: 7px 14px;
-  font-size: 12px;
+  /* reset */
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  text-decoration: none;
+  /* style */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(17, 17, 17, 0.10);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
   font-weight: 700;
   font-family: var(--font-main);
-  color: var(--text);
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.18s;
+  white-space: nowrap;
+  transition: background 0.18s, border-color 0.18s, transform 0.15s;
+  /* make sure no browser link / button color bleeds */
+  -webkit-text-fill-color: var(--text);
 }
 
 body.dark .acc-profile-card__edit-btn {
-  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  -webkit-text-fill-color: var(--text);
 }
 
 .acc-profile-card__edit-btn:hover {
-  background: rgba(17, 17, 17, 0.11);
+  background: rgba(17, 17, 17, 0.05);
+  border-color: rgba(17, 17, 17, 0.18);
+  transform: translateY(-1px);
 }
 
 body.dark .acc-profile-card__edit-btn:hover {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
+.acc-profile-card__edit-btn:active { transform: scale(0.97); }
+
+/* pencil icon inside edit button */
+.acc-profile-card__edit-btn svg {
+  flex-shrink: 0;
+  color: var(--grtheme, #FF6600);
+}
+
+/* divider between name area and preferences */
+.acc-profile-card__divider {
+  height: 1px;
+  background: rgba(17, 17, 17, 0.06);
+  margin: 0 0 14px;
+  border-radius: 1px;
+}
+
+body.dark .acc-profile-card__divider {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* "Shopping preferences" label */
 .acc-profile-card__pref-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.10em;
   text-transform: uppercase;
   color: var(--muted);
   font-family: var(--font-main);
   margin: 0 0 10px;
+  opacity: 0.65;
 }
 
+/* preference pills row */
 .acc-pref-pills {
   display: flex;
   flex-wrap: wrap;
@@ -177,20 +220,24 @@ body.dark .acc-profile-card__edit-btn:hover {
 .acc-pref-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
+  gap: 6px;
+  padding: 7px 14px;
   border-radius: 999px;
   background: rgba(255, 102, 0, 0.07);
-  border: 1px solid rgba(255, 102, 0, 0.14);
+  border: 1.5px solid rgba(255, 102, 0, 0.15);
   font-size: 12px;
   font-weight: 700;
+  /* correct color — orange brand, not browser-default blue */
   color: var(--grtheme, #FF6600);
   font-family: var(--font-main);
+  line-height: 1;
+  /* make sure no inherited link color overrides */
+  -webkit-text-fill-color: var(--grtheme, #FF6600);
 }
 
 body.dark .acc-pref-pill {
   background: rgba(255, 102, 0, 0.11);
-  border-color: rgba(255, 102, 0, 0.20);
+  border-color: rgba(255, 102, 0, 0.22);
 }
 
 /* ================================================================
@@ -285,7 +332,6 @@ body.dark .acc-promo-card {
   background: var(--soft);
 }
 
-/* completed state — subtle green tint */
 .acc-promo-card--done {
   background: rgba(34, 160, 88, 0.05);
   border-color: rgba(34, 160, 88, 0.18);
@@ -296,10 +342,7 @@ body.dark .acc-promo-card--done {
   border-color: rgba(34, 160, 88, 0.22);
 }
 
-.acc-promo-text {
-  flex: 1;
-  min-width: 0;
-}
+.acc-promo-text { flex: 1; min-width: 0; }
 
 .acc-promo-title {
   font-family: var(--font-display);
@@ -310,13 +353,8 @@ body.dark .acc-promo-card--done {
   margin: 0 0 4px;
 }
 
-.acc-promo-title--done {
-  color: #166534;
-}
-
-body.dark .acc-promo-title--done {
-  color: #86efac;
-}
+.acc-promo-title--done { color: #166534; }
+body.dark .acc-promo-title--done { color: #86efac; }
 
 .acc-promo-sub {
   font-size: 12px;
@@ -339,7 +377,6 @@ body.dark .acc-promo-title--done {
   color: var(--grtheme, #FF6600);
 }
 
-/* completed icon — green */
 .acc-promo-icon--done {
   background: rgba(34, 160, 88, 0.10);
   color: #22a058;
@@ -353,13 +390,8 @@ body.dark .acc-promo-icon--done {
 /* ================================================================
    SECTION + GROUP CARD
 ================================================================ */
-.acc-section {
-  margin-top: 20px;
-}
-
-.acc-section--last {
-  margin-bottom: 8px;
-}
+.acc-section       { margin-top: 20px; }
+.acc-section--last { margin-bottom: 8px; }
 
 .acc-group {
   background: var(--card);
@@ -372,9 +404,7 @@ body.dark .acc-promo-icon--done {
     border-color var(--motion-slow) var(--response-delay);
 }
 
-body.dark .acc-group {
-  border-color: rgba(255, 255, 255, 0.08);
-}
+body.dark .acc-group { border-color: rgba(255, 255, 255, 0.08); }
 
 /* ================================================================
    ROW
@@ -394,21 +424,11 @@ body.dark .acc-group {
   transition: background 0.15s;
 }
 
-body.dark .acc-row {
-  border-bottom-color: rgba(255, 255, 255, 0.06);
-}
+body.dark .acc-row { border-bottom-color: rgba(255, 255, 255, 0.06); }
 
-.acc-row:last-child {
-  border-bottom: none;
-}
-
-.acc-row:active {
-  background: var(--soft);
-}
-
-.acc-row--danger {
-  color: #d94f4f;
-}
+.acc-row:last-child  { border-bottom: none; }
+.acc-row:active      { background: var(--soft); }
+.acc-row--danger     { color: #d94f4f; }
 
 .acc-row-left {
   display: flex;
@@ -431,9 +451,7 @@ body.dark .acc-row {
   transition: background var(--motion-slow) var(--response-delay);
 }
 
-body.dark .acc-row-icon-wrap {
-  background: rgba(255, 255, 255, 0.08);
-}
+body.dark .acc-row-icon-wrap { background: rgba(255, 255, 255, 0.08); }
 
 .acc-row--danger .acc-row-icon-wrap {
   background: rgba(217, 79, 79, 0.10);
@@ -460,9 +478,7 @@ body.dark .acc-row-icon-wrap {
   text-align: left;
 }
 
-.acc-row--danger .acc-row-label {
-  color: #d94f4f;
-}
+.acc-row--danger .acc-row-label { color: #d94f4f; }
 
 .acc-row-sub {
   display: block;
@@ -476,9 +492,7 @@ body.dark .acc-row-icon-wrap {
   text-align: left;
 }
 
-.acc-row--danger .acc-row-sub {
-  color: rgba(217, 79, 79, 0.65);
-}
+.acc-row--danger .acc-row-sub { color: rgba(217, 79, 79, 0.65); }
 
 .acc-row-right {
   display: flex;
@@ -507,10 +521,7 @@ body.dark .acc-row-icon-wrap {
   flex-shrink: 0;
 }
 
-.acc-row--danger .acc-row-chevron {
-  color: #d94f4f;
-  opacity: 0.6;
-}
+.acc-row--danger .acc-row-chevron { color: #d94f4f; opacity: 0.6; }
 
 /* ================================================================
    FOOTER NOTE
@@ -548,9 +559,7 @@ body.dark .acc-row-icon-wrap {
   transition: background var(--motion-slow) var(--response-delay);
 }
 
-body.dark .acc-sheet {
-  border-top-color: rgba(255, 255, 255, 0.08);
-}
+body.dark .acc-sheet { border-top-color: rgba(255, 255, 255, 0.08); }
 
 .acc-sheet__bar {
   width: 36px;
@@ -560,9 +569,7 @@ body.dark .acc-sheet {
   margin: 0 auto 22px;
 }
 
-body.dark .acc-sheet__bar {
-  background: rgba(255, 255, 255, 0.16);
-}
+body.dark .acc-sheet__bar { background: rgba(255, 255, 255, 0.16); }
 
 .acc-sheet__title {
   font-family: var(--font-display);
@@ -595,23 +602,13 @@ body.dark .acc-sheet__bar {
   transition: opacity 0.18s, transform 0.15s;
 }
 
-.acc-sheet__btn:hover  { opacity: 0.9; transform: translateY(-1px); }
-.acc-sheet__btn:active { transform: scale(0.98); }
+.acc-sheet__btn:hover   { opacity: 0.9; transform: translateY(-1px); }
+.acc-sheet__btn:active  { transform: scale(0.98); }
 .acc-sheet__btn:last-child { margin-bottom: 0; }
 
-.acc-sheet__btn--danger {
-  background: #d94f4f;
-  color: #fff;
-}
-
-.acc-sheet__btn--cancel {
-  background: rgba(17, 17, 17, 0.06);
-  color: var(--text);
-}
-
-body.dark .acc-sheet__btn--cancel {
-  background: rgba(255, 255, 255, 0.08);
-}
+.acc-sheet__btn--danger  { background: #d94f4f; color: #fff; }
+.acc-sheet__btn--cancel  { background: rgba(17, 17, 17, 0.06); color: var(--text); }
+body.dark .acc-sheet__btn--cancel { background: rgba(255, 255, 255, 0.08); }
 
 /* ================================================================
    EDIT PROFILE MODAL
@@ -639,11 +636,8 @@ body.dark .acc-sheet__btn--cancel {
   transition: background var(--motion-slow) var(--response-delay);
 }
 
-body.dark .acc-modal {
-  border-top-color: rgba(255, 255, 255, 0.08);
-}
+body.dark .acc-modal { border-top-color: rgba(255, 255, 255, 0.08); }
 
-/* modal header */
 .acc-modal__head {
   position: sticky;
   top: 0;
@@ -658,9 +652,7 @@ body.dark .acc-modal {
   transition: background var(--motion-slow) var(--response-delay);
 }
 
-body.dark .acc-modal__head {
-  border-bottom-color: rgba(255, 255, 255, 0.07);
-}
+body.dark .acc-modal__head { border-bottom-color: rgba(255, 255, 255, 0.07); }
 
 .acc-modal__title {
   font-family: var(--font-display);
@@ -686,19 +678,14 @@ body.dark .acc-modal__head {
   transition: background 0.18s;
 }
 
-body.dark .acc-modal__close {
-  background: rgba(255, 255, 255, 0.08);
-}
+body.dark .acc-modal__close { background: rgba(255, 255, 255, 0.08); }
 
 .acc-modal__close:hover {
   background: rgba(17, 17, 17, 0.11);
   color: var(--text);
 }
 
-/* section inside modal */
-.acc-modal__section {
-  margin-bottom: 22px;
-}
+.acc-modal__section { margin-bottom: 22px; }
 
 .acc-modal__label {
   display: block;
@@ -749,7 +736,6 @@ body.dark .acc-modal__input {
   opacity: 0.6;
 }
 
-/* age pills */
 .acc-modal__pills {
   display: flex;
   flex-wrap: wrap;
@@ -769,12 +755,11 @@ body.dark .acc-modal__input {
   font-weight: 600;
   font-family: var(--font-main);
   cursor: pointer;
+  -webkit-appearance: none;
   transition: border-color 0.18s, background 0.18s, color 0.18s;
 }
 
-body.dark .acc-modal__pill {
-  border-color: rgba(255, 255, 255, 0.12);
-}
+body.dark .acc-modal__pill { border-color: rgba(255, 255, 255, 0.12); }
 
 .acc-modal__pill--on {
   background: var(--grtheme, #FF6600);
@@ -785,7 +770,6 @@ body.dark .acc-modal__pill {
 
 .acc-modal__pill:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* pref grid */
 .acc-modal__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -807,12 +791,11 @@ body.dark .acc-modal__pill {
   font-family: var(--font-main);
   cursor: pointer;
   text-align: left;
+  -webkit-appearance: none;
   transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
 }
 
-body.dark .acc-modal__pref {
-  border-color: rgba(255, 255, 255, 0.09);
-}
+body.dark .acc-modal__pref { border-color: rgba(255, 255, 255, 0.09); }
 
 .acc-modal__pref--on {
   border-color: var(--grtheme, #FF6600);
@@ -820,9 +803,7 @@ body.dark .acc-modal__pref {
   box-shadow: 0 0 0 1px var(--grtheme, #FF6600);
 }
 
-body.dark .acc-modal__pref--on {
-  background: rgba(255, 102, 0, 0.09);
-}
+body.dark .acc-modal__pref--on { background: rgba(255, 102, 0, 0.09); }
 
 .acc-modal__pref:disabled { opacity: 0.45; cursor: not-allowed; }
 
@@ -839,7 +820,6 @@ body.dark .acc-modal__pref--on {
   justify-content: center;
 }
 
-/* error */
 .acc-modal__err {
   padding: 11px 14px;
   border-radius: 12px;
@@ -858,7 +838,6 @@ body.dark .acc-modal__err {
   color: #fca5a5;
 }
 
-/* save button */
 .acc-modal__save {
   width: 100%;
   padding: 15px 20px;
@@ -907,17 +886,20 @@ body.dark .acc-modal__err {
    MOBILE
 ================================================================ */
 @media (max-width: 480px) {
-  .acc-body           { padding: 0 14px; }
-  .acc-hero-name      { font-size: 26px; }
-  .acc-tiles-row      { gap: 8px; }
-  .acc-tile           { padding: 14px 6px 12px; border-radius: 14px; }
-  .acc-tile-label     { font-size: 11px; }
-  .acc-row            { padding: 13px 14px; }
-  .acc-row-label      { font-size: 13px; }
-  .acc-row-sub        { font-size: 11px; }
-  .acc-modal__grid    { grid-template-columns: 1fr 1fr; gap: 7px; }
-  .acc-modal__pref    { padding: 11px 10px; font-size: 12px; }
-  .acc-modal          { padding: 0 16px 44px; }
+  .acc-body                    { padding: 0 14px; }
+  .acc-hero-name               { font-size: 26px; }
+  .acc-tiles-row               { gap: 8px; }
+  .acc-tile                    { padding: 14px 6px 12px; border-radius: 14px; }
+  .acc-tile-label              { font-size: 11px; }
+  .acc-row                     { padding: 13px 14px; }
+  .acc-row-label               { font-size: 13px; }
+  .acc-row-sub                 { font-size: 11px; }
+  .acc-modal__grid             { gap: 7px; }
+  .acc-modal__pref             { padding: 11px 10px; font-size: 12px; }
+  .acc-modal                   { padding: 0 16px 44px; }
+  .acc-profile-card            { padding: 16px 14px 14px; }
+  .acc-profile-card__name      { font-size: 18px; }
+  .acc-profile-card__edit-btn  { padding: 7px 13px; font-size: 12px; }
 }
 
 /* ================================================================
