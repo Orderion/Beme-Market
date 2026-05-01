@@ -26,7 +26,6 @@ const SHOP_OPTIONS = [
   { id: "everything",  emoji: "🌍", label: "Shop Everything" },
 ];
 
-/* Normalise a display name into a safe Firestore document ID */
 function normalizeUsername(value) {
   return String(value || "")
     .trim()
@@ -51,23 +50,22 @@ function CheckIcon() {
    ONBOARDING PAGE
 ═══════════════════════════════════════════════════════════════ */
 export default function Onboarding() {
-  const navigate    = useNavigate();
-  const { user }    = useAuth();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   /* Redirect unauthenticated users */
   useEffect(() => {
     if (user === null) navigate("/login", { replace: true });
   }, [user, navigate]);
 
-  /* ── state ── */
-  const [step,   setStep]   = useState(1); // 1 | 2 | 3
+  const [step,   setStep]   = useState(1);
   const [saving, setSaving] = useState(false);
   const [err,    setErr]    = useState("");
 
   /* Step 1 — name */
-  const [name,        setName]        = useState("");
-  const [nameChecking,setNameChecking]= useState(false);
-  const [nameErr,     setNameErr]     = useState("");
+  const [name,         setName]         = useState("");
+  const [nameChecking, setNameChecking] = useState(false);
+  const [nameErr,      setNameErr]      = useState("");
 
   /* Step 2 — age */
   const [age, setAge] = useState("");
@@ -75,7 +73,6 @@ export default function Onboarding() {
   /* Step 3 — shopping preference (multi-select) */
   const [prefs, setPrefs] = useState([]);
 
-  /* ── helpers ── */
   const togglePref = (id) =>
     setPrefs((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
@@ -86,22 +83,21 @@ export default function Onboarding() {
     setNameErr("");
     const trimmed = name.trim();
     if (trimmed.length < 2)  { setNameErr("Name must be at least 2 characters."); return; }
-    if (trimmed.length > 30) { setNameErr("Name must be 30 characters or less.");  return; }
+    if (trimmed.length > 30) { setNameErr("Name must be 30 characters or less."); return; }
     if (!/^[a-zA-Z0-9 '_-]+$/.test(trimmed)) {
       setNameErr("Only letters, numbers, spaces, apostrophes and hyphens allowed.");
       return;
     }
-
     setNameChecking(true);
     try {
       const snap = await getDoc(doc(db, "usernames", normalizeUsername(trimmed)));
-      if (snap.exists()) {
+      if (snap.exists() && snap.data()?.uid !== user?.uid) {
         setNameErr("That name is already taken. Please choose another.");
         return;
       }
       setStep(2);
     } catch (_) {
-      /* Network issue — allow through and double-check on final save */
+      /* Network issue — allow through, double-check on final save */
       setStep(2);
     } finally {
       setNameChecking(false);
@@ -122,23 +118,34 @@ export default function Onboarding() {
     setErr("");
     setSaving(true);
 
-    const trimmedName  = name.trim();
+    const trimmedName   = name.trim();
     const normalizedKey = normalizeUsername(trimmedName);
 
     try {
       /* 1 — Race-condition guard: re-check username */
-      const snap = await getDoc(doc(db, "usernames", normalizedKey));
-      if (snap.exists() && snap.data()?.uid !== user.uid) {
+      const usernameSnap = await getDoc(doc(db, "usernames", normalizedKey));
+      if (usernameSnap.exists() && usernameSnap.data()?.uid !== user.uid) {
         setStep(1);
         setNameErr("That name was just taken. Please choose another.");
         setSaving(false);
         return;
       }
 
-      /* 2 — Update Firebase Auth display name */
+      /* 2 — Read existing user doc so we can preserve the role field.
+             NEVER overwrite an existing role — an admin who goes through
+             onboarding must keep their admin role. */
+      const userSnap    = await getDoc(doc(db, "users", user.uid));
+      const existingRole = userSnap.exists()
+        ? (userSnap.data()?.role || "customer")
+        : "customer";
+
+      /* 3 — Update Firebase Auth display name */
       await updateProfile(auth.currentUser, { displayName: trimmedName });
 
-      /* 3 — Write user document (merge so existing fields like role are kept) */
+      /* 4 — Write user document.
+             We use merge:true so any other existing fields survive.
+             We explicitly write the role back to whatever it already was,
+             so admins don't get demoted. */
       await setDoc(
         doc(db, "users", user.uid),
         {
@@ -146,13 +153,13 @@ export default function Onboarding() {
           age:                age,
           shoppingPreference: prefs,
           onboardingComplete: true,
-          role:               "customer",
+          role:               existingRole,  /* ← preserves admin/super_admin */
           createdAt:          serverTimestamp(),
         },
         { merge: true }
       );
 
-      /* 4 — Reserve username */
+      /* 5 — Reserve username */
       await setDoc(doc(db, "usernames", normalizedKey), {
         uid:         user.uid,
         displayName: trimmedName,
@@ -168,7 +175,6 @@ export default function Onboarding() {
     }
   };
 
-  /* ── Don't render until auth is resolved ── */
   if (!user) return null;
 
   return (
@@ -190,9 +196,7 @@ export default function Onboarding() {
           <span className="ob-progress-label">{step} / 3</span>
         </div>
 
-        {/* ══════════════════════════════════
-            STEP 1 — Name
-        ══════════════════════════════════ */}
+        {/* ══ STEP 1 — Name ══ */}
         {step === 1 && (
           <div className="ob-card">
             <div className="ob-card-header">
@@ -204,9 +208,7 @@ export default function Onboarding() {
             </div>
 
             <div className="ob-field">
-              <label className="ob-label" htmlFor="ob-name">
-                Display Name
-              </label>
+              <label className="ob-label" htmlFor="ob-name">Display Name</label>
               <input
                 id="ob-name"
                 className="ob-input"
@@ -236,9 +238,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {/* ══════════════════════════════════
-            STEP 2 — Age
-        ══════════════════════════════════ */}
+        {/* ══ STEP 2 — Age ══ */}
         {step === 2 && (
           <div className="ob-card">
             <div className="ob-card-header">
@@ -289,9 +289,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {/* ══════════════════════════════════
-            STEP 3 — Shopping preference
-        ══════════════════════════════════ */}
+        {/* ══ STEP 3 — Shopping preference ══ */}
         {step === 3 && (
           <div className="ob-card">
             <div className="ob-card-header">
