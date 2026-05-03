@@ -30,7 +30,7 @@ import FlashDeals from "./pages/FlashDeals";
 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import Onboarding from "./pages/Onboarding";   // ← NEW
+import Onboarding from "./pages/Onboarding";
 import AdminLogin from "./pages/AdminLogin";
 
 import Admin from "./pages/Admin";
@@ -43,6 +43,7 @@ import ShopOwnerApply from "./pages/ShopOwnerApply";
 
 import HomepageAdmin from "./pages/admin/HomepageAdmin";
 import MediaManager from "./pages/admin/MediaManager";
+import AdminSupportDashboard from "./pages/admin/AdminSupportDashboard"; // ← NEW
 
 import About from "./pages/About";
 import Support from "./pages/Support";
@@ -101,10 +102,11 @@ function AppShell() {
     []
   );
 
-  const isHomepageAdmin = location.pathname === "/admin/homepage";
+  const isHomepageAdmin   = location.pathname === "/admin/homepage";
+  const isAdminSupport    = location.pathname === "/admin/support"; // ← NEW
 
   const shouldHideHeader =
-    hideHeaderRoutes.has(location.pathname) || isHomepageAdmin;
+    hideHeaderRoutes.has(location.pathname) || isHomepageAdmin || isAdminSupport;
 
   useEffect(() => {
     setRouteLoading(true);
@@ -145,20 +147,20 @@ function AppShell() {
         <Routes>
 
           {/* PUBLIC */}
-          <Route path="/" element={<Home />} />
-          <Route path="/shop" element={<Shop />} />
-          <Route path="/offers" element={<Offers />} />
-          <Route path="/flash-deals" element={<FlashDeals />} />
-          <Route path="/product/:id" element={<ProductDetails />} />
-          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/"             element={<Home />} />
+          <Route path="/shop"         element={<Shop />} />
+          <Route path="/offers"       element={<Offers />} />
+          <Route path="/flash-deals"  element={<FlashDeals />} />
+          <Route path="/product/:id"  element={<ProductDetails />} />
+          <Route path="/checkout"     element={<Checkout />} />
           <Route path="/order-success" element={<OrderSuccess />} />
-          <Route path="/orders" element={<Orders />} />
+          <Route path="/orders"       element={<Orders />} />
 
           {/* AUTH */}
-          <Route path="/login"      element={<Login />}      />
-          <Route path="/signup"     element={<Signup />}     />
-          <Route path="/onboarding" element={<Onboarding />} />  {/* ← NEW */}
-          <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="/login"        element={<Login />} />
+          <Route path="/signup"       element={<Signup />} />
+          <Route path="/onboarding"   element={<Onboarding />} />
+          <Route path="/admin-login"  element={<AdminLogin />} />
 
           {/* ACCOUNT */}
           <Route path="/account"               element={<Account />} />
@@ -260,7 +262,7 @@ function AppShell() {
             }
           />
 
-          {/* Admin product requests panel */}
+          {/* ADMIN PRODUCT REQUESTS */}
           <Route
             path="/admin/product-requests"
             element={
@@ -272,13 +274,25 @@ function AppShell() {
             }
           />
 
-          {/* Media Manager */}
+          {/* MEDIA MANAGER */}
           <Route
             path="/admin/media"
             element={
               <AdminRoute>
                 <RequireAdmin>
                   <MediaManager />
+                </RequireAdmin>
+              </AdminRoute>
+            }
+          />
+
+          {/* ── SUPPORT INBOX  ← NEW ── */}
+          <Route
+            path="/admin/support"
+            element={
+              <AdminRoute>
+                <RequireAdmin>
+                  <AdminSupportDashboard />
                 </RequireAdmin>
               </AdminRoute>
             }
