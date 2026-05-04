@@ -1,80 +1,104 @@
 /* ═══════════════════════════════════════════════════════════════════
-   ShopCarousel.css  —  Wish-style peek carousel
-   .sc-card--visible is added by scroll detection in ShopCarousel.jsx
+   ShopCarousel.css  —  Beme Market
    ═══════════════════════════════════════════════════════════════════ */
 
 /* ── Root ─────────────────────────────────────────────────────────── */
 .sc-root {
   display: flex;
   flex-direction: column;
-  gap: 10px;
   width: 100%;
 }
 
-/* ── Track — Wish-style: show ~88% of current + peek of next ──────── */
+/* ── Wrapper: relative container for track + dots + arrows ────────── */
+.sc-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* ── Track — full-width, no peek, no gap, no padding ─────────────── */
 .sc-track {
   display: flex;
-  gap: 12px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  /* Left padding lets the first card sit flush left;
-     right padding creates the peek gap for the last card */
-  padding: 4px 14px 4px 14px;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  /* Prevent overscroll bounce clipping the cards */
   overscroll-behavior-x: contain;
+  /* No padding, no gap — cards sit edge-to-edge at full width */
 }
 .sc-track::-webkit-scrollbar { display: none; }
 
-/* ── Card wrapper ─────────────────────────────────────────────────── */
+/* ── Card wrapper — exactly full track width ──────────────────────── */
 .sc-card-wrap {
   flex-shrink: 0;
-  /* ~88 vw wide so the next card peeks by ~12 vw — exactly like Wish */
-  width: clamp(260px, 84vw, 420px);
-  scroll-snap-align: center;
+  width: 100%;
+  scroll-snap-align: start;
 }
 
 /* ── Card shell ───────────────────────────────────────────────────── */
 .sc-card {
   position: relative;
-  height: 186px;
-  border-radius: 18px;
+  height: 196px;
+  border-radius: 0;          /* flush edge to edge like Wish */
   overflow: hidden;
   cursor: pointer;
   outline: none;
-  /* Subtle lift shadow — matches Wish card depth */
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
   -webkit-tap-highlight-color: transparent;
 }
 .sc-card:active {
-  transform: scale(0.985);
+  transform: scale(0.995);
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.14);
 }
 .sc-card:focus-visible {
   box-shadow: 0 0 0 3px rgba(232, 108, 44, 0.55);
 }
 
-/* ── Inner body ───────────────────────────────────────────────────── */
+/* ── Full-bleed background image ──────────────────────────────────── */
+.sc-bg-image-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.sc-bg-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+/* Gradient: strong on the left so text is readable, fades to transparent on the right */
+.sc-bg-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.72) 0%,
+    rgba(0, 0, 0, 0.44) 45%,
+    rgba(0, 0, 0, 0.10) 100%
+  );
+}
+
+/* ── Inner body — sits above the image ────────────────────────────── */
 .sc-inner {
+  position: relative;
+  z-index: 2;
   width: 100%;
   height: 100%;
   display: flex;
-  justify-content: space-between;
-  padding: 18px 0 18px 20px;
-  position: relative;
+  align-items: center;
+  padding: 20px 20px 36px 20px; /* bottom padding leaves room for dots */
 }
 
 /* ── Text content ─────────────────────────────────────────────────── */
 .sc-content {
-  max-width: 54%;
+  max-width: 58%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 5px;
-  z-index: 1;
-  position: relative;
 }
 
 .sc-badge {
@@ -92,16 +116,17 @@
 }
 
 .sc-title {
-  font-size: clamp(14px, 3.8vw, 18px);
+  font-size: clamp(15px, 4vw, 20px);
   font-weight: 800;
   color: #fff;
   line-height: 1.2;
   margin: 0;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
 }
 
 .sc-subtitle {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.62);
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.75);
   margin: 0;
   line-height: 1.45;
 }
@@ -110,11 +135,11 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-top: 9px;
+  margin-top: 10px;
   width: fit-content;
   font-size: 11px;
   font-weight: 700;
-  padding: 7px 15px;
+  padding: 7px 16px;
   border-radius: 999px;
   background: #e86c2c;
   color: #fff;
@@ -125,26 +150,6 @@
 }
 .sc-btn:hover  { opacity: 0.88; }
 .sc-btn:active { opacity: 0.72; transform: scale(0.97); }
-
-/* ── Product image ────────────────────────────────────────────────── */
-.sc-image-wrap {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 48%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-}
-.sc-image-wrap img {
-  height: 92%;
-  width: 100%;
-  object-fit: contain;
-  pointer-events: none;
-  user-select: none;
-}
 
 /* ── Heart button ─────────────────────────────────────────────────── */
 .sc-heart {
@@ -169,29 +174,70 @@
 .sc-heart:active  { transform: scale(0.88); }
 .sc-heart-svg     { width: 14px; }
 
-/* ── Dots — Wish pill style ───────────────────────────────────────── */
+/* ── Dots — absolutely positioned inside .sc-wrapper ─────────────── */
 .sc-dots {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  z-index: 30;
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 5px;
-  padding: 0 0 2px;
+  pointer-events: none; /* let clicks through to cards by default */
 }
 
 .sc-dot {
   width: 6px;
   height: 6px;
-  background: #d4d4d4;
+  background: rgba(255, 255, 255, 0.55);
   border-radius: 999px;
   border: none;
   padding: 0;
   cursor: pointer;
+  pointer-events: all;
   transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
               background 0.22s ease;
 }
 .sc-dot.active {
   width: 22px;
   background: #e86c2c;
+}
+
+/* ── Desktop arrows — hidden on mobile, shown on laptop+ ─────────── */
+.sc-arrow {
+  display: none; /* hidden by default on mobile */
+}
+
+@media (min-width: 1024px) {
+  .sc-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 40;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: #fff;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  }
+  .sc-arrow:hover  { background: rgba(255, 255, 255, 0.32); }
+  .sc-arrow:active { transform: translateY(-50%) scale(0.92); }
+
+  .sc-arrow--prev { left: 14px;  }
+  .sc-arrow--next { right: 14px; }
 }
 
 /* ── Gadgets: cyan title glow ─────────────────────────────────────── */
@@ -529,28 +575,30 @@
 
 /* ── RESPONSIVE ─────────────────────────────────────────────────── */
 @media (max-width: 360px) {
-  .sc-card-wrap { width: calc(100vw - 44px); }
-  .sc-card       { height: 164px; }
-  .sc-title      { font-size: 13px; }
-  .sc-subtitle   { font-size: 10px; }
-  .sc-btn        { font-size: 10px; padding: 6px 12px; margin-top: 6px; }
-  .sc-stamp      { width: 78px; height: 78px; }
+  .sc-card    { height: 172px; }
+  .sc-title   { font-size: 14px; }
+  .sc-subtitle{ font-size: 10.5px; }
+  .sc-btn     { font-size: 10px; padding: 6px 12px; margin-top: 7px; }
+  .sc-stamp   { width: 78px; height: 78px; }
 }
 
 @media (min-width: 640px) {
-  .sc-card-wrap { width: clamp(340px, 68vw, 460px); }
-  .sc-card       { height: 208px; }
-  .sc-title      { font-size: 20px; }
-  .sc-subtitle   { font-size: 12px; }
-  .sc-btn        { font-size: 13px; padding: 9px 18px; margin-top: 10px; }
-  .sc-stamp      { width: 106px; height: 106px; }
+  .sc-card    { height: 220px; }
+  .sc-title   { font-size: 22px; }
+  .sc-subtitle{ font-size: 13px; }
+  .sc-btn     { font-size: 13px; padding: 9px 20px; margin-top: 11px; }
+  .sc-stamp   { width: 106px; height: 106px; }
+  .sc-inner   { padding: 24px 28px 42px 28px; }
 }
 
 @media (min-width: 1024px) {
-  .sc-card-wrap { width: clamp(360px, 36vw, 500px); }
-  .sc-card       { height: 218px; }
-  .sc-track      { padding: 4px 24px; gap: 16px; }
-  .sc-stamp      { width: 112px; height: 112px; }
+  .sc-card    { height: 240px; }
+  .sc-title   { font-size: 26px; }
+  .sc-subtitle{ font-size: 14px; }
+  .sc-btn     { font-size: 14px; padding: 10px 22px; }
+  .sc-stamp   { width: 112px; height: 112px; }
+  .sc-inner   { padding: 28px 80px 48px 40px; }
+  .sc-content { max-width: 50%; }
 }
 
 /* ── Reduced motion ─────────────────────────────────────────────── */

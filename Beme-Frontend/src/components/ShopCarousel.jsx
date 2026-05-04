@@ -156,15 +156,17 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
   const pauseTimer    = useRef(null);
   const isPaused      = useRef(false);
 
+  /* Active shops only, sorted by order */
+  const activeShops = [...shops]
+    .filter((s) => s.active !== false)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
   /* ── Scroll a specific index into view ── */
   const scrollTo = useCallback((idx) => {
     const el = trackRef.current;
     if (!el) return;
-    const card = el.querySelector(".sc-card-wrap");
-    if (!card) return;
-    const cardW = card.offsetWidth;
-    const gap   = 12; // must match CSS gap
-    el.scrollTo({ left: idx * (cardW + gap), behavior: "smooth" });
+    /* Each card-wrap is exactly the full track width — no gap, no padding */
+    el.scrollTo({ left: idx * el.offsetWidth, behavior: "smooth" });
   }, []);
 
   /* ── Active-index detection on manual scroll ── */
@@ -188,20 +190,19 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
 
   /* ── Auto-play ── */
   const startAutoPlay = useCallback(() => {
-    if (!autoPlay || shops.length <= 1) return;
+    if (!autoPlay || activeShops.length <= 1) return;
     clearInterval(autoPlayTimer.current);
     autoPlayTimer.current = setInterval(() => {
       if (isPaused.current) return;
       setActiveIndex((prev) => {
-        const next = (prev + 1) % shops.length;
+        const next = (prev + 1) % activeShops.length;
         prevActive.current = next;
         setAnimKeys((k) => ({ ...k, [next]: (k[next] || 0) + 1 }));
-        // Use rAF so state is committed before we scroll
         requestAnimationFrame(() => scrollTo(next));
         return next;
       });
     }, interval);
-  }, [autoPlay, shops.length, interval, scrollTo]);
+  }, [autoPlay, activeShops.length, interval, scrollTo]);
 
   useEffect(() => {
     startAutoPlay();
@@ -211,121 +212,157 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
     };
   }, [startAutoPlay]);
 
-  /* ── Pause on touch / pointer, resume after 6 s of inactivity ── */
+  /* ── Pause on touch / pointer, resume after 6s of inactivity ── */
   const pauseAutoPlay = useCallback(() => {
     isPaused.current = true;
     clearTimeout(pauseTimer.current);
     pauseTimer.current = setTimeout(() => { isPaused.current = false; }, 6000);
   }, []);
 
-  /* ── Dot click: pause + jump ── */
+  /* ── Dot / arrow click: pause + jump ── */
   const handleDotClick = useCallback((idx) => {
     pauseAutoPlay();
+    setActiveIndex(idx);
+    prevActive.current = idx;
+    setAnimKeys((k) => ({ ...k, [idx]: (k[idx] || 0) + 1 }));
     scrollTo(idx);
   }, [pauseAutoPlay, scrollTo]);
+
+  const handlePrev = useCallback(() => {
+    handleDotClick((activeIndex - 1 + activeShops.length) % activeShops.length);
+  }, [activeIndex, activeShops.length, handleDotClick]);
+
+  const handleNext = useCallback(() => {
+    handleDotClick((activeIndex + 1) % activeShops.length);
+  }, [activeIndex, activeShops.length, handleDotClick]);
 
   const toggleSave = (e, id) => {
     e.stopPropagation();
     setSaved((p) => ({ ...p, [id]: !p[id] }));
   };
 
-  if (!shops.length) return null;
-
-  /* Active shops only, sorted by order */
-  const activeShops = [...shops]
-    .filter((s) => s.active !== false)
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
   if (!activeShops.length) return null;
 
   return (
     <div className="sc-root">
-      {/* ── Track ── */}
-      <div
-        ref={trackRef}
-        className="sc-track"
-        onScroll={onScroll}
-        onTouchStart={pauseAutoPlay}
-        onMouseDown={pauseAutoPlay}
-      >
-        {activeShops.map((shop, i) => {
-          const theme    = shop.theme || "none";
-          const isActive = i === activeIndex;
-          const animKey  = animKeys[i] || 0;
-          const cardBg   = shop.cardBg || THEME_BG[theme] || "#1E3D2A";
-          const btnText  = shop.buttonText || "Shop Now";
 
-          return (
-            <div key={shop.id} className="sc-card-wrap">
-              <div
-                className={`sc-card sc-theme-${theme}${isActive ? " sc-card--visible" : ""}`}
-                style={{ background: cardBg }}
-                onClick={() => shop.onClick?.()}
-                role="button"
-                tabIndex={0}
-                aria-label={shop.ariaLabel || shop.title}
-                onKeyDown={(e) => e.key === "Enter" && shop.onClick?.()}
-              >
-                {/* Heart */}
-                <button
-                  className="sc-heart"
-                  onClick={(e) => toggleSave(e, shop.id)}
-                  aria-label={saved[shop.id] ? "Unsave" : "Save"}
+      {/* ── Wrapper: positions track, dots, and arrows together ── */}
+      <div className="sc-wrapper">
+
+        {/* Desktop-only prev arrow */}
+        {activeShops.length > 1 && (
+          <button
+            className="sc-arrow sc-arrow--prev"
+            onClick={handlePrev}
+            aria-label="Previous slide"
+          >
+            ‹
+          </button>
+        )}
+
+        {/* ── Scrollable track ── */}
+        <div
+          ref={trackRef}
+          className="sc-track"
+          onScroll={onScroll}
+          onTouchStart={pauseAutoPlay}
+          onMouseDown={pauseAutoPlay}
+        >
+          {activeShops.map((shop, i) => {
+            const theme    = shop.theme || "none";
+            const isActive = i === activeIndex;
+            const animKey  = animKeys[i] || 0;
+            const cardBg   = shop.cardBg || THEME_BG[theme] || "#1E3D2A";
+            const btnText  = shop.buttonText || "Shop Now";
+
+            return (
+              <div key={shop.id} className="sc-card-wrap">
+                <div
+                  className={`sc-card sc-theme-${theme}${isActive ? " sc-card--visible" : ""}`}
+                  style={{ background: cardBg }}
+                  onClick={() => shop.onClick?.()}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={shop.ariaLabel || shop.title}
+                  onKeyDown={(e) => e.key === "Enter" && shop.onClick?.()}
                 >
-                  <IconHeart filled={!!saved[shop.id]} />
-                </button>
-
-                {/* Body */}
-                <div className="sc-inner" style={{ background: cardBg }}>
-                  <div className="sc-content">
-                    {shop.chip && <span className="sc-badge">{shop.chip}</span>}
-                    <h3 className="sc-title">{shop.title}</h3>
-                    <p className="sc-subtitle">{shop.subtitle || "Premium curated shop"}</p>
-                    <button className="sc-btn">{btnText} →</button>
-                  </div>
-                  <div className="sc-image-wrap">
-                    {shop.imageUrl || shop.image ? (
+                  {/* ── Full-bleed background image ── */}
+                  {(shop.imageUrl || shop.image) && (
+                    <div className="sc-bg-image-wrap">
                       <img
                         src={shop.imageUrl || shop.image}
-                        alt={shop.title}
+                        alt=""
+                        className="sc-bg-image"
                         loading="lazy"
                         draggable={false}
                       />
-                    ) : null}
+                      {/* Left-to-right gradient keeps text legible over image */}
+                      <div className="sc-bg-gradient" />
+                    </div>
+                  )}
+
+                  {/* Heart */}
+                  <button
+                    className="sc-heart"
+                    onClick={(e) => toggleSave(e, shop.id)}
+                    aria-label={saved[shop.id] ? "Unsave" : "Save"}
+                  >
+                    <IconHeart filled={!!saved[shop.id]} />
+                  </button>
+
+                  {/* Text content — left-aligned, always above image */}
+                  <div className="sc-inner">
+                    <div className="sc-content">
+                      {shop.chip && <span className="sc-badge">{shop.chip}</span>}
+                      <h3 className="sc-title">{shop.title}</h3>
+                      <p className="sc-subtitle">{shop.subtitle || "Premium curated shop"}</p>
+                      <button className="sc-btn">{btnText} →</button>
+                    </div>
                   </div>
+
+                  {/* ═══ Overlays (all themes untouched) ═══ */}
+                  {theme === "fashion" && <CurtainOverlay color={cardBg} />}
+                  {theme === "kente" && (
+                    <div className="sc-kente-wrap" key={`kente-${animKey}`}>
+                      <KenteSVG />
+                    </div>
+                  )}
+                  {theme === "bestsellers" && isActive && <StampOverlay key={`stamp-${animKey}`} />}
+                  {theme === "scents"      && isActive && <SprayOverlay key={`spray-${animKey}`} />}
+                  {theme === "gadgets"     && isActive && <GlitchOverlay key={`glitch-${animKey}`} />}
                 </div>
-
-                {/* ═══ Overlays — keyed by theme (untouched) ═══ */}
-                {theme === "fashion" && <CurtainOverlay color={cardBg} />}
-                {theme === "kente" && (
-                  <div className="sc-kente-wrap" key={`kente-${animKey}`}>
-                    <KenteSVG />
-                  </div>
-                )}
-                {theme === "bestsellers" && isActive && <StampOverlay key={`stamp-${animKey}`} />}
-                {theme === "scents"      && isActive && <SprayOverlay key={`spray-${animKey}`} />}
-                {theme === "gadgets"     && isActive && <GlitchOverlay key={`glitch-${animKey}`} />}
               </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── Dots ── */}
-      {activeShops.length > 1 && (
-        <div className="sc-dots" role="tablist" aria-label="Carousel navigation">
-          {activeShops.map((_, i) => (
-            <button
-              key={i}
-              role="tab"
-              aria-selected={i === activeIndex}
-              className={`sc-dot${i === activeIndex ? " active" : ""}`}
-              onClick={() => handleDotClick(i)}
-              aria-label={`Go to slide ${i + 1}`}
-            />
-          ))}
+            );
+          })}
         </div>
-      )}
+
+        {/* Desktop-only next arrow */}
+        {activeShops.length > 1 && (
+          <button
+            className="sc-arrow sc-arrow--next"
+            onClick={handleNext}
+            aria-label="Next slide"
+          >
+            ›
+          </button>
+        )}
+
+        {/* ── Dots overlaid at the bottom of the wrapper ── */}
+        {activeShops.length > 1 && (
+          <div className="sc-dots" role="tablist" aria-label="Carousel navigation">
+            {activeShops.map((_, i) => (
+              <button
+                key={i}
+                role="tab"
+                aria-selected={i === activeIndex}
+                className={`sc-dot${i === activeIndex ? " active" : ""}`}
+                onClick={() => handleDotClick(i)}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
