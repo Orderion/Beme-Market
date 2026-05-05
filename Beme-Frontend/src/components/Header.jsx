@@ -5,36 +5,49 @@ import { db } from "../firebase";
 import { useCart } from "../context/CartContext";
 import "./Header.css";
 
+/* ================= ICONS — strokeWidth 1.5, thin line-art ================= */
+
 function IconMenu() {
   return (
-    <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true">
-      <path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true" fill="none"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <path d="M4 7h16M4 12h16M4 17h10" />
     </svg>
   );
 }
-function IconBag() {
+
+/* Monochromatic shopping cart — clean single-colour line art */
+function IconCart() {
   return (
-    <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true">
-      <path d="M6 7h12l-1 12H7L6 7z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-      <path d="M9 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true" fill="none"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <path d="M16 10a4 4 0 0 1-8 0"/>
     </svg>
   );
 }
+
 function IconSearch() {
   return (
-    <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true">
-      <circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M21 21l-4.3-4.3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true" fill="none"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <circle cx="11" cy="11" r="8"/>
+      <path d="M21 21l-4.3-4.3"/>
     </svg>
   );
 }
+
 function IconClose() {
   return (
-    <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true">
-      <path d="M18 6L6 18M6 6l12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true" fill="none"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <path d="M18 6L6 18M6 6l12 12"/>
     </svg>
   );
 }
+
+/* ================= SEARCH LOGIC (unchanged) ================= */
 
 const SEARCH_PREVIEW_LIMIT = 80;
 const SUGGESTION_LIMIT = 4;
@@ -124,7 +137,6 @@ const TYPE_LABELS = {
   department: "Dept",   type: "Type",       shop: "Shop", keyword: "Keyword",
 };
 
-/* ── Detects OS/browser colour scheme preference ── */
 function usePrefersDark() {
   const [dark, setDark] = useState(
     () => window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false
@@ -137,6 +149,8 @@ function usePrefersDark() {
   }, []);
   return dark;
 }
+
+/* ================= COMPONENT ================= */
 
 export default function Header({ onMenu, onCart }) {
   const navigate      = useNavigate();
@@ -157,7 +171,6 @@ export default function Header({ onMenu, onCart }) {
   const inputRef = useRef(null);
   const wrapRef  = useRef(null);
 
-  /* ── Listen to the custom event fired by Home.jsx's window scroll ── */
   useEffect(() => {
     if (!isHome) {
       setSearchCollapsed(false);
@@ -165,17 +178,13 @@ export default function Header({ onMenu, onCart }) {
       setHeaderSugOpen(false);
       return;
     }
-
     const handler = (e) => setSearchCollapsed(e.detail.collapsed);
     window.addEventListener("home-search-collapse", handler);
-
     const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
     setSearchCollapsed(scrollY > 80);
-
     return () => window.removeEventListener("home-search-collapse", handler);
   }, [isHome]);
 
-  /* ── Fetch products for suggestions ── */
   useEffect(() => {
     if (!isHome) return;
     let alive = true;
@@ -193,7 +202,6 @@ export default function Header({ onMenu, onCart }) {
     return () => { alive = false; };
   }, [isHome]);
 
-  /* ── Auto-focus / clear on toggle ── */
   useEffect(() => {
     if (searchCollapsed && isHome) {
       const t = setTimeout(() => inputRef.current?.focus(), 320);
@@ -205,7 +213,6 @@ export default function Header({ onMenu, onCart }) {
     }
   }, [searchCollapsed, isHome]);
 
-  /* ── Outside click ── */
   useEffect(() => {
     const onDown = (e) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) {
@@ -246,8 +253,11 @@ export default function Header({ onMenu, onCart }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    goToSearch(headerActiveIdx >= 0 && suggestions[headerActiveIdx]
-      ? suggestions[headerActiveIdx].value : headerSearch);
+    goToSearch(
+      headerActiveIdx >= 0 && suggestions[headerActiveIdx]
+        ? suggestions[headerActiveIdx].value
+        : headerSearch
+    );
   };
 
   const handleChange = (e) => {
@@ -265,18 +275,17 @@ export default function Header({ onMenu, onCart }) {
   };
 
   const showInlineSearch = isHome && searchCollapsed;
-
-  /* ── Pick the right logo based on OS colour-scheme preference ── */
   const logoSrc = prefersDark ? "/favicon_white.png" : "/favicon_black.png";
 
   return (
     <header className={`hdr ${showInlineSearch ? "hdr--search-mode" : ""}`}>
 
+      {/* MENU */}
       <button className="hdr-icon" onClick={handleMenuOpen} aria-label="Open menu" type="button">
         <IconMenu />
       </button>
 
-      {/* LOGO — fades up when search takes over */}
+      {/* LOGO */}
       <div className={`hdr-logo-wrap ${showInlineSearch ? "hdr-logo-wrap--hidden" : ""}`}>
         <img
           src={logoSrc}
@@ -286,7 +295,7 @@ export default function Header({ onMenu, onCart }) {
         />
       </div>
 
-      {/* INLINE SEARCH — only rendered on home */}
+      {/* INLINE SEARCH — only on home */}
       {isHome && (
         <div
           ref={wrapRef}
@@ -312,7 +321,11 @@ export default function Header({ onMenu, onCart }) {
               <button
                 type="button"
                 className="hdr-search-clear"
-                onClick={() => { setHeaderSearch(""); setHeaderSugOpen(false); inputRef.current?.focus(); }}
+                onClick={() => {
+                  setHeaderSearch("");
+                  setHeaderSugOpen(false);
+                  inputRef.current?.focus();
+                }}
                 tabIndex={showInlineSearch ? 0 : -1}
               >
                 <IconClose />
@@ -323,7 +336,7 @@ export default function Header({ onMenu, onCart }) {
           {headerSugOpen && showInlineSearch && (
             <div className="hdr-suggestions">
               {loadingSugs ? (
-                <div className="hdr-suggestion-empty">Loading suggestions…</div>
+                <div className="hdr-suggestion-empty">Loading…</div>
               ) : suggestions.length ? (
                 suggestions.map((item, idx) => (
                   <button
@@ -338,17 +351,25 @@ export default function Header({ onMenu, onCart }) {
                   </button>
                 ))
               ) : (
-                <div className="hdr-suggestion-empty">No matching results.</div>
+                <div className="hdr-suggestion-empty">No results found.</div>
               )}
             </div>
           )}
         </div>
       )}
 
+      {/* RIGHT — cart button with monochromatic cart icon */}
       <div className="hdr-right">
-        <button className="hdr-icon hdr-bag" onClick={handleCartOpen} aria-label="Open cart" type="button">
-          <IconBag />
-          {count > 0 && <span className="hdr-badge">{count}</span>}
+        <button
+          className="hdr-icon hdr-bag"
+          onClick={handleCartOpen}
+          aria-label="Open cart"
+          type="button"
+        >
+          <IconCart />
+          {count > 0 && (
+            <span className="hdr-badge">{count > 99 ? "99+" : count}</span>
+          )}
         </button>
       </div>
 
