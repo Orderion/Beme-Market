@@ -1,14 +1,116 @@
-import { useState } from "react";
-import "./AdminDashboard.css";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import {
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
+import { db } from "../firebase";
+import { useAuth } from "../context/AuthContext";
+import "./AdminDashboard.css";
 
-/* ─── Inline SVG icon helper ─── */
+/* ═══════════════════════════════════════
+   ANALYTICS HELPERS  (mirrors Analytics.jsx)
+═══════════════════════════════════════ */
+function getOrderTotal(order) {
+  const direct =
+    order.total ??
+    order.amount ??
+    order.orderTotal ??
+    order.subtotal ??
+    order.grandTotal ??
+    order.pricing?.total;
+  if (Number.isFinite(Number(direct))) return Number(direct);
+  const items = Array.isArray(order.items) ? order.items : [];
+  return items.reduce((sum, item) => {
+    return sum + Number(item?.price || 0) * Number(item?.qty || 0);
+  }, 0);
+}
+
+function toMillis(value) {
+  if (!value) return 0;
+  if (typeof value?.toMillis === "function") return value.toMillis();
+  if (value instanceof Date) return value.getTime();
+  if (typeof value?.seconds === "number") return value.seconds * 1000;
+  return 0;
+}
+
+function normalizeShop(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function sortByCreatedAtDesc(rows) {
+  return [...rows].sort((a, b) => toMillis(b.createdAt || b.timestamp) - toMillis(a.createdAt || a.timestamp));
+}
+
+function orderMatchesShop(order, adminShop) {
+  const norm = normalizeShop(adminShop);
+  if (normalizeShop(order?.primaryShop) === norm) return true;
+  const shops = Array.isArray(order?.shops) ? order.shops.map(normalizeShop) : [];
+  if (shops.includes(norm)) return true;
+  const items = Array.isArray(order?.items) ? order.items : [];
+  return items.some((item) => normalizeShop(item?.shop) === norm);
+}
+
+function formatMoney(value) {
+  const n = Number(value || 0);
+  if (n >= 1_000_000) return `GHS ${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `GHS ${(n / 1_000).toFixed(1)}k`;
+  return `GHS ${n.toFixed(2)}`;
+}
+
+function buildUniqueShopCount(products, orders) {
+  const shops = new Set();
+  for (const p of products) {
+    const s = normalizeShop(p.shop);
+    if (s) shops.add(s);
+  }
+  for (const o of orders) {
+    const arr = Array.isArray(o.shops) ? o.shops : [];
+    for (const s of arr) { const n = normalizeShop(s); if (n) shops.add(n); }
+    const items = Array.isArray(o.items) ? o.items : [];
+    for (const item of items) { const n = normalizeShop(item?.shop); if (n) shops.add(n); }
+  }
+  return shops.size;
+}
+
+function getDayKeyFromTimestamp(ts) {
+  const date = ts ? new Date(toMillis(ts)) : new Date();
+  return date.toISOString().slice(0, 10);
+}
+
+function labelFromDayKey(dayKey) {
+  return new Date(`${dayKey}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function buildDailySeries(orders, days = 7) {
+  const today = new Date();
+  const map = new Map();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    map.set(key, { key, label: labelFromDayKey(key), orders: 0, revenue: 0 });
+  }
+  for (const order of orders) {
+    const key = getDayKeyFromTimestamp(order.createdAt || order.timestamp);
+    if (!map.has(key)) continue;
+    const row = map.get(key);
+    row.orders += 1;
+    row.revenue += getOrderTotal(order);
+  }
+  return Array.from(map.values());
+}
+
+/* ═══════════════════════════════════════
+   ICON HELPER
+═══════════════════════════════════════ */
 const Icon = ({ d, size = 18 }) => (
-  <svg
-    width={size} height={size} viewBox="0 0 24 24"
-    fill="none" stroke="currentColor"
-    strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"
-  >
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
     <path d={d} />
   </svg>
 );
@@ -28,6 +130,7 @@ const ICONS = {
   logout:    "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9",
   menu:      "M3 12h18 M3 6h18 M3 18h18",
   close:     "M18 6L6 18 M6 6l12 12",
+  refresh:   "M23 4v6h-6 M1 20v-6h6 M3.51 9a9 9 0 0 1 14.85-3.36L23 10 M1 14l4.64 4.36A9 9 0 0 0 20.49 15",
 };
 
 const NAV_ITEMS = [
@@ -44,43 +147,51 @@ const NAV_ITEMS = [
   { key: "support",   label: "Support Inbox",     path: "/admin/support" },
 ];
 
-const RECENT_ORDERS = [
-  { id: "#ORD-2841", customer: "Ama Owusu",     total: "GH₵ 320.00", status: "Completed", date: "May 4" },
-  { id: "#ORD-2840", customer: "Kwame Asante",   total: "GH₵ 89.50",  status: "Pending",   date: "May 4" },
-  { id: "#ORD-2839", customer: "Efua Mensah",    total: "GH₵ 540.00", status: "Completed", date: "May 3" },
-  { id: "#ORD-2838", customer: "Kofi Boateng",   total: "GH₵ 175.00", status: "Refunded",  date: "May 3" },
-  { id: "#ORD-2837", customer: "Abena Frimpong", total: "GH₵ 62.00",  status: "Pending",   date: "May 2" },
-];
-
 const STATUS = {
   Completed: { bg: "#0d2e1a", color: "#22c55e" },
   Pending:   { bg: "#2a2000", color: "#f59e0b" },
   Refunded:  { bg: "#2a0d0d", color: "#ef4444" },
+  completed: { bg: "#0d2e1a", color: "#22c55e" },
+  pending:   { bg: "#2a2000", color: "#f59e0b" },
+  refunded:  { bg: "#2a0d0d", color: "#ef4444" },
+  cancelled: { bg: "#2a0d0d", color: "#ef4444" },
 };
 
-/* ─── Stat card ─── */
-function StatCard({ label, value, delta }) {
+/* ═══════════════════════════════════════
+   SUB-COMPONENTS
+═══════════════════════════════════════ */
+function StatCard({ label, value, sub, loading }) {
   return (
-    <div style={{
-      background: "#1a1a1a", borderRadius: 10, padding: "16px 18px",
-      border: "1px solid #2a2a2a",
-    }}>
-      <div style={{ fontSize: 10, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
-        {label}
-      </div>
-      <div style={{ fontSize: 26, fontWeight: 600, color: "#fff", letterSpacing: "-0.02em" }}>
-        {value}
-      </div>
-      {delta !== undefined && (
-        <div style={{ fontSize: 11, marginTop: 4, color: delta >= 0 ? "#22c55e" : "#ef4444" }}>
-          {delta >= 0 ? "↑" : "↓"} {Math.abs(delta)}% vs last week
-        </div>
-      )}
+    <div className="adash-stat-card">
+      <div className="adash-stat-label">{label}</div>
+      {loading
+        ? <div className="adash-stat-skeleton" />
+        : <div className="adash-stat-value">{value}</div>
+      }
+      {sub && !loading && <div className="adash-stat-sub">{sub}</div>}
     </div>
   );
 }
 
-/* ─── Sidebar nav item ─── */
+function MiniBarChart({ series, valueKey, formatVal }) {
+  const max = Math.max(...series.map((s) => s[valueKey]), 1);
+  return (
+    <div className="adash-minichart">
+      {series.map((item) => {
+        const pct = Math.max((item[valueKey] / max) * 100, item[valueKey] > 0 ? 4 : 0);
+        return (
+          <div key={item.key} className="adash-minibar-col" title={`${item.label}: ${formatVal(item[valueKey])}`}>
+            <div className="adash-minibar-track">
+              <div className="adash-minibar-fill" style={{ height: `${pct}%` }} />
+            </div>
+            <span className="adash-minibar-label">{item.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function NavItem({ item, isActive, collapsed, onClick }) {
   const [hovered, setHovered] = useState(false);
   return (
@@ -89,125 +200,219 @@ function NavItem({ item, isActive, collapsed, onClick }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       title={collapsed ? item.label : undefined}
-      style={{
-        display: "flex", alignItems: "center",
-        gap: collapsed ? 0 : 10,
-        justifyContent: collapsed ? "center" : "flex-start",
-        padding: collapsed ? "10px 0" : "10px 13px",
-        borderRadius: 8, border: "none", cursor: "pointer", width: "100%",
-        background: isActive ? "#1e1208" : hovered ? "#181818" : "transparent",
-        color: isActive ? "#e67e22" : hovered ? "#bbb" : "#777",
-        transition: "background 0.15s, color 0.15s",
-        fontFamily: "inherit",
-      }}
+      className={[
+        "adash-nav-btn",
+        isActive  ? "adash-nav-btn--active"    : "",
+        hovered   ? "adash-nav-btn--hover"     : "",
+        collapsed ? "adash-nav-btn--collapsed" : "",
+      ].join(" ")}
     >
-      <span style={{ flexShrink: 0 }}>
-        <Icon d={ICONS[item.key]} size={17} />
-      </span>
-      {!collapsed && (
-        <span style={{ fontSize: 13.5, fontWeight: isActive ? 500 : 400, whiteSpace: "nowrap" }}>
-          {item.label}
-        </span>
-      )}
-      {isActive && !collapsed && (
-        <span style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: "#e67e22" }} />
-      )}
+      <span className="adash-nav-icon"><Icon d={ICONS[item.key]} size={17} /></span>
+      {!collapsed && <span className="adash-nav-label">{item.label}</span>}
+      {isActive && !collapsed && <span className="adash-nav-dot" />}
     </button>
   );
 }
 
-/* ═══════════ MAIN PAGE ═══════════ */
+/* ═══════════════════════════════════════
+   MAIN COMPONENT
+═══════════════════════════════════════ */
 export default function AdminDashboard() {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const { isSuperAdmin, isShopAdmin, adminShop } = useAuth();
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [collapsed, setCollapsed]     = useState(false);
+  const [collapsed,   setCollapsed]   = useState(false);
+
+  /* ── data state ── */
+  const [products,      setProducts]      = useState([]);
+  const [orders,        setOrders]        = useState([]);
+  const [users,         setUsers]         = useState([]);
+  const [pendingReviews,setPendingReviews]= useState(0);
+  const [openTickets,   setOpenTickets]   = useState(0);
+  const [dataLoading,   setDataLoading]   = useState(true);
+  const [lastRefreshed, setLastRefreshed] = useState(null);
 
   const active = location.pathname;
 
+  /* ── Firebase fetch (same logic as Analytics.jsx) ── */
+  async function fetchData() {
+    setDataLoading(true);
+    const normShop = normalizeShop(adminShop);
+    let loadedProducts = [], loadedOrders = [], loadedUsers = [];
+
+    /* products */
+    try {
+      if (isShopAdmin && normShop) {
+        const snap = await getDocs(query(collection(db, "Products"), where("shop", "==", normShop)));
+        loadedProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      } else {
+        const snap = await getDocs(collection(db, "Products"));
+        loadedProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      }
+    } catch (e) { console.error("products:", e); }
+
+    /* orders */
+    try {
+      if (isShopAdmin && normShop) {
+        try {
+          const snap = await getDocs(query(
+            collection(db, "orders"),
+            where("shops", "array-contains", normShop),
+            orderBy("createdAt", "desc"), limit(300)
+          ));
+          loadedOrders = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        } catch {
+          const snap = await getDocs(query(collection(db, "orders"), where("shops", "array-contains", normShop)));
+          loadedOrders = sortByCreatedAtDesc(
+            snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+              .filter((o) => orderMatchesShop(o, normShop))
+          );
+        }
+      } else {
+        try {
+          const snap = await getDocs(query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(300)));
+          loadedOrders = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        } catch {
+          const snap = await getDocs(collection(db, "orders"));
+          loadedOrders = sortByCreatedAtDesc(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        }
+      }
+    } catch (e) { console.error("orders:", e); }
+
+    /* users (super admin only) */
+    try {
+      if (isSuperAdmin) {
+        const snap = await getDocs(collection(db, "users"));
+        loadedUsers = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      }
+    } catch (e) { console.error("users:", e); }
+
+    /* review queue count */
+    try {
+      const snap = await getDocs(query(collection(db, "reviewQueue"), where("status", "==", "pending")));
+      setPendingReviews(snap.size);
+    } catch {
+      /* collection may not exist yet — keep 0 */
+    }
+
+    /* support tickets count */
+    try {
+      const snap = await getDocs(query(collection(db, "supportTickets"), where("status", "==", "open")));
+      setOpenTickets(snap.size);
+    } catch {
+      /* keep 0 */
+    }
+
+    setProducts(loadedProducts);
+    setOrders(loadedOrders);
+    setUsers(loadedUsers);
+    setLastRefreshed(new Date());
+    setDataLoading(false);
+  }
+
+  useEffect(() => { fetchData(); }, [isShopAdmin, adminShop, isSuperAdmin]);
+
+  /* ── computed metrics (same as Analytics.jsx) ── */
+  const metrics = useMemo(() => {
+    const totalProducts    = products.length;
+    const inStockProducts  = products.filter((p) => p.inStock !== false).length;
+    const featuredProducts = products.filter((p) => !!p.featured).length;
+    const totalOrders      = orders.length;
+    const totalRevenue     = orders.reduce((sum, o) => sum + getOrderTotal(o), 0);
+    const avgOrderValue    = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    const totalUnitsSold   = orders.reduce((sum, o) => {
+      const items = Array.isArray(o.items) ? o.items : [];
+      return sum + items.reduce((s, i) => s + Number(i?.qty || 0), 0);
+    }, 0);
+    const activeCustomers  = isSuperAdmin
+      ? users.filter((u) => !["super_admin", "shop_admin", "admin"].includes(String(u.role || "").toLowerCase())).length
+      : new Set(orders.map((o) => String(o.userId || "").trim()).filter(Boolean)).size;
+    const activeShops      = buildUniqueShopCount(products, orders);
+    const stockHealth      = totalProducts > 0 ? Math.round((inStockProducts / totalProducts) * 100) : 0;
+
+    return {
+      totalOrders, totalRevenue, avgOrderValue, totalUnitsSold,
+      totalProducts, inStockProducts, featuredProducts,
+      activeCustomers, activeShops, stockHealth,
+    };
+  }, [products, orders, users, isSuperAdmin]);
+
+  /* ── daily series for mini chart ── */
+  const dailySeries = useMemo(() => buildDailySeries(orders, 7), [orders]);
+
+  /* ── recent 5 orders ── */
+  const recentOrders = useMemo(() => orders.slice(0, 5), [orders]);
+
+  /* ── Logo ── */
   const Logo = () => (
     <svg width={26} height={26} viewBox="0 0 32 32">
       <path d="M6 8 L16 4 L26 8 L26 24 L16 28 L6 24 Z" fill="#e67e22" opacity=".9" />
-      <path d="M6 8 L16 12 L16 28 L6 24 Z" fill="#c0580c" />
-      <path d="M26 8 L16 12 L16 28 L26 24 Z" fill="#f0a050" opacity=".7" />
+      <path d="M6 8 L16 12 L16 28 L6 24 Z"             fill="#c0580c" />
+      <path d="M26 8 L16 12 L16 28 L26 24 Z"           fill="#f0a050" opacity=".7" />
     </svg>
   );
 
+  /* ══════════════════════════════════════
+     RENDER
+  ══════════════════════════════════════ */
   return (
     <>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
-      <style>{`
-        .admin-root { display:flex; min-height:100vh; background:#0d0d0d; font-family:'DM Sans',sans-serif; }
-        .admin-sidebar { width:${collapsed ? 60 : 216}px; min-height:100vh; background:#111; border-right:1px solid #1f1f1f; display:flex; flex-direction:column; padding-bottom:14px; transition:width 0.2s ease; flex-shrink:0; position:sticky; top:0; align-self:flex-start; }
-        .admin-drawer-overlay { display:none; }
-        .admin-drawer { display:none; }
-        .admin-hamburger { display:none; }
-        .qcard { transition:border-color .15s, background .15s; }
-        .qcard:hover { border-color:#e67e22 !important; background:#1a1a1a !important; }
-        @media (max-width: 767px) {
-          .admin-sidebar { display:none !important; }
-          .admin-hamburger { display:block !important; }
-          .admin-drawer-overlay { display:block; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:40; }
-          .admin-drawer { display:flex; position:fixed; top:0; left:0; bottom:0; width:240px; background:#111; border-right:1px solid #1f1f1f; flex-direction:column; padding-bottom:14px; z-index:50; transition:transform 0.25s ease; }
-        }
-      `}</style>
-
-      <div className="admin-root">
+      <div className="adash-root">
 
         {/* ── Desktop Sidebar ── */}
-        <aside className="admin-sidebar">
-          <div style={{ height: 60, display: "flex", alignItems: "center", padding: `0 ${collapsed ? 16 : 16}px`, gap: 9, borderBottom: "1px solid #1f1f1f", justifyContent: collapsed ? "center" : "flex-start" }}>
+        <aside className={`adash-sidebar ${collapsed ? "adash-sidebar--collapsed" : "adash-sidebar--expanded"}`}>
+          <div className={`adash-logo-row ${collapsed ? "adash-logo-row--collapsed" : ""}`}>
             <Logo />
-            {!collapsed && <span style={{ fontSize: 13, fontWeight: 600, color: "#fff", letterSpacing: "0.03em" }}>BEME MARKET</span>}
+            {!collapsed && <span className="adash-logo-text">BEME MARKET</span>}
           </div>
-          <nav style={{ flex: 1, padding: "10px 6px", display: "flex", flexDirection: "column", gap: 1 }}>
-            {NAV_ITEMS.map(item => (
-              <NavItem key={item.key} item={item} isActive={active === item.path} collapsed={collapsed} onClick={navigate} />
+
+          <nav className="adash-nav">
+            {NAV_ITEMS.map((item) => (
+              <NavItem key={item.key} item={item} isActive={active === item.path}
+                collapsed={collapsed} onClick={navigate} />
             ))}
           </nav>
-          <div style={{ padding: "0 6px", borderTop: "1px solid #1f1f1f", paddingTop: 8 }}>
-            <button
-              onClick={() => setCollapsed(c => !c)}
-              style={{ display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 10, padding: collapsed ? "10px 0" : "9px 13px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: "#444", fontFamily: "inherit", width: "100%" }}
-            >
+
+          <div className="adash-sidebar-footer">
+            <button className={`adash-footer-btn ${collapsed ? "adash-footer-btn--collapsed" : ""}`}
+              onClick={() => setCollapsed((c) => !c)}>
               <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
                 <path d={collapsed ? "M13 5l7 7-7 7M5 5l7 7-7 7" : "M11 19l-7-7 7-7M19 19l-7-7 7-7"} />
               </svg>
-              {!collapsed && <span style={{ fontSize: 13, color: "#555" }}>Collapse</span>}
+              {!collapsed && <span>Collapse</span>}
             </button>
-            <button
-              onClick={() => navigate("/")}
-              style={{ display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: collapsed ? 0 : 10, padding: collapsed ? "10px 0" : "9px 13px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: "#555", fontFamily: "inherit", width: "100%" }}
-            >
+            <button className={`adash-footer-btn ${collapsed ? "adash-footer-btn--collapsed" : ""}`}
+              onClick={() => navigate("/")}>
               <Icon d={ICONS.logout} size={17} />
-              {!collapsed && <span style={{ fontSize: 13 }}>Exit Admin</span>}
+              {!collapsed && <span>Exit Admin</span>}
             </button>
           </div>
         </aside>
 
-        {/* ── Mobile Drawer ── */}
+        {/* ── Mobile Drawer Overlay ── */}
         {sidebarOpen && (
           <>
-            <div className="admin-drawer-overlay" onClick={() => setSidebarOpen(false)} />
-            <div className="admin-drawer" style={{ transform: "translateX(0)" }}>
-              <div style={{ height: 60, display: "flex", alignItems: "center", padding: "0 16px", gap: 9, borderBottom: "1px solid #1f1f1f", justifyContent: "space-between" }}>
+            <div className="adash-drawer-overlay" onClick={() => setSidebarOpen(false)} />
+            <div className="adash-drawer adash-drawer--open">
+              <div className="adash-logo-row" style={{ justifyContent: "space-between" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                  <Logo />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#fff", letterSpacing: "0.03em" }}>BEME MARKET</span>
+                  <Logo /><span className="adash-logo-text">BEME MARKET</span>
                 </div>
-                <button onClick={() => setSidebarOpen(false)} style={{ background: "transparent", border: "none", color: "#555", cursor: "pointer" }}>
+                <button onClick={() => setSidebarOpen(false)} className="adash-icon-btn">
                   <Icon d={ICONS.close} size={18} />
                 </button>
               </div>
-              <nav style={{ flex: 1, padding: "10px 6px", display: "flex", flexDirection: "column", gap: 1, overflowY: "auto" }}>
-                {NAV_ITEMS.map(item => (
-                  <NavItem key={item.key} item={item} isActive={active === item.path} collapsed={false} onClick={(path) => { navigate(path); setSidebarOpen(false); }} />
+              <nav className="adash-nav" style={{ overflowY: "auto" }}>
+                {NAV_ITEMS.map((item) => (
+                  <NavItem key={item.key} item={item} isActive={active === item.path}
+                    collapsed={false} onClick={(path) => { navigate(path); setSidebarOpen(false); }} />
                 ))}
               </nav>
-              <div style={{ padding: "8px 6px", borderTop: "1px solid #1f1f1f" }}>
-                <button onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 13px", borderRadius: 8, border: "none", cursor: "pointer", background: "transparent", color: "#555", fontFamily: "inherit", width: "100%" }}>
-                  <Icon d={ICONS.logout} size={17} />
-                  <span style={{ fontSize: 13 }}>Exit Admin</span>
+              <div className="adash-sidebar-footer">
+                <button className="adash-footer-btn" onClick={() => navigate("/")}>
+                  <Icon d={ICONS.logout} size={17} /><span>Exit Admin</span>
                 </button>
               </div>
             </div>
@@ -215,97 +420,166 @@ export default function AdminDashboard() {
         )}
 
         {/* ── Main ── */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <div className="adash-main">
 
           {/* Top bar */}
-          <header style={{ height: 60, borderBottom: "1px solid #1f1f1f", display: "flex", alignItems: "center", padding: "0 20px", justifyContent: "space-between", background: "#111", position: "sticky", top: 0, zIndex: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <button
-                className="admin-hamburger"
-                onClick={() => setSidebarOpen(true)}
-                style={{ background: "transparent", border: "none", color: "#aaa", cursor: "pointer", padding: 4, display: "none" }}
-              >
+          <header className="adash-topbar">
+            <div className="adash-topbar-left">
+              <button className="adash-hamburger adash-icon-btn" onClick={() => setSidebarOpen(true)}>
                 <Icon d={ICONS.menu} size={22} />
               </button>
               <div>
-                <div style={{ fontSize: 10, color: "#555", letterSpacing: "0.08em", textTransform: "uppercase" }}>Admin</div>
-                <div style={{ fontSize: 17, fontWeight: 600, color: "#fff", lineHeight: 1.2 }}>Dashboard</div>
+                <div className="adash-topbar-eyebrow">Admin</div>
+                <div className="adash-topbar-title">Dashboard</div>
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <button
-                onClick={() => window.open("/", "_blank")}
-                style={{ background: "transparent", border: "1px solid #2a2a2a", color: "#888", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
-              >
+
+            <div className="adash-topbar-right">
+              {lastRefreshed && (
+                <span className="adash-last-updated">
+                  Updated {lastRefreshed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              )}
+              <button onClick={fetchData} className="adash-refresh-btn" title="Refresh data" disabled={dataLoading}>
+                <Icon d={ICONS.refresh} size={15} />
+              </button>
+              <button onClick={() => window.open("/", "_blank")} className="adash-preview-btn">
                 Preview ↗
               </button>
-              <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#e67e22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600, color: "#fff", flexShrink: 0 }}>
-                A
-              </div>
+              <div className="adash-avatar">A</div>
             </div>
           </header>
 
           {/* Content */}
-          <div style={{ flex: 1, padding: "20px 16px 40px", overflowX: "hidden" }}>
+          <div className="adash-content">
 
-            {/* Stats */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12, marginBottom: 22 }}>
-              <StatCard label="Total Orders"    value="2,841" delta={12} />
-              <StatCard label="Revenue"         value="₵184k" delta={8}  />
-              <StatCard label="Active Shops"    value="47"    delta={3}  />
-              <StatCard label="Pending Reviews" value="14"    delta={-5} />
-              <StatCard label="Open Tickets"    value="6"     delta={-2} />
+            {/* ── Stats row (live from Firebase) ── */}
+            <div className="adash-stats-grid">
+              <StatCard
+                label="Total Orders"
+                value={metrics.totalOrders.toLocaleString()}
+                sub={`${metrics.totalUnitsSold} units sold`}
+                loading={dataLoading}
+              />
+              <StatCard
+                label="Revenue"
+                value={formatMoney(metrics.totalRevenue)}
+                sub={`Avg order: ${formatMoney(metrics.avgOrderValue)}`}
+                loading={dataLoading}
+              />
+              <StatCard
+                label="Products"
+                value={metrics.totalProducts.toLocaleString()}
+                sub={`${metrics.inStockProducts} in stock · ${metrics.stockHealth}% health`}
+                loading={dataLoading}
+              />
+              <StatCard
+                label="Active Shops"
+                value={metrics.activeShops.toLocaleString()}
+                sub={`${metrics.featuredProducts} featured products`}
+                loading={dataLoading}
+              />
+              <StatCard
+                label="Customers"
+                value={metrics.activeCustomers.toLocaleString()}
+                sub={isSuperAdmin ? "Registered non-admin users" : "Unique buyers"}
+                loading={dataLoading}
+              />
+              <StatCard
+                label="Pending Reviews"
+                value={pendingReviews.toLocaleString()}
+                sub="Awaiting approval"
+                loading={dataLoading}
+              />
+              <StatCard
+                label="Open Tickets"
+                value={openTickets.toLocaleString()}
+                sub="Support inbox"
+                loading={dataLoading}
+              />
             </div>
 
-            {/* Two-col → stacked on mobile */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20, alignItems: "start" }}>
+            {/* ── Charts + quick nav + orders ── */}
+            <div className="adash-body-grid">
+
+              {/* 7-day revenue chart */}
+              <div className="adash-panel adash-panel--chart">
+                <div className="adash-panel-head">
+                  <span className="adash-panel-title">7-day Revenue</span>
+                  <span className="adash-panel-sub">Daily trend</span>
+                </div>
+                {dataLoading
+                  ? <div className="adash-chart-skeleton" />
+                  : <MiniBarChart series={dailySeries} valueKey="revenue" formatVal={formatMoney} />
+                }
+              </div>
+
+              {/* 7-day orders chart */}
+              <div className="adash-panel adash-panel--chart">
+                <div className="adash-panel-head">
+                  <span className="adash-panel-title">7-day Orders</span>
+                  <span className="adash-panel-sub">Order volume</span>
+                </div>
+                {dataLoading
+                  ? <div className="adash-chart-skeleton" />
+                  : <MiniBarChart series={dailySeries} valueKey="orders" formatVal={(v) => `${v} orders`} />
+                }
+              </div>
 
               {/* Quick nav */}
-              <div>
-                <div style={{ fontSize: 10, color: "#555", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10, fontWeight: 500 }}>
-                  Admin Sections
+              <div className="adash-panel">
+                <div className="adash-panel-head">
+                  <span className="adash-panel-title">Admin Sections</span>
                 </div>
-                {NAV_ITEMS.filter(i => i.key !== "dashboard").map(item => (
-                  <div
-                    key={item.key}
-                    className="qcard"
-                    onClick={() => navigate(item.path)}
-                    style={{ background: "#141414", border: "1px solid #252525", borderRadius: 9, padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, marginBottom: 7 }}
-                  >
-                    <span style={{ color: "#e67e22" }}><Icon d={ICONS[item.key]} size={16} /></span>
-                    <span style={{ fontSize: 13.5, color: "#ccc" }}>{item.label}</span>
-                    <span style={{ marginLeft: "auto", color: "#444", fontSize: 13 }}>→</span>
+                {NAV_ITEMS.filter((i) => i.key !== "dashboard").map((item) => (
+                  <div key={item.key} className="adash-qcard" onClick={() => navigate(item.path)}>
+                    <span className="adash-qcard-icon"><Icon d={ICONS[item.key]} size={16} /></span>
+                    <span className="adash-qcard-label">{item.label}</span>
+                    <span className="adash-qcard-arrow">→</span>
                   </div>
                 ))}
               </div>
 
               {/* Recent orders */}
-              <div>
-                <div style={{ fontSize: 10, color: "#555", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10, fontWeight: 500 }}>
-                  Recent Orders
+              <div className="adash-panel">
+                <div className="adash-panel-head">
+                  <span className="adash-panel-title">Recent Orders</span>
+                  <button className="adash-see-all" onClick={() => navigate("/admin-orders")}>
+                    View all →
+                  </button>
                 </div>
-                <div style={{ background: "#141414", border: "1px solid #222", borderRadius: 10, overflow: "hidden" }}>
-                  {RECENT_ORDERS.map((order, i) => (
-                    <div
-                      key={order.id}
-                      style={{ padding: "12px 14px", borderBottom: i < RECENT_ORDERS.length - 1 ? "1px solid #1f1f1f" : "none", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}
-                    >
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 13, color: "#ccc", fontWeight: 500 }}>{order.id}</div>
-                        <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{order.customer} · {order.date}</div>
-                        <div style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>{order.total}</div>
-                      </div>
-                      <div style={{ fontSize: 10, padding: "3px 8px", borderRadius: 5, background: STATUS[order.status].bg, color: STATUS[order.status].color, whiteSpace: "nowrap", flexShrink: 0 }}>
-                        {order.status}
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{ padding: "10px 14px", borderTop: "1px solid #1f1f1f" }}>
-                    <button onClick={() => navigate("/admin-orders")} style={{ background: "transparent", border: "none", color: "#e67e22", fontSize: 13, cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
-                      View all orders →
-                    </button>
+
+                {dataLoading ? (
+                  <div className="adash-orders-skeleton">
+                    {[1, 2, 3, 4].map((n) => <div key={n} className="adash-order-skeleton-row" />)}
                   </div>
-                </div>
+                ) : recentOrders.length === 0 ? (
+                  <p className="adash-empty">No orders yet.</p>
+                ) : (
+                  recentOrders.map((order) => {
+                    const status = order.status || "pending";
+                    const statusStyle = STATUS[status] || { bg: "#1f1f1f", color: "#888" };
+                    const total = getOrderTotal(order);
+                    const ts = toMillis(order.createdAt || order.timestamp);
+                    const dateStr = ts
+                      ? new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+                      : "—";
+                    const buyer = order.customerName || order.userName || order.userId?.slice(0, 8) || "Customer";
+                    return (
+                      <div key={order.id} className="adash-order-row">
+                        <div className="adash-order-info">
+                          <div className="adash-order-id">#{order.id?.slice(0, 8)?.toUpperCase()}</div>
+                          <div className="adash-order-meta">{buyer} · {dateStr}</div>
+                          <div className="adash-order-total">{formatMoney(total)}</div>
+                        </div>
+                        <div className="adash-order-badge"
+                          style={{ background: statusStyle.bg, color: statusStyle.color }}>
+                          {String(status).charAt(0).toUpperCase() + String(status).slice(1)}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
 
             </div>
