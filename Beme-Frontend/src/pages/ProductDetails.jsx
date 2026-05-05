@@ -95,11 +95,11 @@ function getInitials(name) {
 }
 
 const AVATAR_COLORS = [
-  { bg: "rgba(255,102,0,0.15)", color: "#b34700" },
-  { bg: "rgba(80,70,200,0.12)", color: "#3d33a0" },
-  { bg: "rgba(34,160,88,0.12)", color: "#0f6e3f" },
-  { bg: "rgba(226,75,74,0.12)", color: "#a32020" },
-  { bg: "rgba(0,140,200,0.12)", color: "#005e8a" },
+  { bg: "rgba(80,70,200,0.12)",  color: "#3d33a0" },
+  { bg: "rgba(34,160,88,0.12)",  color: "#0f6e3f" },
+  { bg: "rgba(226,75,74,0.12)",  color: "#a32020" },
+  { bg: "rgba(0,140,200,0.12)",  color: "#005e8a" },
+  { bg: "rgba(100,80,200,0.12)", color: "#4a3ab0" },
 ];
 
 function getAvatarColor(name) {
@@ -128,7 +128,15 @@ function PlusIcon() {
   return <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
 }
 function StarIcon({ filled = true }) {
-  return <svg viewBox="0 0 24 24" width="12" height="12" fill={filled ? "#FF6600" : "none"} stroke="#FF6600" strokeWidth="1.5"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>;
+  return (
+    <svg viewBox="0 0 24 24" width="12" height="12"
+      fill={filled ? "var(--grtheme)" : "none"}
+      stroke="var(--grtheme)"
+      strokeWidth="1.5"
+    >
+      <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+    </svg>
+  );
 }
 function FacebookIcon() {
   return <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M13.5 21v-7.2h2.4l.36-2.8H13.5V9.2c0-.81.23-1.36 1.39-1.36H16.4V5.33c-.26-.04-1.13-.11-2.14-.11-2.12 0-3.57 1.29-3.57 3.67v2.11H8.3v2.8h2.39V21h2.81Z"/></svg>;
@@ -152,6 +160,9 @@ function ThumbUpIcon({ filled }) {
       <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
     </svg>
   );
+}
+function SendIcon() {
+  return <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
 }
 
 /* ─── Suggestion Card ─── */
@@ -181,6 +192,120 @@ export function SuggestionCard({ product }) {
         <div className="pd-sug-prices">
           <span className="pd-sug-price">GHS {price.toFixed(2)}</span>
           {hasDiscount && <span className="pd-sug-old">GHS {oldPrice.toFixed(2)}</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Ask Me Anything ─── */
+function AskAnything({ product }) {
+  const [open, setOpen]       = useState(false);
+  const [input, setInput]     = useState("");
+  const [messages, setMsgs]   = useState([]);
+  const [loading, setLoading] = useState(false);
+  const bottomRef             = useRef(null);
+
+  const CHIPS = [
+    "How does the fit run?",
+    "What sizes are available?",
+    "What's the return policy?",
+    "How long is delivery?",
+  ];
+
+  useEffect(() => {
+    if (bottomRef.current) bottomRef.current.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  async function send(text) {
+    const q = (text || input).trim();
+    if (!q || loading) return;
+    setInput("");
+    setMsgs((m) => [...m, { role: "user", text: q }]);
+    setLoading(true);
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          system: `You are a helpful product assistant for Beme Market, an online store in Ghana. Answer concisely and helpfully about this product:\n\nName: ${product?.name || ""}\nDescription: ${product?.description || ""}\nPrice: GHS ${product?.price || ""}\nCategory: ${product?.homeSlot || ""}\nBrand: ${product?.brand || ""}`,
+          messages: [
+            ...messages.map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.text })),
+            { role: "user", content: q },
+          ],
+        }),
+      });
+      const data = await res.json();
+      const answer = data.content?.find((b) => b.type === "text")?.text || "Please contact us directly for more help.";
+      setMsgs((m) => [...m, { role: "assistant", text: answer }]);
+    } catch {
+      setMsgs((m) => [...m, { role: "assistant", text: "Something went wrong. Please try again." }]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className={`pd-ask${open ? " open" : ""}`}>
+      <button className="pd-ask-trigger" type="button" onClick={() => setOpen((v) => !v)}>
+        Ask Me Anything
+        <span className="pd-ask-badge">AI</span>
+        <span className="pd-accordion-icon" />
+      </button>
+
+      <div className="pd-ask-panel">
+        <div className="pd-ask-content">
+          <div className="pd-ask-inner">
+            {messages.length === 0 && (
+              <div className="pd-ask-suggestions">
+                {CHIPS.map((c) => (
+                  <button key={c} type="button" className="pd-ask-chip" onClick={() => send(c)}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {messages.length > 0 && (
+              <div className="pd-ask-messages">
+                {messages.map((m, i) => (
+                  <div key={i} className={`pd-ask-msg ${m.role === "user" ? "pd-ask-msg--user" : "pd-ask-msg--bot"}`}>
+                    {m.text}
+                  </div>
+                ))}
+                {loading && (
+                  <div className="pd-ask-msg pd-ask-msg--typing">
+                    <div className="pd-ask-typing-dots">
+                      <span /><span /><span />
+                    </div>
+                  </div>
+                )}
+                <div ref={bottomRef} />
+              </div>
+            )}
+
+            <div className="pd-ask-form">
+              <input
+                className="pd-ask-input"
+                type="text"
+                placeholder="Ask anything about this product…"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && send()}
+                disabled={loading}
+              />
+              <button
+                className="pd-ask-send"
+                type="button"
+                onClick={() => send()}
+                disabled={!input.trim() || loading}
+              >
+                {loading ? "…" : <><SendIcon /> Send</>}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -320,9 +445,7 @@ function ReviewsSection({ productId }) {
     setHelpfulSet((p) => new Set([...p, reviewId]));
     setReviews((p) => p.map((r) => r.id === reviewId ? { ...r, helpful: (r.helpful || 0) + 1 } : r));
     try {
-      await updateDoc(doc(db, "Products", productId, "reviews", reviewId), {
-        helpful: increment(1),
-      });
+      await updateDoc(doc(db, "Products", productId, "reviews", reviewId), { helpful: increment(1) });
     } catch (e) {
       setHelpfulSet((p) => { const s = new Set(p); s.delete(reviewId); return s; });
       setReviews((p) => p.map((r) => r.id === reviewId ? { ...r, helpful: Math.max(0, (r.helpful || 0) - 1) } : r));
@@ -335,8 +458,9 @@ function ReviewsSection({ productId }) {
     <div className="pd-rv-stars">
       {[1, 2, 3, 4, 5].map((i) => (
         <svg key={i} viewBox="0 0 24 24" width={size} height={size}
-          fill={i <= Math.round(rating) ? "#FF6600" : "none"}
-          stroke="#FF6600" strokeWidth="1.5"
+          fill={i <= Math.round(rating) ? "var(--grtheme)" : "none"}
+          stroke="var(--grtheme)"
+          strokeWidth="1.5"
         >
           <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
         </svg>
@@ -355,15 +479,12 @@ function ReviewsSection({ productId }) {
         </span>
       </div>
 
-      {/* Rating summary */}
       {!reviewsLoading && reviews.length > 0 && (
         <div className="pd-rating-summary">
           <div className="pd-rating-avg-col">
             <span className="pd-rating-big">{avgRating.toFixed(1)}</span>
             {renderStars(avgRating, 14)}
-            <span className="pd-rating-sub">
-              out of 5
-            </span>
+            <span className="pd-rating-sub">out of 5</span>
           </div>
           <div className="pd-rating-bars">
             {[5, 4, 3, 2, 1].map((star) => (
@@ -372,11 +493,7 @@ function ReviewsSection({ productId }) {
                 <div className="pd-rating-bar-track">
                   <div
                     className="pd-rating-bar-fill"
-                    style={{
-                      width: reviews.length
-                        ? `${(ratingCounts[star] / reviews.length) * 100}%`
-                        : "0%",
-                    }}
+                    style={{ width: reviews.length ? `${(ratingCounts[star] / reviews.length) * 100}%` : "0%" }}
                   />
                 </div>
                 <span className="pd-rating-bar-cnt">{ratingCounts[star]}</span>
@@ -386,7 +503,6 @@ function ReviewsSection({ productId }) {
         </div>
       )}
 
-      {/* Write review form */}
       <div className="pd-review-form">
         <p className="pd-review-form-label">
           {currentUser
@@ -406,17 +522,15 @@ function ReviewsSection({ productId }) {
               aria-label={`Rate ${i} star${i !== 1 ? "s" : ""}`}
             >
               <svg viewBox="0 0 24 24" width="28" height="28"
-                fill={(formHover || formRating) >= i ? "#FF6600" : "none"}
-                stroke={(formHover || formRating) >= i ? "#FF6600" : "rgba(255,102,0,0.35)"}
+                fill={(formHover || formRating) >= i ? "var(--grtheme)" : "none"}
+                stroke={(formHover || formRating) >= i ? "var(--grtheme)" : "rgba(0,0,0,0.2)"}
                 strokeWidth="1.5"
               >
                 <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
               </svg>
             </button>
           ))}
-          {formRating > 0 && (
-            <span className="pd-star-label">{starLabels[formRating]}</span>
-          )}
+          {formRating > 0 && <span className="pd-star-label">{starLabels[formRating]}</span>}
         </div>
 
         <textarea
@@ -449,12 +563,9 @@ function ReviewsSection({ productId }) {
         </div>
 
         {formError && <p className="pd-review-form-error">{formError}</p>}
-        {formSuccess && (
-          <p className="pd-review-form-success">Your review has been posted. Thank you!</p>
-        )}
+        {formSuccess && <p className="pd-review-form-success">Your review has been posted. Thank you!</p>}
       </div>
 
-      {/* Review list */}
       {reviewsLoading ? (
         <div className="pd-reviews-loading">
           {[0, 1, 2].map((i) => <div key={i} className="pd-review-skeleton" />)}
@@ -473,19 +584,14 @@ function ReviewsSection({ productId }) {
               return (
                 <div key={review.id} className="pd-review-card">
                   <div className="pd-review-card-top">
-                    <div
-                      className="pd-review-avatar"
-                      style={{ background: avatarColor.bg, color: avatarColor.color }}
-                    >
+                    <div className="pd-review-avatar" style={{ background: avatarColor.bg, color: avatarColor.color }}>
                       {initials}
                     </div>
                     <div className="pd-review-meta">
                       <span className="pd-review-name">{review.name || "Anonymous"}</span>
                       <span className="pd-review-date">{formatReviewDate(review.createdAt)}</span>
                     </div>
-                    <div className="pd-rv-stars-wrap">
-                      {renderStars(review.rating, 12)}
-                    </div>
+                    <div className="pd-rv-stars-wrap">{renderStars(review.rating, 12)}</div>
                   </div>
                   <p className="pd-review-text">{review.comment}</p>
                   <div className="pd-review-footer">
@@ -498,9 +604,7 @@ function ReviewsSection({ productId }) {
                       <ThumbUpIcon filled={isHelpfulClicked} />
                       {review.helpful > 0 ? `Helpful · ${review.helpful}` : "Helpful"}
                     </button>
-                    {review.verified && (
-                      <span className="pd-verified-badge">Verified buyer</span>
-                    )}
+                    {review.verified && <span className="pd-verified-badge">Verified buyer</span>}
                   </div>
                 </div>
               );
@@ -508,14 +612,8 @@ function ReviewsSection({ productId }) {
           </div>
 
           {reviews.length > 3 && (
-            <button
-              type="button"
-              className="pd-reviews-load-more"
-              onClick={() => setShowAll((p) => !p)}
-            >
-              {showAll
-                ? "Show less ↑"
-                : `Load more reviews (${reviews.length - 3} more) ↓`}
+            <button type="button" className="pd-reviews-load-more" onClick={() => setShowAll((p) => !p)}>
+              {showAll ? "Show less ↑" : `Load more reviews (${reviews.length - 3} more) ↓`}
             </button>
           )}
         </>
@@ -530,26 +628,29 @@ export default function ProductDetails() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
 
-  const [product, setProduct] = useState(null);
-  const [qty, setQty] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [product, setProduct]           = useState(null);
+  const [qty, setQty]                   = useState(1);
+  const [loading, setLoading]           = useState(true);
   const [selectedOptions, setSelectedOptions] = useState({});
-  const [optionError, setOptionError] = useState("");
+  const [optionError, setOptionError]   = useState("");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [addedFeedback, setAddedFeedback] = useState(false);
   const [cartFeedback, setCartFeedback] = useState("");
   const [showWishlistModal, setShowWishlistModal] = useState(false);
   const openWishlistModal  = useCallback(() => setShowWishlistModal(true),  []);
   const closeWishlistModal = useCallback(() => setShowWishlistModal(false), []);
-  const [descExpanded, setDescExpanded] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
+  const [suggestions, setSuggestions]   = useState([]);
 
-  const [dragOffset, setDragOffset] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
+  /* accordion state: which section is open */
+  const [openSection, setOpenSection] = useState(null);
+  const toggleSection = (key) => setOpenSection((v) => v === key ? null : key);
 
-  const feedbackTimerRef = useRef(null);
-  const touchStartXRef = useRef(0);
-  const dragStartedRef = useRef(false);
+  const [dragOffset, setDragOffset]     = useState(0);
+  const [isDragging, setIsDragging]     = useState(false);
+
+  const feedbackTimerRef  = useRef(null);
+  const touchStartXRef    = useRef(0);
+  const dragStartedRef    = useRef(false);
 
   /* fetch product */
   useEffect(() => {
@@ -576,9 +677,7 @@ export default function ProductDetails() {
       try {
         const q = query(collection(db, "Products"), limit(10));
         const snap = await getDocs(q);
-        const results = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() }))
-          .filter((p) => p.id !== id);
+        const results = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.id !== id);
         setSuggestions(results.slice(0, 8));
       } catch (err) {
         console.error("Suggestions fetch error:", err);
@@ -587,36 +686,28 @@ export default function ProductDetails() {
     if (id) fetchSuggestions();
   }, [id]);
 
-  const customizations = useMemo(() => normalizeCustomizations(product?.customizations), [product?.customizations]);
-  const images = useMemo(() => normalizeImages(product), [product]);
-  const basePrice = useMemo(() => Number(product?.price || 0), [product]);
-  const oldPrice = useMemo(() => Number(product?.oldPrice || 0), [product]);
-  const shopKey = useMemo(() => normalizeShop(product?.shop), [product?.shop]);
-  const shopLabel = useMemo(() => formatShopLabel(product?.shop), [product?.shop]);
-  const homeSlot = useMemo(() => normalizeHomeSlot(product?.homeSlot || "others"), [product?.homeSlot]);
-  const homeSlotLabel = useMemo(() => formatHomeSlotLabel(product?.homeSlot || "others"), [product?.homeSlot]);
-  const brand = useMemo(() => String(product?.brand || "").trim(), [product]);
-  const shippingSource = useMemo(() => normalizeShippingSource(product), [product]);
+  const customizations  = useMemo(() => normalizeCustomizations(product?.customizations), [product?.customizations]);
+  const images          = useMemo(() => normalizeImages(product), [product]);
+  const basePrice       = useMemo(() => Number(product?.price || 0), [product]);
+  const oldPrice        = useMemo(() => Number(product?.oldPrice || 0), [product]);
+  const shopKey         = useMemo(() => normalizeShop(product?.shop), [product?.shop]);
+  const shopLabel       = useMemo(() => formatShopLabel(product?.shop), [product?.shop]);
+  const homeSlot        = useMemo(() => normalizeHomeSlot(product?.homeSlot || "others"), [product?.homeSlot]);
+  const homeSlotLabel   = useMemo(() => formatHomeSlotLabel(product?.homeSlot || "others"), [product?.homeSlot]);
+  const brand           = useMemo(() => String(product?.brand || "").trim(), [product]);
+  const shippingSource  = useMemo(() => normalizeShippingSource(product), [product]);
   const shippingBadgeLabel = useMemo(() => getShippingBadgeLabel(shippingSource), [shippingSource]);
   const shipsFromAbroad = useMemo(() => shippingSource === "abroad" || parseBooleanish(product?.shipFromAbroad, false) || parseBooleanish(product?.shipsFromAbroad, false), [shippingSource, product]);
-  const stock = useMemo(() => getNumericStock(product), [product]);
+  const stock           = useMemo(() => getNumericStock(product), [product]);
   const abroadDeliveryFee = useMemo(() => getAbroadDeliveryFee(product), [product]);
-  const isOutOfStock = useMemo(() => parseBooleanish(product?.inStock, true) === false, [product]);
+  const isOutOfStock    = useMemo(() => parseBooleanish(product?.inStock, true) === false, [product]);
 
   const wishlistProduct = useMemo(() => {
     if (!product) return null;
-    return {
-      id:    product.id,
-      name:  product.name  ?? "",
-      price: Number(product.price || 0),
-      image: String(product.image || images[0] || "").trim(),
-    };
+    return { id: product.id, name: product.name ?? "", price: Number(product.price || 0), image: String(product.image || images[0] || "").trim() };
   }, [product, images]);
 
-  const { isWishlisted, toggleWishlist, loading: wishlistLoading } = useWishlist(
-    wishlistProduct,
-    openWishlistModal
-  );
+  const { isWishlisted, toggleWishlist, loading: wishlistLoading } = useWishlist(wishlistProduct, openWishlistModal);
 
   useEffect(() => {
     const init = {};
@@ -628,7 +719,7 @@ export default function ProductDetails() {
 
   useEffect(() => {
     setActiveImageIndex(0); setQty(1); setAddedFeedback(false);
-    setCartFeedback(""); setDragOffset(0); setIsDragging(false); setDescExpanded(false);
+    setCartFeedback(""); setDragOffset(0); setIsDragging(false); setOpenSection(null);
   }, [product?.id]);
 
   useEffect(() => {
@@ -650,7 +741,7 @@ export default function ProductDetails() {
   }, [customizations, selectedOptions]);
 
   const optionPriceTotal = useMemo(() => selectedOptionDetails.reduce((s, i) => s + (Number(i.priceBump || 0) || 0), 0), [selectedOptionDetails]);
-  const finalUnitPrice = useMemo(() => basePrice + optionPriceTotal, [basePrice, optionPriceTotal]);
+  const finalUnitPrice   = useMemo(() => basePrice + optionPriceTotal, [basePrice, optionPriceTotal]);
 
   const setOptionValue = (groupName, value) => {
     setSelectedOptions((p) => ({ ...p, [groupName]: value }));
@@ -716,9 +807,9 @@ export default function ProductDetails() {
   const goPrev = () => { if (images.length <= 1) return; setDragOffset(0); setActiveImageIndex((p) => (p === 0 ? images.length - 1 : p - 1)); };
   const goNext = () => { if (images.length <= 1) return; setDragOffset(0); setActiveImageIndex((p) => (p === images.length - 1 ? 0 : p + 1)); };
 
-  const onTouchStart = (e) => { if (images.length <= 1) return; touchStartXRef.current = e.changedTouches[0]?.clientX || 0; dragStartedRef.current = true; setIsDragging(true); };
-  const onTouchMove = (e) => { if (!dragStartedRef.current || images.length <= 1) return; setDragOffset((e.changedTouches[0]?.clientX || 0) - touchStartXRef.current); };
-  const onTouchEnd = (e) => {
+  const onTouchStart  = (e) => { if (images.length <= 1) return; touchStartXRef.current = e.changedTouches[0]?.clientX || 0; dragStartedRef.current = true; setIsDragging(true); };
+  const onTouchMove   = (e) => { if (!dragStartedRef.current || images.length <= 1) return; setDragOffset((e.changedTouches[0]?.clientX || 0) - touchStartXRef.current); };
+  const onTouchEnd    = (e) => {
     if (!dragStartedRef.current || images.length <= 1) return;
     const delta = (e.changedTouches[0]?.clientX || 0) - touchStartXRef.current;
     dragStartedRef.current = false; setIsDragging(false);
@@ -746,31 +837,38 @@ export default function ProductDetails() {
     );
   }
 
-  const name = product?.name ?? "Untitled";
-  const desc = product?.description ?? "This is a premium product from Beme Market. Add a description in Firestore to show details here.";
+  const name            = product?.name ?? "Untitled";
+  const desc            = product?.description ?? "This is a premium product from Beme Market. Add a description in Firestore to show details here.";
+  const careInfo        = product?.careInfo ?? "";
   const qtyLimitReached = stock !== null && qty >= stock;
   const sliderTranslate = `calc(${-activeImageIndex * 100}% + ${dragOffset}px)`;
-  const hasDiscount = oldPrice > finalUnitPrice;
+  const hasDiscount     = oldPrice > finalUnitPrice;
 
   const colorGroup = customizations.find((g) => g.name.toLowerCase().includes("color") || g.name.toLowerCase().includes("colour"));
 
   const socialLinks = [
-    { label: "Facebook", href: "#", icon: <FacebookIcon /> },
-    { label: "X", href: "#", icon: <XIcon /> },
+    { label: "Facebook",  href: "#", icon: <FacebookIcon />  },
+    { label: "X",         href: "#", icon: <XIcon />         },
     { label: "Instagram", href: "#", icon: <InstagramIcon /> },
-    { label: "TikTok", href: "#", icon: <TikTokIcon /> },
+    { label: "TikTok",    href: "#", icon: <TikTokIcon />    },
   ];
 
   return (
     <div className="pd-page">
 
-      {/* ── TWO-COLUMN ROW (desktop: image left | info right) ── */}
+      {/* ── ANNOUNCE BAR ── */}
+      <div className="pd-announce-bar">
+        <span className="pd-announce-inner">
+          FREE DELIVERY OVER GHS 500 &nbsp;•&nbsp; NEW ARRIVALS EVERY WEEK &nbsp;•&nbsp;
+          FREE DELIVERY OVER GHS 500 &nbsp;•&nbsp; NEW ARRIVALS EVERY WEEK &nbsp;•&nbsp;
+        </span>
+      </div>
+
+      {/* ── TWO-COLUMN ROW ── */}
       <div className="pd-layout-row">
 
-        {/* ── LEFT COLUMN: hero image + thumbnails ── */}
+        {/* ── LEFT COLUMN: hero + thumbnails ── */}
         <div className="pd-left-col">
-
-          {/* ── HERO IMAGE ── */}
           <div
             className={`pd-hero ${isDragging ? "is-dragging" : ""}`}
             onTouchStart={onTouchStart}
@@ -792,7 +890,7 @@ export default function ProductDetails() {
                 </div>
 
                 {shippingBadgeLabel && (
-                  <div className={`pd-ship-badge ${shippingSource === "uni" ? "pd-ship-badge--uni" : ""} ${shipsFromAbroad ? "pd-ship-badge--abroad" : ""}`}>
+                  <div className={`pd-ship-badge${shipsFromAbroad ? " pd-ship-badge--abroad" : ""}${shippingSource === "uni" ? " pd-ship-badge--uni" : ""}`}>
                     {shippingBadgeLabel}
                   </div>
                 )}
@@ -839,7 +937,6 @@ export default function ProductDetails() {
             )}
           </div>
 
-          {/* ── THUMBNAILS ── */}
           {images.length > 1 && (
             <div className="pd-thumbs-row">
               {images.map((src, i) => (
@@ -855,14 +952,15 @@ export default function ProductDetails() {
               ))}
             </div>
           )}
+        </div>
 
-        </div>{/* end pd-left-col */}
-
-        {/* ── RIGHT COLUMN: all product info ── */}
+        {/* ── RIGHT COLUMN ── */}
         <div className="pd-body">
 
+          {/* Title */}
           <h1 className="pd-title">{name}</h1>
 
+          {/* Badges */}
           <div className="pd-badges">
             <span className={`pd-badge ${isOutOfStock ? "pd-badge--out" : "pd-badge--in"}`}>
               {isOutOfStock ? "Out of stock" : "In stock"}
@@ -872,10 +970,11 @@ export default function ProductDetails() {
                 {shippingBadgeLabel}
               </span>
             )}
-            {shopLabel && <span className="pd-badge pd-badge--soft">{shopLabel}</span>}
+            {shopLabel     && <span className="pd-badge pd-badge--soft">{shopLabel}</span>}
             {homeSlotLabel && <span className="pd-badge pd-badge--soft">{homeSlotLabel}</span>}
           </div>
 
+          {/* Price */}
           <div className="pd-price-row">
             <span className="pd-price">{formatMoney(finalUnitPrice)}</span>
             {hasDiscount && (
@@ -889,6 +988,7 @@ export default function ProductDetails() {
             )}
           </div>
 
+          {/* Brand */}
           {brand && (
             <div className="pd-section">
               <h3 className="pd-section-label">Brand</h3>
@@ -896,6 +996,7 @@ export default function ProductDetails() {
             </div>
           )}
 
+          {/* Color swatches */}
           <div className="pd-section">
             <h3 className="pd-section-label">
               Color
@@ -910,8 +1011,8 @@ export default function ProductDetails() {
                   const colorMap = {
                     white: "#f0eeea", black: "#111", red: "#e24b4a", blue: "#378add",
                     green: "#639922", yellow: "#ef9f27", navy: "#1a2a5e", grey: "#b0aba3",
-                    gray: "#b0aba3", pink: "#d4537e", orange: "#FF6600", purple: "#7f77dd",
-                    brown: "#8b5e3c", beige: "#f5f0e8", cream: "#faf6ee",
+                    gray: "#b0aba3", pink: "#d4537e", purple: "#7f77dd", brown: "#8b5e3c",
+                    beige: "#f5f0e8", cream: "#faf6ee",
                   };
                   const key = val.label.toLowerCase();
                   const bg = Object.entries(colorMap).find(([k]) => key.includes(k))?.[1] || "#ccc";
@@ -929,7 +1030,9 @@ export default function ProductDetails() {
                   );
                 })
               ) : (
-                <button type="button" className="pd-swatch active" style={{ "--swatch-bg": "#f0eeea" }} title="Default"><CheckIcon /></button>
+                <button type="button" className="pd-swatch active" style={{ "--swatch-bg": "#f0eeea" }} title="Default">
+                  <CheckIcon />
+                </button>
               )}
               <button type="button" className="pd-swatch pd-swatch--add" title="Add color (admin)">
                 <PlusIcon />
@@ -937,6 +1040,7 @@ export default function ProductDetails() {
             </div>
           </div>
 
+          {/* Other customizations */}
           {customizations.length > 0 && (
             <div className="pd-section">
               {customizations.filter((g) => g !== colorGroup).map((group) => (
@@ -982,35 +1086,7 @@ export default function ProductDetails() {
             </div>
           )}
 
-          <div className="pd-section">
-            <h3 className="pd-section-label">Description</h3>
-            <p className={`pd-desc ${descExpanded ? "expanded" : ""}`}>{desc}</p>
-            {desc.length > 160 && (
-              <button type="button" className="pd-read-more" onClick={() => setDescExpanded((p) => !p)}>
-                {descExpanded ? "Read less ↑" : "Read more ↓"}
-              </button>
-            )}
-          </div>
-
-          <div className="pd-section">
-            <h3 className="pd-section-label">Share</h3>
-            <div className="pd-socials">
-              {socialLinks.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={item.label}
-                  className="pd-social-btn"
-                >
-                  {item.icon}
-                  <span>{item.label}</span>
-                </a>
-              ))}
-            </div>
-          </div>
-
+          {/* Quantity */}
           <div className="pd-qty-row">
             <span className="pd-qty-label">
               Qty{stock !== null && !isOutOfStock && <span className="pd-stock-note"> · {stock} left</span>}
@@ -1038,9 +1114,17 @@ export default function ProductDetails() {
             <p className="pd-error">Maximum available quantity reached.</p>
           )}
 
+          {/* Abroad delivery info strip */}
           {shipsFromAbroad && abroadDeliveryFee > 0 && (
-            <div className="pd-info-strip pd-info-strip--delivery">
+            <div className="pd-info-strip pd-info-strip--blue">
               <TruckIcon /> Abroad delivery fee: {formatMoney(abroadDeliveryFee)}
+            </div>
+          )}
+
+          {/* Standard delivery strip */}
+          {!shipsFromAbroad && (
+            <div className="pd-info-strip pd-info-strip--blue">
+              <TruckIcon /> Get it in 1–3 days in Ghana
             </div>
           )}
 
@@ -1050,29 +1134,137 @@ export default function ProductDetails() {
             <div className={addedFeedback ? "pd-success-strip" : "pd-error"}>{cartFeedback}</div>
           )}
 
+          {/* CTAs — grtheme primary, purple pay */}
           <div className="pd-cta">
-            <button type="button" className="pd-btn pd-btn--outline" onClick={handleAdd} disabled={isOutOfStock}>
+            <button
+              type="button"
+              className="pd-btn pd-btn--outline"
+              onClick={handleAdd}
+              disabled={isOutOfStock}
+            >
               <CartIcon />
               {isOutOfStock ? "Unavailable" : "Add to cart"}
             </button>
-            <button type="button" className="pd-btn pd-btn--primary" onClick={handleBuyNow} disabled={isOutOfStock}>
+            <button
+              type="button"
+              className="pd-btn pd-btn--primary"
+              onClick={handleBuyNow}
+              disabled={isOutOfStock}
+            >
               {isOutOfStock ? "Out of stock" : "Buy now"}
             </button>
           </div>
 
-          <div className="pd-delivery-note">
-            <TruckIcon />
-            <span>Get it in 1–3 days in Ghana · May take a week if shipped from abroad</span>
+          {/* Pay button — purple */}
+          <button
+            type="button"
+            className="pd-btn pd-btn--pay"
+            style={{ marginBottom: 6 }}
+            onClick={handleBuyNow}
+            disabled={isOutOfStock}
+          >
+            {isOutOfStock ? "Unavailable" : "Pay now · " + formatMoney(finalUnitPrice * qty)}
+          </button>
+
+          {/* ── ACCORDIONS: description + care below CTAs ── */}
+          <div className="pd-accordion">
+
+            {/* Product Details */}
+            <div className={`pd-accordion-item${openSection === "details" ? " open" : ""}`}>
+              <button
+                className="pd-accordion-trigger"
+                type="button"
+                onClick={() => toggleSection("details")}
+              >
+                Product Details
+                <span className="pd-accordion-icon" />
+              </button>
+              <div className="pd-accordion-body">
+                <div className="pd-accordion-content">
+                  <div className="pd-accordion-inner">
+                    <p className="pd-desc">{desc}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Care & Material — only if data exists */}
+            {careInfo && (
+              <div className={`pd-accordion-item${openSection === "care" ? " open" : ""}`}>
+                <button
+                  className="pd-accordion-trigger"
+                  type="button"
+                  onClick={() => toggleSection("care")}
+                >
+                  Care &amp; Material
+                  <span className="pd-accordion-icon" />
+                </button>
+                <div className="pd-accordion-body">
+                  <div className="pd-accordion-content">
+                    <div className="pd-accordion-inner">
+                      <p className="pd-desc">{careInfo}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Delivery & Returns */}
+            <div className={`pd-accordion-item${openSection === "shipping" ? " open" : ""}`}>
+              <button
+                className="pd-accordion-trigger"
+                type="button"
+                onClick={() => toggleSection("shipping")}
+              >
+                Delivery &amp; Returns
+                <span className="pd-accordion-icon" />
+              </button>
+              <div className="pd-accordion-body">
+                <div className="pd-accordion-content">
+                  <div className="pd-accordion-inner">
+                    <p className="pd-desc">
+                      {shipsFromAbroad
+                        ? `This item ships from abroad. Estimated delivery: 7–14 business days. Abroad delivery fee: ${formatMoney(abroadDeliveryFee)}.`
+                        : "Standard delivery: 1–3 business days within Ghana. Returns accepted within 7 days of delivery in original condition."
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>{/* end pd-accordion */}
+
+          {/* ── ASK ME ANYTHING ── */}
+          <AskAnything product={product} />
+
+          {/* Share */}
+          <div className="pd-section" style={{ marginTop: 16 }}>
+            <h3 className="pd-section-label">Share</h3>
+            <div className="pd-socials">
+              {socialLinks.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={item.label}
+                  className="pd-social-btn"
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </a>
+              ))}
+            </div>
           </div>
 
-        </div>{/* end pd-body (right column) */}
-
+        </div>{/* end pd-body */}
       </div>{/* end pd-layout-row */}
 
-      {/* ── REVIEWS (full-width below both columns) ── */}
+      {/* ── REVIEWS ── */}
       <ReviewsSection productId={id} />
 
-      {/* ── YOU MAY ALSO LIKE (full-width below reviews) ── */}
+      {/* ── YOU MAY ALSO LIKE ── */}
       {suggestions.length > 0 && (
         <div className="pd-suggestions">
           <div className="pd-sug-header">
@@ -1088,10 +1280,7 @@ export default function ProductDetails() {
 
       {/* ── WISHLIST MODAL ── */}
       {showWishlistModal && wishlistProduct && (
-        <WishlistModal
-          product={wishlistProduct}
-          onClose={closeWishlistModal}
-        />
+        <WishlistModal product={wishlistProduct} onClose={closeWishlistModal} />
       )}
 
     </div>
