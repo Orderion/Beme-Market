@@ -6,7 +6,7 @@ import { useCart } from "../context/CartContext";
 import "./CartDrawer.css";
 
 /* ─────────────────────────────────────────────
-   HELPERS  (unchanged from original)
+   HELPERS
 ───────────────────────────────────────────── */
 function parseBooleanish(value, fallback = false) {
   if (typeof value === "boolean") return value;
@@ -44,9 +44,6 @@ function getItemAbroadDeliveryFee(item) {
 
 /* ─────────────────────────────────────────────
    FIRESTORE FETCH
-   Pulls from the same "products" collection
-   your shop uses. Falls back to a plain limit()
-   query if the composite index isn't built yet.
 ───────────────────────────────────────────── */
 const MAX_FETCH = 24;
 const MAX_SHOW  = 8;
@@ -79,18 +76,14 @@ async function fetchRecommendedProducts(cartItemIds) {
     return arr;
   };
 
-  // ── Try 1: filtered query (requires Firestore index) ──
   try {
     const snap = await getDocs(
       query(collection(db, "products"), where("inStock", "!=", false), limit(MAX_FETCH))
     );
     const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     return shuffle(clientFilter(docs)).slice(0, MAX_SHOW).map(normalize);
-  } catch (_) {
-    // index not ready — fall through
-  }
+  } catch (_) {}
 
-  // ── Try 2: plain fetch, filter client-side ──
   try {
     const snap = await getDocs(query(collection(db, "products"), limit(MAX_FETCH)));
     const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -118,35 +111,28 @@ export default function CartDrawer({ isOpen, onClose }) {
     hasUnavailableItems,
   } = useCart();
 
-  /* ── local UI state ── */
   const [cartMessage,      setCartMessage]      = useState("");
   const [promoCode,        setPromoCode]        = useState("");
   const [promoApplied,     setPromoApplied]     = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [recProducts,      setRecProducts]      = useState([]);
+  const [recLoading,       setRecLoading]       = useState(false);
+  const [recError,         setRecError]         = useState(false);
+  const [addedRecIds,      setAddedRecIds]      = useState(new Set());
 
-  /* ── recommendations state ── */
-  const [recProducts, setRecProducts] = useState([]);
-  const [recLoading,  setRecLoading]  = useState(false);
-  const [recError,    setRecError]    = useState(false);
-  const [addedRecIds, setAddedRecIds] = useState(new Set());
-
-  // stable key so we only re-fetch when cart ids actually change
   const lastFetchKeyRef = useRef("");
 
-  /* ── auto-clear status toast ── */
   useEffect(() => {
     if (!cartMessage) return;
     const t = window.setTimeout(() => setCartMessage(""), 2200);
     return () => window.clearTimeout(t);
   }, [cartMessage]);
 
-  /* ── body scroll lock ── */
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
-  /* ── Escape key ── */
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e) => {
@@ -158,21 +144,15 @@ export default function CartDrawer({ isOpen, onClose }) {
     return () => window.removeEventListener("keydown", handler);
   }, [isOpen, onClose, showClearConfirm]);
 
-  /* ── reset confirm when drawer closes ── */
   useEffect(() => {
     if (!isOpen) setShowClearConfirm(false);
   }, [isOpen]);
 
-  /* ── cart item id set (memoised) ── */
   const cartItemIds = useMemo(
     () => new Set(cartItems.map((i) => i.id)),
     [cartItems]
   );
 
-  /* ── FETCH RECOMMENDATIONS ──
-     Fires when drawer opens (with items) or when
-     the cart id-set changes while the drawer is open.
-  ── */
   useEffect(() => {
     if (!isOpen || cartItems.length === 0) {
       setRecProducts([]);
@@ -201,19 +181,16 @@ export default function CartDrawer({ isOpen, onClose }) {
     return () => { cancelled = true; };
   }, [isOpen, cartItemIds, cartItems.length]);
 
-  /* hide a rec card the moment its product lands in the cart */
   const visibleRecs = useMemo(
     () => recProducts.filter((p) => !cartItemIds.has(p.id)),
     [recProducts, cartItemIds]
   );
 
-  /* ── derived counts ── */
   const unavailableCount = useMemo(
     () => cartItems.filter((item) => getUnavailableReason(item)).length,
     [cartItems]
   );
 
-  /* ── popup data ── */
   const popupItem    = cartPopup?.item || null;
   const popupImage   =
     popupItem?.image ||
@@ -224,7 +201,6 @@ export default function CartDrawer({ isOpen, onClose }) {
     cartPopup?.message ||
     "Thank you for shopping with us. Your item has been added to cart.";
 
-  /* ── checkout ── */
   const goCheckout = () => {
     if (cartItems.length === 0 || hasUnavailableItems) {
       if (hasUnavailableItems)
@@ -238,7 +214,6 @@ export default function CartDrawer({ isOpen, onClose }) {
 
   const handleContinueShopping = () => { hideCartPopup?.(); onClose?.(); };
 
-  /* ── qty controls ── */
   const handleDecrease = (item, qty) => {
     const r = updateQty(item.lineId || item.id, Math.max(1, qty - 1));
     if (r?.ok === false) setCartMessage(r.message || "Unable to update quantity.");
@@ -248,14 +223,12 @@ export default function CartDrawer({ isOpen, onClose }) {
     if (r?.ok === false) setCartMessage(r.message || "Unable to update quantity.");
   };
 
-  /* ── promo ── */
   const handleApplyPromo = () => {
     if (!promoCode.trim()) return;
     setPromoApplied(true);
     setCartMessage(`Promo code "${promoCode}" applied.`);
   };
 
-  /* ── clear cart (after confirm) ── */
   const handleConfirmedClear = () => {
     cartItems.forEach((item) => removeFromCart(item.lineId || item.id));
     setShowClearConfirm(false);
@@ -263,7 +236,6 @@ export default function CartDrawer({ isOpen, onClose }) {
     lastFetchKeyRef.current = "";
   };
 
-  /* ── add recommended product ── */
   const handleAddRecommended = (product) => {
     if (addedRecIds.has(product.id)) return;
     const result = addToCart({
@@ -298,14 +270,14 @@ export default function CartDrawer({ isOpen, onClose }) {
         {/* ── HEADER ── */}
         <div className="cd-header">
           <button className="cd-icon-btn" onClick={onClose} aria-label="Close cart" type="button">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
 
           <div className="cd-header-center">
-            <h3 className="cd-title">Shopping Cart</h3>
+            <h3 className="cd-title">Cart</h3>
             <p className="cd-subtitle">{itemCount} item{itemCount !== 1 ? "s" : ""}</p>
           </div>
 
@@ -316,8 +288,8 @@ export default function CartDrawer({ isOpen, onClose }) {
             type="button"
             disabled={cartItems.length === 0}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6l-1 14H6L5 6" />
               <path d="M10 11v6" /><path d="M14 11v6" />
@@ -326,12 +298,12 @@ export default function CartDrawer({ isOpen, onClose }) {
           </button>
         </div>
 
-        {/* ── CLEAR CART CONFIRM DIALOG ── */}
+        {/* ── CLEAR CART CONFIRM ── */}
         {showClearConfirm && (
           <div className="cd-confirm-backdrop" role="dialog" aria-modal="true" aria-labelledby="cd-confirm-title">
             <div className="cd-confirm-dialog">
               <div className="cd-confirm-icon-wrap">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="3 6 5 6 21 6" />
                   <path d="M19 6l-1 14H6L5 6" />
@@ -339,17 +311,17 @@ export default function CartDrawer({ isOpen, onClose }) {
                   <path d="M9 6V4h6v2" />
                 </svg>
               </div>
-              <h4 className="cd-confirm-title" id="cd-confirm-title">Clear your cart?</h4>
+              <h4 className="cd-confirm-title" id="cd-confirm-title">Clear cart?</h4>
               <p className="cd-confirm-message">
                 This will remove all {itemCount} item{itemCount !== 1 ? "s" : ""} from your cart.
-                This action cannot be undone.
+                This cannot be undone.
               </p>
               <div className="cd-confirm-actions">
                 <button type="button" className="cd-confirm-cancel" onClick={() => setShowClearConfirm(false)}>
-                  Keep shopping
+                  Keep items
                 </button>
                 <button type="button" className="cd-confirm-clear" onClick={handleConfirmedClear}>
-                  Yes, clear cart
+                  Clear all
                 </button>
               </div>
             </div>
@@ -375,7 +347,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                     : <div className="cd-success-media-placeholder">No image</div>}
                 </div>
                 <div className="cd-success-info">
-                  <p className="cd-success-kicker">Thank you</p>
+                  <p className="cd-success-kicker">Added to cart</p>
                   <h4 className="cd-success-title">{popupTitle}</h4>
                   <p className="cd-success-message">{popupMessage}</p>
                   <div className="cd-success-product">
@@ -384,7 +356,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                   </div>
                   <div className="cd-success-actions">
                     <button type="button" className="cd-ghost" onClick={handleContinueShopping}>
-                      Continue shopping
+                      Keep browsing
                     </button>
                     <button
                       type="button"
@@ -392,7 +364,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                       onClick={goCheckout}
                       disabled={cartItems.length === 0 || hasUnavailableItems}
                     >
-                      {hasUnavailableItems ? "Resolve cart issues" : "Checkout"}
+                      {hasUnavailableItems ? "Fix cart" : "Checkout"}
                     </button>
                   </div>
                 </div>
@@ -408,8 +380,7 @@ export default function CartDrawer({ isOpen, onClose }) {
           {/* Unavailable warning */}
           {hasUnavailableItems ? (
             <div className="cd-cart-alert cd-cart-alert--warning">
-              {unavailableCount} cart item{unavailableCount !== 1 ? "s are" : " is"} unavailable.
-              Remove them or reduce quantity before checkout.
+              {unavailableCount} item{unavailableCount !== 1 ? "s are" : " is"} unavailable — remove or reduce qty before checkout.
             </div>
           ) : null}
 
@@ -417,15 +388,15 @@ export default function CartDrawer({ isOpen, onClose }) {
           {cartItems.length === 0 ? (
             <div className="cd-empty">
               <div className="cd-empty-icon">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="42" height="42" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
                   <path d="M1 1h4l2.68 13.39a2 2 0 001.99 1.61h9.72a2 2 0 001.99-1.61L23 6H6" />
                 </svg>
               </div>
-              <p>Your cart is empty.</p>
-              <span className="cd-empty-sub">Add something you love and come back here to checkout.</span>
-              <button className="cd-ghost" onClick={handleContinueShopping} type="button">Continue shopping</button>
+              <p>Cart is empty</p>
+              <span className="cd-empty-sub">Add something you love and come back to checkout.</span>
+              <button className="cd-ghost" onClick={handleContinueShopping} type="button">Browse products</button>
             </div>
           ) : (
             <>
@@ -448,8 +419,8 @@ export default function CartDrawer({ isOpen, onClose }) {
                     <div className="cd-item-img">
                       {img ? <img src={img} alt={name} /> : (
                         <div className="cd-img-placeholder">
-                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" opacity="0.4">
+                          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" opacity="0.35">
                             <rect x="3" y="3" width="18" height="18" rx="2" />
                             <circle cx="8.5" cy="8.5" r="1.5" />
                             <polyline points="21 15 16 10 5 21" />
@@ -464,8 +435,8 @@ export default function CartDrawer({ isOpen, onClose }) {
                         <button type="button" className="cd-remove-icon"
                           onClick={() => removeFromCart(item.lineId || item.id)}
                           aria-label={`Remove ${name}`}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="3 6 5 6 21 6" />
                             <path d="M19 6l-1 14H6L5 6" />
                             <path d="M10 11v6" /><path d="M14 11v6" />
@@ -493,7 +464,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                         <div className="cd-item-options">
                           <span className="cd-option-pill cd-option-pill--abroad">
                             Ships from abroad
-                            {abroadDeliveryFee > 0 ? ` • Fee: GHS ${abroadDeliveryFee.toFixed(2)} each` : ""}
+                            {abroadDeliveryFee > 0 ? ` · Fee: GHS ${abroadDeliveryFee.toFixed(2)} each` : ""}
                           </span>
                         </div>
                       ) : null}
@@ -535,13 +506,12 @@ export default function CartDrawer({ isOpen, onClose }) {
               {/* ── RECOMMENDED FOR YOU ── */}
               <div className="cd-rec-section">
                 <div className="cd-rec-header">
-                  <span className="cd-rec-label">Recommended for you</span>
+                  <span className="cd-rec-label">You may also like</span>
                   {!recLoading && visibleRecs.length > 0 && (
                     <span className="cd-rec-badge">{visibleRecs.length} picks</span>
                   )}
                 </div>
 
-                {/* Loading skeletons */}
                 {recLoading && (
                   <div className="cd-rec-scroll">
                     {[1, 2, 3].map((n) => (
@@ -557,12 +527,10 @@ export default function CartDrawer({ isOpen, onClose }) {
                   </div>
                 )}
 
-                {/* Error */}
                 {recError && !recLoading && (
                   <p className="cd-rec-notice">Couldn't load recommendations right now.</p>
                 )}
 
-                {/* Cards */}
                 {!recLoading && !recError && visibleRecs.length > 0 && (
                   <div className="cd-rec-scroll">
                     {visibleRecs.map((product) => {
@@ -574,9 +542,9 @@ export default function CartDrawer({ isOpen, onClose }) {
                               ? <img src={product.image} alt={product.name} />
                               : (
                                 <div className="cd-rec-img-placeholder">
-                                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
                                     stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"
-                                    strokeLinejoin="round" opacity="0.35">
+                                    strokeLinejoin="round" opacity="0.3">
                                     <rect x="3" y="3" width="18" height="18" rx="2" />
                                     <circle cx="8.5" cy="8.5" r="1.5" />
                                     <polyline points="21 15 16 10 5 21" />
@@ -594,7 +562,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                               disabled={added}
                               aria-label={added ? `${product.name} added` : `Add ${product.name} to cart`}
                             >
-                              {added ? "✓ Added" : "+ Add to cart"}
+                              {added ? "✓ Added" : "+ Add"}
                             </button>
                           </div>
                         </div>
@@ -603,16 +571,15 @@ export default function CartDrawer({ isOpen, onClose }) {
                   </div>
                 )}
 
-                {/* No recs */}
                 {!recLoading && !recError && visibleRecs.length === 0 && (
-                  <p className="cd-rec-notice">No recommendations available right now.</p>
+                  <p className="cd-rec-notice">No recommendations right now.</p>
                 )}
               </div>
             </>
           )}
         </div>
 
-        {/* ── FOOTER (non-empty cart) ── */}
+        {/* ── FOOTER (non-empty) ── */}
         {cartItems.length > 0 && (
           <div className="cd-footer">
             <div className="cd-promo">
@@ -621,7 +588,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                 <input
                   type="text"
                   className="cd-promo-input"
-                  placeholder="Enter promo code here..."
+                  placeholder="Enter code..."
                   value={promoCode}
                   onChange={(e) => { setPromoCode(e.target.value); setPromoApplied(false); }}
                   aria-label="Promo code"
@@ -640,14 +607,14 @@ export default function CartDrawer({ isOpen, onClose }) {
                 <span>GHS {subtotal.toFixed(2)}</span>
               </div>
               <div className="cd-summary-row">
-                <span>Shipping Cost</span>
+                <span>Shipping</span>
                 <span className="cd-summary-shipping">
                   {hasUnavailableItems ? "—" : "Calculated at checkout"}
                 </span>
               </div>
               <div className="cd-summary-divider" />
               <div className="cd-summary-row cd-summary-total">
-                <span>Total Payment</span>
+                <span>Total</span>
                 <strong>GHS {subtotal.toFixed(2)}</strong>
               </div>
             </div>
@@ -662,16 +629,16 @@ export default function CartDrawer({ isOpen, onClose }) {
               disabled={cartItems.length === 0 || hasUnavailableItems}
               type="button"
             >
-              {hasUnavailableItems ? "Resolve cart issues" : "Checkout"}
+              {hasUnavailableItems ? "Fix cart issues" : "Checkout"}
             </button>
           </div>
         )}
 
-        {/* Footer — empty cart */}
+        {/* Footer — empty */}
         {cartItems.length === 0 && (
           <div className="cd-footer cd-footer--empty">
             <button className="cd-ghost" onClick={handleContinueShopping} type="button">
-              Continue shopping
+              Browse products
             </button>
           </div>
         )}
