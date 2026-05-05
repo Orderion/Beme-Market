@@ -10,13 +10,13 @@ import "./Account.css";
 /* ─── Label maps ─────────────────────────────────────────────── */
 
 const PREF_OPTIONS = [
-  { id: "kids",        emoji: "👶", label: "Kids & Family"   },
-  { id: "women",       emoji: "👗", label: "Women's Fashion" },
-  { id: "men",         emoji: "👔", label: "Men's Fashion"   },
-  { id: "home",        emoji: "🏠", label: "Home & Living"   },
-  { id: "electronics", emoji: "⚡", label: "Electronics"     },
-  { id: "savvy",       emoji: "🛍️", label: "Savvy Deals"     },
-  { id: "everything",  emoji: "🌍", label: "Shop Everything" },
+  { id: "kids",        icon: "kids",        label: "Kids & Family"   },
+  { id: "women",       icon: "women",       label: "Women's Fashion" },
+  { id: "men",         icon: "men",         label: "Men's Fashion"   },
+  { id: "home",        icon: "home",        label: "Home & Living"   },
+  { id: "electronics", icon: "electronics", label: "Electronics"     },
+  { id: "savvy",       icon: "savvy",       label: "Savvy Deals"     },
+  { id: "everything",  icon: "everything",  label: "Shop Everything" },
 ];
 
 const AGE_OPTIONS = [
@@ -39,10 +39,39 @@ function normalizeUsername(v) {
   return String(v || "").trim().toLowerCase().replace(/\s+/g, "_");
 }
 
+/* ─── Pref Icons (monochromatic SVGs) ───────────────────────── */
+function PrefIcon({ id }) {
+  const props = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.6", strokeLinecap: "round", strokeLinejoin: "round", width: "16", height: "16", "aria-hidden": "true" };
+  switch (id) {
+    case "kids": return (
+      <svg {...props}><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M9 7l-2-2M15 7l2-2"/></svg>
+    );
+    case "women": return (
+      <svg {...props}><circle cx="12" cy="5" r="3"/><path d="M12 8v8M9 13h6M10 16l-2 5M14 16l2 5"/></svg>
+    );
+    case "men": return (
+      <svg {...props}><rect x="6" y="2" width="12" height="8" rx="1"/><path d="M6 6h12M9 10v12M15 10v12M9 16h6"/></svg>
+    );
+    case "home": return (
+      <svg {...props}><path d="M3 12l9-9 9 9"/><path d="M9 21V12h6v9"/><rect x="9" y="12" width="6" height="9"/></svg>
+    );
+    case "electronics": return (
+      <svg {...props}><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3l-4 4-4-4"/><path d="M12 11v4M10 13h4"/></svg>
+    );
+    case "savvy": return (
+      <svg {...props}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/><path d="M9 12l2 2 4-4"/></svg>
+    );
+    case "everything": return (
+      <svg {...props}><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+    );
+    default: return null;
+  }
+}
+
 /* ─── Icons ──────────────────────────────────────────────────── */
 function IconOrders() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
       strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
       <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
       <line x1="3" y1="6" x2="21" y2="6"/>
@@ -52,7 +81,7 @@ function IconOrders() {
 }
 function IconHeart() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
       strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
       <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
     </svg>
@@ -60,7 +89,7 @@ function IconHeart() {
 }
 function IconSettings() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
       strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
       <circle cx="12" cy="12" r="3"/>
       <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
@@ -69,7 +98,7 @@ function IconSettings() {
 }
 function IconLocation() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
       strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
       <circle cx="12" cy="10" r="3"/>
@@ -78,7 +107,7 @@ function IconLocation() {
 }
 function IconCard() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
       strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
       <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
       <line x1="1" y1="10" x2="23" y2="10"/>
@@ -87,7 +116,7 @@ function IconCard() {
 }
 function IconBell() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
       strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
       <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
       <path d="M13.73 21a2 2 0 01-3.46 0"/>
@@ -96,7 +125,7 @@ function IconBell() {
 }
 function IconHelp() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
       strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
       <circle cx="12" cy="12" r="10"/>
       <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
@@ -106,7 +135,7 @@ function IconHelp() {
 }
 function IconMail() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
       strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
       <polyline points="22,6 12,13 2,6"/>
@@ -115,7 +144,7 @@ function IconMail() {
 }
 function IconLogout() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
       strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
       <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
       <polyline points="16 17 21 12 16 7"/>
@@ -125,7 +154,7 @@ function IconLogout() {
 }
 function IconRequest() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
       strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
       <circle cx="11" cy="11" r="8"/>
       <line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -136,8 +165,8 @@ function IconRequest() {
 }
 function IconShield() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
-      strokeLinecap="round" strokeLinejoin="round" width="28" height="28">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
+      strokeLinecap="round" strokeLinejoin="round" width="26" height="26">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
       <polyline points="9 12 11 14 15 10"/>
     </svg>
@@ -151,17 +180,27 @@ function IconCheck() {
     </svg>
   );
 }
-function IconStar() {
+function IconMember() {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
+      strokeLinecap="round" strokeLinejoin="round" width="13" height="13" aria-hidden="true">
+      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17 5.8 21.3l2.4-7.4L2 9.4h7.6L12 2z"/>
+    </svg>
+  );
+}
+function IconFlag() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"
+      strokeLinecap="round" strokeLinejoin="round" width="13" height="13" aria-hidden="true">
+      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+      <line x1="4" y1="22" x2="4" y2="15"/>
     </svg>
   );
 }
 function IconClose() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
-      strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
+      strokeLinecap="round" strokeLinejoin="round" width="17" height="17">
       <line x1="18" y1="6" x2="6" y2="18"/>
       <line x1="6" y1="6" x2="18" y2="18"/>
     </svg>
@@ -269,11 +308,10 @@ function EditProfileModal({ profile, displayName, onClose, onSaved }) {
 
     setSaving(true);
     try {
-      const normalizedKey     = normalizeUsername(trimmed);
-      const oldNormalizedKey  = normalizeUsername(displayName || "");
-      const nameChanged       = normalizedKey !== oldNormalizedKey;
+      const normalizedKey    = normalizeUsername(trimmed);
+      const oldNormalizedKey = normalizeUsername(displayName || "");
+      const nameChanged      = normalizedKey !== oldNormalizedKey;
 
-      /* If name changed, check new name isn't already taken */
       if (nameChanged) {
         const snap = await getDoc(doc(db, "usernames", normalizedKey));
         if (snap.exists() && snap.data()?.uid !== user.uid) {
@@ -283,31 +321,18 @@ function EditProfileModal({ profile, displayName, onClose, onSaved }) {
         }
       }
 
-      /* Update Firebase Auth display name */
       await updateProfile(auth.currentUser, { displayName: trimmed });
 
-      /* Update Firestore user doc */
       await setDoc(
         doc(db, "users", user.uid),
-        {
-          displayName:        trimmed,
-          age,
-          shoppingPreference: prefs,
-          updatedAt:          serverTimestamp(),
-        },
+        { displayName: trimmed, age, shoppingPreference: prefs, updatedAt: serverTimestamp() },
         { merge: true }
       );
 
-      /* Reserve new username, release old one if name changed */
       if (nameChanged) {
         await setDoc(doc(db, "usernames", normalizedKey), {
-          uid:         user.uid,
-          displayName: trimmed,
-          createdAt:   serverTimestamp(),
+          uid: user.uid, displayName: trimmed, createdAt: serverTimestamp(),
         });
-        /* Note: old username doc is left as a tombstone — super_admin
-           can clean up if needed. We don't delete it client-side to avoid
-           race conditions where another user grabs it before the write lands. */
       }
 
       onSaved({ displayName: trimmed, age, shoppingPreference: prefs });
@@ -385,7 +410,7 @@ function EditProfileModal({ profile, displayName, onClose, onSaved }) {
                   disabled={saving}
                   aria-pressed={on}
                 >
-                  <span aria-hidden="true">{opt.emoji}</span>
+                  <PrefIcon id={opt.id} />
                   <span>{opt.label}</span>
                   {on && (
                     <span className="acc-modal__pref-tick">
@@ -419,7 +444,7 @@ function EditProfileModal({ profile, displayName, onClose, onSaved }) {
    MAIN
 ═══════════════════════════════════════════════════════════════ */
 export default function Account() {
-  const navigate        = useNavigate();
+  const navigate         = useNavigate();
   const { user, logout } = useAuth();
 
   const [showLogoutSheet, setShowLogoutSheet] = useState(false);
@@ -461,11 +486,9 @@ export default function Account() {
   const shoppingPrefs = Array.isArray(profile?.shoppingPreference)
     ? profile.shoppingPreference : [];
 
-  /* Profile is "complete" when name, age AND at least one pref are all set */
   const profileComplete =
     !!profile?.displayName && !!profile?.age && shoppingPrefs.length > 0;
 
-  /* When edit modal saves successfully, update local state immediately */
   const handleProfileSaved = (updated) => {
     setProfile((prev) => ({ ...prev, ...updated }));
   };
@@ -481,7 +504,7 @@ export default function Account() {
           <div className="acc-header-left">
             <h1 className="acc-hero-name">{displayName}</h1>
             <div className="acc-rating-pill">
-              <IconStar />
+              <IconMember />
               <span>Beme Member</span>
             </div>
           </div>
@@ -506,7 +529,7 @@ export default function Account() {
               </div>
               <button type="button" className="acc-profile-card__edit-btn"
                 onClick={() => setShowEditModal(true)}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2.2"
                   strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
@@ -526,7 +549,7 @@ export default function Account() {
                     if (!entry) return null;
                     return (
                       <span key={id} className="acc-pref-pill">
-                        <span aria-hidden="true">{entry.emoji}</span>
+                        <PrefIcon id={id} />
                         {entry.label}
                       </span>
                     );
@@ -539,20 +562,19 @@ export default function Account() {
 
         {/* ── Quick tiles ── */}
         <div className="acc-tiles-row">
-          <QuickTile icon={<IconOrders />}  label="Orders"   onClick={() => navigate("/orders")} />
-          <QuickTile icon={<IconHeart />}   label="Saved"    onClick={() => navigate("/saved")}   badge={savedCount} />
+          <QuickTile icon={<IconOrders />}   label="Orders"   onClick={() => navigate("/orders")} />
+          <QuickTile icon={<IconHeart />}    label="Saved"    onClick={() => navigate("/saved")} badge={savedCount} />
           <QuickTile icon={<IconSettings />} label="Settings" onClick={() => navigate("/account/manage")} />
         </div>
 
         {/* ── Profile status card ── */}
         {!profileLoading && (
           profileComplete ? (
-            /* COMPLETED STATE */
             <div className="acc-promo-card acc-promo-card--done"
               onClick={() => setShowEditModal(true)}>
               <div className="acc-promo-text">
                 <p className="acc-promo-title acc-promo-title--done">
-                  Profile completed ✓
+                  Profile completed
                 </p>
                 <p className="acc-promo-sub">
                   Tap to edit your name, age or preferences
@@ -563,7 +585,6 @@ export default function Account() {
               </div>
             </div>
           ) : (
-            /* INCOMPLETE STATE */
             <div className="acc-promo-card"
               onClick={() => navigate("/account/manage")}>
               <div className="acc-promo-text">
@@ -608,7 +629,11 @@ export default function Account() {
             onClick={() => setShowLogoutSheet(true)} danger />
         </div>
 
-        <p className="acc-footer-note">Beme Market · Ghana 🇬🇭</p>
+        <p className="acc-footer-note">
+          Beme Market
+          <IconFlag />
+          Ghana
+        </p>
       </div>
 
       {/* ── Logout bottom sheet ── */}
