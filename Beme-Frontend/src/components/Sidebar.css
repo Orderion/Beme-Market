@@ -283,6 +283,32 @@ body.dark .sb-row-icon {
 }
 
 /* =============================================
+   SECTION GROUP HEADER
+   Bold title above a group of related links
+   (e.g. "Shop", "Explore", "Help", "Account")
+============================================= */
+
+.sb-section-header {
+  padding: 18px 14px 6px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text, #111);
+  font-family: var(--font-main, sans-serif);
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+/* First section header needs no top gap */
+.sb-section-header:first-child {
+  padding-top: 10px;
+}
+
+body.dark .sb-section-header {
+  color: var(--text, #f5f7fa);
+}
+
+/* =============================================
    DIVIDER
 ============================================= */
 
@@ -565,7 +591,7 @@ body.dark .sb-close:hover {
   flex: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 10px 10px 24px;
+  padding: 0 10px 24px;
   display: flex;
   flex-direction: column;
   gap: 2px;
