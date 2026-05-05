@@ -4,57 +4,65 @@ import { useEffect, useRef, useState } from "react";
 import { useWishlist } from "../../hooks/useWishlist";
 import "./BottomNav.css";
 
-/* ================= ICONS ================= */
+/* ================= ICONS — strokeWidth 1.5 for thin line-art ================= */
 
 function IconHome() {
   return (
-    <svg viewBox="0 0 24 24" className="bn-svg">
-      <path d="M4 11l8-7 8 7" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M6 10v10h12V10" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+    <svg viewBox="0 0 24 24" className="bn-svg" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5Z"/>
+      <path d="M9 21V12h6v9"/>
     </svg>
   );
 }
 
 function IconShop() {
   return (
-    <svg viewBox="0 0 24 24" className="bn-svg">
-      <path d="M3 9l1-4h16l1 4" fill="none" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M4 9h16v10H4z" fill="none" stroke="currentColor" strokeWidth="1.7" />
+    <svg viewBox="0 0 24 24" className="bn-svg" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <path d="M16 10a4 4 0 0 1-8 0"/>
     </svg>
   );
 }
 
 function IconOrders() {
   return (
-    <svg viewBox="0 0 24 24" className="bn-svg">
-      <path d="M6 4h12v16H6z" fill="none" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M9 9h6M9 13h6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    <svg viewBox="0 0 24 24" className="bn-svg" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 11l3 3L22 4"/>
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
     </svg>
   );
 }
 
 function IconUser() {
   return (
-    <svg viewBox="0 0 24 24" className="bn-svg">
-      <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z" fill="none" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M4 20a8 8 0 0 1 16 0" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    <svg viewBox="0 0 24 24" className="bn-svg" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 20a8 8 0 0 1 16 0"/>
     </svg>
   );
 }
 
 function IconOffers() {
   return (
-    <svg viewBox="0 0 24 24" className="bn-svg">
-      <path d="M5 12l5-5 9 9-5 5z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+    <svg viewBox="0 0 24 24" className="bn-svg" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.78 0l-8-4A2 2 0 0 1 2 16.76V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"/>
+      <polyline points="2.32 6.16 12 11 21.68 6.16"/>
+      <line x1="12" y1="22.76" x2="12" y2="11"/>
     </svg>
   );
 }
 
 function IconChevronUp() {
   return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 15l-6-6-6 6" />
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 15l-6-6-6 6"/>
     </svg>
   );
 }
@@ -66,7 +74,6 @@ export default function BottomNav() {
   const location = useLocation();
   const { user, logout } = useAuth();
 
-  // Get wishlist count — pass null product, we only need the count
   const { wishlistCount } = useWishlist(null);
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -147,7 +154,7 @@ export default function BottomNav() {
 
   return (
     <>
-      {/* ── Back-to-top ── */}
+      {/* ── Back-to-top — square brutalist button ── */}
       <button
         className={[
           "bn-back-top",
@@ -170,6 +177,7 @@ export default function BottomNav() {
         >
           <IconHome />
           <span>Home</span>
+          <span className="bn-active-pip" />
         </button>
 
         {/* OFFERS */}
@@ -179,9 +187,10 @@ export default function BottomNav() {
         >
           <IconOffers />
           <span>Offers</span>
+          <span className="bn-active-pip" />
         </button>
 
-        {/* CENTER SHOP */}
+        {/* CENTER SHOP — square with hard shadow */}
         <button
           className="bn-center"
           onClick={() => navigate("/shop")}
@@ -197,6 +206,7 @@ export default function BottomNav() {
         >
           <IconOrders />
           <span>Orders</span>
+          <span className="bn-active-pip" />
         </button>
 
         {/* ACCOUNT / LOGIN */}
@@ -207,6 +217,7 @@ export default function BottomNav() {
           >
             <IconUser />
             <span>Login</span>
+            <span className="bn-active-pip" />
           </button>
         ) : (
           <button
@@ -223,6 +234,7 @@ export default function BottomNav() {
               )}
             </span>
             <span>Account</span>
+            <span className="bn-active-pip" />
           </button>
         )}
 
