@@ -1,6 +1,6 @@
 /* =============================================
    SIDEBAR — Desktop rail + Mobile drawer
-   Uses --grtheme as primary accent colour
+   Uses --grtheme (#046EF2) as primary accent colour
 ============================================= */
 
 /* ── Shared tokens ── */
@@ -29,16 +29,16 @@
     bottom: 0;
     z-index: 200;
     background: var(--card, #fff);
-    border-right: 1px solid rgba(17, 17, 17, 0.07);
-    box-shadow: 2px 0 20px rgba(17, 17, 17, 0.05);
+    border-right: 1.5px solid var(--border, rgba(17, 17, 17, 0.13));
+    box-shadow: none;
     overflow: hidden;
     transition: width var(--sb-transition);
     will-change: width;
   }
 
   body.dark .sb-desktop {
-    border-right-color: rgba(255, 255, 255, 0.06);
-    box-shadow: 2px 0 20px rgba(0, 0, 0, 0.25);
+    border-right-color: rgba(255, 255, 255, 0.1);
+    box-shadow: none;
   }
 
   .sb-desktop--collapsed { width: var(--sb-collapsed-w); }
@@ -53,11 +53,11 @@
   padding: 18px 14px 14px;
   flex-shrink: 0;
   overflow: hidden;
-  border-bottom: 1px solid rgba(17, 17, 17, 0.06);
+  border-bottom: 1.5px solid var(--border, rgba(17, 17, 17, 0.1));
 }
 
 body.dark .sb-desktop-header {
-  border-bottom-color: rgba(255, 255, 255, 0.06);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 /* ── Logo mark ── */
@@ -79,7 +79,7 @@ body.dark .sb-desktop-header {
   height: 28px;
   border-radius: 8px;
   background: rgba(17, 17, 17, 0.05);
-  border: none;
+  border: 1.5px solid var(--border, rgba(17, 17, 17, 0.1));
   color: var(--muted, #888);
   display: flex;
   align-items: center;
@@ -87,21 +87,24 @@ body.dark .sb-desktop-header {
   cursor: pointer;
   flex-shrink: 0;
   margin-left: auto;
-  transition: background 0.18s, color 0.18s;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
 }
 
 .sb-toggle-btn:hover {
-  background: rgba(17, 17, 17, 0.1);
-  color: var(--text, #111);
+  background: rgba(4, 110, 242, 0.07);
+  color: var(--grtheme, #046EF2);
+  border-color: var(--grtheme, #046EF2);
 }
 
 body.dark .sb-toggle-btn {
   background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 body.dark .sb-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--text, #f5f7fa);
+  background: rgba(4, 110, 242, 0.15);
+  color: var(--grtheme, #046EF2);
+  border-color: var(--grtheme, #046EF2);
 }
 
 /* ── Desktop scroll area ── */
@@ -139,13 +142,13 @@ body.dark .sb-toggle-btn:hover {
 }
 
 .sb-icon-row:hover {
-  background: rgba(255, 102, 0, 0.08);
-  color: var(--grtheme, #FF6600);
+  background: rgba(4, 110, 242, 0.07);
+  color: var(--grtheme, #046EF2);
 }
 
 .sb-icon-row--active {
-  background: rgba(255, 102, 0, 0.1);
-  color: var(--grtheme, #FF6600);
+  background: rgba(4, 110, 242, 0.1);
+  color: var(--grtheme, #046EF2);
 }
 
 .sb-icon-row--danger { color: #e53935; }
@@ -162,7 +165,7 @@ body.dark .sb-toggle-btn:hover {
 }
 
 .sb-icon-row--active .sb-icon-wrap {
-  background: var(--grtheme, #FF6600);
+  background: var(--grtheme, #046EF2);
   color: #fff;
 }
 
@@ -174,7 +177,7 @@ body.dark .sb-toggle-btn:hover {
   height: 16px;
   padding: 0 4px;
   border-radius: 8px;
-  background: var(--grtheme, #FF6600);
+  background: var(--grtheme, #046EF2);
   color: #fff;
   font-size: 9px;
   font-weight: 800;
@@ -209,13 +212,13 @@ body.dark .sb-toggle-btn:hover {
 }
 
 .sb-row:hover {
-  background: rgba(255, 102, 0, 0.07);
-  color: var(--grtheme, #FF6600);
+  background: rgba(4, 110, 242, 0.07);
+  color: var(--grtheme, #046EF2);
 }
 
 .sb-row--active {
-  background: rgba(255, 102, 0, 0.1);
-  color: var(--grtheme, #FF6600);
+  background: rgba(4, 110, 242, 0.1);
+  color: var(--grtheme, #046EF2);
   font-weight: 700;
 }
 
@@ -228,12 +231,13 @@ body.dark .sb-toggle-btn:hover {
   height: 32px;
   border-radius: 9px;
   background: rgba(17, 17, 17, 0.05);
+  border: 1px solid transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   color: inherit;
-  transition: background 0.16s;
+  transition: background 0.16s, border-color 0.16s;
 }
 
 body.dark .sb-row-icon {
@@ -241,7 +245,8 @@ body.dark .sb-row-icon {
 }
 
 .sb-row--active .sb-row-icon {
-  background: var(--grtheme, #FF6600);
+  background: var(--grtheme, #046EF2);
+  border-color: var(--grtheme, #046EF2);
   color: #fff;
 }
 
@@ -264,7 +269,7 @@ body.dark .sb-row-icon {
   height: 20px;
   padding: 0 5px;
   border-radius: 10px;
-  background: var(--grtheme, #FF6600);
+  background: var(--grtheme, #046EF2);
   color: #fff;
   font-size: 10px;
   font-weight: 800;
@@ -284,8 +289,6 @@ body.dark .sb-row-icon {
 
 /* =============================================
    SECTION GROUP HEADER
-   Bold title above a group of related links
-   (e.g. "Shop", "Explore", "Help", "Account")
 ============================================= */
 
 .sb-section-header {
@@ -299,7 +302,6 @@ body.dark .sb-row-icon {
   flex-shrink: 0;
 }
 
-/* First section header needs no top gap */
 .sb-section-header:first-child {
   padding-top: 10px;
 }
@@ -314,13 +316,13 @@ body.dark .sb-section-header {
 
 .sb-divider {
   height: 1px;
-  background: rgba(17, 17, 17, 0.07);
+  background: rgba(17, 17, 17, 0.09);
   margin: 6px 4px;
   flex-shrink: 0;
 }
 
 body.dark .sb-divider {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 /* =============================================
@@ -347,7 +349,7 @@ body.dark .sb-divider {
   gap: 4px;
   background: none;
   border: none;
-  color: var(--grtheme, #FF6600);
+  color: var(--grtheme, #046EF2);
   font-size: 13px;
   font-weight: 700;
   font-family: var(--font-main, sans-serif);
@@ -358,7 +360,7 @@ body.dark .sb-divider {
 }
 
 .sb-back-btn:hover {
-  background: rgba(255, 102, 0, 0.08);
+  background: rgba(4, 110, 242, 0.07);
 }
 
 /* =============================================
@@ -414,7 +416,7 @@ body.dark .sb-theme-icon {
 }
 
 .sb-switch--on {
-  background: var(--grtheme, #FF6600);
+  background: var(--grtheme, #046EF2);
 }
 
 .sb-switch-thumb {
@@ -461,7 +463,7 @@ body.dark .sb-theme-icon {
   flex: 1;
   padding: 9px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(17, 17, 17, 0.1);
+  border: 1px solid rgba(17, 17, 17, 0.12);
   background: none;
   cursor: pointer;
   font-size: 12px;
@@ -531,7 +533,8 @@ body.dark .sb-confirm-btn {
   transform: translateX(-100%);
   transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   overflow: hidden;
-  box-shadow: 4px 0 32px rgba(0, 0, 0, 0.12);
+  border-right: 1.5px solid var(--border, rgba(17, 17, 17, 0.12));
+  box-shadow: none;
 }
 
 .sb-panel--open {
@@ -544,12 +547,12 @@ body.dark .sb-confirm-btn {
   align-items: center;
   justify-content: space-between;
   padding: 18px 18px 14px;
-  border-bottom: 1px solid rgba(17, 17, 17, 0.07);
+  border-bottom: 1.5px solid var(--border, rgba(17, 17, 17, 0.1));
   flex-shrink: 0;
 }
 
 body.dark .sb-header {
-  border-bottom-color: rgba(255, 255, 255, 0.07);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 .sb-header-logo {
@@ -563,27 +566,30 @@ body.dark .sb-header {
   height: 34px;
   border-radius: 10px;
   background: rgba(17, 17, 17, 0.05);
-  border: none;
+  border: 1px solid var(--border, rgba(17, 17, 17, 0.1));
   color: var(--muted, #888);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.16s, color 0.16s;
+  transition: background 0.16s, color 0.16s, border-color 0.16s;
 }
 
 .sb-close:hover {
-  background: rgba(17, 17, 17, 0.1);
-  color: var(--text, #111);
+  background: rgba(4, 110, 242, 0.07);
+  color: var(--grtheme, #046EF2);
+  border-color: var(--grtheme, #046EF2);
 }
 
 body.dark .sb-close {
   background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 body.dark .sb-close:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--text, #f5f7fa);
+  background: rgba(4, 110, 242, 0.15);
+  color: var(--grtheme, #046EF2);
+  border-color: var(--grtheme, #046EF2);
 }
 
 /* Mobile scroll area */
@@ -627,6 +633,14 @@ body.dark .sb-close:hover {
 
 .sb-sub-screen--in {
   transform: translateX(0);
+}
+
+/* =============================================
+   LOGO MARK COLOUR
+============================================= */
+
+.sb-logo-mark {
+  color: var(--grtheme, #046EF2);
 }
 
 /* =============================================
