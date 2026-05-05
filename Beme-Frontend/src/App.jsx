@@ -33,6 +33,7 @@ import Signup from "./pages/Signup";
 import Onboarding from "./pages/Onboarding";
 import AdminLogin from "./pages/AdminLogin";
 
+import AdminDashboard from "./pages/AdminDashboard"; // ← NEW
 import Admin from "./pages/Admin";
 import AdminOrders from "./pages/AdminOrders";
 import AdminReviewQueue from "./pages/AdminReviewQueue";
@@ -43,7 +44,7 @@ import ShopOwnerApply from "./pages/ShopOwnerApply";
 
 import HomepageAdmin from "./pages/admin/HomepageAdmin";
 import MediaManager from "./pages/admin/MediaManager";
-import AdminSupportDashboard from "./pages/admin/AdminSupportDashboard"; // ← NEW
+import AdminSupportDashboard from "./pages/admin/AdminSupportDashboard";
 
 import About from "./pages/About";
 import Support from "./pages/Support";
@@ -75,38 +76,45 @@ import ProductRequests from "./pages/ProductRequests";
 
 function SuperAdminOnly({ children }) {
   const { loading, isSuperAdmin } = useAuth();
-
   if (loading) return null;
   if (!isSuperAdmin) return <Navigate to="/" replace />;
-
   return children;
 }
 
 /* ================= APP SHELL ================= */
+
+/*
+ * Admin routes that get a completely custom layout (no Header / Footer / BottomNav).
+ * AdminDashboard manages its own sidebar + topbar internally.
+ */
+const FULL_SCREEN_ROUTES = new Set([
+  "/login",
+  "/signup",
+  "/admin-login",
+  "/onboarding",
+  "/admin",            // ← AdminDashboard owns its shell
+  "/admin/homepage",
+  "/admin/support",
+  "/admin/media",
+  "/admin/product-requests",
+  // sub-routes that also live inside the admin shell
+  "/admin-orders",
+  "/admin-review-queue",
+  "/analytics",
+  "/payout-requests",
+  "/shop-applications",
+  "/account-management",
+]);
 
 function AppShell() {
   const location = useLocation();
   const { loading: authLoading } = useAuth();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [cartOpen, setCartOpen] = useState(false);
+  const [cartOpen, setCartOpen]       = useState(false);
   const [routeLoading, setRouteLoading] = useState(false);
 
-  /*
-   * Routes where the global header, footer and bottom nav are hidden.
-   * /onboarding is added here so the questionnaire is a clean full-screen
-   * experience with no navigation chrome around it.
-   */
-  const hideHeaderRoutes = useMemo(
-    () => new Set(["/login", "/signup", "/admin-login", "/onboarding"]),
-    []
-  );
-
-  const isHomepageAdmin   = location.pathname === "/admin/homepage";
-  const isAdminSupport    = location.pathname === "/admin/support"; // ← NEW
-
-  const shouldHideHeader =
-    hideHeaderRoutes.has(location.pathname) || isHomepageAdmin || isAdminSupport;
+  const shouldHideHeader = FULL_SCREEN_ROUTES.has(location.pathname);
 
   useEffect(() => {
     setRouteLoading(true);
@@ -130,39 +138,31 @@ function AppShell() {
             onMenu={() => setSidebarOpen(true)}
             onCart={() => setCartOpen(true)}
           />
-
-          <Sidebar
-            isOpen={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
-          />
-
-          <CartDrawer
-            isOpen={cartOpen}
-            onClose={() => setCartOpen(false)}
-          />
+          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
         </>
       )}
 
       <main key={location.pathname} className="route-shell">
         <Routes>
 
-          {/* PUBLIC */}
-          <Route path="/"             element={<Home />} />
-          <Route path="/shop"         element={<Shop />} />
-          <Route path="/offers"       element={<Offers />} />
-          <Route path="/flash-deals"  element={<FlashDeals />} />
-          <Route path="/product/:id"  element={<ProductDetails />} />
-          <Route path="/checkout"     element={<Checkout />} />
+          {/* ── PUBLIC ── */}
+          <Route path="/"              element={<Home />} />
+          <Route path="/shop"          element={<Shop />} />
+          <Route path="/offers"        element={<Offers />} />
+          <Route path="/flash-deals"   element={<FlashDeals />} />
+          <Route path="/product/:id"   element={<ProductDetails />} />
+          <Route path="/checkout"      element={<Checkout />} />
           <Route path="/order-success" element={<OrderSuccess />} />
-          <Route path="/orders"       element={<Orders />} />
+          <Route path="/orders"        element={<Orders />} />
 
-          {/* AUTH */}
-          <Route path="/login"        element={<Login />} />
-          <Route path="/signup"       element={<Signup />} />
-          <Route path="/onboarding"   element={<Onboarding />} />
-          <Route path="/admin-login"  element={<AdminLogin />} />
+          {/* ── AUTH ── */}
+          <Route path="/login"       element={<Login />} />
+          <Route path="/signup"      element={<Signup />} />
+          <Route path="/onboarding"  element={<Onboarding />} />
+          <Route path="/admin-login" element={<AdminLogin />} />
 
-          {/* ACCOUNT */}
+          {/* ── ACCOUNT ── */}
           <Route path="/account"               element={<Account />} />
           <Route path="/account/manage"        element={<ManageAccount />} />
           <Route path="/account/payments"      element={<PaymentMethods hasCompletedOrder={false} />} />
@@ -172,18 +172,19 @@ function AppShell() {
           <Route path="/saved"                 element={<SavedItems />} />
           <Route path="/account/requests"      element={<UserRequests />} />
 
-          {/* ADMIN */}
+          {/* ── ADMIN DASHBOARD (new central hub) ── */}
           <Route
             path="/admin"
             element={
               <AdminRoute>
                 <RequireAdmin>
-                  <Admin />
+                  <AdminDashboard />
                 </RequireAdmin>
               </AdminRoute>
             }
           />
 
+          {/* ── ADMIN SUB-PAGES ── */}
           <Route
             path="/admin-orders"
             element={
@@ -250,7 +251,7 @@ function AppShell() {
             }
           />
 
-          {/* HOMEPAGE ADMIN */}
+          {/* ── HOMEPAGE ADMIN ── */}
           <Route
             path="/admin/homepage"
             element={
@@ -262,7 +263,7 @@ function AppShell() {
             }
           />
 
-          {/* ADMIN PRODUCT REQUESTS */}
+          {/* ── ADMIN PRODUCT REQUESTS ── */}
           <Route
             path="/admin/product-requests"
             element={
@@ -274,7 +275,7 @@ function AppShell() {
             }
           />
 
-          {/* MEDIA MANAGER */}
+          {/* ── MEDIA MANAGER ── */}
           <Route
             path="/admin/media"
             element={
@@ -286,7 +287,7 @@ function AppShell() {
             }
           />
 
-          {/* ── SUPPORT INBOX  ← NEW ── */}
+          {/* ── SUPPORT INBOX ── */}
           <Route
             path="/admin/support"
             element={
@@ -298,7 +299,7 @@ function AppShell() {
             }
           />
 
-          {/* SUPER ADMIN */}
+          {/* ── SUPER ADMIN ── */}
           <Route
             path="/own-a-shop"
             element={
@@ -308,7 +309,7 @@ function AppShell() {
             }
           />
 
-          {/* FALLBACK */}
+          {/* ── FALLBACK ── */}
           <Route path="*" element={<Navigate to="/" replace />} />
 
         </Routes>
