@@ -31,7 +31,6 @@ function IconChevronLeft()  { return <svg viewBox="0 0 24 24" width="16" height=
 function IconExpand()       { return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m10 8 4 4-4 4"/></svg>; }
 function IconCollapse()     { return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m14 8-4 4 4 4"/></svg>; }
 
-/* ── My Requests icon ── */
 function IconRequest() {
   return (
     <svg viewBox="0 0 24 24" className="sb-svg" fill="none" stroke="currentColor"
@@ -44,7 +43,6 @@ function IconRequest() {
   );
 }
 
-/* ── Admin product requests icon ── */
 function IconInbox() {
   return (
     <svg viewBox="0 0 24 24" className="sb-svg" fill="none" stroke="currentColor"
@@ -55,7 +53,6 @@ function IconInbox() {
   );
 }
 
-/* ── Media Manager icon ── */
 function IconMedia() {
   return (
     <svg viewBox="0 0 24 24" className="sb-svg" fill="none" stroke="currentColor"
@@ -67,7 +64,6 @@ function IconMedia() {
   );
 }
 
-/* ── Logo mark ── */
 function LogoMark() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -91,7 +87,12 @@ const ICON_MAP = {
   logout:            <IconLogout />,
 };
 
-/* ── Menu row (used in both desktop expanded + mobile) ── */
+/* ── Section header (bold group title like "Shop", "Explore", etc.) ── */
+function SectionHeader({ label }) {
+  return <div className="sb-section-header">{label}</div>;
+}
+
+/* ── Menu row ── */
 function MenuRow({ label, icon, onClick, danger = false, hasArrow = false, active = false, badge = null }) {
   return (
     <button
@@ -145,18 +146,15 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const isActive = (path) => path && location.pathname === path;
 
-  /* lock body scroll when mobile drawer open */
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
-  /* reset state when drawer closes */
   useEffect(() => {
     if (!isOpen) { setConfirmLogout(false); setSubScreen(null); }
   }, [isOpen]);
 
-  /* keyboard: Escape */
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (e) => {
@@ -184,7 +182,6 @@ export default function Sidebar({ isOpen, onClose }) {
     finally { setConfirmLogout(false); onClose?.(); navigate("/", { replace: true }); }
   };
 
-  /* ── sub-screen definitions ── */
   const subScreens = {
     categories: {
       title: "Categories",
@@ -229,7 +226,6 @@ export default function Sidebar({ isOpen, onClose }) {
         { label: "Shop Applications",  path: "/shop-applications",          icon: <IconAdmin />  },
         { label: "Account Management", path: "/account-management",         icon: <IconAdmin />  },
         { label: "Product Requests",   path: "/admin/product-requests",     icon: <IconInbox />  },
-        /* ── Media Manager ── */
         { label: "Media Manager",      path: "/admin/media",                icon: <IconMedia />  },
         { label: "Own a Shop",         path: "/own-a-shop",                 icon: <IconAdmin />  },
       ],
@@ -250,15 +246,12 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const activeSubScreen = subScreen ? subScreens[subScreen] : null;
 
-  /* ────────────────────────────────────────────
-     DESKTOP SIDEBAR (always visible, left rail)
-  ──────────────────────────────────────────── */
+  /* ── DESKTOP SIDEBAR ── */
   const DesktopSidebar = () => (
     <aside
       className={`sb-desktop ${desktopExpanded ? "sb-desktop--expanded" : "sb-desktop--collapsed"}`}
       aria-label="Navigation"
     >
-      {/* Logo + toggle */}
       <div className="sb-desktop-header">
         {desktopExpanded && <span className="sb-logo-text">Beme</span>}
         <button
@@ -273,7 +266,6 @@ export default function Sidebar({ isOpen, onClose }) {
 
       <div className="sb-desktop-scroll">
 
-        {/* ── COLLAPSED: icon-only rail ── */}
         {!desktopExpanded && (
           <>
             <IconRow label="Home"  icon={<IconHome />}  onClick={() => go("/")}     active={isActive("/")} />
@@ -323,7 +315,6 @@ export default function Sidebar({ isOpen, onClose }) {
           </>
         )}
 
-        {/* ── EXPANDED: full labels (no sub-screen) ── */}
         {desktopExpanded && !subScreen && (
           <>
             <MenuRow label="Home"  icon={<IconHome />}  onClick={() => go("/")}     active={isActive("/")} />
@@ -390,7 +381,6 @@ export default function Sidebar({ isOpen, onClose }) {
           </>
         )}
 
-        {/* ── EXPANDED: sub-screen ── */}
         {desktopExpanded && subScreen && activeSubScreen && (
           <>
             <button
@@ -419,15 +409,11 @@ export default function Sidebar({ isOpen, onClose }) {
     </aside>
   );
 
-  /* ────────────────────────────────────────────
-     MOBILE DRAWER (overlay, existing behaviour)
-  ──────────────────────────────────────────── */
+  /* ── MOBILE DRAWER ── */
   return (
     <>
-      {/* Desktop rail — always mounted */}
       <DesktopSidebar />
 
-      {/* Mobile overlay drawer */}
       <div className={`sb-shell ${isOpen ? "sb-shell--open" : ""}`} aria-hidden={!isOpen}>
         <div className={`sb-overlay ${isOpen ? "sb-overlay--open" : ""}`} onClick={onClose} />
 
@@ -446,38 +432,64 @@ export default function Sidebar({ isOpen, onClose }) {
             </div>
 
             <div className="sb-scroll">
+
+              {/* ── SHOP section ── */}
+              <SectionHeader label="Shop" />
               <MenuRow label="Home"  icon={<IconHome />}  onClick={() => go("/")}     active={isActive("/")} />
-              <MenuRow label="Shop"  icon={<IconShop />}  onClick={() => go("/shop")} active={isActive("/shop")} />
+              <MenuRow label="Store" icon={<IconShop />}  onClick={() => go("/shop")} active={isActive("/shop")} />
               {user && (
                 <>
-                  <MenuRow label="Orders"      icon={<IconOrders />}  onClick={() => go("/orders")}           active={isActive("/orders")} />
+                  <MenuRow label="My Orders"   icon={<IconOrders />}  onClick={() => go("/orders")}           active={isActive("/orders")} />
                   <MenuRow label="My Requests" icon={<IconRequest />} onClick={() => go("/account/requests")} active={isActive("/account/requests")} />
                 </>
               )}
-              {isSuperAdmin && (
-                <MenuRow label="Admin Controls" icon={<IconAdmin />} onClick={() => setSubScreen("adminControls")} hasArrow />
-              )}
-              {isShopAdmin && (
-                <MenuRow
-                  label={`Shop Admin${shopLabel ? ` • ${shopLabel}` : ""}`}
-                  icon={<IconShopAdmin />}
-                  onClick={() => setSubScreen("shopAdminControls")}
-                  hasArrow
-                />
-              )}
+
+              {/* ── EXPLORE section ── */}
+              <div className="sb-divider" />
+              <SectionHeader label="Explore" />
               <MenuRow label="Categories"  icon={<IconGrid />}  onClick={() => setSubScreen("categories")}  hasArrow />
               <MenuRow label="Departments" icon={<IconDepts />} onClick={() => setSubScreen("departments")} hasArrow />
-              <MenuRow label="More"        icon={<IconMore />}  onClick={() => setSubScreen("more")}        hasArrow />
 
+              {/* ── ADMIN section (super admin only) ── */}
+              {isSuperAdmin && (
+                <>
+                  <div className="sb-divider" />
+                  <SectionHeader label="Admin" />
+                  <MenuRow label="Admin Controls" icon={<IconAdmin />} onClick={() => setSubScreen("adminControls")} hasArrow />
+                  <MenuRow label="Product Requests" icon={<IconInbox />} onClick={() => go("/admin/product-requests")} active={isActive("/admin/product-requests")} />
+                  <MenuRow label="Media Manager"    icon={<IconMedia />} onClick={() => go("/admin/media")}             active={isActive("/admin/media")} />
+                </>
+              )}
+
+              {/* ── SHOP ADMIN section ── */}
+              {isShopAdmin && (
+                <>
+                  <div className="sb-divider" />
+                  <SectionHeader label="My Shop" />
+                  <MenuRow
+                    label={`Shop Admin${shopLabel ? ` • ${shopLabel}` : ""}`}
+                    icon={<IconShopAdmin />}
+                    onClick={() => setSubScreen("shopAdminControls")}
+                    hasArrow
+                  />
+                </>
+              )}
+
+              {/* ── HELP section ── */}
               <div className="sb-divider" />
+              <SectionHeader label="Help & Info" />
+              <MenuRow label="More" icon={<IconMore />} onClick={() => setSubScreen("more")} hasArrow />
 
+              {/* ── ACCOUNT section ── */}
+              <div className="sb-divider" />
+              <SectionHeader label="Account" />
               {!user ? (
                 <>
-                  <MenuRow label="Login"   icon={<IconLogin />}  onClick={() => go("/login")}  active={isActive("/login")} />
-                  <MenuRow label="Sign up" icon={<IconSignup />} onClick={() => go("/signup")} active={isActive("/signup")} />
+                  <MenuRow label="Log In"    icon={<IconLogin />}  onClick={() => go("/login")}  active={isActive("/login")} />
+                  <MenuRow label="Sign Up"   icon={<IconSignup />} onClick={() => go("/signup")} active={isActive("/signup")} />
                 </>
               ) : !confirmLogout ? (
-                <MenuRow label="Logout" icon={<IconLogout />} onClick={() => setConfirmLogout(true)} danger />
+                <MenuRow label="Log Out" icon={<IconLogout />} onClick={() => setConfirmLogout(true)} danger />
               ) : (
                 <div className="sb-confirm">
                   <p className="sb-confirm-text">Are you sure you want to log out?</p>
@@ -488,8 +500,9 @@ export default function Sidebar({ isOpen, onClose }) {
                 </div>
               )}
 
+              {/* ── PREFERENCES section ── */}
               <div className="sb-divider" />
-
+              <SectionHeader label="Preferences" />
               <div className="sb-theme-row">
                 <span className="sb-theme-icon"><IconSun /></span>
                 <span className="sb-theme-label">{darkMode ? "Light mode" : "Dark mode"}</span>
@@ -503,6 +516,7 @@ export default function Sidebar({ isOpen, onClose }) {
                   <span className="sb-switch-thumb" />
                 </button>
               </div>
+
             </div>
           </div>
 
