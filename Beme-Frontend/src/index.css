@@ -2,64 +2,84 @@
 
 /* =========================
    THEME VARIABLES (GLOBAL)
+   Neo-Brutalist Edition
 ========================= */
 
 :root {
-  --bg: #FFFDF8;
+  /* Core Palette */
+  --bg: #FCFAF2;
   --text: #111111;
   --card: #ffffff;
-  --soft: rgba(0, 0, 0, 0.2);
+  --soft: rgba(0, 0, 0, 0.06);
   --accent: #111111;
   --button-text: #ffffff;
   --fsrh: #000;
-  --caru: #EEF1F6;
+  --caru: #F0EDE4;
   --grtheme: #046EF2;
   --txdark: #111111;
 
-  --border: none;
-  --shadow: 0 14px 40px rgba(17, 17, 17, 0.08);
-  --radius: 20px;
-  --muted: rgba(17, 17, 17, 0.58);
+  /* Neo-Brutalist Border & Shadow System */
+  --border: #111111;
+  --border-width: 2px;
+  --shadow: 5px 5px 0px 0px #111111;
+  --shadow-sm: 3px 3px 0px 0px #111111;
+  --shadow-lg: 7px 7px 0px 0px #111111;
+  --shadow-pressed: 2px 2px 0px 0px #111111;
+  --shadow-accent: 5px 5px 0px 0px var(--grtheme);
+  --radius: 0px;
+  --radius-sm: 0px;
+
+  /* Typography & Muted */
+  --muted: rgba(17, 17, 17, 0.52);
   --btn: #111111;
   --btnText: #ffffff;
-  --overlay: rgba(8, 8, 10, 0.36);
-  --txdark: #111111;
+  --overlay: rgba(8, 8, 10, 0.6);
 
+  /* Fonts */
   --font-main: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
   --font-display: "Space Grotesk", "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
+  /* Motion — snappier to match the raw aesthetic */
   --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-soft: cubic-bezier(0.25, 0.9, 0.3, 1);
 
-  --motion-fast: 380ms var(--ease-premium);
-  --motion-smooth: 650ms var(--ease-premium);
-  --motion-slow: 920ms var(--ease-premium);
-  --drawer-motion: 1050ms var(--ease-premium);
-  --page-motion: 1100ms var(--ease-premium);
+  --motion-fast: 140ms var(--ease-premium);
+  --motion-smooth: 260ms var(--ease-premium);
+  --motion-slow: 400ms var(--ease-premium);
+  --drawer-motion: 500ms var(--ease-premium);
+  --page-motion: 400ms var(--ease-premium);
 
-  --response-delay: 500ms;
+  --response-delay: 0ms;
 
-  --backdrop-blur: blur(20px) brightness(0.95) saturate(1.15);
-  --backdrop-blur-light: blur(14px) brightness(1.02);
+  /* No blur — brutalism is raw */
+  --backdrop-blur: blur(0px);
+  --backdrop-blur-light: blur(0px);
 }
 
+/* Dark Mode — inverted brutalism */
 body.dark {
-  --bg: #12110F;
-  --text: #f5f7fa;
-  --card: #3A3F45;
-  --soft: #191d23;
-  --accent: #ffffff;
-  --button-text: #000000;
-  --fsrh: #fff;
-  --caru: #3A3F45;
+  --bg: #111111;
+  --text: #FCFAF2;
+  --card: #1A1A18;
+  --soft: rgba(255, 255, 255, 0.07);
+  --accent: #FCFAF2;
+  --button-text: #111111;
+  --fsrh: #FCFAF2;
+  --caru: #222220;
   --grtheme: #046EF2;
+  --txdark: #FCFAF2;
 
-  --border: #30363d;
-  --shadow: 0 16px 42px rgba(0, 0, 0, 0.34);
-  --muted: rgba(245, 247, 250, 0.62);
-  --btn: #f5f7fa;
-  --btnText: #0b0d10;
-  --overlay: rgba(0, 0, 0, 0.48);
+  --border: #FCFAF2;
+  --shadow: 5px 5px 0px 0px rgba(252, 250, 242, 0.85);
+  --shadow-sm: 3px 3px 0px 0px rgba(252, 250, 242, 0.85);
+  --shadow-lg: 7px 7px 0px 0px rgba(252, 250, 242, 0.85);
+  --shadow-pressed: 2px 2px 0px 0px rgba(252, 250, 242, 0.85);
+  --shadow-accent: 5px 5px 0px 0px var(--grtheme);
+
+  --muted: rgba(252, 250, 242, 0.52);
+  --btn: #FCFAF2;
+  --btnText: #111111;
+  --overlay: rgba(0, 0, 0, 0.76);
 }
 
 /* =========================
@@ -101,11 +121,13 @@ body {
 }
 
 ::selection {
-  background: rgba(17, 17, 17, 0.12);
+  background: var(--grtheme);
+  color: #fff;
 }
 
 body.dark ::selection {
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--grtheme);
+  color: #fff;
 }
 
 /* =========================
@@ -150,44 +172,63 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* =========================
+   CARD — Neo-Brutalist
+========================= */
+
 .card {
   background: var(--card);
-  border: 1px solid var(--border);
+  border: var(--border-width) solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  transition: background var(--motion-slow) var(--response-delay),
-              border-color var(--motion-slow) var(--response-delay),
-              color var(--motion-slow) var(--response-delay),
-              box-shadow var(--motion-slow) var(--response-delay);
+  transition:
+    background var(--motion-slow),
+    border-color var(--motion-slow),
+    color var(--motion-slow),
+    box-shadow var(--motion-fast),
+    transform var(--motion-fast);
 }
+
+.card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* =========================
+   INPUTS — Neo-Brutalist
+========================= */
 
 input, select, textarea {
   background: var(--card);
   color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
   padding: 10px 12px;
   outline: none;
-  /* iOS Safari auto-zoom fix: font-size must be >= 16px to prevent zoom on focus */
   font-size: 16px;
-  transition: border-color var(--motion-fast) var(--response-delay),
-              transform var(--motion-fast) var(--response-delay),
-              background var(--motion-smooth) var(--response-delay),
-              color var(--motion-smooth) var(--response-delay),
-              box-shadow var(--motion-smooth) var(--response-delay);
+  font-family: var(--font-main);
+  font-weight: 600;
+  transition:
+    box-shadow var(--motion-fast),
+    transform var(--motion-fast),
+    background var(--motion-smooth),
+    color var(--motion-smooth),
+    border-color var(--motion-fast);
 }
 
 input:focus, select:focus, textarea:focus {
-  border-color: rgba(17, 17, 17, 0.28);
-  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+  transform: translate(-1px, -1px);
+  border-color: var(--border);
 }
 
 body.dark input:focus, body.dark select:focus, body.dark textarea:focus {
-  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: var(--shadow);
 }
 
 input::placeholder, textarea::placeholder {
-  color: rgba(127, 127, 127, 0.9);
+  color: var(--muted);
+  font-weight: 500;
 }
 
 /* =========================
@@ -195,26 +236,26 @@ input::placeholder, textarea::placeholder {
 ========================= */
 
 @keyframes fadeUpSoft {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes cartPopupIn {
-  from { opacity: 0; transform: translateY(14px) scale(0.975); transform-origin: bottom right; }
-  to { opacity: 1; transform: translateY(0) scale(1); transform-origin: bottom right; }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .route-shell {
-  animation: routeEnter var(--page-motion) var(--response-delay) both;
+  animation: routeEnter var(--page-motion) both;
 }
 
 @keyframes routeEnter {
-  from { opacity: 0; transform: translateY(14px) scale(0.995); transform-origin: top center; }
-  to { opacity: 1; transform: translateY(0) scale(1); transform-origin: top center; }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* =========================
-   DRAWERS
+   DRAWERS — Neo-Brutalist
 ========================= */
 
 .side-panel, .sidebar {
@@ -225,14 +266,15 @@ input::placeholder, textarea::placeholder {
   width: 92vw;
   max-width: 420px;
   background: var(--card);
-  border-right: 1px solid var(--border);
-  box-shadow: var(--shadow);
+  border-right: var(--border-width) solid var(--border);
+  box-shadow: var(--shadow-lg);
   z-index: 1300;
   overflow-y: auto;
   transform: translateX(-100%);
   transform-origin: left center;
-  transition: transform var(--drawer-motion) var(--response-delay) var(--ease-premium),
-              opacity var(--motion-slow) var(--response-delay);
+  transition:
+    transform var(--drawer-motion) var(--ease-premium),
+    opacity var(--motion-slow);
   opacity: 0;
 }
 
@@ -242,6 +284,7 @@ input::placeholder, textarea::placeholder {
   left: 0;
 }
 
+/* Cart Drawer */
 .cd {
   position: fixed;
   inset: 0;
@@ -260,14 +303,11 @@ input::placeholder, textarea::placeholder {
   inset: 0;
   background: var(--overlay);
   opacity: 0;
-  transition: opacity var(--motion-slow) var(--response-delay),
-              backdrop-filter var(--motion-slow) var(--response-delay);
-  backdrop-filter: blur(0);
+  transition: opacity var(--motion-slow);
 }
 
 .cd.cd--open .cd-overlay {
   opacity: 1;
-  backdrop-filter: var(--backdrop-blur-light);
 }
 
 .cd-panel {
@@ -281,13 +321,14 @@ input::placeholder, textarea::placeholder {
   transform: translateX(100%);
   opacity: 0;
   transform-origin: right center;
-  transition: transform var(--drawer-motion) var(--response-delay) var(--ease-premium),
-              opacity var(--motion-slow) var(--response-delay),
-              box-shadow var(--motion-slow) var(--response-delay);
+  transition:
+    transform var(--drawer-motion) var(--ease-premium),
+    opacity var(--motion-slow),
+    box-shadow var(--motion-slow);
   display: flex;
   flex-direction: column;
-  border-left: 1px solid var(--border);
-  box-shadow: var(--shadow);
+  border-left: var(--border-width) solid var(--border);
+  box-shadow: var(--shadow-lg);
   will-change: transform;
 }
 
@@ -298,12 +339,11 @@ input::placeholder, textarea::placeholder {
 
 .cd.closing .cd-panel {
   transform: translateX(100%);
-  transition: transform var(--drawer-motion) var(--ease-premium),
-              opacity var(--motion-slow) var(--response-delay);
+  transition: transform var(--drawer-motion) var(--ease-premium), opacity var(--motion-slow);
 }
 
 /* =========================
-   CART POPUP
+   CART POPUP — Neo-Brutalist
 ========================= */
 
 .cart-popup {
@@ -313,15 +353,15 @@ input::placeholder, textarea::placeholder {
   bottom: 80px;
   z-index: 1400;
   border-radius: var(--radius);
-  border: 1px solid rgba(17, 17, 17, 0.08);
+  border: var(--border-width) solid var(--border);
   background: var(--card);
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.14), 0 8px 18px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
-  animation: cartPopupIn 600ms var(--ease-premium) both;
+  animation: cartPopupIn 280ms var(--ease-premium) both;
 }
 
 body.dark .cart-popup {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--border);
 }
 
 .cart-popup__close-wrap {
@@ -333,8 +373,8 @@ body.dark .cart-popup {
 .cart-popup__close {
   width: 28px;
   height: 28px;
-  border-radius: 50%;
-  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 0;
+  border: var(--border-width) solid var(--border);
   background: transparent;
   color: var(--text);
   font-size: 16px;
@@ -343,10 +383,23 @@ body.dark .cart-popup {
   justify-content: center;
   cursor: pointer;
   line-height: 1;
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.cart-popup__close:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow);
+}
+
+.cart-popup__close:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 body.dark .cart-popup__close {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--border);
 }
 
 .cart-popup__header {
@@ -359,7 +412,8 @@ body.dark .cart-popup__close {
 .cart-popup__thumb {
   width: 64px;
   height: 64px;
-  border-radius: 12px;
+  border-radius: 0;
+  border: var(--border-width) solid var(--border);
   background: var(--soft);
   flex-shrink: 0;
   overflow: hidden;
@@ -382,11 +436,11 @@ body.dark .cart-popup__close {
 
 .cart-popup__label {
   display: block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--grtheme);
   margin-bottom: 4px;
 }
 
@@ -404,25 +458,27 @@ body.dark .cart-popup__close {
 
 .cart-popup__price {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--grtheme);
   margin: 0;
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
 }
 
 .cart-popup__divider {
-  height: 1px;
-  background: rgba(17, 17, 17, 0.07);
+  height: 2px;
+  background: var(--border);
   margin: 0 18px;
 }
 
 body.dark .cart-popup__divider {
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--border);
 }
 
 .cart-popup__thanks {
   padding: 10px 18px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--muted);
   line-height: 1.5;
   margin: 0;
@@ -437,40 +493,48 @@ body.dark .cart-popup__divider {
 
 .cart-popup__btn {
   height: 44px;
-  border-radius: 999px;
+  border-radius: var(--radius);
   font-family: var(--font-main);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
   cursor: pointer;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: var(--border-width) solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--motion-fast),
+    box-shadow var(--motion-fast);
+}
+
+.cart-popup__btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow);
 }
 
 .cart-popup__btn:active {
-  transform: scale(0.97);
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 .cart-popup__btn--ghost {
   background: transparent;
   color: var(--text);
-  border: 1px solid rgba(17, 17, 17, 0.15);
 }
 
 body.dark .cart-popup__btn--ghost {
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-.cart-popup__btn--ghost:hover {
-  background: rgba(17, 17, 17, 0.04);
+  border-color: var(--border);
+  color: var(--text);
 }
 
 .cart-popup__btn--primary {
   background: var(--btn);
   color: var(--btnText);
-  border: none;
 }
 
-.cart-popup__btn--primary:hover {
-  opacity: 0.88;
+body.dark .cart-popup__btn--primary {
+  background: var(--btn);
+  color: var(--btnText);
 }
 
 @media (min-width: 640px) {
@@ -492,14 +556,14 @@ body.dark .cart-popup__btn--ghost {
 .hdr-icon, .hdr-confirm, .cd-item, .cd-qty, .cd-remove, .cd-checkout,
 button, a, input, select, textarea, .card, .route-shell,
 .cart-popup, .cart-popup__btn, .cart-popup__close {
-  transition: background var(--motion-slow) var(--response-delay),
-              color var(--motion-slow) var(--response-delay),
-              border-color var(--motion-slow) var(--response-delay),
-              box-shadow var(--motion-slow) var(--response-delay),
-              transform var(--motion-fast) var(--response-delay),
-              opacity var(--motion-fast) var(--response-delay),
-              filter var(--motion-fast) var(--response-delay),
-              backdrop-filter var(--motion-slow) var(--response-delay);
+  transition:
+    background var(--motion-slow),
+    color var(--motion-slow),
+    border-color var(--motion-slow),
+    box-shadow var(--motion-fast),
+    transform var(--motion-fast),
+    opacity var(--motion-fast),
+    filter var(--motion-fast);
 }
 
 /* =========================
