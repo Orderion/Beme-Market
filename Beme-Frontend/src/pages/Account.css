@@ -1,6 +1,7 @@
 /* =============================================
    ACCOUNT — Account.css
-   Uses all vars from index.css / globals.css
+   Neo-Brutalist Edition
+   Uses all vars from index.css
 ============================================= */
 
 .acc-page {
@@ -21,7 +22,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
-  padding: 24px 0 0;
+  padding: 28px 0 0;
 }
 
 .acc-header-left {
@@ -31,32 +32,35 @@
 
 .acc-hero-name {
   font-family: var(--font-display);
-  font-size: 32px;
+  font-size: 34px;
   font-weight: 800;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.05em;
   color: var(--text);
-  margin: 0 0 8px;
-  line-height: 1.05;
+  margin: 0 0 10px;
+  line-height: 1.0;
 }
 
-/* Beme Member pill — grtheme blue tints */
+/* Beme Member badge — brutalist block */
 .acc-rating-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: rgba(4, 110, 242, 0.10);
-  border: 1px solid rgba(4, 110, 242, 0.18);
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--grtheme);
+  padding: 5px 12px;
+  border-radius: 0;
+  background: var(--grtheme);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
   font-family: var(--font-main);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 body.dark .acc-rating-pill {
-  background: rgba(4, 110, 242, 0.15);
-  border-color: rgba(4, 110, 242, 0.25);
+  background: var(--grtheme);
+  border-color: var(--border);
 }
 
 .acc-avatar-btn {
@@ -68,17 +72,32 @@ body.dark .acc-rating-pill {
   margin-top: 4px;
 }
 
-.acc-avatar-btn:active { transform: scale(0.95); }
+.acc-avatar-btn:active { transform: translate(2px, 2px); }
 
 .acc-avatar-ring {
   width: 58px;
   height: 58px;
-  border-radius: 50%;
+  border-radius: 0;
   background: var(--text);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background var(--motion-slow) var(--response-delay);
+  transition:
+    box-shadow var(--motion-fast),
+    transform var(--motion-fast),
+    background var(--motion-slow);
+}
+
+.acc-avatar-btn:hover .acc-avatar-ring {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow);
+}
+
+.acc-avatar-btn:active .acc-avatar-ring {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 .acc-avatar-letter {
@@ -95,16 +114,19 @@ body.dark .acc-rating-pill {
 ================================================================ */
 .acc-profile-card {
   background: var(--card);
-  border-radius: 22px;
-  border: 1.5px solid rgba(17, 17, 17, 0.07);
-  padding: 20px 18px 18px;
+  border-radius: 0;
+  border: 2px solid var(--border);
+  padding: 18px 16px 16px;
   margin-top: 20px;
-  box-shadow: 0 2px 16px rgba(17, 17, 17, 0.05);
+  box-shadow: var(--shadow);
+  transition:
+    background var(--motion-slow),
+    box-shadow var(--motion-fast),
+    transform var(--motion-fast);
 }
 
 body.dark .acc-profile-card {
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
+  border-color: var(--border);
 }
 
 .acc-profile-card__row {
@@ -112,7 +134,7 @@ body.dark .acc-profile-card {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .acc-profile-card__name {
@@ -126,12 +148,14 @@ body.dark .acc-profile-card {
 }
 
 .acc-profile-card__age {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--muted);
   font-family: var(--font-main);
   margin: 0;
   line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .acc-profile-card__edit-btn {
@@ -142,69 +166,68 @@ body.dark .acc-profile-card {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
-  border-radius: 12px;
-  border: 1.5px solid rgba(17, 17, 17, 0.10);
+  padding: 7px 14px;
+  border-radius: 0;
+  border: 2px solid var(--border);
   background: var(--bg);
   color: var(--text);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
   font-family: var(--font-main);
   cursor: pointer;
   flex-shrink: 0;
   white-space: nowrap;
-  transition: background 0.18s, border-color 0.18s, transform 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--motion-fast),
+    box-shadow var(--motion-fast);
   -webkit-text-fill-color: var(--text);
 }
 
 body.dark .acc-profile-card__edit-btn {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border);
+  background: var(--bg);
   -webkit-text-fill-color: var(--text);
 }
 
 .acc-profile-card__edit-btn:hover {
-  background: rgba(17, 17, 17, 0.05);
-  border-color: rgba(17, 17, 17, 0.18);
-  transform: translateY(-1px);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow);
 }
 
-body.dark .acc-profile-card__edit-btn:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.18);
+.acc-profile-card__edit-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
-.acc-profile-card__edit-btn:active { transform: scale(0.97); }
-
-/* pencil icon — grtheme blue */
 .acc-profile-card__edit-btn svg {
   flex-shrink: 0;
   color: var(--grtheme);
 }
 
 .acc-profile-card__divider {
-  height: 1px;
-  background: rgba(17, 17, 17, 0.06);
+  height: 2px;
+  background: var(--border);
   margin: 0 0 14px;
-  border-radius: 1px;
 }
 
 body.dark .acc-profile-card__divider {
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--border);
 }
 
 .acc-profile-card__pref-label {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.10em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
   font-family: var(--font-main);
   margin: 0 0 10px;
-  opacity: 0.65;
 }
 
-/* preference pills — grtheme blue tints */
+/* Preference pills — brutalist block style */
 .acc-pref-pills {
   display: flex;
   flex-wrap: wrap;
@@ -215,21 +238,23 @@ body.dark .acc-profile-card__divider {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 14px;
-  border-radius: 999px;
-  background: rgba(4, 110, 242, 0.07);
-  border: 1.5px solid rgba(4, 110, 242, 0.15);
-  font-size: 12px;
+  padding: 5px 11px;
+  border-radius: 0;
+  background: transparent;
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  font-size: 11px;
   font-weight: 700;
-  color: var(--grtheme);
+  color: var(--text);
   font-family: var(--font-main);
   line-height: 1;
-  -webkit-text-fill-color: var(--grtheme);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 body.dark .acc-pref-pill {
-  background: rgba(4, 110, 242, 0.12);
-  border-color: rgba(4, 110, 242, 0.22);
+  border-color: var(--border);
+  color: var(--text);
 }
 
 /* ================================================================
@@ -244,25 +269,33 @@ body.dark .acc-pref-pill {
 
 .acc-tile {
   background: var(--card);
-  border: 1.5px solid rgba(17, 17, 17, 0.07);
-  border-radius: 18px;
+  border: 2px solid var(--border);
+  border-radius: 0;
   padding: 16px 8px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  transition: background 0.18s, transform 0.15s;
-  box-shadow: 0 2px 10px rgba(17, 17, 17, 0.04);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--motion-fast),
+    box-shadow var(--motion-fast),
+    background var(--motion-fast);
 }
 
 body.dark .acc-tile {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--border);
+}
+
+.acc-tile:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow);
 }
 
 .acc-tile:active {
-  transform: scale(0.96);
-  background: var(--soft);
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 .acc-tile-icon {
@@ -273,29 +306,32 @@ body.dark .acc-tile {
   justify-content: center;
 }
 
-/* badge — grtheme blue */
+/* Badge — grtheme block */
 .acc-tile-badge {
   position: absolute;
   top: -5px;
-  right: -7px;
+  right: -8px;
   background: var(--grtheme);
   color: #fff;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
   font-family: var(--font-main);
   padding: 1px 5px;
-  border-radius: 999px;
+  border-radius: 0;
+  border: 1.5px solid var(--border);
   min-width: 16px;
   text-align: center;
   line-height: 1.5;
 }
 
 .acc-tile-label {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 800;
   color: var(--text);
   font-family: var(--font-main);
   text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* ================================================================
@@ -303,8 +339,8 @@ body.dark .acc-tile {
 ================================================================ */
 .acc-promo-card {
   background: var(--card);
-  border-radius: 20px;
-  border: 1.5px solid rgba(17, 17, 17, 0.07);
+  border-radius: 0;
+  border: 2px solid var(--border);
   padding: 18px 16px;
   margin-top: 16px;
   display: flex;
@@ -312,28 +348,37 @@ body.dark .acc-tile {
   justify-content: space-between;
   gap: 14px;
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(17, 17, 17, 0.04);
-  transition: background 0.18s, transform 0.15s;
+  box-shadow: var(--shadow);
+  transition:
+    transform var(--motion-fast),
+    box-shadow var(--motion-fast),
+    background var(--motion-fast);
 }
 
 body.dark .acc-promo-card {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--border);
+}
+
+.acc-promo-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-lg);
 }
 
 .acc-promo-card:active {
-  transform: scale(0.99);
-  background: var(--soft);
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
-/* completed — green tint (kept green, not brand color) */
+/* Completed state — use grtheme accent border */
 .acc-promo-card--done {
-  background: rgba(34, 160, 88, 0.05);
-  border-color: rgba(34, 160, 88, 0.18);
+  background: var(--card);
+  border-color: var(--border);
+  border-left: 4px solid var(--grtheme);
 }
 
 body.dark .acc-promo-card--done {
-  background: rgba(34, 160, 88, 0.08);
-  border-color: rgba(34, 160, 88, 0.22);
+  background: var(--card);
+  border-left-color: var(--grtheme);
 }
 
 .acc-promo-text { flex: 1; min-width: 0; }
@@ -347,60 +392,67 @@ body.dark .acc-promo-card--done {
   margin: 0 0 4px;
 }
 
-.acc-promo-title--done { color: #166534; }
-body.dark .acc-promo-title--done { color: #86efac; }
+.acc-promo-title--done {
+  color: var(--grtheme);
+}
+
+body.dark .acc-promo-title--done {
+  color: var(--grtheme);
+}
 
 .acc-promo-sub {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--muted);
   font-family: var(--font-main);
   margin: 0;
   line-height: 1.5;
 }
 
-/* promo icon — grtheme blue tint */
+/* Promo icon — brutalist block */
 .acc-promo-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: rgba(4, 110, 242, 0.08);
+  width: 46px;
+  height: 46px;
+  border-radius: 0;
+  border: 2px solid var(--border);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: var(--grtheme);
+  color: var(--text);
 }
 
-/* completed icon — green kept intentionally */
 .acc-promo-icon--done {
-  background: rgba(34, 160, 88, 0.10);
-  color: #22a058;
+  background: var(--grtheme);
+  border-color: var(--grtheme);
+  color: #fff;
 }
 
 body.dark .acc-promo-icon--done {
-  background: rgba(34, 160, 88, 0.15);
-  color: #4ade80;
+  background: var(--grtheme);
+  border-color: var(--grtheme);
+  color: #fff;
 }
 
 /* ================================================================
    SECTION + GROUP CARD
 ================================================================ */
-.acc-section       { margin-top: 20px; }
+.acc-section       { margin-top: 18px; }
 .acc-section--last { margin-bottom: 8px; }
 
 .acc-group {
   background: var(--card);
-  border-radius: 20px;
-  border: 1.5px solid rgba(17, 17, 17, 0.07);
+  border-radius: 0;
+  border: 2px solid var(--border);
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(17, 17, 17, 0.03);
+  box-shadow: var(--shadow);
   transition:
-    background var(--motion-slow) var(--response-delay),
-    border-color var(--motion-slow) var(--response-delay);
+    background var(--motion-slow),
+    border-color var(--motion-slow);
 }
 
-body.dark .acc-group { border-color: rgba(255, 255, 255, 0.08); }
+body.dark .acc-group { border-color: var(--border); }
 
 /* ================================================================
    ROW
@@ -413,18 +465,28 @@ body.dark .acc-group { border-color: rgba(255, 255, 255, 0.08); }
   padding: 14px 16px;
   background: transparent;
   border: none;
-  border-bottom: 1px solid rgba(17, 17, 17, 0.06);
+  border-bottom: 2px solid var(--border);
   cursor: pointer;
   gap: 12px;
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.15s;
+  transition:
+    background var(--motion-fast),
+    transform var(--motion-fast);
 }
 
-body.dark .acc-row { border-bottom-color: rgba(255, 255, 255, 0.06); }
+body.dark .acc-row { border-bottom-color: var(--border); }
 
-.acc-row:last-child  { border-bottom: none; }
-.acc-row:active      { background: var(--soft); }
-.acc-row--danger     { color: #d94f4f; }
+.acc-row:last-child { border-bottom: none; }
+
+.acc-row:hover {
+  background: var(--soft);
+}
+
+.acc-row:active {
+  background: var(--soft);
+}
+
+.acc-row--danger { color: #d94f4f; }
 
 .acc-row-left {
   display: flex;
@@ -437,20 +499,21 @@ body.dark .acc-row { border-bottom-color: rgba(255, 255, 255, 0.06); }
 .acc-row-icon-wrap {
   width: 36px;
   height: 36px;
-  border-radius: 10px;
-  background: rgba(17, 17, 17, 0.05);
+  border-radius: 0;
+  border: 2px solid var(--border);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   color: var(--text);
-  transition: background var(--motion-slow) var(--response-delay);
+  transition: background var(--motion-fast);
 }
 
-body.dark .acc-row-icon-wrap { background: rgba(255, 255, 255, 0.08); }
+body.dark .acc-row-icon-wrap { border-color: var(--border); }
 
 .acc-row--danger .acc-row-icon-wrap {
-  background: rgba(217, 79, 79, 0.10);
+  border-color: #d94f4f;
   color: #d94f4f;
 }
 
@@ -497,23 +560,24 @@ body.dark .acc-row-icon-wrap { background: rgba(255, 255, 255, 0.08); }
   flex-shrink: 0;
 }
 
-/* row badge — grtheme blue */
+/* Row badge — grtheme brutalist block */
 .acc-row-badge {
-  padding: 3px 9px;
-  border-radius: 999px;
+  padding: 2px 8px;
+  border-radius: 0;
   background: var(--grtheme);
+  border: 1.5px solid var(--border);
   color: #fff;
   font-size: 11px;
   font-weight: 800;
   font-family: var(--font-main);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .acc-row-chevron {
   width: 14px;
   height: 14px;
   color: var(--muted);
-  opacity: 0.4;
+  opacity: 0.5;
   display: block;
   flex-shrink: 0;
 }
@@ -525,16 +589,18 @@ body.dark .acc-row-icon-wrap { background: rgba(255, 255, 255, 0.08); }
 ================================================================ */
 .acc-footer-note {
   text-align: center;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 800;
   color: var(--muted);
   font-family: var(--font-main);
   margin: 28px 0 0;
-  opacity: 0.55;
+  opacity: 0.45;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 /* ================================================================
-   LOGOUT BOTTOM SHEET
+   LOGOUT BOTTOM SHEET — Neo-Brutalist
 ================================================================ */
 .acc-sheet-backdrop {
   position: fixed;
@@ -543,34 +609,32 @@ body.dark .acc-row-icon-wrap { background: rgba(255, 255, 255, 0.08); }
   z-index: 800;
   display: flex;
   align-items: flex-end;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
 }
 
 .acc-sheet {
   width: 100%;
   background: var(--card);
-  border-radius: 28px 28px 0 0;
-  padding: 12px 22px 44px;
-  border-top: 1px solid rgba(17, 17, 17, 0.08);
-  transition: background var(--motion-slow) var(--response-delay);
+  border-radius: 0;
+  border-top: 2px solid var(--border);
+  padding: 20px 20px 48px;
+  transition: background var(--motion-slow);
 }
 
-body.dark .acc-sheet { border-top-color: rgba(255, 255, 255, 0.08); }
+body.dark .acc-sheet { border-top-color: var(--border); }
 
 .acc-sheet__bar {
   width: 36px;
-  height: 4px;
-  background: rgba(17, 17, 17, 0.12);
-  border-radius: 99px;
+  height: 3px;
+  background: var(--border);
+  border-radius: 0;
   margin: 0 auto 22px;
 }
 
-body.dark .acc-sheet__bar { background: rgba(255, 255, 255, 0.16); }
+body.dark .acc-sheet__bar { background: var(--border); }
 
 .acc-sheet__title {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
   letter-spacing: -0.04em;
   color: var(--text);
@@ -588,27 +652,53 @@ body.dark .acc-sheet__bar { background: rgba(255, 255, 255, 0.16); }
 
 .acc-sheet__btn {
   width: 100%;
-  padding: 16px;
-  border-radius: 16px;
+  padding: 15px;
+  border-radius: 0;
   font-weight: 800;
-  font-size: 15px;
+  font-size: 13px;
   font-family: var(--font-main);
-  border: none;
+  border: 2px solid var(--border);
   cursor: pointer;
   margin-bottom: 10px;
-  transition: opacity 0.18s, transform 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--motion-fast),
+    box-shadow var(--motion-fast);
 }
 
-.acc-sheet__btn:hover   { opacity: 0.9; transform: translateY(-1px); }
-.acc-sheet__btn:active  { transform: scale(0.98); }
+.acc-sheet__btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow);
+}
+
+.acc-sheet__btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
 .acc-sheet__btn:last-child { margin-bottom: 0; }
 
-.acc-sheet__btn--danger  { background: #d94f4f; color: #fff; }
-.acc-sheet__btn--cancel  { background: rgba(17, 17, 17, 0.06); color: var(--text); }
-body.dark .acc-sheet__btn--cancel { background: rgba(255, 255, 255, 0.08); }
+.acc-sheet__btn--danger {
+  background: #d94f4f;
+  color: #fff;
+  border-color: #d94f4f;
+}
+
+.acc-sheet__btn--cancel {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+body.dark .acc-sheet__btn--cancel {
+  background: transparent;
+  color: var(--text);
+}
 
 /* ================================================================
-   EDIT PROFILE MODAL
+   EDIT PROFILE MODAL — Neo-Brutalist
 ================================================================ */
 .acc-modal-backdrop {
   position: fixed;
@@ -617,23 +707,21 @@ body.dark .acc-sheet__btn--cancel { background: rgba(255, 255, 255, 0.08); }
   z-index: 900;
   display: flex;
   align-items: flex-end;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
 }
 
 .acc-modal {
   width: 100%;
   max-height: 92vh;
   background: var(--card);
-  border-radius: 28px 28px 0 0;
-  border-top: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 0;
+  border-top: 2px solid var(--border);
   padding: 0 20px 48px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  transition: background var(--motion-slow) var(--response-delay);
+  transition: background var(--motion-slow);
 }
 
-body.dark .acc-modal { border-top-color: rgba(255, 255, 255, 0.08); }
+body.dark .acc-modal { border-top-color: var(--border); }
 
 .acc-modal__head {
   position: sticky;
@@ -643,13 +731,13 @@ body.dark .acc-modal { border-top-color: rgba(255, 255, 255, 0.08); }
   align-items: center;
   justify-content: space-between;
   padding: 18px 0 14px;
-  border-bottom: 1px solid rgba(17, 17, 17, 0.07);
+  border-bottom: 2px solid var(--border);
   margin-bottom: 20px;
   z-index: 1;
-  transition: background var(--motion-slow) var(--response-delay);
+  transition: background var(--motion-slow);
 }
 
-body.dark .acc-modal__head { border-bottom-color: rgba(255, 255, 255, 0.07); }
+body.dark .acc-modal__head { border-bottom-color: var(--border); }
 
 .acc-modal__title {
   font-family: var(--font-display);
@@ -663,32 +751,40 @@ body.dark .acc-modal__head { border-bottom-color: rgba(255, 255, 255, 0.07); }
 .acc-modal__close {
   width: 34px;
   height: 34px;
-  border-radius: 10px;
-  background: rgba(17, 17, 17, 0.06);
-  border: none;
+  border-radius: 0;
+  border: 2px solid var(--border);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--muted);
+  color: var(--text);
   flex-shrink: 0;
-  transition: background 0.18s;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--motion-fast),
+    box-shadow var(--motion-fast);
 }
 
-body.dark .acc-modal__close { background: rgba(255, 255, 255, 0.08); }
+body.dark .acc-modal__close { border-color: var(--border); }
 
 .acc-modal__close:hover {
-  background: rgba(17, 17, 17, 0.11);
-  color: var(--text);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow);
+}
+
+.acc-modal__close:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 .acc-modal__section { margin-bottom: 22px; }
 
 .acc-modal__label {
   display: block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
   font-family: var(--font-main);
@@ -698,8 +794,8 @@ body.dark .acc-modal__close { background: rgba(255, 255, 255, 0.08); }
 .acc-modal__input {
   width: 100%;
   padding: 13px 16px;
-  border-radius: 14px;
-  border: 1.5px solid rgba(17, 17, 17, 0.09);
+  border-radius: 0;
+  border: 2px solid var(--border);
   background: var(--bg);
   color: var(--text);
   font-size: 15px;
@@ -707,35 +803,42 @@ body.dark .acc-modal__close { background: rgba(255, 255, 255, 0.08); }
   font-family: var(--font-main);
   outline: none;
   -webkit-appearance: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: var(--shadow-sm);
+  transition:
+    box-shadow var(--motion-fast),
+    transform var(--motion-fast),
+    border-color var(--motion-fast);
 }
 
 body.dark .acc-modal__input {
-  border-color: rgba(255, 255, 255, 0.1);
-  background: var(--soft);
+  border-color: var(--border);
+  background: var(--bg);
 }
 
-/* input focus — grtheme blue */
+/* Input focus — grtheme accent */
 .acc-modal__input:focus {
   border-color: var(--grtheme);
-  box-shadow: 0 0 0 3px rgba(4, 110, 242, 0.10);
+  box-shadow: 4px 4px 0px 0px var(--grtheme);
+  transform: translate(-1px, -1px);
 }
 
 body.dark .acc-modal__input:focus {
-  box-shadow: 0 0 0 3px rgba(4, 110, 242, 0.14);
+  border-color: var(--grtheme);
+  box-shadow: 4px 4px 0px 0px var(--grtheme);
 }
 
-.acc-modal__input:disabled { opacity: 0.5; cursor: not-allowed; }
+.acc-modal__input:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .acc-modal__charcount {
   display: block;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   color: var(--muted);
   font-family: var(--font-main);
   text-align: right;
-  margin-top: 4px;
-  opacity: 0.6;
+  margin-top: 5px;
+  opacity: 0.55;
+  letter-spacing: 0.04em;
 }
 
 .acc-modal__pills {
@@ -748,27 +851,49 @@ body.dark .acc-modal__input:focus {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 18px;
-  border-radius: 999px;
-  border: 1.5px solid rgba(17, 17, 17, 0.10);
+  padding: 9px 16px;
+  border-radius: 0;
+  border: 2px solid var(--border);
   background: transparent;
   color: var(--text);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   font-family: var(--font-main);
   cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: var(--shadow-sm);
   -webkit-appearance: none;
-  transition: border-color 0.18s, background 0.18s, color 0.18s;
+  transition:
+    transform var(--motion-fast),
+    box-shadow var(--motion-fast),
+    background var(--motion-fast),
+    color var(--motion-fast);
 }
 
-body.dark .acc-modal__pill { border-color: rgba(255, 255, 255, 0.12); }
+body.dark .acc-modal__pill { border-color: var(--border); }
 
-/* age pill selected — grtheme blue */
+.acc-modal__pill:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow);
+}
+
+.acc-modal__pill:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* Age pill selected */
 .acc-modal__pill--on {
   background: var(--grtheme);
   border-color: var(--grtheme);
   color: #fff;
-  box-shadow: 0 4px 12px rgba(4, 110, 242, 0.26);
+  box-shadow: var(--shadow-sm);
+}
+
+.acc-modal__pill--on:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow);
 }
 
 .acc-modal__pill:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -785,26 +910,41 @@ body.dark .acc-modal__pill { border-color: rgba(255, 255, 255, 0.12); }
   align-items: center;
   gap: 8px;
   padding: 13px 12px;
-  border-radius: 14px;
-  border: 1.5px solid rgba(17, 17, 17, 0.08);
+  border-radius: 0;
+  border: 2px solid var(--border);
   background: transparent;
   color: var(--text);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   font-family: var(--font-main);
   cursor: pointer;
   text-align: left;
   -webkit-appearance: none;
-  transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--motion-fast),
+    box-shadow var(--motion-fast),
+    border-color var(--motion-fast),
+    background var(--motion-fast);
 }
 
-body.dark .acc-modal__pref { border-color: rgba(255, 255, 255, 0.09); }
+body.dark .acc-modal__pref { border-color: var(--border); }
 
-/* pref card selected — grtheme blue */
+.acc-modal__pref:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow);
+}
+
+.acc-modal__pref:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* Pref card selected */
 .acc-modal__pref--on {
   border-color: var(--grtheme);
   background: rgba(4, 110, 242, 0.05);
-  box-shadow: 0 0 0 1px var(--grtheme);
+  box-shadow: 3px 3px 0px 0px var(--grtheme);
 }
 
 body.dark .acc-modal__pref--on {
@@ -813,14 +953,14 @@ body.dark .acc-modal__pref--on {
 
 .acc-modal__pref:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* tick badge — grtheme blue */
+/* Tick badge */
 .acc-modal__pref-tick {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 7px;
+  right: 7px;
   width: 20px;
   height: 20px;
-  border-radius: 50%;
+  border-radius: 0;
   background: var(--grtheme);
   display: flex;
   align-items: center;
@@ -829,49 +969,58 @@ body.dark .acc-modal__pref--on {
 
 .acc-modal__err {
   padding: 11px 14px;
-  border-radius: 12px;
+  border-radius: 0;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.5;
   font-family: var(--font-main);
-  background: rgba(220, 38, 38, 0.07);
-  border: 1px solid rgba(220, 38, 38, 0.14);
-  color: #991b1b;
+  background: transparent;
+  border: 2px solid #d94f4f;
+  border-left: 4px solid #d94f4f;
+  color: #d94f4f;
   margin-bottom: 16px;
 }
 
 body.dark .acc-modal__err {
-  background: rgba(220, 38, 38, 0.15);
   color: #fca5a5;
+  border-color: #d94f4f;
 }
 
-/* save button — grtheme blue */
+/* Save button — grtheme Neo-Brutalist */
 .acc-modal__save {
   width: 100%;
   padding: 15px 20px;
-  border-radius: 16px;
+  border-radius: 0;
   background: var(--grtheme);
   color: #fff;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 800;
   font-family: var(--font-main);
-  border: none;
+  border: 2px solid var(--border);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  box-shadow: 0 4px 18px rgba(4, 110, 242, 0.24);
-  transition: opacity 0.18s, transform 0.15s, box-shadow 0.18s;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  box-shadow: var(--shadow);
+  transition:
+    transform var(--motion-fast),
+    box-shadow var(--motion-fast),
+    opacity var(--motion-fast);
 }
 
 .acc-modal__save:not(:disabled):hover {
-  opacity: 0.88;
-  transform: translateY(-1px);
-  box-shadow: 0 8px 26px rgba(4, 110, 242, 0.32);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-lg);
 }
 
-.acc-modal__save:not(:disabled):active { transform: scale(0.98); }
+.acc-modal__save:not(:disabled):active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
 .acc-modal__save:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ================================================================
@@ -881,8 +1030,8 @@ body.dark .acc-modal__err {
 
 .acc-spinner {
   display: inline-block;
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   border: 2.5px solid rgba(255, 255, 255, 0.28);
   border-top-color: #fff;
@@ -894,20 +1043,20 @@ body.dark .acc-modal__err {
    MOBILE
 ================================================================ */
 @media (max-width: 480px) {
-  .acc-body                    { padding: 0 14px; }
-  .acc-hero-name               { font-size: 26px; }
-  .acc-tiles-row               { gap: 8px; }
-  .acc-tile                    { padding: 14px 6px 12px; border-radius: 14px; }
-  .acc-tile-label              { font-size: 11px; }
-  .acc-row                     { padding: 13px 14px; }
-  .acc-row-label               { font-size: 13px; }
-  .acc-row-sub                 { font-size: 11px; }
-  .acc-modal__grid             { gap: 7px; }
-  .acc-modal__pref             { padding: 11px 10px; font-size: 12px; }
-  .acc-modal                   { padding: 0 16px 44px; }
-  .acc-profile-card            { padding: 16px 14px 14px; }
-  .acc-profile-card__name      { font-size: 18px; }
-  .acc-profile-card__edit-btn  { padding: 7px 13px; font-size: 12px; }
+  .acc-body               { padding: 0 14px; }
+  .acc-hero-name          { font-size: 28px; }
+  .acc-tiles-row          { gap: 8px; }
+  .acc-tile               { padding: 14px 6px 12px; }
+  .acc-tile-label         { font-size: 10px; }
+  .acc-row                { padding: 13px 14px; }
+  .acc-row-label          { font-size: 13px; }
+  .acc-row-sub            { font-size: 11px; }
+  .acc-modal__grid        { gap: 7px; }
+  .acc-modal__pref        { padding: 11px 10px; font-size: 11px; }
+  .acc-modal              { padding: 0 16px 44px; }
+  .acc-profile-card       { padding: 14px 12px 12px; }
+  .acc-profile-card__name { font-size: 17px; }
+  .acc-profile-card__edit-btn { padding: 6px 12px; font-size: 11px; }
 }
 
 /* ================================================================
