@@ -33,8 +33,9 @@ import Signup from "./pages/Signup";
 import Onboarding from "./pages/Onboarding";
 import AdminLogin from "./pages/AdminLogin";
 
-import AdminDashboard from "./pages/AdminDashboard"; // ← NEW
-import Admin from "./pages/Admin";
+/* Admin pages */
+import AdminDashboard from "./pages/AdminDashboard"; // hub at /admin
+import Admin from "./pages/Admin";                   // product manager → /admin/product-manager
 import AdminOrders from "./pages/AdminOrders";
 import AdminReviewQueue from "./pages/AdminReviewQueue";
 import Analytics from "./pages/Analytics";
@@ -68,7 +69,6 @@ import {
   ContactUs,
 } from "./pages/AccountSubPages";
 
-/* ── Product Request Pages ── */
 import UserRequests from "./pages/UserRequests";
 import ProductRequests from "./pages/ProductRequests";
 
@@ -81,23 +81,24 @@ function SuperAdminOnly({ children }) {
   return children;
 }
 
-/* ================= APP SHELL ================= */
-
+/* ================= FULL-SCREEN ADMIN PATHS ================= */
 /*
- * Admin routes that get a completely custom layout (no Header / Footer / BottomNav).
- * AdminDashboard manages its own sidebar + topbar internally.
+ * Routes that completely hide the public Header / Footer / BottomNav.
+ * AdminDashboard owns its own shell (sidebar + topbar) for all of these.
  */
 const FULL_SCREEN_ROUTES = new Set([
   "/login",
   "/signup",
   "/admin-login",
   "/onboarding",
-  "/admin",            // ← AdminDashboard owns its shell
+  // admin hub
+  "/admin",
+  // all admin sub-pages
+  "/admin/product-manager",
   "/admin/homepage",
   "/admin/support",
   "/admin/media",
   "/admin/product-requests",
-  // sub-routes that also live inside the admin shell
   "/admin-orders",
   "/admin-review-queue",
   "/analytics",
@@ -106,12 +107,14 @@ const FULL_SCREEN_ROUTES = new Set([
   "/account-management",
 ]);
 
+/* ================= APP SHELL ================= */
+
 function AppShell() {
   const location = useLocation();
   const { loading: authLoading } = useAuth();
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [cartOpen, setCartOpen]       = useState(false);
+  const [sidebarOpen, setSidebarOpen]   = useState(false);
+  const [cartOpen, setCartOpen]         = useState(false);
   const [routeLoading, setRouteLoading] = useState(false);
 
   const shouldHideHeader = FULL_SCREEN_ROUTES.has(location.pathname);
@@ -172,7 +175,7 @@ function AppShell() {
           <Route path="/saved"                 element={<SavedItems />} />
           <Route path="/account/requests"      element={<UserRequests />} />
 
-          {/* ── ADMIN DASHBOARD (new central hub) ── */}
+          {/* ── ADMIN HUB (dashboard) ── */}
           <Route
             path="/admin"
             element={
@@ -184,7 +187,19 @@ function AppShell() {
             }
           />
 
-          {/* ── ADMIN SUB-PAGES ── */}
+          {/* ── PRODUCT MANAGER (was the old /admin page) ── */}
+          <Route
+            path="/admin/product-manager"
+            element={
+              <AdminRoute>
+                <RequireAdmin>
+                  <Admin />
+                </RequireAdmin>
+              </AdminRoute>
+            }
+          />
+
+          {/* ── ADMIN ORDERS ── */}
           <Route
             path="/admin-orders"
             element={
@@ -196,6 +211,7 @@ function AppShell() {
             }
           />
 
+          {/* ── REVIEW QUEUE ── */}
           <Route
             path="/admin-review-queue"
             element={
@@ -207,6 +223,7 @@ function AppShell() {
             }
           />
 
+          {/* ── ANALYTICS ── */}
           <Route
             path="/analytics"
             element={
@@ -218,6 +235,7 @@ function AppShell() {
             }
           />
 
+          {/* ── PAYOUT REQUESTS ── */}
           <Route
             path="/payout-requests"
             element={
@@ -229,6 +247,7 @@ function AppShell() {
             }
           />
 
+          {/* ── SHOP APPLICATIONS ── */}
           <Route
             path="/shop-applications"
             element={
@@ -240,6 +259,7 @@ function AppShell() {
             }
           />
 
+          {/* ── ACCOUNT MANAGEMENT ── */}
           <Route
             path="/account-management"
             element={
@@ -251,7 +271,7 @@ function AppShell() {
             }
           />
 
-          {/* ── HOMEPAGE ADMIN ── */}
+          {/* ── HOMEPAGE EDITOR ── */}
           <Route
             path="/admin/homepage"
             element={
@@ -263,7 +283,7 @@ function AppShell() {
             }
           />
 
-          {/* ── ADMIN PRODUCT REQUESTS ── */}
+          {/* ── PRODUCT REQUESTS ── */}
           <Route
             path="/admin/product-requests"
             element={
