@@ -6,7 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { auth, db } from "../firebase";
 import "./Onboarding.css";
 
-/* ─── Constants ──────────────────────────────────────────────── */
+/* ─── Constants ─────────────────────────────────────────────── */
 
 const AGE_OPTIONS = [
   { id: "under18", label: "Under 18" },
@@ -16,14 +16,15 @@ const AGE_OPTIONS = [
   { id: "45plus",  label: "45+"      },
 ];
 
+/* Shopping options — SVG icons instead of emojis */
 const SHOP_OPTIONS = [
-  { id: "kids",        emoji: "👶", label: "Kids & Family"   },
-  { id: "women",       emoji: "👗", label: "Women's Fashion" },
-  { id: "men",         emoji: "👔", label: "Men's Fashion"   },
-  { id: "home",        emoji: "🏠", label: "Home & Living"   },
-  { id: "electronics", emoji: "⚡", label: "Electronics"     },
-  { id: "savvy",       emoji: "🛍️", label: "Savvy Deals"     },
-  { id: "everything",  emoji: "🌍", label: "Shop Everything" },
+  { id: "kids",        label: "Kids & Family",   Icon: IconKids        },
+  { id: "women",       label: "Women's Fashion", Icon: IconWomen       },
+  { id: "men",         label: "Men's Fashion",   Icon: IconMen         },
+  { id: "home",        label: "Home & Living",   Icon: IconHome        },
+  { id: "electronics", label: "Electronics",     Icon: IconElectronics },
+  { id: "savvy",       label: "Savvy Deals",     Icon: IconDeals       },
+  { id: "everything",  label: "Shop Everything", Icon: IconEverything  },
 ];
 
 function normalizeUsername(value) {
@@ -33,15 +34,99 @@ function normalizeUsername(value) {
     .replace(/\s+/g, "_");
 }
 
+/* ─── Icons — strokeWidth 1.5 ────────────────────────────────── */
+
 function Spinner() {
   return <span className="ob-spinner" aria-hidden="true" />;
 }
 
 function CheckIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-      <polyline points="2,7 5.5,10.5 12,3.5" stroke="white" strokeWidth="2"
+    <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <polyline points="2,7 5.5,10.5 12,3.5" stroke="white" strokeWidth="2.2"
         strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconKids() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="5" r="3"/>
+      <path d="M12 8v6"/>
+      <path d="M9 11l-3 5h12l-3-5"/>
+      <path d="M9 14l-1 4"/>
+      <path d="M15 14l1 4"/>
+    </svg>
+  );
+}
+
+function IconWomen() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="5" r="3"/>
+      <path d="M6 21l3-8h6l3 8"/>
+      <path d="M9 13l-1.5 4"/>
+      <path d="M15 13l1.5 4"/>
+      <line x1="8" y1="17" x2="16" y2="17"/>
+    </svg>
+  );
+}
+
+function IconMen() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="5" r="3"/>
+      <path d="M9 8h6l1 6H8l1-6z"/>
+      <line x1="12" y1="14" x2="12" y2="21"/>
+      <line x1="9" y1="21" x2="15" y2="21"/>
+    </svg>
+  );
+}
+
+function IconHome() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5Z"/>
+      <path d="M9 21V12h6v9"/>
+    </svg>
+  );
+}
+
+function IconElectronics() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="1"/>
+      <line x1="8" y1="21" x2="16" y2="21"/>
+      <line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>
+  );
+}
+
+function IconDeals() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.78 0l-8-4A2 2 0 0 1 2 16.76V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"/>
+      <line x1="9" y1="12" x2="15" y2="12"/>
+      <line x1="9" y1="9" x2="9.01" y2="9"/>
+      <line x1="15" y1="15" x2="15.01" y2="15"/>
+    </svg>
+  );
+}
+
+function IconEverything() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="2" y1="12" x2="22" y2="12"/>
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
     </svg>
   );
 }
@@ -53,7 +138,6 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  /* Redirect unauthenticated users */
   useEffect(() => {
     if (user === null) navigate("/login", { replace: true });
   }, [user, navigate]);
@@ -78,7 +162,7 @@ export default function Onboarding() {
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
     );
 
-  /* ── Step 1 → 2: check name uniqueness ── */
+  /* ── Step 1 → 2 ── */
   const handleNameNext = async () => {
     setNameErr("");
     const trimmed = name.trim();
@@ -97,7 +181,6 @@ export default function Onboarding() {
       }
       setStep(2);
     } catch (_) {
-      /* Network issue — allow through, double-check on final save */
       setStep(2);
     } finally {
       setNameChecking(false);
@@ -122,7 +205,6 @@ export default function Onboarding() {
     const normalizedKey = normalizeUsername(trimmedName);
 
     try {
-      /* 1 — Race-condition guard: re-check username */
       const usernameSnap = await getDoc(doc(db, "usernames", normalizedKey));
       if (usernameSnap.exists() && usernameSnap.data()?.uid !== user.uid) {
         setStep(1);
@@ -131,21 +213,13 @@ export default function Onboarding() {
         return;
       }
 
-      /* 2 — Read existing user doc so we can preserve the role field.
-             NEVER overwrite an existing role — an admin who goes through
-             onboarding must keep their admin role. */
-      const userSnap    = await getDoc(doc(db, "users", user.uid));
+      const userSnap     = await getDoc(doc(db, "users", user.uid));
       const existingRole = userSnap.exists()
         ? (userSnap.data()?.role || "customer")
         : "customer";
 
-      /* 3 — Update Firebase Auth display name */
       await updateProfile(auth.currentUser, { displayName: trimmedName });
 
-      /* 4 — Write user document.
-             We use merge:true so any other existing fields survive.
-             We explicitly write the role back to whatever it already was,
-             so admins don't get demoted. */
       await setDoc(
         doc(db, "users", user.uid),
         {
@@ -153,13 +227,12 @@ export default function Onboarding() {
           age:                age,
           shoppingPreference: prefs,
           onboardingComplete: true,
-          role:               existingRole,  /* ← preserves admin/super_admin */
+          role:               existingRole,
           createdAt:          serverTimestamp(),
         },
         { merge: true }
       );
 
-      /* 5 — Reserve username */
       await setDoc(doc(db, "usernames", normalizedKey), {
         uid:         user.uid,
         displayName: trimmedName,
@@ -181,7 +254,7 @@ export default function Onboarding() {
     <div className="ob-page">
 
       {/* ── Banner ── */}
-      <div className="ob-banner">Welcome to Beme Market 🇬🇭</div>
+      <div className="ob-banner">Welcome to Beme Market</div>
 
       <div className="ob-wrap">
 
@@ -275,7 +348,7 @@ export default function Onboarding() {
                 type="button"
                 onClick={() => { setErr(""); setStep(1); }}
               >
-                ← Back
+                Back
               </button>
               <button
                 className="ob-cta ob-cta--flex"
@@ -301,18 +374,20 @@ export default function Onboarding() {
             </div>
 
             <div className="ob-options ob-options--grid">
-              {SHOP_OPTIONS.map((opt) => {
-                const on = prefs.includes(opt.id);
+              {SHOP_OPTIONS.map(({ id, label, Icon }) => {
+                const on = prefs.includes(id);
                 return (
                   <button
-                    key={opt.id}
+                    key={id}
                     type="button"
                     className={`ob-option-card ${on ? "ob-option-card--on" : ""}`}
-                    onClick={() => { togglePref(opt.id); setErr(""); }}
+                    onClick={() => { togglePref(id); setErr(""); }}
                     aria-pressed={on}
                   >
-                    <span className="ob-card-emoji" aria-hidden="true">{opt.emoji}</span>
-                    <span className="ob-card-label">{opt.label}</span>
+                    <span className="ob-card-icon" aria-hidden="true">
+                      <Icon />
+                    </span>
+                    <span className="ob-card-label">{label}</span>
                     {on && (
                       <span className="ob-card-tick" aria-hidden="true">
                         <CheckIcon />
@@ -334,7 +409,7 @@ export default function Onboarding() {
                 onClick={() => { setErr(""); setStep(2); }}
                 disabled={saving}
               >
-                ← Back
+                Back
               </button>
               <button
                 className="ob-cta ob-cta--flex"
@@ -342,7 +417,7 @@ export default function Onboarding() {
                 onClick={handleFinish}
                 disabled={saving || prefs.length === 0}
               >
-                {saving ? <><Spinner /> Saving...</> : "Finish & Shop 🛍️"}
+                {saving ? <><Spinner /> Saving...</> : "Finish & Shop"}
               </button>
             </div>
           </div>
