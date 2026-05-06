@@ -1,8 +1,8 @@
 /* ─────────────────────────────────────────
    Home.css — Neo-Brutalist
-   Hard borders · Zero-blur shadows · #FCFAF2
-   FIXED: no border-radius, no #ffffff, correct badge colour,
-          search sticky z-index so it never overlaps header
+   Hard black borders · Zero-blur shadows · #FCFAF2
+   FIXED: black borders on search, smaller bar,
+          real search button (no filter icon artifact)
    ───────────────────────────────────────── */
 
 /* ── Page wrapper ── */
@@ -16,16 +16,14 @@
 
 /* ══════════════════════════════════════════
    STICKY SEARCH BAR
-   z-index: 40 keeps it BELOW the main header
-   (header is z-index: 100) so it never bleeds
-   into the header zone when scrolling
+   z-index: 40 keeps it BELOW the main header (z-index: 100)
 ══════════════════════════════════════════ */
 .home-search-sticky {
   position: sticky;
-  top: 0;                   /* sticks just under whatever is above it */
-  z-index: 40;              /* lower than header (100) — no overlap */
+  top: 0;
+  z-index: 40;
   background: #FCFAF2;
-  padding: 10px 16px 8px;
+  padding: 8px 14px 7px;
   border-bottom: 2.5px solid #0A0A0A;
   transition: transform 0.22s ease, opacity 0.22s ease;
 }
@@ -42,27 +40,29 @@
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
 }
 
 /* ── Search form ──
-   FIXED: background #FCFAF2 (not #fff), border-radius: 0 */
+   Compact height, black border & shadow, no blue */
 .home-search-form {
   display: flex;
   align-items: center;
-  background: #FCFAF2;       /* ← was #ffffff */
-  border: 2.5px solid #0A0A0A;
-  border-radius: 0;           /* ← was 4px */
-  box-shadow: 4px 4px 0px 0px #0A0A0A;
-  padding: 0 6px 0 12px;
-  height: 48px;
+  background: #FCFAF2;
+  border: 2.5px solid #0A0A0A;   /* BLACK */
+  border-radius: 0;
+  box-shadow: 3px 3px 0px 0px #0A0A0A;  /* BLACK */
+  padding: 0 0 0 10px;
+  height: 40px;                  /* slimmer — was 48px */
   flex: 1;
-  transition: border-color 0.1s, box-shadow 0.1s;
+  gap: 6px;
+  transition: box-shadow 0.1s;
+  overflow: hidden;
 }
 
+/* Focus: lift shadow slightly, keep black */
 .home-search-form:focus-within {
-  border-color: #0057FF;
-  box-shadow: 4px 4px 0px 0px #0057FF;
+  box-shadow: 4px 4px 0px 0px #0A0A0A;
 }
 
 .home-search-icon-left {
@@ -70,7 +70,11 @@
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  margin-right: 8px;
+}
+
+.home-search-icon-left svg {
+  width: 15px;
+  height: 15px;
 }
 
 .home-search-input {
@@ -78,13 +82,14 @@
   border: none;
   outline: none;
   background: transparent;
-  font-size: 0.85rem;
+  font-size: 12px;
   font-weight: 700;
   color: #0A0A0A;
   min-width: 0;
   font-family: inherit;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  line-height: 1;
 }
 
 .home-search-input::placeholder {
@@ -92,15 +97,15 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  font-size: 10px;
 }
 
-/* ── Clear button ──
-   FIXED: border-radius: 0 */
+/* ── Clear button ── */
 .home-search-clear {
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border-radius: 0;           /* ← was 2px */
+  width: 22px;
+  height: 22px;
+  border-radius: 0;
   border: 1.5px solid #0A0A0A;
   background: #FCFAF2;
   color: #0A0A0A;
@@ -108,8 +113,8 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  margin-right: 6px;
-  transition: transform 0.08s, box-shadow 0.08s, background 0.1s, color 0.1s;
+  margin-right: 4px;
+  transition: transform 0.08s, background 0.1s, color 0.1s;
   animation: home-clear-pop 0.12s ease;
 }
 
@@ -118,44 +123,49 @@
   to   { transform: scale(1);   opacity: 1; }
 }
 
-.home-search-clear:hover  { background: #0057FF; border-color: #0057FF; color: #fff; }
-.home-search-clear:active { transform: translate(2px, 2px); box-shadow: none; }
+.home-search-clear:hover  { background: #0A0A0A; color: #FCFAF2; }
+.home-search-clear:active { transform: translate(2px, 2px); }
 
-/* ── Submit / filter button ──
-   FIXED: blue bg + black shadow (matches the system),
-          border-radius: 0 */
+/* ── Submit — real search button (no filter icon artifact) ──
+   Flush right inside the form, black background */
 .home-search-submit {
   flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  border-radius: 0;           /* ← was 4px */
-  border: 2.5px solid #0A0A0A;
-  background: #0057FF;        /* ← was #111111 */
+  width: 40px;
+  height: 40px;
+  border-radius: 0;
+  border: none;
+  border-left: 2.5px solid #0A0A0A;
+  background: #0A0A0A;
   color: #FCFAF2;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 4px 4px 0px 0px #0A0A0A;   /* ← was blue shadow */
-  transition: transform 0.08s, box-shadow 0.08s, background 0.1s;
+  transition: background 0.12s;
+  margin: -1px -1px -1px 0;
 }
 
-.home-search-submit:hover  { background: #0A0A0A; transform: translate(-1px, -1px); box-shadow: 5px 5px 0px 0px #0A0A0A; }
-.home-search-submit:active { transform: translate(4px, 4px); box-shadow: none; }
+.home-search-submit:hover  { background: #0057FF; }
+.home-search-submit:active { background: #003DCC; }
 
-.home-search-filter-svg { width: 17px; height: 17px; }
+.home-search-submit svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
 
-/* ── Suggestions dropdown ──
-   FIXED: background #FCFAF2, border-radius: 0,
-          type badge is blue (not black) */
+/* ── Suggestions dropdown ── */
 .home-suggestions {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 5px);
   left: 0;
   right: 0;
-  background: #FCFAF2;        /* ← was #ffffff */
+  background: #FCFAF2;
   border: 2.5px solid #0A0A0A;
-  border-radius: 0;           /* ← was 4px */
+  border-radius: 0;
   overflow: hidden;
   box-shadow: 5px 5px 0px 0px #0A0A0A;
   z-index: 50;
@@ -166,7 +176,7 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 11px 16px;
+  padding: 10px 14px;
   background: transparent;
   border: none;
   border-bottom: 1.5px solid rgba(10, 10, 10, 0.1);
@@ -181,29 +191,28 @@
 .home-suggestion-item.active { background: #D6E4FF; }
 
 .home-suggestion-label {
-  font-size: 0.85rem;
+  font-size: 12px;
   font-weight: 800;
   color: #0A0A0A;
   letter-spacing: 0.02em;
 }
 
-/* FIXED: badge is blue (#0057FF) not black — matches every other badge in the app */
 .home-suggestion-type {
-  font-size: 0.68rem;
+  font-size: 8px;
   font-weight: 900;
   color: #fff;
-  background: #0057FF;        /* ← was #111111 */
+  background: #0057FF;
   border: 1.5px solid #0A0A0A;
-  padding: 2px 7px;
+  padding: 2px 6px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  border-radius: 0;           /* ← was 2px */
+  border-radius: 0;
   flex-shrink: 0;
 }
 
 .home-suggestion-empty {
-  padding: 14px 16px;
-  font-size: 0.82rem;
+  padding: 12px 14px;
+  font-size: 11px;
   color: #888;
   font-weight: 700;
   text-transform: uppercase;
@@ -235,7 +244,6 @@
   position: relative;
 }
 
-/* Bold underline accent */
 .home-sec-header h3::after {
   content: "";
   display: block;
@@ -245,16 +253,15 @@
   margin-top: 4px;
 }
 
-/* See-all button — FIXED: border-radius: 0 */
 .home-see-btn {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 900;
   color: #0A0A0A;
   background: #FCFAF2;
   border: 2px solid #0A0A0A;
   cursor: pointer;
-  padding: 6px 13px;
-  border-radius: 0;           /* ← was 2px */
+  padding: 5px 11px;
+  border-radius: 0;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-family: 'Archivo Black', 'Arial Black', sans-serif;
@@ -271,7 +278,7 @@
 .home-trending-dot {
   width: 8px;
   height: 8px;
-  border-radius: 0;           /* square dot — brutalist */
+  border-radius: 0;
   background: #0A0A0A;
   border: 1.5px solid #0A0A0A;
   animation: home-pulse 1.8s ease-in-out infinite;
@@ -285,7 +292,6 @@
 
 /* ══════════════════════════════════════════
    CATEGORY ITEMS
-   FIXED: background #FCFAF2, border-radius: 0
 ══════════════════════════════════════════ */
 .home-cat-scroll {
   display: flex;
@@ -298,18 +304,17 @@
 
 .home-cat-scroll::-webkit-scrollbar { display: none; }
 
-/* FIXED: background #FCFAF2, border-radius: 0 */
 .home-cat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 7px;
   flex-shrink: 0;
-  background: #FCFAF2;        /* ← was #ffffff */
+  background: #FCFAF2;
   border: 2.5px solid #0A0A0A;
   cursor: pointer;
   padding: 8px 6px 6px;
-  border-radius: 0;           /* ← was 4px */
+  border-radius: 0;
   box-shadow: 3px 3px 0px 0px #0A0A0A;
   transition: transform 0.08s, box-shadow 0.08s;
   -webkit-tap-highlight-color: transparent;
@@ -319,7 +324,6 @@
 .home-cat-item:hover  { transform: translate(-1px, -1px); box-shadow: 4px 4px 0px 0px #0A0A0A; }
 .home-cat-item:active { transform: translate(3px, 3px); box-shadow: none; }
 
-/* Active = blue border + blue shadow */
 .home-cat-item--active {
   border-color: #0057FF;
   box-shadow: 3px 3px 0px 0px #0057FF;
@@ -331,11 +335,10 @@
   font-weight: 900;
 }
 
-/* FIXED: border-radius: 0 */
 .home-cat-circle {
   width: 56px;
   height: 56px;
-  border-radius: 0;           /* ← was 2px */
+  border-radius: 0;
   border: 1.5px solid rgba(10, 10, 10, 0.12);
   display: flex;
   align-items: center;
@@ -368,7 +371,6 @@
 
 /* ══════════════════════════════════════════
    LOADING SKELETON
-   FIXED: border-radius: 0
 ══════════════════════════════════════════ */
 .home-skeleton { padding: 16px; }
 
@@ -377,7 +379,7 @@
   height: 200px;
   background: #e8e6de;
   border: 2.5px solid #0A0A0A;
-  border-radius: 0;           /* ← was 4px */
+  border-radius: 0;
   margin-bottom: 20px;
   animation: nb-shimmer 1.4s ease-in-out infinite alternate;
 }
@@ -390,7 +392,7 @@
   flex-shrink: 0;
   background: #e8e6de;
   border: 2.5px solid #0A0A0A;
-  border-radius: 0;           /* ← was 4px */
+  border-radius: 0;
   animation: nb-shimmer 1.4s ease-in-out infinite alternate;
 }
 
@@ -430,7 +432,7 @@
    RESPONSIVE
 ══════════════════════════════════════════ */
 @media (min-width: 640px) {
-  .home-search-sticky { padding: 12px 24px 10px; }
+  .home-search-sticky { padding: 10px 24px 9px; }
   .home-sec-header    { padding: 0 24px 12px; }
 
   .home-cat-scroll {
@@ -444,7 +446,7 @@
 
 @media (min-width: 1024px) {
   .home { padding-left: 64px; }
-  .home-search-sticky { padding: 14px 48px 12px; }
+  .home-search-sticky { padding: 12px 48px 10px; }
   .home-section--cats { padding-top: 24px; }
 
   .home-cat-scroll {
