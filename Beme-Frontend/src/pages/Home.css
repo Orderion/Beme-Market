@@ -1,29 +1,32 @@
 /* ─────────────────────────────────────────
-   Home.css — Neo-Brutalist Redesign
+   Home.css — Neo-Brutalist
    Hard borders · Zero-blur shadows · #FCFAF2
+   FIXED: no border-radius, no #ffffff, correct badge colour,
+          search sticky z-index so it never overlaps header
    ───────────────────────────────────────── */
 
 /* ── Page wrapper ── */
 .home {
   min-height: 100vh;
   background: #FCFAF2;
-  color: #111111;
+  color: #0A0A0A;
   padding-bottom: 72px;
   font-family: 'Archivo', 'Public Sans', 'Inter', system-ui, sans-serif;
 }
 
 /* ══════════════════════════════════════════
    STICKY SEARCH BAR
-   Matches the screenshot: rect border,
-   blue focus shadow, hard black corners
+   z-index: 40 keeps it BELOW the main header
+   (header is z-index: 100) so it never bleeds
+   into the header zone when scrolling
 ══════════════════════════════════════════ */
 .home-search-sticky {
   position: sticky;
-  top: 0;
-  z-index: 40;
+  top: 0;                   /* sticks just under whatever is above it */
+  z-index: 40;              /* lower than header (100) — no overlap */
   background: #FCFAF2;
   padding: 10px 16px 8px;
-  border-bottom: 2px solid #111111;
+  border-bottom: 2.5px solid #0A0A0A;
   transition: transform 0.22s ease, opacity 0.22s ease;
 }
 
@@ -37,21 +40,20 @@
   position: relative;
   max-width: 680px;
   margin: 0 auto;
-  /* Hamburger + search + bag layout from screenshot */
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
+/* ── Search form ──
+   FIXED: background #FCFAF2 (not #fff), border-radius: 0 */
 .home-search-form {
   display: flex;
   align-items: center;
-  gap: 0;
-  background: #ffffff;
-  border: 2.5px solid #111111;
-  border-radius: 4px;
-  /* Hard shadow — 0 blur, offset black */
-  box-shadow: 4px 4px 0px 0px #111111;
+  background: #FCFAF2;       /* ← was #ffffff */
+  border: 2.5px solid #0A0A0A;
+  border-radius: 0;           /* ← was 4px */
+  box-shadow: 4px 4px 0px 0px #0A0A0A;
   padding: 0 6px 0 12px;
   height: 48px;
   flex: 1;
@@ -59,12 +61,12 @@
 }
 
 .home-search-form:focus-within {
-  border-color: #0066FF;
-  box-shadow: 4px 4px 0px 0px #0066FF;
+  border-color: #0057FF;
+  box-shadow: 4px 4px 0px 0px #0057FF;
 }
 
 .home-search-icon-left {
-  color: #555555;
+  color: #888;
   display: flex;
   align-items: center;
   flex-shrink: 0;
@@ -76,37 +78,38 @@
   border: none;
   outline: none;
   background: transparent;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  color: #111111;
+  color: #0A0A0A;
   min-width: 0;
   font-family: inherit;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.home-search-input::placeholder {
-  color: #888888;
-  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-/* ── Clear (×) button ── */
+.home-search-input::placeholder {
+  color: #AAA;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Clear button ──
+   FIXED: border-radius: 0 */
 .home-search-clear {
   flex-shrink: 0;
   width: 26px;
   height: 26px;
-  border-radius: 2px;
-  border: 1.5px solid #111111;
+  border-radius: 0;           /* ← was 2px */
+  border: 1.5px solid #0A0A0A;
   background: #FCFAF2;
-  color: #111111;
+  color: #0A0A0A;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   margin-right: 6px;
-  transition: transform 0.08s, box-shadow 0.08s;
+  transition: transform 0.08s, box-shadow 0.08s, background 0.1s, color 0.1s;
   animation: home-clear-pop 0.12s ease;
 }
 
@@ -115,60 +118,46 @@
   to   { transform: scale(1);   opacity: 1; }
 }
 
-.home-search-clear:hover {
-  background: #0066FF;
-  border-color: #0066FF;
-  color: #fff;
-}
+.home-search-clear:hover  { background: #0057FF; border-color: #0057FF; color: #fff; }
+.home-search-clear:active { transform: translate(2px, 2px); box-shadow: none; }
 
-.home-search-clear:active {
-  transform: translate(2px, 2px);
-  box-shadow: none;
-}
-
-/* ── Submit/filter button — matches screenshot's icon button ── */
+/* ── Submit / filter button ──
+   FIXED: blue bg + black shadow (matches the system),
+          border-radius: 0 */
 .home-search-submit {
   flex-shrink: 0;
   width: 48px;
   height: 48px;
-  border-radius: 4px;
-  border: 2.5px solid #111111;
-  background: #111111;
+  border-radius: 0;           /* ← was 4px */
+  border: 2.5px solid #0A0A0A;
+  background: #0057FF;        /* ← was #111111 */
   color: #FCFAF2;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 4px 4px 0px 0px #0066FF;
-  transition: transform 0.08s, box-shadow 0.08s;
+  box-shadow: 4px 4px 0px 0px #0A0A0A;   /* ← was blue shadow */
+  transition: transform 0.08s, box-shadow 0.08s, background 0.1s;
 }
 
-.home-search-submit:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0px 0px #0066FF;
-}
+.home-search-submit:hover  { background: #0A0A0A; transform: translate(-1px, -1px); box-shadow: 5px 5px 0px 0px #0A0A0A; }
+.home-search-submit:active { transform: translate(4px, 4px); box-shadow: none; }
 
-.home-search-submit:active {
-  transform: translate(4px, 4px);
-  box-shadow: none;
-}
+.home-search-filter-svg { width: 17px; height: 17px; }
 
-.home-search-filter-svg {
-  width: 17px;
-  height: 17px;
-}
-
-/* ── Suggestions dropdown ── */
+/* ── Suggestions dropdown ──
+   FIXED: background #FCFAF2, border-radius: 0,
+          type badge is blue (not black) */
 .home-suggestions {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  background: #ffffff;
-  border: 2.5px solid #111111;
-  border-radius: 4px;
+  background: #FCFAF2;        /* ← was #ffffff */
+  border: 2.5px solid #0A0A0A;
+  border-radius: 0;           /* ← was 4px */
   overflow: hidden;
-  box-shadow: 5px 5px 0px 0px #111111;
+  box-shadow: 5px 5px 0px 0px #0A0A0A;
   z-index: 50;
 }
 
@@ -180,7 +169,7 @@
   padding: 11px 16px;
   background: transparent;
   border: none;
-  border-bottom: 1.5px solid #e8e6de;
+  border-bottom: 1.5px solid rgba(10, 10, 10, 0.1);
   cursor: pointer;
   text-align: left;
   transition: background 0.08s;
@@ -189,53 +178,45 @@
 .home-suggestion-item:last-child { border-bottom: none; }
 
 .home-suggestion-item:hover,
-.home-suggestion-item.active {
-  background: #E0EEFF;
-}
+.home-suggestion-item.active { background: #D6E4FF; }
 
 .home-suggestion-label {
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 800;
-  color: #111111;
-  letter-spacing: -0.01em;
+  color: #0A0A0A;
+  letter-spacing: 0.02em;
 }
 
+/* FIXED: badge is blue (#0057FF) not black — matches every other badge in the app */
 .home-suggestion-type {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 900;
   color: #fff;
-  background: #111111;
+  background: #0057FF;        /* ← was #111111 */
+  border: 1.5px solid #0A0A0A;
   padding: 2px 7px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  border-radius: 2px;
+  letter-spacing: 0.1em;
+  border-radius: 0;           /* ← was 2px */
+  flex-shrink: 0;
 }
 
 .home-suggestion-empty {
   padding: 14px 16px;
-  font-size: 0.85rem;
-  color: #555555;
+  font-size: 0.82rem;
+  color: #888;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
 }
 
 /* ══════════════════════════════════════════
-   GENERIC SECTION WRAPPER
+   SECTION WRAPPER
 ══════════════════════════════════════════ */
-.home-section {
-  padding: 20px 0 4px;
-}
-
-.home-section--carousel {
-  padding-top: 4px;
-  padding-bottom: 0;
-}
-
-.home-section--cats {
-  padding-top: 20px;
-  padding-bottom: 0;
-}
+.home-section          { padding: 20px 0 4px; }
+.home-section--carousel { padding-top: 4px; padding-bottom: 0; }
+.home-section--cats    { padding-top: 20px; padding-bottom: 0; }
 
 .home-sec-header {
   display: flex;
@@ -247,76 +228,64 @@
 .home-sec-header h3 {
   font-size: 1.05rem;
   font-weight: 900;
-  color: #111111;
+  color: #0A0A0A;
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   position: relative;
 }
 
-/* Bold underline accent — matches the screenshot's heading style */
+/* Bold underline accent */
 .home-sec-header h3::after {
   content: "";
   display: block;
   width: 100%;
   height: 3px;
-  background: #111111;
+  background: #0A0A0A;
   margin-top: 4px;
 }
 
+/* See-all button — FIXED: border-radius: 0 */
 .home-see-btn {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 900;
-  color: #555555;
-  background: transparent;
-  border: 1.5px solid #111111;
+  color: #0A0A0A;
+  background: #FCFAF2;
+  border: 2px solid #0A0A0A;
   cursor: pointer;
-  padding: 5px 12px;
-  border-radius: 2px;
+  padding: 6px 13px;
+  border-radius: 0;           /* ← was 2px */
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  transition: transform 0.08s, box-shadow 0.08s, background 0.08s, color 0.08s;
-  box-shadow: 2px 2px 0px 0px #111111;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  transition: transform 0.08s, box-shadow 0.08s, background 0.1s, color 0.1s;
+  box-shadow: 2px 2px 0px 0px #0A0A0A;
 }
 
-.home-see-btn:hover {
-  background: #111111;
-  color: #FCFAF2;
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0px 0px #111111;
-}
-
-.home-see-btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: none;
-}
+.home-see-btn:hover  { background: #0A0A0A; color: #FCFAF2; transform: translate(-1px, -1px); box-shadow: 3px 3px 0px 0px #0A0A0A; }
+.home-see-btn:active { transform: translate(2px, 2px); box-shadow: none; }
 
 /* ── Trending header with live dot ── */
-.home-trending-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.home-trending-head { display: flex; align-items: center; gap: 8px; }
 
 .home-trending-dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
-  background: #111111;
-  border: 1.5px solid #111111;
+  border-radius: 0;           /* square dot — brutalist */
+  background: #0A0A0A;
+  border: 1.5px solid #0A0A0A;
   animation: home-pulse 1.8s ease-in-out infinite;
   flex-shrink: 0;
 }
 
 @keyframes home-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.4; transform: scale(0.72); }
+  50%       { opacity: 0.35; transform: scale(0.7); }
 }
 
 /* ══════════════════════════════════════════
-   CATEGORY CIRCLES
-   Match screenshot: border-box cards,
-   hard shadow, bold label, active = blue
+   CATEGORY ITEMS
+   FIXED: background #FCFAF2, border-radius: 0
 ══════════════════════════════════════════ */
 .home-cat-scroll {
   display: flex;
@@ -329,50 +298,45 @@
 
 .home-cat-scroll::-webkit-scrollbar { display: none; }
 
+/* FIXED: background #FCFAF2, border-radius: 0 */
 .home-cat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 7px;
   flex-shrink: 0;
-  background: #ffffff;
-  border: 2px solid #111111;
+  background: #FCFAF2;        /* ← was #ffffff */
+  border: 2.5px solid #0A0A0A;
   cursor: pointer;
   padding: 8px 6px 6px;
-  border-radius: 4px;
-  box-shadow: 3px 3px 0px 0px #111111;
+  border-radius: 0;           /* ← was 4px */
+  box-shadow: 3px 3px 0px 0px #0A0A0A;
   transition: transform 0.08s, box-shadow 0.08s;
   -webkit-tap-highlight-color: transparent;
   min-width: 76px;
 }
 
-.home-cat-item:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0px 0px #111111;
-}
-
-.home-cat-item:active {
-  transform: translate(3px, 3px);
-  box-shadow: none;
-}
+.home-cat-item:hover  { transform: translate(-1px, -1px); box-shadow: 4px 4px 0px 0px #0A0A0A; }
+.home-cat-item:active { transform: translate(3px, 3px); box-shadow: none; }
 
 /* Active = blue border + blue shadow */
 .home-cat-item--active {
-  border-color: #0066FF;
-  box-shadow: 3px 3px 0px 0px #0066FF;
-  background: #E0EEFF;
+  border-color: #0057FF;
+  box-shadow: 3px 3px 0px 0px #0057FF;
+  background: #D6E4FF;
 }
 
 .home-cat-item--active .home-cat-label {
-  color: #0066FF;
+  color: #0057FF;
   font-weight: 900;
 }
 
+/* FIXED: border-radius: 0 */
 .home-cat-circle {
   width: 56px;
   height: 56px;
-  border-radius: 2px;
-  border: 1.5px solid #e0e0d8;
+  border-radius: 0;           /* ← was 2px */
+  border: 1.5px solid rgba(10, 10, 10, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -380,7 +344,6 @@
   background: #FCFAF2;
 }
 
-/* ── Category photo ── */
 .home-cat-img {
   width: 100%;
   height: 100%;
@@ -394,44 +357,40 @@
 .home-cat-label {
   font-size: 10.5px;
   font-weight: 900;
-  color: #111111;
+  color: #0A0A0A;
   white-space: nowrap;
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   line-height: 1.2;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
 }
 
 /* ══════════════════════════════════════════
    LOADING SKELETON
+   FIXED: border-radius: 0
 ══════════════════════════════════════════ */
-.home-skeleton {
-  padding: 16px;
-}
+.home-skeleton { padding: 16px; }
 
 .home-skeleton-carousel {
   width: 100%;
   height: 200px;
   background: #e8e6de;
-  border: 2px solid #111;
-  border-radius: 4px;
+  border: 2.5px solid #0A0A0A;
+  border-radius: 0;           /* ← was 4px */
   margin-bottom: 20px;
   animation: nb-shimmer 1.4s ease-in-out infinite alternate;
 }
 
-.home-skeleton-cats {
-  display: flex;
-  gap: 8px;
-  overflow: hidden;
-}
+.home-skeleton-cats { display: flex; gap: 8px; overflow: hidden; }
 
 .home-skeleton-cat {
   width: 76px;
   height: 96px;
   flex-shrink: 0;
   background: #e8e6de;
-  border: 2px solid #111;
-  border-radius: 4px;
+  border: 2.5px solid #0A0A0A;
+  border-radius: 0;           /* ← was 4px */
   animation: nb-shimmer 1.4s ease-in-out infinite alternate;
 }
 
@@ -441,36 +400,34 @@
 }
 
 /* ══════════════════════════════════════════
-   LEGAL PAGE (preserved)
+   LEGAL PAGE
 ══════════════════════════════════════════ */
 .legal-page {
   min-height: 100vh;
   background: #FCFAF2;
-  color: #111111;
+  color: #0A0A0A;
   padding: 28px 16px 56px;
 }
 
 .legal-wrap {
   max-width: 860px;
   margin: 0 auto;
-  background: #ffffff;
-  border: 2px solid #111111;
-  border-radius: 4px;
-  box-shadow: 5px 5px 0px 0px #111111;
+  background: #FCFAF2;
+  border: 2.5px solid #0A0A0A;
+  border-radius: 0;
+  box-shadow: 5px 5px 0px 0px #0A0A0A;
   padding: 28px 22px;
 }
 
-.legal-wrap h1 { margin: 0 0 10px; font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 900; }
-.legal-updated { margin: 0 0 22px; color: #555555; }
-.legal-wrap h2 { margin: 22px 0 10px; font-size: 1.08rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; }
-.legal-wrap p  { margin: 0 0 14px; line-height: 1.8; color: #111111; }
+.legal-wrap h1 { margin: 0 0 10px; font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 900; text-transform: uppercase; }
+.legal-updated { margin: 0 0 22px; color: #888; }
+.legal-wrap h2 { margin: 22px 0 10px; font-size: 1.05rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; }
+.legal-wrap p  { margin: 0 0 14px; line-height: 1.8; color: #0A0A0A; }
 
-@media (max-width: 640px) {
-  .legal-wrap { padding: 22px 16px; }
-}
+@media (max-width: 640px) { .legal-wrap { padding: 22px 16px; } }
 
 /* ══════════════════════════════════════════
-   RESPONSIVE — TABLET & DESKTOP
+   RESPONSIVE
 ══════════════════════════════════════════ */
 @media (min-width: 640px) {
   .home-search-sticky { padding: 12px 24px 10px; }
@@ -488,7 +445,6 @@
 @media (min-width: 1024px) {
   .home { padding-left: 64px; }
   .home-search-sticky { padding: 14px 48px 12px; }
-
   .home-section--cats { padding-top: 24px; }
 
   .home-cat-scroll {
@@ -502,7 +458,6 @@
   .home-cat-circle { width: 64px; height: 64px; }
   .home-cat-item   { min-width: 84px; }
   .home-cat-label  { font-size: 11.5px; }
-
   .home-sec-header { padding: 0 48px 14px; }
   .home-section    { max-width: 1280px; margin-left: auto; margin-right: auto; }
 }
@@ -514,12 +469,8 @@
 
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
-  .home-cat-item,
-  .home-see-btn,
-  .home-search-form,
-  .home-search-submit,
-  .home-search-clear,
-  .home-trending-dot {
+  .home-cat-item, .home-see-btn, .home-search-form,
+  .home-search-submit, .home-search-clear, .home-trending-dot {
     transition: none !important;
     animation: none !important;
   }
