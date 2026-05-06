@@ -331,126 +331,133 @@ export default function CustomerSupportChat({ customerName, customerId, customer
 
   /* ══════════════════════════════════════
      HOME / START VIEW
+     — now uses sc-overlay so it fills the
+       full screen and blocks the footer
   ══════════════════════════════════════ */
   if (view !== "chat") {
     return (
-      <div className="sc-home">
+      <div className="sc-overlay sc-overlay--home">
 
-        {/* hero */}
-        <div className="sc-hero">
-          <div className="sc-hero__brand">
-            <div className="sc-hero__logo"><IcoLogo /></div>
-            <span className="sc-hero__brand-name">Beme Support</span>
+        {/* ── scrollable body ── */}
+        <div className="sc-home-scroll">
+
+          {/* hero */}
+          <div className="sc-hero">
+            <div className="sc-hero__brand">
+              <div className="sc-hero__logo"><IcoLogo /></div>
+              <span className="sc-hero__brand-name">Beme Support</span>
+            </div>
+            <p className="sc-hero__title">Hi {firstName}, how can we help?</p>
+            <p className="sc-hero__sub">Our team is here for orders, returns, and account issues.</p>
           </div>
-          <p className="sc-hero__title">Hi {firstName}, how can we help?</p>
-          <p className="sc-hero__sub">Our team is here for orders, returns, and account issues.</p>
-        </div>
 
-        {/* channel cards */}
-        <div className="sc-channels">
+          {/* channel cards */}
+          <div className="sc-channels">
 
-          <button className="sc-channel-card" onClick={() => setView("start")}>
-            <div className="sc-channel-card__icon sc-channel-card__icon--live"><IcoChat /></div>
-            <div className="sc-channel-card__text">
-              <span className="sc-channel-card__title">Start Live Chat</span>
-              <span className="sc-channel-card__sub">Chat with our support team</span>
-            </div>
-            <span className="sc-channel-card__chevron"><IcoChevron /></span>
-          </button>
-
-          <button
-            className="sc-channel-card"
-            onClick={() =>
-              window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hi%2C+I+need+help`, "_blank")
-            }
-          >
-            <div className="sc-channel-card__icon sc-channel-card__icon--whatsapp"><IcoWhatsApp /></div>
-            <div className="sc-channel-card__text">
-              <span className="sc-channel-card__title">Continue on WhatsApp</span>
-              <span className="sc-channel-card__sub">Instant replies via WhatsApp</span>
-            </div>
-            <span className="sc-channel-card__chevron"><IcoChevron /></span>
-          </button>
-
-          <button
-            className="sc-channel-card"
-            onClick={() =>
-              window.open(`mailto:${SUPPORT_EMAIL}?subject=Support%20Request`, "_blank")
-            }
-          >
-            <div className="sc-channel-card__icon sc-channel-card__icon--sms"><IcoEmail /></div>
-            <div className="sc-channel-card__text">
-              <span className="sc-channel-card__title">Email Us</span>
-              <span className="sc-channel-card__sub">{SUPPORT_EMAIL}</span>
-            </div>
-            <span className="sc-channel-card__chevron"><IcoChevron /></span>
-          </button>
-
-        </div>
-
-        {/* inline start form */}
-        {view === "start" && (
-          <div style={{ padding: "4px 16px 24px" }}>
-            <p className="sc-section-label">Describe your issue</p>
-            <input
-              className="sc-start-screen__input"
-              type="text"
-              placeholder="e.g. My order has not arrived"
-              value={subject}
-              onChange={e => { setSubject(e.target.value); setError(""); }}
-              disabled={creating}
-              maxLength={120}
-            />
-            {error && (
-              <div className="sc-error-bar" style={{ marginTop: 10 }}>{error}</div>
-            )}
-            <button
-              className="sc-start-screen__btn"
-              style={{ marginTop: 14 }}
-              onClick={handleStartChat}
-              disabled={creating || !subject.trim()}
-            >
-              {creating
-                ? <><span className="sc-spinner" />Starting...</>
-                : "Start Chat"
-              }
+            <button className="sc-channel-card" onClick={() => setView("start")}>
+              <div className="sc-channel-card__icon sc-channel-card__icon--live"><IcoChat /></div>
+              <div className="sc-channel-card__text">
+                <span className="sc-channel-card__title">Start Live Chat</span>
+                <span className="sc-channel-card__sub">Chat with our support team</span>
+              </div>
+              <span className="sc-channel-card__chevron"><IcoChevron /></span>
             </button>
+
+            <button
+              className="sc-channel-card"
+              onClick={() =>
+                window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Hi%2C+I+need+help`, "_blank")
+              }
+            >
+              <div className="sc-channel-card__icon sc-channel-card__icon--whatsapp"><IcoWhatsApp /></div>
+              <div className="sc-channel-card__text">
+                <span className="sc-channel-card__title">Continue on WhatsApp</span>
+                <span className="sc-channel-card__sub">Instant replies via WhatsApp</span>
+              </div>
+              <span className="sc-channel-card__chevron"><IcoChevron /></span>
+            </button>
+
+            <button
+              className="sc-channel-card"
+              onClick={() =>
+                window.open(`mailto:${SUPPORT_EMAIL}?subject=Support%20Request`, "_blank")
+              }
+            >
+              <div className="sc-channel-card__icon sc-channel-card__icon--sms"><IcoEmail /></div>
+              <div className="sc-channel-card__text">
+                <span className="sc-channel-card__title">Email Us</span>
+                <span className="sc-channel-card__sub">{SUPPORT_EMAIL}</span>
+              </div>
+              <span className="sc-channel-card__chevron"><IcoChevron /></span>
+            </button>
+
           </div>
-        )}
 
-        {/* conversations */}
-        {tickets.length > 0 && (
-          <>
-            <p className="sc-section-label">Your Conversations</p>
-            <div className="sc-conv-list">
-              {tickets.map(t => (
-                <button key={t.id} className="sc-conv-item" onClick={() => openTicket(t)}>
-                  <div className="sc-conv-avatar sc-conv-avatar--support">
-                    <IcoBot />
-                    <span className="sc-conv-avatar__online" />
-                  </div>
-                  <div className="sc-conv-body">
-                    <div className="sc-conv-row">
-                      <span className="sc-conv-name">Support Team</span>
-                      <span className="sc-conv-time">{formatTime(t.lastActivity)}</span>
-                    </div>
-                    <span className="sc-conv-preview">{t.subject}</span>
-                  </div>
-                  {t.unreadByAdmin > 0 && (
-                    <span className="sc-conv-unread">{t.unreadByAdmin}</span>
-                  )}
-                </button>
-              ))}
+          {/* inline start form */}
+          {view === "start" && (
+            <div style={{ padding: "4px 16px 24px" }}>
+              <p className="sc-section-label">Describe your issue</p>
+              <input
+                className="sc-start-screen__input"
+                type="text"
+                placeholder="e.g. My order has not arrived"
+                value={subject}
+                onChange={e => { setSubject(e.target.value); setError(""); }}
+                disabled={creating}
+                maxLength={120}
+              />
+              {error && (
+                <div className="sc-error-bar" style={{ marginTop: 10 }}>{error}</div>
+              )}
+              <button
+                className="sc-start-screen__btn"
+                style={{ marginTop: 14 }}
+                onClick={handleStartChat}
+                disabled={creating || !subject.trim()}
+              >
+                {creating
+                  ? <><span className="sc-spinner" />Starting...</>
+                  : "Start Chat"
+                }
+              </button>
             </div>
-          </>
-        )}
+          )}
 
-        {tickets.length === 0 && view === "home" && (
-          <p className="sc-conv-empty">No conversations yet</p>
-        )}
+          {/* conversations */}
+          {tickets.length > 0 && (
+            <>
+              <p className="sc-section-label">Your Conversations</p>
+              <div className="sc-conv-list">
+                {tickets.map(t => (
+                  <button key={t.id} className="sc-conv-item" onClick={() => openTicket(t)}>
+                    <div className="sc-conv-avatar sc-conv-avatar--support">
+                      <IcoBot />
+                      <span className="sc-conv-avatar__online" />
+                    </div>
+                    <div className="sc-conv-body">
+                      <div className="sc-conv-row">
+                        <span className="sc-conv-name">Support Team</span>
+                        <span className="sc-conv-time">{formatTime(t.lastActivity)}</span>
+                      </div>
+                      <span className="sc-conv-preview">{t.subject}</span>
+                    </div>
+                    {t.unreadByAdmin > 0 && (
+                      <span className="sc-conv-unread">{t.unreadByAdmin}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
-        {/* bottom nav */}
-        <div className="sc-bottom-nav" style={{ marginTop: "auto" }}>
+          {tickets.length === 0 && view === "home" && (
+            <p className="sc-conv-empty">No conversations yet</p>
+          )}
+
+        </div>{/* end sc-home-scroll */}
+
+        {/* ── bottom nav — now always pinned to bottom of overlay ── */}
+        <div className="sc-bottom-nav">
           <button
             className={`sc-bottom-nav__btn${activeTab === "home" ? " sc-bottom-nav__btn--active" : ""}`}
             onClick={() => { setActiveTab("home"); setView("home"); }}
