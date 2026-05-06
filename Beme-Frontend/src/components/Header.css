@@ -1,7 +1,10 @@
 /* =========================
    HEADER — Neo-Brutalist
-   Hard black borders · Heavy shadows · Off-white · All-caps
-   Animation: logo fades → search icon slides in → search bar expands
+   Animation states:
+     LOGO  → logo centred, nothing else
+     BAR   → full search bar expands from centre
+     ICON  → bar shrinks to a search icon button
+     REOPEN→ icon expands back to bar
 ========================= */
 
 /* ── Base ── */
@@ -18,7 +21,6 @@
   background: #FCFAF2;
   border-bottom: 3px solid #0A0A0A;
   box-shadow: 0 4px 0px 0px #0A0A0A;
-  transition: background 0.2s ease;
 }
 
 body.dark .hdr {
@@ -27,11 +29,10 @@ body.dark .hdr {
   box-shadow: 0 4px 0px 0px rgba(245, 243, 232, 0.15);
 }
 
-/* ── LEFT cluster — menu + animated search icon ── */
+/* ── Left cluster ── */
 .hdr-left {
   display: flex;
   align-items: center;
-  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -49,7 +50,6 @@ body.dark .hdr {
   cursor: pointer;
   flex-shrink: 0;
   transition: box-shadow 0.11s, transform 0.1s, background 0.13s, color 0.13s;
-  will-change: transform;
   position: relative;
 }
 
@@ -60,63 +60,58 @@ body.dark .hdr-icon {
   box-shadow: 3px 3px 0px 0px rgba(245, 243, 232, 0.2);
 }
 
-.hdr-icon:hover {
-  background: #0A0A0A;
-  color: #FCFAF2;
-}
-
-body.dark .hdr-icon:hover {
-  background: #F5F3E8;
-  color: #0A0A0A;
-}
-
-.hdr-icon:active {
-  transform: translate(3px, 3px);
-  box-shadow: none;
-}
+.hdr-icon:hover  { background: #0A0A0A; color: #FCFAF2; }
+body.dark .hdr-icon:hover { background: #F5F3E8; color: #0A0A0A; }
+.hdr-icon:active { transform: translate(3px, 3px); box-shadow: none; }
 
 .hdr-svg {
   width: 18px;
   height: 18px;
 }
 
-/* ── Search icon button — slides in beside menu ──
-   Hidden by default, appears in phase 1 */
-.hdr-search-icon-btn {
-  opacity: 0;
-  transform: scale(0.6) translateX(-8px);
-  pointer-events: none;
-  transition:
-    opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: opacity, transform;
+/* ── Right cluster ── */
+.hdr-right {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
 }
 
-.hdr-search-icon-btn--visible {
-  opacity: 1;
-  transform: scale(1) translateX(0);
-  pointer-events: auto;
-}
-
-/* ── Center logo ── */
-.hdr-logo-wrap {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+/* ══════════════════════════════════════════════
+   CENTRE — contains all three animated states
+   stacked with position:absolute so they
+   transition independently without layout jumps
+══════════════════════════════════════════════ */
+.hdr-centre {
+  flex: 1;
+  min-width: 0;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: none;
-  opacity: 1;
-  transition:
-    opacity 0.22s ease,
-    transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform, opacity;
+  height: 100%;
 }
 
-.hdr-logo-wrap--hidden {
+/* ──────────────────────────────────────────────
+   STATE 1 — LOGO
+   Centred, scales + fades out when leaving
+────────────────────────────────────────────── */
+.hdr-logo-wrap {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+  transition:
+    opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+}
+
+/* Leaving: shrink toward centre and fade */
+.hdr-logo-wrap--out {
   opacity: 0;
-  transform: translateX(-50%) scale(0.5);
+  transform: translateX(-50%) scale(0.4);
   pointer-events: none;
 }
 
@@ -127,57 +122,48 @@ body.dark .hdr-icon:hover {
   display: block;
 }
 
-body.dark .hdr-logo {
-  filter: invert(1);
-}
+body.dark .hdr-logo { filter: invert(1); }
 
-/* ── Right group ── */
-.hdr-right {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-/* ─────────────────────────────────────────────
-   INLINE SEARCH BAR
-   Phase 2: expands from nothing to full width
-   between the left cluster and the cart button
-───────────────────────────────────────────── */
-.hdr-inline-search {
-  flex: 1;
-  min-width: 0;
-  position: relative;
-  /* Hidden state */
+/* ──────────────────────────────────────────────
+   STATE 2 — SEARCH BAR
+   Expands from the centre outward (scaleX)
+   Collapses back when going to ICON state
+────────────────────────────────────────────── */
+.hdr-bar-wrap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Collapsed: tiny dot at centre */
+  transform: scaleX(0.05);
   opacity: 0;
-  transform: scaleX(0.4) translateX(-12px);
-  transform-origin: left center;
   pointer-events: none;
+  transform-origin: center center;
   transition:
-    opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+    transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity   0.28s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform, opacity;
 }
 
-.hdr-inline-search--visible {
+/* Open: full width */
+.hdr-bar-wrap--open {
+  transform: scaleX(1);
   opacity: 1;
-  transform: scaleX(1) translateX(0);
   pointer-events: auto;
 }
 
-/* ── Search form — black border, black shadow, square ── */
+/* Search form — black border, no blue */
 .hdr-search-form {
   display: flex;
   align-items: center;
   background: #FCFAF2;
-  border: 2.5px solid #0A0A0A;      /* BLACK — not blue */
-  box-shadow: 3px 3px 0px 0px #0A0A0A; /* BLACK shadow */
+  border: 2.5px solid #0A0A0A;
+  box-shadow: 3px 3px 0px 0px #0A0A0A;
   border-radius: 0;
   height: 40px;
   padding: 0 0 0 10px;
   gap: 6px;
-  transition: box-shadow 0.11s, border-color 0.11s;
   overflow: hidden;
+  transition: box-shadow 0.11s;
 }
 
 body.dark .hdr-search-form {
@@ -186,13 +172,20 @@ body.dark .hdr-search-form {
   box-shadow: 3px 3px 0px 0px rgba(245, 243, 232, 0.2);
 }
 
-/* Focus: keep black border, just lift shadow */
 .hdr-search-form:focus-within {
   box-shadow: 4px 4px 0px 0px #0A0A0A;
 }
 
-body.dark .hdr-search-form:focus-within {
-  box-shadow: 4px 4px 0px 0px rgba(245, 243, 232, 0.3);
+.hdr-search-icon-left {
+  display: flex;
+  align-items: center;
+  color: #888;
+  flex-shrink: 0;
+}
+
+.hdr-search-icon-left .hdr-svg {
+  width: 15px;
+  height: 15px;
 }
 
 .hdr-search-input {
@@ -210,15 +203,13 @@ body.dark .hdr-search-form:focus-within {
   line-height: 1;
 }
 
-body.dark .hdr-search-input {
-  color: #F5F3E8;
-}
+body.dark .hdr-search-input { color: #F5F3E8; }
 
 .hdr-search-input::placeholder {
   color: #AAA;
   font-weight: 600;
-  text-transform: uppercase;
   font-size: 10px;
+  text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
@@ -236,35 +227,27 @@ body.dark .hdr-search-input {
   flex-shrink: 0;
   width: 20px;
   height: 20px;
-  transition: color 0.14s;
 }
 
-.hdr-search-clear .hdr-svg {
-  width: 13px;
-  height: 13px;
-}
+.hdr-search-clear .hdr-svg { width: 13px; height: 13px; }
+.hdr-search-clear:hover { color: #0A0A0A; }
 
-.hdr-search-clear:hover {
-  color: #0A0A0A;
-}
-
-/* ── Submit / search button — real search icon ──
-   Black bg · Flush with form · No left gap */
+/* Submit: black flush button with search icon */
 .hdr-search-submit {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   width: 40px;
-  height: 40px;          /* same height as form, flush */
+  height: 40px;
   border: none;
   border-left: 2.5px solid #0A0A0A;
   background: #0A0A0A;
   color: #FCFAF2;
   cursor: pointer;
   padding: 0;
-  transition: background 0.12s, color 0.12s;
-  margin: -1px -1px -1px 0; /* flush with form border */
+  margin: -1px -1px -1px 0;
+  transition: background 0.12s;
 }
 
 body.dark .hdr-search-submit {
@@ -273,18 +256,35 @@ body.dark .hdr-search-submit {
   border-left-color: rgba(245, 243, 232, 0.35);
 }
 
-.hdr-search-submit:hover {
-  background: #0057FF;
-  border-left-color: #0057FF;
+.hdr-search-submit:hover  { background: #0057FF; border-left-color: #0057FF; }
+.hdr-search-submit:active { background: #003DCC; }
+.hdr-search-submit .hdr-svg { width: 16px; height: 16px; }
+
+/* ──────────────────────────────────────────────
+   STATE 3 — SEARCH ICON PILL
+   Appears after 5s idle, tap to reopen bar
+   Fades + scales in from where the bar was
+────────────────────────────────────────────── */
+.hdr-search-pill {
+  position: absolute;
+  /* Same brutalist style as other icons */
+  width: 40px;
+  height: 40px;
+  /* Hidden by default */
+  opacity: 0;
+  transform: scale(0.5);
+  pointer-events: none;
+  transition:
+    opacity 0.30s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
 }
 
-.hdr-search-submit:active {
-  background: #003DCC;
-}
-
-.hdr-search-submit .hdr-svg {
-  width: 16px;
-  height: 16px;
+/* Visible state */
+.hdr-search-pill--visible {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
 }
 
 /* ── Suggestions dropdown ── */
@@ -328,22 +328,13 @@ body.dark .hdr-suggestions {
 }
 
 .hdr-suggestion-item:hover,
-.hdr-suggestion-item.active {
-  background: #D6E4FF;
-}
+.hdr-suggestion-item.active { background: #D6E4FF; }
 
 body.dark .hdr-suggestion-item:hover,
-body.dark .hdr-suggestion-item.active {
-  background: rgba(0, 87, 255, 0.15);
-}
+body.dark .hdr-suggestion-item.active { background: rgba(0, 87, 255, 0.15); }
 
-.hdr-suggestion-item + .hdr-suggestion-item {
-  border-top: 1.5px solid #0A0A0A;
-}
-
-body.dark .hdr-suggestion-item + .hdr-suggestion-item {
-  border-top-color: rgba(245, 243, 232, 0.15);
-}
+.hdr-suggestion-item + .hdr-suggestion-item { border-top: 1.5px solid #0A0A0A; }
+body.dark .hdr-suggestion-item + .hdr-suggestion-item { border-top-color: rgba(245, 243, 232, 0.15); }
 
 .hdr-sug-label {
   font-size: 12px;
@@ -358,9 +349,7 @@ body.dark .hdr-suggestion-item + .hdr-suggestion-item {
   letter-spacing: 0.02em;
 }
 
-body.dark .hdr-sug-label {
-  color: #F5F3E8;
-}
+body.dark .hdr-sug-label { color: #F5F3E8; }
 
 .hdr-sug-type {
   font-size: 8px;
@@ -388,9 +377,7 @@ body.dark .hdr-sug-label {
 }
 
 /* ── Cart badge ── */
-.hdr-bag {
-  position: relative;
-}
+.hdr-bag { position: relative; }
 
 .hdr-badge {
   position: absolute;
@@ -409,7 +396,6 @@ body.dark .hdr-sug-label {
   display: grid;
   place-items: center;
   line-height: 1;
-  letter-spacing: 0.02em;
   animation: badgePop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
@@ -420,38 +406,23 @@ body.dark .hdr-sug-label {
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
-  .hdr {
-    height: 56px;
-    padding: 0 10px;
-    gap: 6px;
-  }
-
-  .hdr-icon {
-    width: 38px;
-    height: 38px;
-  }
-
-  .hdr-logo {
-    width: 26px;
-    height: 26px;
-  }
-
-  .hdr-search-form {
-    height: 38px;
-  }
-
-  .hdr-search-submit {
-    width: 38px;
-    height: 38px;
-  }
+  .hdr { height: 56px; padding: 0 10px; gap: 6px; }
+  .hdr-icon { width: 38px; height: 38px; }
+  .hdr-logo { width: 26px; height: 26px; }
+  .hdr-search-form { height: 38px; }
+  .hdr-search-submit { width: 38px; height: 38px; }
+  .hdr-search-pill { width: 38px; height: 38px; }
 }
 
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
-  .hdr, .hdr-icon, .hdr-badge,
-  .hdr-inline-search, .hdr-logo-wrap,
-  .hdr-search-form, .hdr-suggestions,
-  .hdr-search-icon-btn {
+  .hdr-logo-wrap,
+  .hdr-bar-wrap,
+  .hdr-search-pill,
+  .hdr-icon,
+  .hdr-badge,
+  .hdr-search-form,
+  .hdr-suggestions {
     transition: none !important;
     animation: none !important;
   }
