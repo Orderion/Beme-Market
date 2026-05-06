@@ -1,10 +1,42 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "../firebase";
 import "./FlashDealsBanner.css";
 
 const FLASH_COLLECTION = "FlashDeals";
+
+/* ── Ticket shape variants ── */
+const TICKET_SHAPES = ["notch", "rounded", "perforated", "stub"];
+
+/* ── Curated color palette — vivid, high-contrast ── */
+const TICKET_COLORS = [
+  "#FFD700", // gold
+  "#FF6B6B", // coral red
+  "#4ECDC4", // teal
+  "#A8E6CF", // mint
+  "#FFB347", // orange
+  "#DDA0DD", // plum
+  "#87CEEB", // sky blue
+  "#F8B500", // amber
+  "#98FB98", // pale green
+  "#FF69B4", // hot pink
+  "#B0E0E6", // powder blue
+  "#FFDAB9", // peach
+];
+
+/* ── Assign a stable shape + color per deal id ── */
+function getTicketStyle(id) {
+  // Use the id string to deterministically pick shape + color
+  // so it stays stable across re-renders but varies per card
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  }
+  const shape = TICKET_SHAPES[hash % TICKET_SHAPES.length];
+  const color = TICKET_COLORS[(hash >> 2) % TICKET_COLORS.length];
+  return { shape, color };
+}
 
 function normalizeFlashDeal(docSnap) {
   const d = docSnap.data() || {};
@@ -49,7 +81,9 @@ function pad(n) {
   return String(n).padStart(2, "0");
 }
 
-/* ── Horizontal mini card for the homepage banner strip ── */
+/* ════════════════════════════════════════════
+   BANNER CARD — ticket shaped
+════════════════════════════════════════════ */
 function BannerCard({ deal, onClick }) {
   const [countdown, setCountdown] = useState(() =>
     computeCountdown(getEndsAtMillis(deal))
@@ -69,86 +103,88 @@ function BannerCard({ deal, onClick }) {
   const discount = deal.discountPercent
     ? deal.discountPercent
     : deal.originalPrice > deal.dealPrice
-    ? Math.round(
-        ((deal.originalPrice - deal.dealPrice) / deal.originalPrice) * 100
-      )
+    ? Math.round(((deal.originalPrice - deal.dealPrice) / deal.originalPrice) * 100)
     : 0;
 
   const lowStock = deal.stock > 0 && deal.stock <= 15;
 
+  const { shape, color } = getTicketStyle(deal.id);
+
   return (
     <button
       type="button"
-      className={`fdb-card ${isExpired ? "fdb-card--expired" : ""}`}
+      className={`fdb-ticket fdb-ticket--${shape}${isExpired ? " fdb-ticket--expired" : ""}`}
       onClick={onClick}
       aria-label={deal.title}
     >
-      {/* Left — image */}
-      <div className="fdb-card-img-wrap">
-        {deal.image ? (
-          <img src={deal.image} alt={deal.title} className="fdb-card-img" />
-        ) : (
-          <div className="fdb-card-img-empty">
-            <svg
-              width="26"
-              height="26"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="3" width="18" height="18" rx="3" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <path d="M21 15l-5-5L5 21" />
-            </svg>
-          </div>
-        )}
+      <div
+        className="fdb-ticket-body"
+        style={{ "--tc": color }}
+      >
+        {/* Stub shape gets a tear-off line */}
+        {shape === "stub" && <div className="fdb-ticket-stub-line" />}
 
-        {discount > 0 && !isExpired && (
-          <span className="fdb-discount-pill">-{discount}%</span>
-        )}
+        {/* ── Image ── */}
+        <div className="fdb-card-img-wrap">
+          {deal.image ? (
+            <img src={deal.image} alt={deal.title} className="fdb-card-img" />
+          ) : (
+            <div className="fdb-card-img-empty">
+              <svg
+                width="26" height="26" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor"
+                strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="M21 15l-5-5L5 21" />
+              </svg>
+            </div>
+          )}
 
-        {isExpired && (
-          <div className="fdb-expired-overlay">
-            <span>Expired</span>
-          </div>
-        )}
-      </div>
+          {discount > 0 && !isExpired && (
+            <span className="fdb-discount-pill">-{discount}%</span>
+          )}
 
-      {/* Right — info */}
-      <div className="fdb-card-info">
-        {/* Name row + stock badge */}
-        <div className="fdb-card-top-row">
-          <p className="fdb-card-name">{deal.title}</p>
-          {lowStock && !isExpired && (
-            <span className="fdb-stock-badge">Low Stock : {deal.stock}</span>
+          {isExpired && (
+            <div className="fdb-expired-overlay">
+              <span>Expired</span>
+            </div>
           )}
         </div>
 
-        {/* Description */}
-        {deal.description ? (
-          <p className="fdb-card-desc">{deal.description}</p>
-        ) : null}
-
-        {/* Countdown */}
-        {!isExpired && countdown ? (
-          <div className="fdb-timer">
-            <span className="fdb-timer-dot" />
-            <span className="fdb-timer-text">
-              {pad(countdown.h)}:{pad(countdown.m)}:{pad(countdown.s)}
-            </span>
+        {/* ── Info ── */}
+        <div className="fdb-card-info">
+          <div className="fdb-card-top-row">
+            <p className="fdb-card-name">{deal.title}</p>
+            {lowStock && !isExpired && (
+              <span className="fdb-stock-badge">{deal.stock} left</span>
+            )}
           </div>
-        ) : null}
 
-        {/* Price */}
-        <p className="fdb-price">{formatMoney(deal.dealPrice)}</p>
+          {deal.description ? (
+            <p className="fdb-card-desc">{deal.description}</p>
+          ) : null}
+
+          {!isExpired && countdown ? (
+            <div className="fdb-timer">
+              <span className="fdb-timer-dot" />
+              <span className="fdb-timer-text">
+                {pad(countdown.h)}:{pad(countdown.m)}:{pad(countdown.s)}
+              </span>
+            </div>
+          ) : null}
+
+          <p className="fdb-price">{formatMoney(deal.dealPrice)}</p>
+        </div>
       </div>
     </button>
   );
 }
 
+/* ════════════════════════════════════════════
+   MAIN EXPORT
+════════════════════════════════════════════ */
 export default function FlashDealsBanner() {
   const navigate = useNavigate();
   const [deals, setDeals] = useState([]);
@@ -162,8 +198,7 @@ export default function FlashDealsBanner() {
           query(collection(db, FLASH_COLLECTION), orderBy("order", "asc"))
         );
         if (!alive) return;
-        const rows = snap.docs.map(normalizeFlashDeal);
-        setDeals(rows.sort((a, b) => a.order - b.order));
+        setDeals(snap.docs.map(normalizeFlashDeal).sort((a, b) => a.order - b.order));
       } catch {
         try {
           const fallback = await getDocs(collection(db, FLASH_COLLECTION));
@@ -181,30 +216,24 @@ export default function FlashDealsBanner() {
       }
     }
     load();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, []);
 
   if (!loading && deals.length === 0) return null;
 
   const handleCardClick = (deal) => {
     if (deal.productId) navigate(`/product/${deal.productId}`);
-    else if (deal.shopKey)
-      navigate(`/shop?shop=${encodeURIComponent(deal.shopKey)}`);
+    else if (deal.shopKey) navigate(`/shop?shop=${encodeURIComponent(deal.shopKey)}`);
     else navigate("/flash-deals");
   };
 
   return (
     <section className="fdb-section">
-      {/* Section header */}
+
+      {/* ── Header ── */}
       <div className="fdb-header">
         <div className="fdb-header-left">
-          <svg
-            className="fdb-bolt-icon"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-          >
+          <svg className="fdb-bolt-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" />
           </svg>
           <h3 className="fdb-title">Flash Deals</h3>
@@ -215,15 +244,16 @@ export default function FlashDealsBanner() {
           className="fdb-see-all"
           onClick={() => navigate("/flash-deals")}
         >
-          See all
+          See all →
         </button>
       </div>
 
-      {/* Horizontal scroll strip */}
+      {/* ── Scroll strip ── */}
       {loading ? (
         <div className="fdb-scroll">
-          {[1, 2, 3].map((n) => (
-            <div key={n} className="fdb-skeleton-card">
+          {/* Skeleton cards — each gets a different shape */}
+          {["notch", "rounded", "perforated"].map((shape) => (
+            <div key={shape} className={`fdb-skeleton-card fdb-ticket--${shape}`}>
               <div className="fdb-skeleton-img" />
               <div className="fdb-skeleton-body">
                 <div className="fdb-skeleton-line" />
@@ -244,28 +274,21 @@ export default function FlashDealsBanner() {
             />
           ))}
 
-          {/* "View all" tail card */}
+          {/* View all tail — notch ticket style */}
           <button
             type="button"
             className="fdb-view-all-card"
             onClick={() => navigate("/flash-deals")}
             aria-label="View all flash deals"
           >
-            <svg
-              className="fdb-view-all-bolt"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
+            <svg className="fdb-view-all-bolt" viewBox="0 0 24 24" fill="currentColor">
               <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" />
             </svg>
-            <span className="fdb-view-all-text">
-              View
-              <br />
-              all
-            </span>
+            <span className="fdb-view-all-text">View<br />all</span>
           </button>
         </div>
       )}
+
     </section>
   );
 }
