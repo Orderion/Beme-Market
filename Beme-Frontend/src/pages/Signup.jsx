@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
-import { db } from "../firebase";
+import { auth, db } from "../firebase";
 import "./Login.css";
 
 function isValidEmail(value) {
@@ -56,16 +56,22 @@ export default function Signup() {
     setErr("");
     const emailTrim    = email.trim();
     const passwordTrim = password.trim();
-    if (!emailTrim || !passwordTrim) { setErr("Enter email and password.");                    return; }
-    if (!isValidEmail(emailTrim))    { setErr("Enter a valid email address.");                 return; }
-    if (passwordTrim.length < 6)     { setErr("Password must be at least 6 characters.");     return; }
+    if (!emailTrim || !passwordTrim) { setErr("Enter email and password.");                     return; }
+    if (!isValidEmail(emailTrim))    { setErr("Enter a valid email address.");                  return; }
+    if (passwordTrim.length < 6)     { setErr("Password must be at least 6 characters.");      return; }
     if (!agreedToTerms)              { setErr("Please agree to the terms of use to continue."); return; }
     setLoading(true);
     try {
       await signup(emailTrim, passwordTrim);
-      /* Always go to onboarding after a fresh signup */
       navigate("/onboarding", { replace: true });
     } catch (e) {
+      // Firebase may have successfully created the account but thrown an error
+      // afterwards (e.g. a Firestore write or email verification step failed).
+      // If auth.currentUser is set, the account exists — just continue.
+      if (auth.currentUser) {
+        navigate("/onboarding", { replace: true });
+        return;
+      }
       const code = e?.code || "";
       if (code.includes("auth/email-already-in-use"))
         setErr("An account with this email already exists. Log in instead.");
