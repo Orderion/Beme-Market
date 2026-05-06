@@ -1,8 +1,8 @@
 /* ─────────────────────────────────────────
-   FlashDealsBanner — horizontal card strip
+   FlashDealsBanner — Neo-Brutalist Ticket Edition
+   4 ticket shapes · random colors · hard shadows
    ───────────────────────────────────────── */
 
-/* Section wrapper */
 .fdb-section {
   padding: 0 0 8px;
 }
@@ -13,110 +13,252 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .fdb-header-left {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
 }
 
 .fdb-bolt-icon {
   width: 18px;
   height: 18px;
-  color: var(--color-primary, #f97316);
+  color: #FF6600;
   flex-shrink: 0;
 }
 
 .fdb-title {
   font-size: 16px;
-  font-weight: 700;
-  color: var(--color-text-primary, #1a1a1a);
+  font-weight: 900;
+  color: var(--text, #111);
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
   position: relative;
   padding-bottom: 3px;
 }
 
+/* Hard underline — brutalist */
 .fdb-title::after {
   content: "";
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 2px;
-  background: var(--color-primary, #f97316);
-  border-radius: 2px;
+  height: 3px;
+  background: #FF6600;
 }
 
+/* LIVE badge — hard rectangle */
 .fdb-live-badge {
-  background: var(--color-primary, #f97316);
+  background: #FF6600;
   color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 20px;
-  letter-spacing: 0.5px;
+  font-size: 9px;
+  font-weight: 900;
+  padding: 3px 8px;
+  border: 2px solid var(--text, #111);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: 0;
 }
 
 .fdb-see-all {
   background: none;
-  border: none;
-  padding: 0;
+  border: 2px solid var(--text, #111);
+  padding: 4px 12px;
   cursor: pointer;
-  font-size: 13px;
-  color: var(--color-text-secondary, #888);
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--text, #111);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: background 0.1s, color 0.1s;
+}
+
+.fdb-see-all:active {
+  background: var(--text, #111);
+  color: #fff;
 }
 
 /* ── Scroll strip ── */
 .fdb-scroll {
   display: flex;
   flex-direction: row;
-  gap: 10px;
+  gap: 16px;
   overflow-x: auto;
-  padding: 4px 16px 8px;
+  padding: 6px 16px 16px;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
 
-.fdb-scroll::-webkit-scrollbar {
-  display: none;
-}
+.fdb-scroll::-webkit-scrollbar { display: none; }
 
-/* ── Horizontal deal card ── */
-.fdb-card {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 13px;
-  min-width: 300px;
-  max-width: 320px;
+/* ════════════════════════════════════════════
+   TICKET WRAPPER
+   filter: drop-shadow follows the masked shape
+════════════════════════════════════════════ */
+.fdb-ticket {
   flex-shrink: 0;
-  background: var(--color-card-bg, #ffffff);
-  border: 0.5px solid var(--color-border, rgba(0, 0, 0, 0.07));
-  border-radius: 16px;
-  padding: 13px;
+  min-width: 290px;
+  max-width: 310px;
   cursor: pointer;
+  /* Hard offset shadow — neo-brutalist signature */
+  filter: drop-shadow(4px 4px 0 rgba(0, 0, 0, 0.88));
+  transition: filter 0.1s ease, transform 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+  background: transparent; /* shape comes from fdb-ticket-body mask */
+  border: none;
+  padding: 0;
   text-align: left;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.fdb-card:active {
-  transform: scale(0.98);
+.fdb-ticket:active {
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.88));
+  transform: translate(3px, 3px);
 }
 
-.fdb-card--expired {
+.fdb-ticket--expired {
   opacity: 0.55;
 }
 
-/* ── Image side ── */
+/* ── Ticket body: background color + shape mask ── */
+.fdb-ticket-body {
+  background: var(--tc, #FFD700);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  height: 120px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle diagonal stripe texture — ticket paper feel */
+.fdb-ticket-body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -50deg,
+    transparent,
+    transparent 10px,
+    rgba(0, 0, 0, 0.04) 10px,
+    rgba(0, 0, 0, 0.04) 11px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* All direct children above texture */
+.fdb-ticket-body > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ════════════════════════════════════════════
+   SHAPE 1 — CLASSIC NOTCH
+   Semicircle cutouts on left & right midpoint
+════════════════════════════════════════════ */
+.fdb-ticket--notch .fdb-ticket-body {
+  -webkit-mask:
+    radial-gradient(circle at 0% 50%, transparent 15px, white 16px) 0 0 / 50.5% 100% no-repeat,
+    radial-gradient(circle at 100% 50%, transparent 15px, white 16px) 100% 0 / 50.5% 100% no-repeat;
+  mask:
+    radial-gradient(circle at 0% 50%, transparent 15px, white 16px) 0 0 / 50.5% 100% no-repeat,
+    radial-gradient(circle at 100% 50%, transparent 15px, white 16px) 100% 0 / 50.5% 100% no-repeat;
+}
+
+/* ════════════════════════════════════════════
+   SHAPE 2 — ROUNDED CORNERS
+   Cinema / standard ticket
+════════════════════════════════════════════ */
+.fdb-ticket--rounded .fdb-ticket-body {
+  border-radius: 14px;
+}
+
+/* ════════════════════════════════════════════
+   SHAPE 3 — PERFORATED EDGES
+   Punch holes along left & right edges
+════════════════════════════════════════════ */
+.fdb-ticket--perforated .fdb-ticket-body {
+  -webkit-mask:
+    /* Left perforations: 9px strip, 3px hole / 8px solid */
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0, transparent 3px,
+      white 3px, white 11px
+    ) 0 0 / 9px 100% no-repeat,
+    /* Right perforations */
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0, transparent 3px,
+      white 3px, white 11px
+    ) 100% 0 / 9px 100% no-repeat,
+    /* Solid center fill */
+    linear-gradient(white, white) 9px 0 / calc(100% - 18px) 100% no-repeat;
+  mask:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0, transparent 3px,
+      white 3px, white 11px
+    ) 0 0 / 9px 100% no-repeat,
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0, transparent 3px,
+      white 3px, white 11px
+    ) 100% 0 / 9px 100% no-repeat,
+    linear-gradient(white, white) 9px 0 / calc(100% - 18px) 100% no-repeat;
+}
+
+/* ════════════════════════════════════════════
+   SHAPE 4 — STUB TICKET
+   Notch sides + vertical dashed tear-off line
+════════════════════════════════════════════ */
+.fdb-ticket--stub .fdb-ticket-body {
+  -webkit-mask:
+    radial-gradient(circle at 0% 50%, transparent 15px, white 16px) 0 0 / 50.5% 100% no-repeat,
+    radial-gradient(circle at 100% 50%, transparent 15px, white 16px) 100% 0 / 50.5% 100% no-repeat;
+  mask:
+    radial-gradient(circle at 0% 50%, transparent 15px, white 16px) 0 0 / 50.5% 100% no-repeat,
+    radial-gradient(circle at 100% 50%, transparent 15px, white 16px) 100% 0 / 50.5% 100% no-repeat;
+}
+
+/* The dashed vertical divider — tear-off line */
+.fdb-ticket-stub-line {
+  position: absolute;
+  right: 86px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.45) 0,
+    rgba(0, 0, 0, 0.45) 5px,
+    transparent 5px,
+    transparent 9px
+  );
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Stub pricing area (the right portion) */
+.fdb-ticket--stub .fdb-ticket-body .fdb-card-img-wrap {
+  flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════════
+   IMAGE SECTION
+════════════════════════════════════════════ */
 .fdb-card-img-wrap {
   position: relative;
   flex-shrink: 0;
-  width: 90px;
-  height: 90px;
-  border-radius: 12px;
+  width: 86px;
+  height: 86px;
   overflow: hidden;
-  background: var(--color-img-bg, #f5f2ee);
+  border: 2.5px solid rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.35);
 }
 
 .fdb-card-img {
@@ -132,45 +274,50 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-secondary, #aaa);
+  color: rgba(0, 0, 0, 0.4);
 }
 
+/* Discount pill — hard rectangle */
 .fdb-discount-pill {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  background: var(--color-primary, #f97316);
+  top: 5px;
+  left: 5px;
+  background: #111;
   color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 900;
+  padding: 2px 6px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 0;
   line-height: 1.4;
 }
 
 .fdb-expired-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
 }
 
 .fdb-expired-overlay span {
   color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-/* ── Info side ── */
+/* ════════════════════════════════════════════
+   INFO SECTION
+════════════════════════════════════════════ */
 .fdb-card-info {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
 }
 
@@ -182,10 +329,12 @@
 }
 
 .fdb-card-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-text-primary, #1a1a1a);
-  line-height: 1.3;
+  font-size: 13px;
+  font-weight: 900;
+  color: #111;
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -194,25 +343,28 @@
 }
 
 .fdb-card-desc {
-  font-size: 12px;
-  color: var(--color-text-secondary, #888);
-  line-height: 1.4;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.6);
+  line-height: 1.35;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
+/* Stock badge — hard bordered rectangle */
 .fdb-stock-badge {
   flex-shrink: 0;
-  background: var(--color-stock-bg, #fff8ed);
-  color: var(--color-stock-text, #c2680a);
-  border: 0.5px solid var(--color-stock-border, #f5d9b0);
-  font-size: 10px;
-  font-weight: 600;
-  padding: 3px 7px;
-  border-radius: 20px;
+  background: #111;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 900;
+  padding: 2px 6px;
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 0;
 }
 
 /* ── Timer ── */
@@ -222,121 +374,138 @@
   gap: 5px;
 }
 
+/* Square pulsing dot */
 .fdb-timer-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 0;
   flex-shrink: 0;
-  background: var(--color-primary, #f97316);
-  animation: fdb-pulse 1.2s ease-in-out infinite;
+  background: #111;
+  animation: fdb-pulse 1.1s ease-in-out infinite;
 }
 
 @keyframes fdb-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.25; }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.3; transform: scale(0.7); }
 }
 
 .fdb-timer-text {
   font-size: 12px;
-  font-weight: 700;
-  color: var(--color-primary, #f97316);
-  letter-spacing: 0.5px;
+  font-weight: 900;
+  color: #111;
+  letter-spacing: 0.06em;
   font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
 }
 
 /* ── Price ── */
 .fdb-price {
-  font-size: 17px;
-  font-weight: 800;
-  color: var(--color-text-primary, #1a1a1a);
-  letter-spacing: -0.3px;
-  margin-top: 2px;
+  font-size: 16px;
+  font-weight: 900;
+  color: #111;
+  letter-spacing: -0.03em;
+  margin-top: 1px;
+  text-transform: uppercase;
 }
 
-/* ── View all tail card ── */
+/* ════════════════════════════════════════════
+   VIEW ALL TAIL CARD — ticket stub style
+════════════════════════════════════════════ */
 .fdb-view-all-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-width: 90px;
-  width: 90px;
-  height: 116px;
+  gap: 7px;
+  min-width: 84px;
+  width: 84px;
+  height: 120px;
   flex-shrink: 0;
-  background: var(--color-view-all-bg, #fff8f2);
-  border: 1.5px dashed var(--color-primary, #f97316);
-  border-radius: 16px;
+  background: #111;
+  color: #fff;
+  border: none;
   cursor: pointer;
-  transition: background 0.15s ease;
+  /* same notch mask */
+  -webkit-mask:
+    radial-gradient(circle at 0% 50%, transparent 13px, white 14px) 0 0 / 50.5% 100% no-repeat,
+    radial-gradient(circle at 100% 50%, transparent 13px, white 14px) 100% 0 / 50.5% 100% no-repeat;
+  mask:
+    radial-gradient(circle at 0% 50%, transparent 13px, white 14px) 0 0 / 50.5% 100% no-repeat,
+    radial-gradient(circle at 100% 50%, transparent 13px, white 14px) 100% 0 / 50.5% 100% no-repeat;
+  filter: drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.7));
+  transition: filter 0.1s, transform 0.1s;
 }
 
 .fdb-view-all-card:active {
-  background: var(--color-view-all-bg-active, #ffeedd);
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.7));
+  transform: translate(2px, 2px);
 }
 
 .fdb-view-all-bolt {
   width: 20px;
   height: 20px;
-  color: var(--color-primary, #f97316);
+  color: #FF6600;
 }
 
 .fdb-view-all-text {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--color-primary, #f97316);
+  font-size: 11px;
+  font-weight: 900;
+  color: #fff;
   text-align: center;
   line-height: 1.3;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-/* ── Skeleton loaders ── */
+/* ════════════════════════════════════════════
+   SKELETON LOADERS
+════════════════════════════════════════════ */
 .fdb-skeleton-card {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 13px;
-  min-width: 300px;
-  max-width: 320px;
+  gap: 12px;
+  min-width: 290px;
+  max-width: 310px;
   flex-shrink: 0;
-  background: var(--color-card-bg, #ffffff);
-  border: 0.5px solid var(--color-border, rgba(0, 0, 0, 0.07));
-  border-radius: 16px;
-  padding: 13px;
+  background: var(--soft, #f0f0f0);
+  padding: 14px;
+  height: 120px;
+  /* notch shape on skeleton too */
+  -webkit-mask:
+    radial-gradient(circle at 0% 50%, transparent 15px, white 16px) 0 0 / 50.5% 100% no-repeat,
+    radial-gradient(circle at 100% 50%, transparent 15px, white 16px) 100% 0 / 50.5% 100% no-repeat;
+  mask:
+    radial-gradient(circle at 0% 50%, transparent 15px, white 16px) 0 0 / 50.5% 100% no-repeat,
+    radial-gradient(circle at 100% 50%, transparent 15px, white 16px) 100% 0 / 50.5% 100% no-repeat;
+  filter: drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.15));
+  animation: fdb-shimmer 1.4s ease-in-out infinite;
 }
 
 .fdb-skeleton-img {
-  width: 90px;
-  height: 90px;
-  border-radius: 12px;
+  width: 86px;
+  height: 86px;
   flex-shrink: 0;
-  background: var(--color-skeleton, #ebebeb);
-  animation: fdb-shimmer 1.4s ease-in-out infinite;
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .fdb-skeleton-body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
 }
 
 .fdb-skeleton-line {
-  height: 12px;
-  border-radius: 6px;
+  height: 11px;
   width: 100%;
-  background: var(--color-skeleton, #ebebeb);
-  animation: fdb-shimmer 1.4s ease-in-out infinite;
+  background: rgba(0, 0, 0, 0.1);
 }
 
-.fdb-skeleton-line--short {
-  width: 55%;
-}
-
-.fdb-skeleton-line--med {
-  width: 70%;
-}
+.fdb-skeleton-line--short { width: 50%; }
+.fdb-skeleton-line--med   { width: 68%; }
 
 @keyframes fdb-shimmer {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
+  50%       { opacity: 0.45; }
 }
