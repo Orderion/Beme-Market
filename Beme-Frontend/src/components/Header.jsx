@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useMemo } from "react";
+import { useRef, useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { collection, getDocs, limit, query } from "firebase/firestore";
 import { db } from "../firebase";
@@ -6,7 +6,6 @@ import { useCart } from "../context/CartContext";
 import "./Header.css";
 
 /* ================= ICONS ================= */
-
 function IconMenu() {
   return (
     <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true" fill="none"
@@ -15,7 +14,6 @@ function IconMenu() {
     </svg>
   );
 }
-
 function IconCart() {
   return (
     <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true" fill="none"
@@ -26,7 +24,6 @@ function IconCart() {
     </svg>
   );
 }
-
 function IconSearch() {
   return (
     <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true" fill="none"
@@ -36,7 +33,6 @@ function IconSearch() {
     </svg>
   );
 }
-
 function IconClose() {
   return (
     <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true" fill="none"
@@ -47,7 +43,6 @@ function IconClose() {
 }
 
 /* ================= SEARCH LOGIC ================= */
-
 const SEARCH_PREVIEW_LIMIT = 80;
 const SUGGESTION_LIMIT = 4;
 
@@ -149,7 +144,16 @@ function usePrefersDark() {
   return dark;
 }
 
-/* ================= COMPONENT ================= */
+/* ===============================================================
+   ANIMATION STATES
+   ──────────────────────────────────────────────────────────────
+   LOGO   → at top of page: logo centred, nothing else
+   BAR    → scrolled: logo fades out, full search bar expands in
+   ICON   → 5s idle: bar smoothly shrinks into a search icon btn
+   REOPEN → user tapped icon: bar smoothly expands again
+   =============================================================== */
+const S = { LOGO: "logo", BAR: "bar", ICON: "icon", REOPEN: "reopen" };
+const IDLE_MS = 5000;
 
 export default function Header({ onMenu, onCart }) {
   const navigate      = useNavigate();
@@ -160,76 +164,74 @@ export default function Header({ onMenu, onCart }) {
 
   const isHome = location.pathname === "/" || location.pathname === "/home";
 
-  /*
-   * Animation phases (only active on home page):
-   *
-   * Phase 0 — "default": Logo centred, no search bar visible in header.
-   * Phase 1 — "icon":    After scroll > 80px, logo shrinks + slides left to sit
-   *                       beside the menu button (becomes a search icon).
-   *                       Search bar stays hidden a moment.
-   * Phase 2 — "search":  ~300 ms after phase 1, the search bar expands in.
-   *
-   * On non-home pages we always show the logo and never show the inline search.
-   */
-  const [animPhase, setAnimPhase] = useState(0); // 0 | 1 | 2
+  const [anim,       setAnim]       = useState(S.LOGO);
+  const [products,   setProducts]   = useState([]);
+  const [loadingSugs,setLoadingSugs]= useState(false);
+  const [search,     setSearch]     = useState("");
+  const [sugOpen,    setSugOpen]    = useState(false);
+  const [activeIdx,  setActiveIdx]  = useState(-1);
 
-  const [products,      setProducts]      = useState([]);
-  const [loadingSugs,   setLoadingSugs]   = useState(false);
-  const [headerSearch,  setHeaderSearch]  = useState("");
-  const [headerSugOpen, setHeaderSugOpen] = useState(false);
-  const [headerActiveIdx, setHeaderActiveIdx] = useState(-1);
+  const inputRef  = useRef(null);
+  const wrapRef   = useRef(null);
+  const idleTimer = useRef(null);
 
-  const inputRef = useRef(null);
-  const wrapRef  = useRef(null);
-  const phaseTimerRef = useRef(null);
+  /* ── Restart 5-second idle countdown ── */
+  const resetIdle = useCallback(() => {
+    clearTimeout(idleTimer.current);
+    idleTimer.current = setTimeout(() => {
+      setAnim(prev => (prev === S.BAR || prev === S.REOPEN) ? S.ICON : prev);
+      setSugOpen(false);
+    }, IDLE_MS);
+  }, []);
 
-  /* ── Scroll listener — only on home ── */
+  /* ── Scroll: LOGO → BAR, or back to LOGO ── */
   useEffect(() => {
     if (!isHome) {
-      setAnimPhase(0);
-      setHeaderSearch("");
-      setHeaderSugOpen(false);
+      setAnim(S.LOGO);
+      setSearch("");
+      setSugOpen(false);
+      clearTimeout(idleTimer.current);
       return;
     }
 
-    const checkScroll = () => {
-      const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
-      const collapsed = scrollY > 80;
+    const onScroll = () => {
+      const scrolled = (window.scrollY || document.documentElement.scrollTop) > 80;
+      window.dispatchEvent(new CustomEvent("home-search-collapse", { detail: { collapsed: scrolled } }));
 
-      // Dispatch for Home.jsx sticky bar
-      window.dispatchEvent(new CustomEvent("home-search-collapse", { detail: { collapsed } }));
-
-      if (collapsed && animPhase < 1) {
-        // Phase 1: icon appears
-        setAnimPhase(1);
-        clearTimeout(phaseTimerRef.current);
-        // Phase 2: search bar expands after delay
-        phaseTimerRef.current = setTimeout(() => setAnimPhase(2), 320);
-      } else if (!collapsed && animPhase > 0) {
-        clearTimeout(phaseTimerRef.current);
-        setAnimPhase(0);
-        setHeaderSearch("");
-        setHeaderSugOpen(false);
-        setHeaderActiveIdx(-1);
+      if (scrolled) {
+        setAnim(prev => {
+          if (prev === S.LOGO) {
+            // Fresh scroll-in: open bar then start idle timer
+            resetIdle();
+            return S.BAR;
+          }
+          return prev; // already bar/icon — don't reset
+        });
+      } else {
+        // Scrolled back to top
+        clearTimeout(idleTimer.current);
+        setAnim(S.LOGO);
+        setSearch("");
+        setSugOpen(false);
+        setActiveIdx(-1);
       }
     };
 
-    window.addEventListener("scroll", checkScroll, { passive: true });
-    checkScroll(); // run on mount
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
     return () => {
-      window.removeEventListener("scroll", checkScroll);
-      clearTimeout(phaseTimerRef.current);
+      window.removeEventListener("scroll", onScroll);
+      clearTimeout(idleTimer.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHome, animPhase]);
+  }, [isHome, resetIdle]);
 
-  /* Focus input when search bar fully expands */
+  /* ── Focus input when bar opens ── */
   useEffect(() => {
-    if (animPhase === 2) {
-      const t = setTimeout(() => inputRef.current?.focus(), 80);
+    if (anim === S.BAR || anim === S.REOPEN) {
+      const t = setTimeout(() => inputRef.current?.focus(), 340);
       return () => clearTimeout(t);
     }
-  }, [animPhase]);
+  }, [anim]);
 
   /* ── Load products for suggestions ── */
   useEffect(() => {
@@ -249,12 +251,12 @@ export default function Header({ onMenu, onCart }) {
     return () => { alive = false; };
   }, [isHome]);
 
-  /* ── Click-outside suggestions ── */
+  /* ── Click outside → close suggestions ── */
   useEffect(() => {
     const onDown = (e) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) {
-        setHeaderSugOpen(false);
-        setHeaderActiveIdx(-1);
+        setSugOpen(false);
+        setActiveIdx(-1);
       }
     };
     document.addEventListener("mousedown", onDown);
@@ -265,9 +267,10 @@ export default function Header({ onMenu, onCart }) {
     };
   }, []);
 
-  const suggestions = useMemo(() => buildSuggestions(products, headerSearch), [products, headerSearch]);
+  const suggestions = useMemo(() => buildSuggestions(products, search), [products, search]);
   const count = cartItems?.reduce((sum, i) => sum + Number(i.qty || 1), 0) || 0;
 
+  /* ── Button handlers ── */
   const pulseLock = () => {
     actionLockRef.current = true;
     setTimeout(() => { actionLockRef.current = false; }, 220);
@@ -275,11 +278,17 @@ export default function Header({ onMenu, onCart }) {
   const handleMenuOpen = () => { if (!actionLockRef.current) { pulseLock(); onMenu?.(); } };
   const handleCartOpen = () => { if (!actionLockRef.current) { pulseLock(); onCart?.(); } };
 
+  /* Tapping the search icon → reopen bar */
+  const handleIconTap = () => {
+    setAnim(S.REOPEN);
+    resetIdle();
+  };
+
   const goToSearch = (value) => {
     const q = String(value || "").trim();
-    setHeaderSugOpen(false);
-    setHeaderActiveIdx(-1);
-    setHeaderSearch("");
+    setSugOpen(false);
+    setActiveIdx(-1);
+    setSearch("");
     if (!q) { navigate("/shop"); return; }
     if (q.startsWith("shop:")) {
       navigate(`/shop?shop=${encodeURIComponent(q.replace(/^shop:/, "").trim())}`);
@@ -290,147 +299,142 @@ export default function Header({ onMenu, onCart }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    goToSearch(
-      headerActiveIdx >= 0 && suggestions[headerActiveIdx]
-        ? suggestions[headerActiveIdx].value
-        : headerSearch
-    );
+    goToSearch(activeIdx >= 0 && suggestions[activeIdx] ? suggestions[activeIdx].value : search);
   };
 
   const handleChange = (e) => {
     const v = e.target.value;
-    setHeaderSearch(v);
-    setHeaderActiveIdx(-1);
-    setHeaderSugOpen(!!v.trim());
+    setSearch(v);
+    setActiveIdx(-1);
+    setSugOpen(!!v.trim());
+    resetIdle(); // any typing resets the idle timer
+  };
+
+  const handleFocus = () => {
+    if (search.trim()) setSugOpen(true);
+    resetIdle();
   };
 
   const handleKeyDown = (e) => {
-    if (!headerSugOpen || !suggestions.length) return;
-    if (e.key === "ArrowDown") { e.preventDefault(); setHeaderActiveIdx(p => p < suggestions.length - 1 ? p + 1 : 0); }
-    if (e.key === "ArrowUp")   { e.preventDefault(); setHeaderActiveIdx(p => p > 0 ? p - 1 : suggestions.length - 1); }
-    if (e.key === "Escape")    { setHeaderSugOpen(false); setHeaderActiveIdx(-1); }
+    resetIdle();
+    if (!sugOpen || !suggestions.length) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx(p => p < suggestions.length - 1 ? p + 1 : 0); }
+    if (e.key === "ArrowUp")   { e.preventDefault(); setActiveIdx(p => p > 0 ? p - 1 : suggestions.length - 1); }
+    if (e.key === "Escape")    { setSugOpen(false); setActiveIdx(-1); }
   };
+
+  /* ── Derived flags ── */
+  const isLogo = anim === S.LOGO;
+  const isBar  = anim === S.BAR || anim === S.REOPEN;
+  const isIcon = anim === S.ICON;
 
   const logoSrc = prefersDark ? "/favicon_white.png" : "/favicon_black.png";
 
-  /* Phase booleans */
-  const showIcon   = isHome && animPhase >= 1; // search icon visible beside menu
-  const showSearch = isHome && animPhase >= 2; // search bar expanded
-
   return (
-    <header className={`hdr ${showSearch ? "hdr--search-mode" : ""}`}>
+    <header className="hdr">
 
-      {/* LEFT CLUSTER: menu + animated search icon */}
+      {/* LEFT: menu */}
       <div className="hdr-left">
         <button className="hdr-icon" onClick={handleMenuOpen} aria-label="Open menu" type="button">
           <IconMenu />
         </button>
+      </div>
 
-        {/* Search icon — appears in place of logo after scroll */}
+      {/* CENTRE: the three states live here, layered */}
+      <div className="hdr-centre" ref={wrapRef}>
+
+        {/* 1 — Logo */}
+        <div className={`hdr-logo-wrap ${!isLogo ? "hdr-logo-wrap--out" : ""}`}
+          aria-hidden={!isLogo}>
+          <img src={logoSrc} alt="Beme Market" className="hdr-logo" draggable={false} />
+        </div>
+
+        {/* 2 — Search bar (BAR + REOPEN states) */}
+        {isHome && (
+          <div className={`hdr-bar-wrap ${isBar ? "hdr-bar-wrap--open" : ""}`}
+            aria-hidden={!isBar}>
+            <form className="hdr-search-form" onSubmit={handleSubmit}>
+              <span className="hdr-search-icon-left" aria-hidden="true">
+                <IconSearch />
+              </span>
+              <input
+                ref={inputRef}
+                type="text"
+                value={search}
+                onChange={handleChange}
+                onFocus={handleFocus}
+                onKeyDown={handleKeyDown}
+                placeholder="Search products or stores"
+                className="hdr-search-input"
+                autoComplete="off"
+                tabIndex={isBar ? 0 : -1}
+              />
+              {search && (
+                <button
+                  type="button"
+                  className="hdr-search-clear"
+                  onClick={() => { setSearch(""); setSugOpen(false); inputRef.current?.focus(); resetIdle(); }}
+                  tabIndex={isBar ? 0 : -1}
+                  aria-label="Clear search"
+                >
+                  <IconClose />
+                </button>
+              )}
+              <button
+                type="submit"
+                className="hdr-search-submit"
+                tabIndex={isBar ? 0 : -1}
+                aria-label="Search"
+              >
+                <IconSearch />
+              </button>
+            </form>
+
+            {sugOpen && isBar && (
+              <div className="hdr-suggestions">
+                {loadingSugs ? (
+                  <div className="hdr-suggestion-empty">Loading…</div>
+                ) : suggestions.length ? (
+                  suggestions.map((item, idx) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`hdr-suggestion-item ${idx === activeIdx ? "active" : ""}`}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => goToSearch(item.value)}
+                    >
+                      <span className="hdr-sug-label">{item.label}</span>
+                      <span className="hdr-sug-type">{TYPE_LABELS[item.type] || item.type}</span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="hdr-suggestion-empty">No results found.</div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 3 — Search icon pill (ICON state) */}
         {isHome && (
           <button
-            className={`hdr-icon hdr-search-icon-btn ${showIcon ? "hdr-search-icon-btn--visible" : ""}`}
-            onClick={() => { if (animPhase >= 1) inputRef.current?.focus(); }}
-            aria-label="Search"
+            className={`hdr-icon hdr-search-pill ${isIcon ? "hdr-search-pill--visible" : ""}`}
+            onClick={handleIconTap}
+            aria-label="Open search"
             type="button"
-            tabIndex={showIcon ? 0 : -1}
+            tabIndex={isIcon ? 0 : -1}
           >
             <IconSearch />
           </button>
         )}
+
       </div>
-
-      {/* CENTER LOGO — fades + shrinks out as scroll happens */}
-      <div className={`hdr-logo-wrap ${showIcon ? "hdr-logo-wrap--hidden" : ""}`}>
-        <img
-          src={logoSrc}
-          alt="Beme Market"
-          className="hdr-logo"
-          draggable={false}
-        />
-      </div>
-
-      {/* INLINE SEARCH BAR — expands after icon phase */}
-      {isHome && (
-        <div
-          ref={wrapRef}
-          className={`hdr-inline-search ${showSearch ? "hdr-inline-search--visible" : ""}`}
-        >
-          <form className="hdr-search-form" onSubmit={handleSubmit}>
-            <input
-              ref={inputRef}
-              type="text"
-              value={headerSearch}
-              onChange={handleChange}
-              onFocus={() => { if (headerSearch.trim()) setHeaderSugOpen(true); }}
-              onKeyDown={handleKeyDown}
-              placeholder="Search products or stores"
-              className="hdr-search-input"
-              autoComplete="off"
-              tabIndex={showSearch ? 0 : -1}
-            />
-            {headerSearch && (
-              <button
-                type="button"
-                className="hdr-search-clear"
-                onClick={() => {
-                  setHeaderSearch("");
-                  setHeaderSugOpen(false);
-                  inputRef.current?.focus();
-                }}
-                tabIndex={showSearch ? 0 : -1}
-                aria-label="Clear search"
-              >
-                <IconClose />
-              </button>
-            )}
-            <button
-              type="submit"
-              className="hdr-search-submit"
-              tabIndex={showSearch ? 0 : -1}
-              aria-label="Submit search"
-            >
-              <IconSearch />
-            </button>
-          </form>
-
-          {headerSugOpen && showSearch && (
-            <div className="hdr-suggestions">
-              {loadingSugs ? (
-                <div className="hdr-suggestion-empty">Loading…</div>
-              ) : suggestions.length ? (
-                suggestions.map((item, idx) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`hdr-suggestion-item ${idx === headerActiveIdx ? "active" : ""}`}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => goToSearch(item.value)}
-                  >
-                    <span className="hdr-sug-label">{item.label}</span>
-                    <span className="hdr-sug-type">{TYPE_LABELS[item.type] || item.type}</span>
-                  </button>
-                ))
-              ) : (
-                <div className="hdr-suggestion-empty">No results found.</div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* RIGHT: cart */}
       <div className="hdr-right">
-        <button
-          className="hdr-icon hdr-bag"
-          onClick={handleCartOpen}
-          aria-label="Open cart"
-          type="button"
-        >
+        <button className="hdr-icon hdr-bag" onClick={handleCartOpen} aria-label="Open cart" type="button">
           <IconCart />
-          {count > 0 && (
-            <span className="hdr-badge">{count > 99 ? "99+" : count}</span>
-          )}
+          {count > 0 && <span className="hdr-badge">{count > 99 ? "99+" : count}</span>}
         </button>
       </div>
 
