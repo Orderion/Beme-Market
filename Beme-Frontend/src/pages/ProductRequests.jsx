@@ -1,4 +1,6 @@
 // src/pages/ProductRequests.jsx
+// Neo-brutalist reskin + Wish-style fixed modal (no page scroll, solid overlay)
+
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -17,7 +19,6 @@ function IconInbox() {
     </svg>
   );
 }
-
 function IconTag() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -27,7 +28,6 @@ function IconTag() {
     </svg>
   );
 }
-
 function IconGHS() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -37,7 +37,6 @@ function IconGHS() {
     </svg>
   );
 }
-
 function IconChat() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -46,7 +45,6 @@ function IconChat() {
     </svg>
   );
 }
-
 function IconInfo() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -57,17 +55,15 @@ function IconInfo() {
     </svg>
   );
 }
-
 function IconChevronDown({ open }) {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-      style={{ transition: "transform 0.3s cubic-bezier(0.34,1.56,0.64,1)", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>
+      style={{ transition: "transform 0.25s ease", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>
       <polyline points="6 9 12 15 18 9" />
     </svg>
   );
 }
-
 function IconCheck() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -76,7 +72,6 @@ function IconCheck() {
     </svg>
   );
 }
-
 function IconLink() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -86,7 +81,6 @@ function IconLink() {
     </svg>
   );
 }
-
 function IconX() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -96,7 +90,6 @@ function IconX() {
     </svg>
   );
 }
-
 function IconRefresh() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -107,7 +100,6 @@ function IconRefresh() {
     </svg>
   );
 }
-
 function IconUsers() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
@@ -119,7 +111,6 @@ function IconUsers() {
     </svg>
   );
 }
-
 function IconTrendUp() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
@@ -129,7 +120,6 @@ function IconTrendUp() {
     </svg>
   );
 }
-
 function IconCheckCircle() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
@@ -139,7 +129,6 @@ function IconCheckCircle() {
     </svg>
   );
 }
-
 function IconXCircle() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
@@ -150,7 +139,6 @@ function IconXCircle() {
     </svg>
   );
 }
-
 function IconUser() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -173,7 +161,6 @@ const FILTERS = [
 // ─── ADMIN GUIDE ─────────────────────────────────────────────────────────────
 function AdminGuide() {
   const [open, setOpen] = useState(false);
-
   return (
     <div className={`pr-guide${open ? " pr-guide--open" : ""}`}>
       <button type="button" className="pr-guide-toggle" onClick={() => setOpen(v => !v)}>
@@ -183,34 +170,27 @@ function AdminGuide() {
         </span>
         <IconChevronDown open={open} />
       </button>
-
       <div className="pr-guide-body">
         <div className="pr-guide-inner">
           <ol className="pr-guide-steps">
             <li>
-              <strong>Mark as Sourcing</strong> — click "Mark sourcing" so the customer knows you're working on it. Chat with them if you need more details.
+              <strong>Mark as Sourcing</strong> — click "Mark sourcing" so the customer knows you're working on it.
             </li>
             <li>
-              <strong>Add the product to your Products collection</strong> in Firestore/your admin panel. Set these extra fields on the product:
+              <strong>Add the product</strong> to your Products collection in Firestore/your admin panel with these fields:
               <div className="pr-guide-code">
                 <code>isCustomRequest: <span className="kw">true</span></code>
                 <code>allowedUserId: <span className="str">"&lt;customer's userId&gt;"</span></code>
                 <code>expiresAt: <span className="str">Timestamp (e.g. +7 days from now)</span></code>
               </div>
-              <p className="pr-guide-note">
-                These flags make the product private — only the intended customer can see it. The product auto-hides after the expiry date.
-              </p>
+              <p className="pr-guide-note">These flags make the product private — only the intended customer can see it.</p>
             </li>
-            <li>
-              <strong>Copy the product's Firestore document ID</strong> (or its full URL — the system extracts the ID automatically).
-            </li>
-            <li>
-              <strong>Click "Link product"</strong>, paste the ID, add an optional note, then confirm. The customer is notified immediately.
-            </li>
+            <li><strong>Copy the product's Firestore document ID</strong> (or full URL).</li>
+            <li><strong>Click "Link product"</strong>, paste the ID, add an optional note, then confirm.</li>
           </ol>
           <div className="pr-guide-tip">
             <IconInfo />
-            <span><strong>Tip:</strong> Use the chat on each request to communicate with the customer at any stage — clarify specs, share an ETA, or let them know the product is ready.</span>
+            <span><strong>Tip:</strong> Use the chat on each request to communicate with the customer at any stage.</span>
           </div>
         </div>
       </div>
@@ -249,21 +229,120 @@ function StatusBadge({ status }) {
     rejected:  { label: "Rejected",  cls: "red"   },
   };
   const cfg = map[status] || { label: status, cls: "muted" };
+  return <span className={`pr-status pr-status--${cfg.cls}`}>{cfg.label}</span>;
+}
+
+// ─── LINK MODAL — Wish-style fixed overlay, no blur ───────────────────────────
+function LinkModal({ request, onClose, onSubmit, working }) {
+  const [productId, setProductId] = useState(request.offeredProductId || "");
+  const [adminNote, setAdminNote] = useState(request.adminResponse || "");
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    document.body.classList.add("pr-modal-open");
+    return () => document.body.classList.remove("pr-modal-open");
+  }, []);
+
+  // Close on Escape
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  function handleSubmit() {
+    if (!productId.trim()) return;
+    onSubmit(productId.trim(), adminNote.trim() || null);
+  }
+
   return (
-    <span className={`pr-status pr-status--${cfg.cls}`}>
-      {cfg.label}
-    </span>
+    // Clicking the backdrop closes the modal
+    <div className="pr-modal-backdrop" onClick={onClose}>
+      {/* Stop click propagation so clicking inside the modal doesn't close it */}
+      <div className="pr-modal" onClick={e => e.stopPropagation()}>
+
+        {/* Orange top stripe */}
+        <div className="pr-modal-topbar" />
+
+        {/* Header — always visible, never scrolls */}
+        <div className="pr-modal-header">
+          <p className="pr-modal-title">Link a Product</p>
+          <button
+            type="button"
+            className="pr-modal-close"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <IconX />
+          </button>
+        </div>
+
+        {/* Body — scrolls internally only if too tall */}
+        <div className="pr-modal-body">
+          <div className="pr-link-field">
+            <label className="pr-link-label">Product ID or URL</label>
+            <input
+              className="pr-link-input"
+              type="text"
+              placeholder="e.g. abc123ProductId or full product URL"
+              value={productId}
+              onChange={e => setProductId(e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          <div className="pr-link-field">
+            <label className="pr-link-label">Admin Note (optional)</label>
+            <input
+              className="pr-link-input"
+              type="text"
+              placeholder="e.g. Sourced from Ghana Electro, 2-day delivery"
+              value={adminNote}
+              onChange={e => setAdminNote(e.target.value)}
+            />
+          </div>
+
+          <div className="pr-link-hint">
+            Ensure the product has <code>isCustomRequest: true</code>,{" "}
+            <code>allowedUserId: "{request.userId}"</code>, and{" "}
+            <code>expiresAt</code> set before linking.
+          </div>
+        </div>
+
+        {/* Footer — always visible, never scrolls */}
+        <div className="pr-modal-footer">
+          <button
+            type="button"
+            className="pr-action-btn pr-action-btn--green"
+            style={{ flex: 1 }}
+            disabled={!productId.trim() || working}
+            onClick={handleSubmit}
+          >
+            {working
+              ? <span className="pr-spinner" />
+              : <><IconCheck /> Confirm &amp; Notify User</>
+            }
+          </button>
+          <button
+            type="button"
+            className="pr-action-btn"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+        </div>
+
+      </div>
+    </div>
   );
 }
 
 // ─── REQUEST CARD ─────────────────────────────────────────────────────────────
 function RequestCard({ request, onChangeStatus, updating, currentUser }) {
-  const [showLinkForm, setShowLinkForm] = useState(false);
-  const [productId,    setProductId]    = useState(request.offeredProductId || "");
-  const [adminNote,    setAdminNote]    = useState(request.adminResponse || "");
-  const [working,      setWorking]      = useState(false);
-  const [chatOpen,     setChatOpen]     = useState(false);
-  const [unread,       setUnread]       = useState(0);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [working,       setWorking]       = useState(false);
+  const [chatOpen,      setChatOpen]      = useState(false);
+  const [unread,        setUnread]        = useState(0);
 
   useEffect(() => {
     if (!currentUser?.uid) return;
@@ -283,229 +362,146 @@ function RequestCard({ request, onChangeStatus, updating, currentUser }) {
 
   async function handleAction(status, extras = {}) {
     setWorking(true);
-    try {
-      await onChangeStatus(request.id, status, extras);
-    } finally {
-      setWorking(false);
-      setShowLinkForm(false);
-    }
+    try { await onChangeStatus(request.id, status, extras); }
+    finally { setWorking(false); }
   }
 
-  async function handleLinkSubmit() {
-    if (!productId.trim()) return;
+  async function handleLinkSubmit(productId, adminNote) {
     await handleAction("available", {
-      offeredProductId: productId.trim(),
-      adminResponse:    adminNote.trim() || null,
+      offeredProductId: productId,
+      adminResponse:    adminNote,
     });
+    setShowLinkModal(false);
   }
 
   const isBusy = working || updating;
 
   return (
-    <div className="pr-card" id={`req-${request.id}`}>
+    <>
+      <div className="pr-card" id={`req-${request.id}`}>
 
-      {/* ── Header ── */}
-      <div className="pr-card-header">
-        <div className="pr-card-avatar">
-          <IconUser />
+        {/* ── Header ── */}
+        <div className="pr-card-header">
+          <div className="pr-card-avatar"><IconUser /></div>
+          <div className="pr-card-info">
+            <p className="pr-card-name">{request.productName}</p>
+            <p className="pr-card-email">{request.userEmail}</p>
+          </div>
+          <div className="pr-card-header-right">
+            <StatusBadge status={request.status} />
+            {request.referenceImageUrl && (
+              <img src={request.referenceImageUrl} alt="Reference" className="pr-card-img" />
+            )}
+          </div>
         </div>
 
-        <div className="pr-card-info">
-          <p className="pr-card-name">{request.productName}</p>
-          <p className="pr-card-email">{request.userEmail}</p>
+        {/* ── Body ── */}
+        <div className="pr-card-body">
+          <p className="pr-card-desc">{request.description}</p>
+          <div className="pr-card-meta">
+            {request.category && (
+              <span className="pr-meta-pill"><IconTag /> {request.category}</span>
+            )}
+            {request.preferredBudget && (
+              <span className="pr-meta-pill pr-meta-pill--budget">
+                <IconGHS /> GH₵ {Number(request.preferredBudget).toLocaleString()}
+              </span>
+            )}
+            <span className="pr-meta-pill">{createdAt}</span>
+            {request.userId && (
+              <span className="pr-meta-pill pr-meta-pill--id">
+                UID: {request.userId.slice(0, 10)}…
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="pr-card-header-right">
-          <StatusBadge status={request.status} />
-          {request.referenceImageUrl && (
-            <img
-              src={request.referenceImageUrl}
-              alt="Reference"
-              className="pr-card-img"
-            />
-          )}
-        </div>
-      </div>
-
-      {/* ── Body ── */}
-      <div className="pr-card-body">
-        <p className="pr-card-desc">{request.description}</p>
-
-        <div className="pr-card-meta">
-          {request.category && (
-            <span className="pr-meta-pill">
-              <IconTag /> {request.category}
-            </span>
-          )}
-          {request.preferredBudget && (
-            <span className="pr-meta-pill pr-meta-pill--budget">
-              <IconGHS /> GH₵ {Number(request.preferredBudget).toLocaleString()}
-            </span>
-          )}
-          <span className="pr-meta-pill">{createdAt}</span>
-          {request.userId && (
-            <span className="pr-meta-pill pr-meta-pill--id">
-              UID: {request.userId.slice(0, 10)}…
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* ── Admin note ── */}
-      {request.adminResponse && (
-        <div className="pr-admin-note">
-          <span className="pr-admin-label">Note</span>
-          {request.adminResponse}
-        </div>
-      )}
-
-      {/* ── Linked product ── */}
-      {request.offeredProductId && (
-        <div className="pr-linked-product">
-          <IconLink />
-          <span>Linked product: <code>{request.offeredProductId}</code></span>
-        </div>
-      )}
-
-      {/* ── Actions ── */}
-      <div className="pr-card-actions">
-
-        {/* Mark sourcing */}
-        {request.status === "pending" && (
-          <button
-            type="button"
-            className="pr-action-btn pr-action-btn--outline"
-            disabled={isBusy}
-            onClick={() => handleAction("sourcing")}
-          >
-            {working ? <span className="pr-spinner pr-spinner--dark" /> : <>Mark sourcing</>}
-          </button>
+        {/* ── Admin note ── */}
+        {request.adminResponse && (
+          <div className="pr-admin-note">
+            <span className="pr-admin-label">Note</span>
+            {request.adminResponse}
+          </div>
         )}
 
-        {/* Link product */}
-        {(request.status === "pending" || request.status === "sourcing") && (
-          <button
-            type="button"
-            className={`pr-action-btn pr-action-btn--green${showLinkForm ? " pr-action-btn--active" : ""}`}
-            disabled={isBusy}
-            onClick={() => setShowLinkForm(v => !v)}
-          >
+        {/* ── Linked product ── */}
+        {request.offeredProductId && (
+          <div className="pr-linked-product">
             <IconLink />
-            {showLinkForm ? "Cancel" : "Link product"}
-          </button>
-        )}
-
-        {/* Reject */}
-        {(request.status === "pending" || request.status === "sourcing") && (
-          <button
-            type="button"
-            className="pr-action-btn pr-action-btn--red"
-            disabled={isBusy}
-            onClick={() => handleAction("rejected")}
-          >
-            {working ? <span className="pr-spinner" /> : <><IconX /> Reject</>}
-          </button>
-        )}
-
-        {/* Re-open */}
-        {request.status === "rejected" && (
-          <button
-            type="button"
-            className="pr-action-btn pr-action-btn--outline"
-            disabled={isBusy}
-            onClick={() => handleAction("pending")}
-          >
-            <IconRefresh /> Re-open
-          </button>
-        )}
-
-        {/* Done */}
-        {request.status === "available" && (
-          <div className="pr-fulfilled-tag">
-            <IconCheck />
-            Product linked &amp; user notified
+            <span>Linked: <code>{request.offeredProductId}</code></span>
           </div>
         )}
 
-        {/* Chat */}
-        <button
-          type="button"
-          className={`pr-chat-btn${chatOpen ? " pr-chat-btn--open" : ""}`}
-          onClick={() => setChatOpen(v => !v)}
-        >
-          <IconChat />
-          {chatOpen ? "Close chat" : "Chat"}
-          {!chatOpen && unread > 0 && (
-            <span className="pr-chat-badge">{unread > 9 ? "9+" : unread}</span>
+        {/* ── Actions ── */}
+        <div className="pr-card-actions">
+
+          {request.status === "pending" && (
+            <button type="button" className="pr-action-btn" disabled={isBusy}
+              onClick={() => handleAction("sourcing")}>
+              {working ? <span className="pr-spinner pr-spinner--dark" /> : "Mark Sourcing"}
+            </button>
           )}
-        </button>
+
+          {(request.status === "pending" || request.status === "sourcing") && (
+            <button type="button" className="pr-action-btn pr-action-btn--green"
+              disabled={isBusy} onClick={() => setShowLinkModal(true)}>
+              <IconLink /> Link Product
+            </button>
+          )}
+
+          {(request.status === "pending" || request.status === "sourcing") && (
+            <button type="button" className="pr-action-btn pr-action-btn--red"
+              disabled={isBusy} onClick={() => handleAction("rejected")}>
+              {working ? <span className="pr-spinner" /> : <><IconX /> Reject</>}
+            </button>
+          )}
+
+          {request.status === "rejected" && (
+            <button type="button" className="pr-action-btn" disabled={isBusy}
+              onClick={() => handleAction("pending")}>
+              <IconRefresh /> Re-open
+            </button>
+          )}
+
+          {request.status === "available" && (
+            <div className="pr-fulfilled-tag">
+              <IconCheck /> Product Linked &amp; User Notified
+            </div>
+          )}
+
+          <button type="button"
+            className={`pr-chat-btn${chatOpen ? " pr-chat-btn--open" : ""}`}
+            onClick={() => setChatOpen(v => !v)}>
+            <IconChat />
+            {chatOpen ? "Close Chat" : "Chat"}
+            {!chatOpen && unread > 0 && (
+              <span className="pr-chat-badge">{unread > 9 ? "9+" : unread}</span>
+            )}
+          </button>
+        </div>
+
+        {/* ── Chat panel ── */}
+        {chatOpen && currentUser && (
+          <div className="pr-chat-panel-wrap">
+            <ChatPanel
+              requestId={request.id}
+              currentUser={currentUser}
+              currentUserRole="super_admin"
+            />
+          </div>
+        )}
       </div>
 
-      {/* ── Link form ── */}
-      {showLinkForm && (
-        <div className="pr-link-form-wrap">
-          <div className="pr-link-form">
-            <p className="pr-link-form-title">Link a product to this request</p>
-
-            <div className="pr-link-field">
-              <label className="pr-link-label">Product ID or URL</label>
-              <input
-                className="pr-link-input"
-                type="text"
-                placeholder="e.g. abc123ProductId or full product URL"
-                value={productId}
-                onChange={e => setProductId(e.target.value)}
-              />
-            </div>
-
-            <div className="pr-link-field">
-              <label className="pr-link-label">Admin note (optional)</label>
-              <input
-                className="pr-link-input"
-                type="text"
-                placeholder="e.g. Sourced from Ghana Electro, 2-day delivery"
-                value={adminNote}
-                onChange={e => setAdminNote(e.target.value)}
-              />
-            </div>
-
-            <div className="pr-link-hint">
-              Ensure the product has <code>isCustomRequest: true</code>, <code>allowedUserId: "{request.userId}"</code>, and <code>expiresAt</code> set.
-            </div>
-
-            <div className="pr-link-row">
-              <button
-                type="button"
-                className="pr-action-btn pr-action-btn--green"
-                style={{ flex: 1 }}
-                disabled={!productId.trim() || isBusy}
-                onClick={handleLinkSubmit}
-              >
-                {working ? <span className="pr-spinner" /> : <><IconCheck /> Confirm &amp; notify user</>}
-              </button>
-              <button
-                type="button"
-                className="pr-action-btn pr-action-btn--outline"
-                onClick={() => setShowLinkForm(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* ── Link modal — rendered in the card's own tree so it portal-floats above everything ── */}
+      {showLinkModal && (
+        <LinkModal
+          request={request}
+          onClose={() => setShowLinkModal(false)}
+          onSubmit={handleLinkSubmit}
+          working={working}
+        />
       )}
-
-      {/* ── Chat panel ── */}
-      {chatOpen && currentUser && (
-        <div className="pr-chat-panel-wrap">
-          <ChatPanel
-            requestId={request.id}
-            currentUser={currentUser}
-            currentUserRole="super_admin"
-          />
-        </div>
-      )}
-    </div>
+    </>
   );
 }
 
@@ -516,13 +512,7 @@ export default function ProductRequests() {
   const { isSuperAdmin, loading: authLoading, user } = useAuth();
 
   const {
-    requests,
-    loading,
-    updating,
-    error,
-    changeStatus,
-    statusFilter,
-    setStatusFilter,
+    requests, loading, updating, error, changeStatus, statusFilter, setStatusFilter,
   } = useAdminProductRequests(null);
 
   useEffect(() => {
@@ -558,10 +548,10 @@ export default function ProductRequests() {
           </div>
           <div className="pr-hero-stats">
             {[
-              { label: "Total",     val: requests.length, Icon: IconUsers,      color: "" },
-              { label: "Pending",   val: counts.pending,  Icon: IconTrendUp,    color: "amber" },
-              { label: "Available", val: counts.available,Icon: IconCheckCircle,color: "green" },
-              { label: "Rejected",  val: counts.rejected, Icon: IconXCircle,    color: "red" },
+              { label: "Total",     val: requests.length,  Icon: IconUsers,       color: ""      },
+              { label: "Pending",   val: counts.pending,   Icon: IconTrendUp,     color: "amber" },
+              { label: "Available", val: counts.available, Icon: IconCheckCircle, color: "green" },
+              { label: "Rejected",  val: counts.rejected,  Icon: IconXCircle,     color: "red"   },
             ].map(({ label, val, Icon, color }) => (
               <div key={label} className={`pr-hero-stat${color ? ` pr-hero-stat--${color}` : ""}`}>
                 <div className="pr-hero-stat-icon"><Icon /></div>
@@ -581,12 +571,9 @@ export default function ProductRequests() {
             {FILTERS.map((f) => {
               const count = f.value === null ? requests.length : (counts[f.value] || 0);
               return (
-                <button
-                  key={String(f.value)}
-                  type="button"
+                <button key={String(f.value)} type="button"
                   className={`pr-tab${statusFilter === f.value ? " pr-tab--active" : ""}`}
-                  onClick={() => setStatusFilter(f.value)}
-                >
+                  onClick={() => setStatusFilter(f.value)}>
                   {f.label}
                   {count > 0 && <span className="pr-tab-badge">{count}</span>}
                 </button>
@@ -597,10 +584,7 @@ export default function ProductRequests() {
 
         {/* ── Error ── */}
         {error && (
-          <div className="pr-error-box">
-            <IconXCircle />
-            {error}
-          </div>
+          <div className="pr-error-box"><IconXCircle />{error}</div>
         )}
 
         {/* ── Loading ── */}
@@ -614,7 +598,7 @@ export default function ProductRequests() {
         {!loading && !error && requests.length === 0 && (
           <div className="pr-empty">
             <div className="pr-empty-icon"><IconInbox /></div>
-            <p className="pr-empty-title">No requests found</p>
+            <p className="pr-empty-title">No Requests Found</p>
             <p className="pr-empty-sub">
               {statusFilter
                 ? `No ${getStatusLabel(statusFilter).toLowerCase()} requests at the moment`
