@@ -1,6 +1,7 @@
 /* =========================
-   HEADER — Neo-Brutalist Edition
-   Heavy borders · Hard shadows · Off-white · All-caps
+   HEADER — Neo-Brutalist
+   Hard black borders · Heavy shadows · Off-white · All-caps
+   Animation: logo fades → search icon slides in → search bar expands
 ========================= */
 
 /* ── Base ── */
@@ -8,20 +9,16 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  height: 68px;
-  padding: 0 14px;
+  height: 60px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   background: #FCFAF2;
   border-bottom: 3px solid #0A0A0A;
   box-shadow: 0 4px 0px 0px #0A0A0A;
   transition: background 0.2s ease;
-}
-
-/* Search-mode: same treatment, no style change needed */
-.hdr--search-mode {
-  background: #FCFAF2;
 }
 
 body.dark .hdr {
@@ -30,10 +27,18 @@ body.dark .hdr {
   box-shadow: 0 4px 0px 0px rgba(245, 243, 232, 0.15);
 }
 
+/* ── LEFT cluster — menu + animated search icon ── */
+.hdr-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 /* ── Icon buttons ── */
 .hdr-icon {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 0;
   border: 2.5px solid #0A0A0A;
   box-shadow: 3px 3px 0px 0px #0A0A0A;
@@ -71,8 +76,26 @@ body.dark .hdr-icon:hover {
 }
 
 .hdr-svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
+}
+
+/* ── Search icon button — slides in beside menu ──
+   Hidden by default, appears in phase 1 */
+.hdr-search-icon-btn {
+  opacity: 0;
+  transform: scale(0.6) translateX(-8px);
+  pointer-events: none;
+  transition:
+    opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.hdr-search-icon-btn--visible {
+  opacity: 1;
+  transform: scale(1) translateX(0);
+  pointer-events: auto;
 }
 
 /* ── Center logo ── */
@@ -86,20 +109,20 @@ body.dark .hdr-icon:hover {
   pointer-events: none;
   opacity: 1;
   transition:
-    opacity 0.24s ease,
-    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 0.22s ease,
+    transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform, opacity;
 }
 
 .hdr-logo-wrap--hidden {
   opacity: 0;
-  transform: translateX(-50%) translateY(-10px);
+  transform: translateX(-50%) scale(0.5);
   pointer-events: none;
 }
 
 .hdr-logo {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   object-fit: contain;
   display: block;
 }
@@ -111,43 +134,50 @@ body.dark .hdr-logo {
 /* ── Right group ── */
 .hdr-right {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   flex-shrink: 0;
 }
 
-/* ── Inline search bar ── */
+/* ─────────────────────────────────────────────
+   INLINE SEARCH BAR
+   Phase 2: expands from nothing to full width
+   between the left cluster and the cart button
+───────────────────────────────────────────── */
 .hdr-inline-search {
   flex: 1;
-  margin: 0 10px;
+  min-width: 0;
   position: relative;
+  /* Hidden state */
   opacity: 0;
-  transform: translateY(6px);
+  transform: scaleX(0.4) translateX(-12px);
+  transform-origin: left center;
   pointer-events: none;
   transition:
-    opacity 0.26s ease,
-    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform, opacity;
 }
 
 .hdr-inline-search--visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: scaleX(1) translateX(0);
   pointer-events: auto;
 }
 
-/* Search form — thick border, hard shadow, square */
+/* ── Search form — black border, black shadow, square ── */
 .hdr-search-form {
   display: flex;
   align-items: center;
   background: #FCFAF2;
-  border: 2.5px solid #0A0A0A;
-  box-shadow: 3px 3px 0px 0px #0A0A0A;
+  border: 2.5px solid #0A0A0A;      /* BLACK — not blue */
+  box-shadow: 3px 3px 0px 0px #0A0A0A; /* BLACK shadow */
   border-radius: 0;
-  height: 44px;
-  padding: 0 12px;
-  gap: 8px;
-  transition: box-shadow 0.11s, transform 0.1s;
+  height: 40px;
+  padding: 0 0 0 10px;
+  gap: 6px;
+  transition: box-shadow 0.11s, border-color 0.11s;
+  overflow: hidden;
 }
 
 body.dark .hdr-search-form {
@@ -156,21 +186,13 @@ body.dark .hdr-search-form {
   box-shadow: 3px 3px 0px 0px rgba(245, 243, 232, 0.2);
 }
 
+/* Focus: keep black border, just lift shadow */
 .hdr-search-form:focus-within {
-  box-shadow: 3px 3px 0px 0px #0057FF;
-  border-color: #0057FF;
+  box-shadow: 4px 4px 0px 0px #0A0A0A;
 }
 
-.hdr-search-icon-left {
-  display: flex;
-  align-items: center;
-  color: #888;
-  flex-shrink: 0;
-}
-
-.hdr-search-icon-left .hdr-svg {
-  width: 16px;
-  height: 16px;
+body.dark .hdr-search-form:focus-within {
+  box-shadow: 4px 4px 0px 0px rgba(245, 243, 232, 0.3);
 }
 
 .hdr-search-input {
@@ -179,10 +201,11 @@ body.dark .hdr-search-form {
   outline: none;
   background: transparent;
   color: #0A0A0A;
-  font-size: 13.5px;
+  font-size: 12px;
   font-family: 'Archivo', 'Arial', sans-serif;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   min-width: 0;
   line-height: 1;
 }
@@ -193,12 +216,13 @@ body.dark .hdr-search-input {
 
 .hdr-search-input::placeholder {
   color: #AAA;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 0.08em;
 }
 
+/* Clear button */
 .hdr-search-clear {
   display: flex;
   align-items: center;
@@ -210,24 +234,63 @@ body.dark .hdr-search-input {
   padding: 0;
   color: #888;
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   transition: color 0.14s;
 }
 
 .hdr-search-clear .hdr-svg {
-  width: 15px;
-  height: 15px;
+  width: 13px;
+  height: 13px;
 }
 
 .hdr-search-clear:hover {
   color: #0A0A0A;
 }
 
-/* ── Suggestions dropdown — brutalist panel ── */
+/* ── Submit / search button — real search icon ──
+   Black bg · Flush with form · No left gap */
+.hdr-search-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;          /* same height as form, flush */
+  border: none;
+  border-left: 2.5px solid #0A0A0A;
+  background: #0A0A0A;
+  color: #FCFAF2;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s, color 0.12s;
+  margin: -1px -1px -1px 0; /* flush with form border */
+}
+
+body.dark .hdr-search-submit {
+  background: #F5F3E8;
+  color: #0A0A0A;
+  border-left-color: rgba(245, 243, 232, 0.35);
+}
+
+.hdr-search-submit:hover {
+  background: #0057FF;
+  border-left-color: #0057FF;
+}
+
+.hdr-search-submit:active {
+  background: #003DCC;
+}
+
+.hdr-search-submit .hdr-svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ── Suggestions dropdown ── */
 .hdr-suggestions {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 5px);
   left: 0;
   right: 0;
   background: #FCFAF2;
@@ -255,13 +318,13 @@ body.dark .hdr-suggestions {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 11px 14px;
+  padding: 10px 12px;
   background: none;
   border: none;
   cursor: pointer;
   text-align: left;
-  gap: 10px;
-  transition: background 0.12s;
+  gap: 8px;
+  transition: background 0.1s;
 }
 
 .hdr-suggestion-item:hover,
@@ -274,7 +337,6 @@ body.dark .hdr-suggestion-item.active {
   background: rgba(0, 87, 255, 0.15);
 }
 
-/* Divider between suggestions — 1px black line */
 .hdr-suggestion-item + .hdr-suggestion-item {
   border-top: 1.5px solid #0A0A0A;
 }
@@ -284,7 +346,7 @@ body.dark .hdr-suggestion-item + .hdr-suggestion-item {
 }
 
 .hdr-sug-label {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
   font-family: 'Archivo', 'Arial', sans-serif;
   color: #0A0A0A;
@@ -300,9 +362,8 @@ body.dark .hdr-sug-label {
   color: #F5F3E8;
 }
 
-/* Type badge — hard square, blue */
 .hdr-sug-type {
-  font-size: 8.5px;
+  font-size: 8px;
   font-weight: 900;
   font-family: 'Archivo Black', 'Arial Black', sans-serif;
   color: #fff;
@@ -311,13 +372,13 @@ body.dark .hdr-sug-label {
   flex-shrink: 0;
   background: #0057FF;
   border: 1.5px solid #0A0A0A;
-  padding: 2px 7px;
+  padding: 2px 6px;
   border-radius: 0;
 }
 
 .hdr-suggestion-empty {
-  padding: 14px 16px;
-  font-size: 11px;
+  padding: 12px 14px;
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -335,14 +396,14 @@ body.dark .hdr-sug-label {
   position: absolute;
   top: -6px;
   right: -6px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 3px;
   border-radius: 0;
   border: 2px solid #0A0A0A;
   background: #0057FF;
   color: #fff;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 900;
   font-family: 'Archivo Black', 'Arial Black', sans-serif;
   display: grid;
@@ -357,146 +418,40 @@ body.dark .hdr-sug-label {
   to   { transform: scale(1); opacity: 1; }
 }
 
-/* ── Confirm popover ── */
-.hdr-confirm {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  width: 220px;
-  border-radius: 0;
-  border: 2.5px solid #0A0A0A;
-  box-shadow: 5px 5px 0px 0px #0A0A0A;
-  background: #FCFAF2;
-  padding: 14px;
-  z-index: 120;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(8px);
-  transform-origin: top right;
-  pointer-events: none;
-  transition:
-    opacity 0.2s ease,
-    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
-    visibility 0.2s ease;
-}
-
-body.dark .hdr-confirm {
-  background: #1A1A14;
-  border-color: rgba(245, 243, 232, 0.3);
-  box-shadow: 5px 5px 0px 0px rgba(245, 243, 232, 0.15);
-}
-
-.hdr-confirm.is-open {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-
-.hdr-confirm-text {
-  margin: 0 0 12px;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-family: 'Archivo Black', 'Arial Black', sans-serif;
-  color: #0A0A0A;
-  line-height: 1.5;
-}
-
-body.dark .hdr-confirm-text {
-  color: #F5F3E8;
-}
-
-.hdr-confirm-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.hdr-confirm-btn {
-  flex: 1;
-  border: 2.5px solid #0A0A0A;
-  box-shadow: 3px 3px 0px 0px #0A0A0A;
-  background: #FCFAF2;
-  color: #0A0A0A;
-  border-radius: 0;
-  padding: 9px 10px;
-  cursor: pointer;
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-family: 'Archivo Black', 'Arial Black', sans-serif;
-  transition: box-shadow 0.11s, transform 0.1s, background 0.13s;
-}
-
-body.dark .hdr-confirm-btn {
-  background: #1A1A14;
-  color: #F5F3E8;
-  border-color: rgba(245, 243, 232, 0.35);
-  box-shadow: 3px 3px 0px 0px rgba(245, 243, 232, 0.2);
-}
-
-.hdr-confirm-btn:hover {
-  background: #f0f0e8;
-}
-
-.hdr-confirm-btn:active {
-  transform: translate(3px, 3px);
-  box-shadow: none;
-}
-
-.hdr-confirm-btn--danger {
-  background: #CC0000;
-  color: #fff;
-  border-color: #0A0A0A;
-  box-shadow: 3px 3px 0px 0px #0A0A0A;
-}
-
-.hdr-confirm-btn--danger:hover {
-  background: #aa0000;
-}
-
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .hdr {
-    height: 64px;
-    padding: 0 12px;
-  }
-
-  .hdr-right {
+    height: 56px;
+    padding: 0 10px;
     gap: 6px;
   }
 
   .hdr-icon {
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
   }
 
   .hdr-logo {
-    width: 30px;
-    height: 30px;
-  }
-
-  .hdr-inline-search {
-    margin: 0 8px;
+    width: 26px;
+    height: 26px;
   }
 
   .hdr-search-form {
-    height: 40px;
+    height: 38px;
   }
 
-  .hdr-confirm {
-    right: -8px;
-    width: 206px;
+  .hdr-search-submit {
+    width: 38px;
+    height: 38px;
   }
 }
 
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
-  .hdr, .hdr-icon, .hdr-svg, .hdr-logo, .hdr-badge,
-  .hdr-confirm, .hdr-confirm-btn, .hdr-inline-search, .hdr-logo-wrap,
-  .hdr-search-form, .hdr-suggestions {
+  .hdr, .hdr-icon, .hdr-badge,
+  .hdr-inline-search, .hdr-logo-wrap,
+  .hdr-search-form, .hdr-suggestions,
+  .hdr-search-icon-btn {
     transition: none !important;
     animation: none !important;
   }
