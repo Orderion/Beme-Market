@@ -28,15 +28,43 @@
 }
 
 /* ================================================================
-   CUSTOMER HOME SCREEN
+   SHARED OVERLAY — used by BOTH home and chat views
+   position: fixed; inset: 0 ensures the footer never bleeds through
 ================================================================ */
 
-.sc-home {
+.sc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: var(--bg);
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 56px);
-  background: var(--bg);
+  animation: sc-slideUp 300ms var(--ease-premium, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
+
+/* Home variant — no slide-up animation, appears instantly */
+.sc-overlay--home {
+  animation: none;
+}
+
+@keyframes sc-slideUp {
+  from { transform: translateY(100%); opacity: 0.5; }
+  to   { transform: translateY(0);    opacity: 1;   }
+}
+
+/* ================================================================
+   HOME — SCROLLABLE CONTENT AREA
+   flex: 1 + overflow-y: auto so only this scrolls,
+   bottom nav stays pinned
+================================================================ */
+
+.sc-home-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sc-home-scroll::-webkit-scrollbar { width: 0; }
 
 /* ── Hero — Neo-Brutalist block ── */
 
@@ -362,7 +390,7 @@ body.dark .sc-conv-item { border-bottom-color: var(--border); }
 }
 
 .sc-conv-empty {
-  padding: 20px 0 8px;
+  padding: 32px 0 8px;
   text-align: center;
   font-family: var(--font-main);
   font-size: 12px;
@@ -373,17 +401,25 @@ body.dark .sc-conv-item { border-bottom-color: var(--border); }
   opacity: 0.5;
 }
 
-/* ── Bottom nav strip ── */
+/* ================================================================
+   BOTTOM NAV — redesigned
+   Pinned to the bottom of sc-overlay via flex layout.
+   Strong brutalist active state with top border indicator.
+================================================================ */
 
 .sc-bottom-nav {
   display: flex;
-  border-top: 2px solid var(--border);
+  flex-shrink: 0;
+  border-top: 3px solid var(--border);
   background: var(--card);
-  position: sticky;
-  bottom: 0;
+  /* Safe area padding for notched phones */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-body.dark .sc-bottom-nav { border-top-color: var(--border); }
+body.dark .sc-bottom-nav {
+  border-top-color: var(--border);
+  background: var(--card);
+}
 
 .sc-bottom-nav__btn {
   flex: 1;
@@ -391,51 +427,56 @@ body.dark .sc-bottom-nav { border-top-color: var(--border); }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 12px 8px 16px;
+  gap: 5px;
+  padding: 14px 8px 12px;
   background: transparent;
   border: none;
+  /* Divider between the two tabs */
   border-right: 2px solid var(--border);
   cursor: pointer;
   color: var(--muted);
-  opacity: 0.4;
-  transition: color var(--motion-fast), opacity var(--motion-fast);
+  position: relative;
+  transition: color var(--motion-fast), background var(--motion-fast);
 }
 
 .sc-bottom-nav__btn:last-child { border-right: none; }
 
+/* Active top-bar indicator */
+.sc-bottom-nav__btn--active::before {
+  content: "";
+  position: absolute;
+  top: -3px;          /* sits on top of the border-top */
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--grtheme);
+}
+
 .sc-bottom-nav__btn--active {
   color: var(--grtheme);
-  opacity: 1;
-  background: rgba(4, 110, 242, 0.04);
+  background: rgba(4, 110, 242, 0.05);
+}
+
+body.dark .sc-bottom-nav__btn--active {
+  background: rgba(4, 110, 242, 0.1);
+}
+
+.sc-bottom-nav__btn:not(.sc-bottom-nav__btn--active):hover {
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--text);
 }
 
 .sc-bottom-nav__label {
   font-family: var(--font-main);
   font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 /* ================================================================
    CHAT SCREEN — full screen overlay
 ================================================================ */
-
-.sc-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1200;
-  background: var(--bg);
-  display: flex;
-  flex-direction: column;
-  animation: sc-slideUp 300ms var(--ease-premium, cubic-bezier(0.22, 1, 0.36, 1)) both;
-}
-
-@keyframes sc-slideUp {
-  from { transform: translateY(100%); opacity: 0.5; }
-  to   { transform: translateY(0);    opacity: 1;   }
-}
 
 /* ── Chat header ── */
 
@@ -581,73 +622,6 @@ body.dark .sc-ticket-strip { background: var(--grtheme); }
 }
 
 /* ── Start / Subject screen ── */
-
-.sc-start-screen {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 24px 20px;
-  overflow-y: auto;
-  gap: 18px;
-}
-
-.sc-start-screen__greeting {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.sc-start-screen__bot-avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 0;
-  border: 2px solid var(--border);
-  background: var(--grtheme);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  flex-shrink: 0;
-  box-shadow: var(--shadow-sm);
-}
-
-.sc-start-screen__greeting-bubble {
-  background: var(--card);
-  border: 2px solid var(--border);
-  border-radius: 0;
-  border-bottom-left-radius: 0;
-  padding: 12px 14px;
-  flex: 1;
-  box-shadow: var(--shadow-sm);
-}
-
-body.dark .sc-start-screen__greeting-bubble { border-color: var(--border); }
-
-.sc-start-screen__greeting-text {
-  font-family: var(--font-main);
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-  margin: 0;
-  line-height: 1.55;
-}
-
-.sc-start-screen__form {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.sc-start-screen__label {
-  display: block;
-  font-family: var(--font-main);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 6px;
-}
 
 .sc-start-screen__input {
   width: 100%;
@@ -1019,7 +993,8 @@ body.dark .sc-error-bar {
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  padding: 10px 16px 24px;
+  padding: 10px 16px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   border-top: 2px solid var(--border);
   background: var(--card);
   flex-shrink: 0;
@@ -1670,7 +1645,7 @@ body.dark .asd-bubble--theirs { border-color: var(--border); }
   .sc-hero        { padding: 22px 16px 28px; }
   .sc-hero__title { font-size: 18px; }
   .sc-header      { padding: 12px 14px 11px; }
-  .sc-input-bar   { padding: 9px 14px 20px; }
+  .sc-input-bar   { padding: 9px 14px; padding-bottom: calc(9px + env(safe-area-inset-bottom, 0px)); }
   .sc-channels    { padding: 16px 12px 6px; }
   .asd-chat-header { padding: 12px 14px 11px; }
 }
