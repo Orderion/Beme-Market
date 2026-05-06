@@ -31,7 +31,6 @@ const COLLECTION_NAME      = "Products";
 const SEARCH_PREVIEW_LIMIT = 80;
 const SUGGESTION_LIMIT     = 4;
 
-/* Fallback banners keyed by store card id */
 const BANNER_FALLBACKS = {
   fashion: fashionBanner,
   main:    banner,
@@ -41,56 +40,11 @@ const BANNER_FALLBACKS = {
 };
 
 const HARDCODED_STORE_CARDS = [
-  {
-    id:        "fashion",
-    theme:     "fashion",
-    image:     fashionBanner,
-    chip:      "Fashion Shop",
-    title:     "Modern fashion essentials",
-    subtitle:  "Clean everyday style and curated wardrobe picks.",
-    shopLink:  "/shop?shop=fashion",
-    ariaLabel: "Open Fashion Shop",
-  },
-  {
-    id:        "main",
-    theme:     "bestsellers",
-    image:     banner,
-    chip:      "Main Store",
-    title:     "Everyday bestsellers",
-    subtitle:  "Mixed essentials, popular picks, and store highlights.",
-    shopLink:  "/shop?shop=main",
-    ariaLabel: "Open Main Store",
-  },
-  {
-    id:        "kente",
-    theme:     "kente",
-    image:     kenteBanner,
-    chip:      "Ghana Made",
-    title:     "Mintah's Kente",
-    subtitle:  "Premium woven styles with heritage appeal.",
-    shopLink:  "/shop?shop=kente",
-    ariaLabel: "Open Mintah's Kente collection",
-  },
-  {
-    id:        "perfume",
-    theme:     "scents",
-    image:     perfumeBanner,
-    chip:      "Perfume Shop",
-    title:     "Luxury scents",
-    subtitle:  "Refined fragrances for daily wear and gifting.",
-    shopLink:  "/shop?shop=perfume",
-    ariaLabel: "Open Perfume Shop",
-  },
-  {
-    id:        "tech",
-    theme:     "gadgets",
-    image:     techBanner,
-    chip:      "Tech Shop",
-    title:     "Latest gadgets",
-    subtitle:  "Smart devices and modern electronics for daily life.",
-    shopLink:  "/shop?shop=tech",
-    ariaLabel: "Open Tech Shop",
-  },
+  { id: "fashion", theme: "fashion",     image: fashionBanner, chip: "Fashion Shop",  title: "Modern fashion essentials",       subtitle: "Clean everyday style and curated wardrobe picks.",             shopLink: "/shop?shop=fashion", ariaLabel: "Open Fashion Shop" },
+  { id: "main",    theme: "bestsellers", image: banner,        chip: "Main Store",    title: "Everyday bestsellers",            subtitle: "Mixed essentials, popular picks, and store highlights.",       shopLink: "/shop?shop=main",    ariaLabel: "Open Main Store" },
+  { id: "kente",   theme: "kente",       image: kenteBanner,   chip: "Ghana Made",    title: "Mintah's Kente",                  subtitle: "Premium woven styles with heritage appeal.",                  shopLink: "/shop?shop=kente",   ariaLabel: "Open Mintah's Kente collection" },
+  { id: "perfume", theme: "scents",      image: perfumeBanner, chip: "Perfume Shop",  title: "Luxury scents",                   subtitle: "Refined fragrances for daily wear and gifting.",              shopLink: "/shop?shop=perfume", ariaLabel: "Open Perfume Shop" },
+  { id: "tech",    theme: "gadgets",     image: techBanner,    chip: "Tech Shop",     title: "Latest gadgets",                  subtitle: "Smart devices and modern electronics for daily life.",         shopLink: "/shop?shop=tech",    ariaLabel: "Open Tech Shop" },
 ];
 
 const HARDCODED_CATEGORY_CARDS = [
@@ -153,7 +107,6 @@ function OthersFallback() {
   );
 }
 
-/* Accepts an explicit src (from Cloudinary) or falls back to local key-based image */
 function CategoryImage({ type, label, src }) {
   const resolvedSrc = src || CATEGORY_IMAGES[type];
   if (!resolvedSrc) return <OthersFallback />;
@@ -254,15 +207,36 @@ function buildSuggestions(products, term) {
 }
 
 /* ─────────────────────────────────────────────
+   Search icon SVG (inline, no artifact)
+───────────────────────────────────────────── */
+function SearchIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="8" />
+      <path d="M21 21l-4.3-4.3" />
+    </svg>
+  );
+}
+
+/* ─────────────────────────────────────────────
    Home component
 ───────────────────────────────────────────── */
 export default function Home() {
   const navigate = useNavigate();
 
-  /* ── Homepage config from Firestore ── */
   const { config, loading: configLoading } = useHomepageConfig();
 
-  /* ── Search state ── */
   const [search,             setSearch]             = useState("");
   const [products,           setProducts]           = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
@@ -274,7 +248,7 @@ export default function Home() {
   const searchWrapRef = useRef(null);
   const inputRef      = useRef(null);
 
-  /* ── Derive carousel cards from config (or hardcoded fallback) ── */
+  /* ── Carousel cards ── */
   const carouselCards = useMemo(() => {
     if (config?.storeCards?.length) {
       return [...config.storeCards]
@@ -283,7 +257,6 @@ export default function Home() {
         .map((c) => ({
           id:        c.id,
           theme:     c.theme,
-          /* Use the Cloudinary URL if uploaded, otherwise fall back to bundled asset */
           image:     c.imageUrl || BANNER_FALLBACKS[c.id] || null,
           chip:      c.chip,
           title:     c.title,
@@ -292,26 +265,21 @@ export default function Home() {
           ariaLabel: `Open ${c.chip}`,
         }));
     }
-    /* Fallback: hardcoded cards with navigate callbacks */
-    return HARDCODED_STORE_CARDS.map((c) => ({
-      ...c,
-      onClick: () => navigate(c.shopLink),
-    }));
+    return HARDCODED_STORE_CARDS.map((c) => ({ ...c, onClick: () => navigate(c.shopLink) }));
   }, [config, navigate]);
 
-  /* ── Derive category cards from config (or hardcoded fallback) ── */
+  /* ── Category cards ── */
   const categoryCards = useMemo(() => {
     if (config?.categories?.length) {
       return [...config.categories]
         .filter((c) => c.active !== false)
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
         .map((c) => ({
-          key:      c.key,
-          label:    c.label,
-          subtitle: c.subtitle,
-          query:    c.query,
-          bgColor:  c.bgColor || CATEGORY_BG[c.key] || "#F1EFE8",
-          /* Cloudinary URL takes priority; local asset is fallback */
+          key:           c.key,
+          label:         c.label,
+          subtitle:      c.subtitle,
+          query:         c.query,
+          bgColor:       c.bgColor || CATEGORY_BG[c.key] || "#F1EFE8",
           resolvedImage: c.imageUrl || CATEGORY_IMAGES[c.key] || null,
         }));
     }
@@ -322,7 +290,7 @@ export default function Home() {
     }));
   }, [config]);
 
-  /* ── Sorted active sections from config ── */
+  /* ── Active sections ── */
   const activeSections = useMemo(() => {
     if (!config?.sections?.length) {
       return ["carousel", "categories", "flashDeals", "trending", "continueShopping"];
@@ -333,24 +301,16 @@ export default function Home() {
       .map((s) => s.id);
   }, [config]);
 
-  /* ── Text labels from config ── */
-  const trendingText = config?.trendingText  || { heading: "Trending now",       seeAllText: "See featured" };
-  const continueText = config?.continueText  || { heading: "Continue shopping",  seeAllText: "See all"      };
+  const trendingText = config?.trendingText || { heading: "Trending now",      seeAllText: "See featured" };
+  const continueText = config?.continueText || { heading: "Continue shopping", seeAllText: "See all"      };
 
-  /* ── Load products for search suggestions ── */
-  /* FIX: removed where("isCustomRequest", "!=", true) — Firestore's != operator
-     silently drops documents where the field doesn't exist, which excluded ALL
-     regular products (none of which have the isCustomRequest field). Privacy for
-     custom-request products is enforced at the product detail page level instead. */
+  /* ── Load products ── */
   useEffect(() => {
     let alive = true;
     async function load() {
       setLoadingSuggestions(true);
       try {
-        const qRef = query(
-          collection(db, COLLECTION_NAME),
-          limit(SEARCH_PREVIEW_LIMIT)
-        );
+        const qRef = query(collection(db, COLLECTION_NAME), limit(SEARCH_PREVIEW_LIMIT));
         const snap = await getDocs(qRef);
         if (!alive) return;
         setProducts(snap.docs.map(normalizeProduct));
@@ -366,7 +326,7 @@ export default function Home() {
     return () => { alive = false; };
   }, []);
 
-  /* ── Click-outside to close suggestions ── */
+  /* ── Click-outside ── */
   useEffect(() => {
     const onPointerDown = (event) => {
       if (!searchWrapRef.current) return;
@@ -383,7 +343,7 @@ export default function Home() {
     };
   }, []);
 
-  /* ── Scroll-collapse search bar ── */
+  /* ── Scroll-collapse ── */
   useEffect(() => {
     const onScroll = () => {
       const scrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop;
@@ -443,7 +403,7 @@ export default function Home() {
 
   const goToCategory = (item) => navigate(`/shop?q=${encodeURIComponent(item.query)}`);
 
-  /* ── Loading skeleton while config is being fetched ── */
+  /* ── Loading skeleton ── */
   if (configLoading) {
     return (
       <div className="home-skeleton">
@@ -484,15 +444,8 @@ export default function Home() {
                   onClick={() => { setActiveCat(item.key); goToCategory(item); }}
                   aria-label={`Browse ${item.label}`}
                 >
-                  <div
-                    className="home-cat-circle"
-                    style={{ backgroundColor: item.bgColor }}
-                  >
-                    <CategoryImage
-                      type={item.key}
-                      label={item.label}
-                      src={item.resolvedImage}
-                    />
+                  <div className="home-cat-circle" style={{ backgroundColor: item.bgColor }}>
+                    <CategoryImage type={item.key} label={item.label} src={item.resolvedImage} />
                   </div>
                   <span className="home-cat-label">{item.label}</span>
                 </button>
@@ -547,12 +500,7 @@ export default function Home() {
         <div className="home-search-wrap" ref={searchWrapRef}>
           <form className="home-search-form" onSubmit={submitSearch}>
             <span className="home-search-icon-left">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-                viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="11" cy="11" r="8" />
-                <path d="M21 21l-4.3-4.3" />
-              </svg>
+              <SearchIcon />
             </span>
 
             <input
@@ -584,11 +532,9 @@ export default function Home() {
               </button>
             )}
 
+            {/* Real search submit button — no filter SVG */}
             <button type="submit" className="home-search-submit" aria-label="Search">
-              <svg viewBox="0 0 24 24" className="home-search-filter-svg">
-                <path d="M4 7h10M18 7h2M4 17h6M14 17h6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-                <path d="M14 5v4M10 15v4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-              </svg>
+              <SearchIcon />
             </button>
           </form>
 
