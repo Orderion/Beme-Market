@@ -5,7 +5,7 @@ import { db } from "../firebase";
 import { useCart } from "../context/CartContext";
 import "./Header.css";
 
-/* ================= ICONS — strokeWidth 1.5, thin line-art ================= */
+/* ================= ICONS ================= */
 
 function IconMenu() {
   return (
@@ -16,7 +16,6 @@ function IconMenu() {
   );
 }
 
-/* Monochromatic shopping cart — clean single-colour line art */
 function IconCart() {
   return (
     <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true" fill="none"
@@ -47,7 +46,7 @@ function IconClose() {
   );
 }
 
-/* ================= SEARCH LOGIC (unchanged) ================= */
+/* ================= SEARCH LOGIC ================= */
 
 const SEARCH_PREVIEW_LIMIT = 80;
 const SUGGESTION_LIMIT = 4;
@@ -161,30 +160,78 @@ export default function Header({ onMenu, onCart }) {
 
   const isHome = location.pathname === "/" || location.pathname === "/home";
 
-  const [searchCollapsed, setSearchCollapsed] = useState(false);
-  const [products, setProducts]               = useState([]);
-  const [loadingSugs, setLoadingSugs]         = useState(false);
-  const [headerSearch, setHeaderSearch]       = useState("");
-  const [headerSugOpen, setHeaderSugOpen]     = useState(false);
+  /*
+   * Animation phases (only active on home page):
+   *
+   * Phase 0 — "default": Logo centred, no search bar visible in header.
+   * Phase 1 — "icon":    After scroll > 80px, logo shrinks + slides left to sit
+   *                       beside the menu button (becomes a search icon).
+   *                       Search bar stays hidden a moment.
+   * Phase 2 — "search":  ~300 ms after phase 1, the search bar expands in.
+   *
+   * On non-home pages we always show the logo and never show the inline search.
+   */
+  const [animPhase, setAnimPhase] = useState(0); // 0 | 1 | 2
+
+  const [products,      setProducts]      = useState([]);
+  const [loadingSugs,   setLoadingSugs]   = useState(false);
+  const [headerSearch,  setHeaderSearch]  = useState("");
+  const [headerSugOpen, setHeaderSugOpen] = useState(false);
   const [headerActiveIdx, setHeaderActiveIdx] = useState(-1);
 
   const inputRef = useRef(null);
   const wrapRef  = useRef(null);
+  const phaseTimerRef = useRef(null);
 
+  /* ── Scroll listener — only on home ── */
   useEffect(() => {
     if (!isHome) {
-      setSearchCollapsed(false);
+      setAnimPhase(0);
       setHeaderSearch("");
       setHeaderSugOpen(false);
       return;
     }
-    const handler = (e) => setSearchCollapsed(e.detail.collapsed);
-    window.addEventListener("home-search-collapse", handler);
-    const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
-    setSearchCollapsed(scrollY > 80);
-    return () => window.removeEventListener("home-search-collapse", handler);
-  }, [isHome]);
 
+    const checkScroll = () => {
+      const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      const collapsed = scrollY > 80;
+
+      // Dispatch for Home.jsx sticky bar
+      window.dispatchEvent(new CustomEvent("home-search-collapse", { detail: { collapsed } }));
+
+      if (collapsed && animPhase < 1) {
+        // Phase 1: icon appears
+        setAnimPhase(1);
+        clearTimeout(phaseTimerRef.current);
+        // Phase 2: search bar expands after delay
+        phaseTimerRef.current = setTimeout(() => setAnimPhase(2), 320);
+      } else if (!collapsed && animPhase > 0) {
+        clearTimeout(phaseTimerRef.current);
+        setAnimPhase(0);
+        setHeaderSearch("");
+        setHeaderSugOpen(false);
+        setHeaderActiveIdx(-1);
+      }
+    };
+
+    window.addEventListener("scroll", checkScroll, { passive: true });
+    checkScroll(); // run on mount
+    return () => {
+      window.removeEventListener("scroll", checkScroll);
+      clearTimeout(phaseTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHome, animPhase]);
+
+  /* Focus input when search bar fully expands */
+  useEffect(() => {
+    if (animPhase === 2) {
+      const t = setTimeout(() => inputRef.current?.focus(), 80);
+      return () => clearTimeout(t);
+    }
+  }, [animPhase]);
+
+  /* ── Load products for suggestions ── */
   useEffect(() => {
     if (!isHome) return;
     let alive = true;
@@ -202,17 +249,7 @@ export default function Header({ onMenu, onCart }) {
     return () => { alive = false; };
   }, [isHome]);
 
-  useEffect(() => {
-    if (searchCollapsed && isHome) {
-      const t = setTimeout(() => inputRef.current?.focus(), 320);
-      return () => clearTimeout(t);
-    } else {
-      setHeaderSearch("");
-      setHeaderSugOpen(false);
-      setHeaderActiveIdx(-1);
-    }
-  }, [searchCollapsed, isHome]);
-
+  /* ── Click-outside suggestions ── */
   useEffect(() => {
     const onDown = (e) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) {
@@ -274,19 +311,37 @@ export default function Header({ onMenu, onCart }) {
     if (e.key === "Escape")    { setHeaderSugOpen(false); setHeaderActiveIdx(-1); }
   };
 
-  const showInlineSearch = isHome && searchCollapsed;
   const logoSrc = prefersDark ? "/favicon_white.png" : "/favicon_black.png";
 
+  /* Phase booleans */
+  const showIcon   = isHome && animPhase >= 1; // search icon visible beside menu
+  const showSearch = isHome && animPhase >= 2; // search bar expanded
+
   return (
-    <header className={`hdr ${showInlineSearch ? "hdr--search-mode" : ""}`}>
+    <header className={`hdr ${showSearch ? "hdr--search-mode" : ""}`}>
 
-      {/* MENU */}
-      <button className="hdr-icon" onClick={handleMenuOpen} aria-label="Open menu" type="button">
-        <IconMenu />
-      </button>
+      {/* LEFT CLUSTER: menu + animated search icon */}
+      <div className="hdr-left">
+        <button className="hdr-icon" onClick={handleMenuOpen} aria-label="Open menu" type="button">
+          <IconMenu />
+        </button>
 
-      {/* LOGO */}
-      <div className={`hdr-logo-wrap ${showInlineSearch ? "hdr-logo-wrap--hidden" : ""}`}>
+        {/* Search icon — appears in place of logo after scroll */}
+        {isHome && (
+          <button
+            className={`hdr-icon hdr-search-icon-btn ${showIcon ? "hdr-search-icon-btn--visible" : ""}`}
+            onClick={() => { if (animPhase >= 1) inputRef.current?.focus(); }}
+            aria-label="Search"
+            type="button"
+            tabIndex={showIcon ? 0 : -1}
+          >
+            <IconSearch />
+          </button>
+        )}
+      </div>
+
+      {/* CENTER LOGO — fades + shrinks out as scroll happens */}
+      <div className={`hdr-logo-wrap ${showIcon ? "hdr-logo-wrap--hidden" : ""}`}>
         <img
           src={logoSrc}
           alt="Beme Market"
@@ -295,16 +350,13 @@ export default function Header({ onMenu, onCart }) {
         />
       </div>
 
-      {/* INLINE SEARCH — only on home */}
+      {/* INLINE SEARCH BAR — expands after icon phase */}
       {isHome && (
         <div
           ref={wrapRef}
-          className={`hdr-inline-search ${showInlineSearch ? "hdr-inline-search--visible" : ""}`}
+          className={`hdr-inline-search ${showSearch ? "hdr-inline-search--visible" : ""}`}
         >
           <form className="hdr-search-form" onSubmit={handleSubmit}>
-            <span className="hdr-search-icon-left">
-              <IconSearch />
-            </span>
             <input
               ref={inputRef}
               type="text"
@@ -315,7 +367,7 @@ export default function Header({ onMenu, onCart }) {
               placeholder="Search products or stores"
               className="hdr-search-input"
               autoComplete="off"
-              tabIndex={showInlineSearch ? 0 : -1}
+              tabIndex={showSearch ? 0 : -1}
             />
             {headerSearch && (
               <button
@@ -326,14 +378,23 @@ export default function Header({ onMenu, onCart }) {
                   setHeaderSugOpen(false);
                   inputRef.current?.focus();
                 }}
-                tabIndex={showInlineSearch ? 0 : -1}
+                tabIndex={showSearch ? 0 : -1}
+                aria-label="Clear search"
               >
                 <IconClose />
               </button>
             )}
+            <button
+              type="submit"
+              className="hdr-search-submit"
+              tabIndex={showSearch ? 0 : -1}
+              aria-label="Submit search"
+            >
+              <IconSearch />
+            </button>
           </form>
 
-          {headerSugOpen && showInlineSearch && (
+          {headerSugOpen && showSearch && (
             <div className="hdr-suggestions">
               {loadingSugs ? (
                 <div className="hdr-suggestion-empty">Loading…</div>
@@ -358,7 +419,7 @@ export default function Header({ onMenu, onCart }) {
         </div>
       )}
 
-      {/* RIGHT — cart button with monochromatic cart icon */}
+      {/* RIGHT: cart */}
       <div className="hdr-right">
         <button
           className="hdr-icon hdr-bag"
