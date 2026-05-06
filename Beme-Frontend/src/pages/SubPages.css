@@ -1,4 +1,9 @@
-/* ── Shared sub-page base ─────────────────────────── */
+/* =============================================
+   SUB-PAGES — Neo-Brutalist Edition
+   Hard borders · Offset shadows · Raw type
+============================================= */
+
+/* ── Shared sub-page base ── */
 .sp-page {
   min-height: 100vh;
   background: var(--bg);
@@ -6,7 +11,7 @@
 }
 
 .sp-body {
-  padding: 40px 24px 0;
+  padding: 40px 20px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -14,120 +19,134 @@
 }
 
 .sp-body--flush {
-  padding: 24px 16px 0;
+  padding: 20px 16px 0;
   align-items: stretch;
   text-align: left;
 }
 
-/* ── Empty state ──────────────────────────────────── */
+/* ── Empty state ── */
 .sp-empty-icon {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: var(--soft);
-  border: 1px solid var(--border);
+  width: 80px;
+  height: 80px;
+  background: var(--bg);
+  border: 2.5px solid var(--text);
+  box-shadow: 4px 4px 0 var(--text);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--muted);
-  margin-bottom: 20px;
+  color: var(--text);
+  margin-bottom: 24px;
 }
 
 .sp-empty-icon svg {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
 }
 
 .sp-empty-icon--warn {
-  background: rgba(217, 79, 79, 0.08);
-  border-color: rgba(217, 79, 79, 0.2);
+  background: rgba(217, 79, 79, 0.06);
+  border-color: #d94f4f;
+  box-shadow: 4px 4px 0 #d94f4f;
   color: #d94f4f;
 }
 
 .sp-empty-title {
   font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 900;
   color: var(--text);
   letter-spacing: -0.04em;
   margin: 0 0 10px;
+  text-transform: uppercase;
 }
 
 .sp-empty-sub {
-  font-size: 14px;
+  font-size: 13.5px;
   color: var(--muted);
   line-height: 1.6;
   max-width: 280px;
   margin: 0 0 32px;
+  font-weight: 500;
 }
 
-/* ── Buttons ──────────────────────────────────────── */
+/* ── Buttons ── */
 .sp-primary-btn {
   padding: 15px 32px;
-  background: var(--btn);
-  color: var(--btnText);
-  border: none;
-  border-radius: 14px;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  transition: opacity var(--motion-fast);
+  background: var(--grtheme, #FF6600);
+  color: #fff;
+  border: 2.5px solid var(--text);
+  box-shadow: 4px 4px 0 var(--text);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 0;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .sp-primary-btn:active {
-  opacity: 0.82;
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 var(--text);
 }
 
 .sp-danger-btn {
   padding: 15px 32px;
   background: transparent;
   color: #d94f4f;
-  border: 1px solid rgba(217, 79, 79, 0.35);
-  border-radius: 14px;
-  font-size: 14px;
-  font-weight: 700;
+  border: 2.5px solid #d94f4f;
+  box-shadow: 4px 4px 0 #d94f4f;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 0;
   width: 100%;
   max-width: 320px;
-  transition: background var(--motion-fast), border-color var(--motion-fast);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .sp-danger-btn:active {
-  background: rgba(217, 79, 79, 0.06);
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 #d94f4f;
 }
 
-/* ── Section label ────────────────────────────────── */
+/* ── Section label ── */
 .sp-section-label {
-  margin: 0 0 12px 4px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  margin: 0 0 12px 2px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text);
+  border-left: 3px solid var(--grtheme, #FF6600);
+  padding-left: 8px;
 }
 
-/* ── Action cards (Help, Contact) ─────────────────── */
+/* ── Action cards ── */
 .sp-action-card {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 18px;
   background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 18px;
+  border: 2.5px solid var(--text);
+  box-shadow: 4px 4px 0 var(--text);
+  border-radius: 0;
   width: 100%;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
   cursor: pointer;
   text-align: left;
-  box-shadow: var(--shadow);
-  transition: background var(--motion-fast), transform var(--motion-fast);
   -webkit-tap-highlight-color: transparent;
   color: var(--text);
   text-decoration: none;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .sp-action-card:active {
-  background: var(--soft);
-  transform: scale(0.985);
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 var(--text);
 }
 
 .sp-action-card--link {
@@ -135,15 +154,14 @@
 }
 
 .sp-action-card__icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: var(--soft);
-  border: 1px solid var(--border);
+  width: 46px;
+  height: 46px;
+  background: var(--grtheme, #FF6600);
+  border: 2px solid var(--text);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text);
+  color: #fff;
   flex-shrink: 0;
 }
 
@@ -154,27 +172,28 @@
 .sp-action-card__title {
   margin: 0;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
 }
 
 .sp-action-card__sub {
-  margin: 3px 0 0;
+  margin: 4px 0 0;
   font-size: 12px;
   color: var(--muted);
+  font-weight: 500;
 }
 
-/* ── Bottom sheet ─────────────────────────────────── */
+/* ── Bottom sheet ── */
 .sp-sheet-backdrop {
   position: fixed;
   inset: 0;
-  background: var(--overlay);
+  background: rgba(0, 0, 0, 0.6);
   z-index: 200;
   display: flex;
   align-items: flex-end;
-  backdrop-filter: blur(4px);
-  animation: sp-fadeIn 220ms var(--ease-premium) both;
+  animation: sp-fadeIn 200ms ease both;
 }
 
 @keyframes sp-fadeIn {
@@ -185,10 +204,10 @@
 .sp-sheet {
   width: 100%;
   background: var(--card);
-  border-radius: 28px 28px 0 0;
-  padding: 12px 24px 44px;
-  border-top: 1px solid var(--border);
-  animation: sp-slideUp 320ms var(--ease-premium) both;
+  border-top: 3px solid var(--text);
+  border-radius: 0;
+  padding: 16px 24px 48px;
+  animation: sp-slideUp 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes sp-slideUp {
@@ -197,46 +216,67 @@
 }
 
 .sp-sheet__bar {
-  width: 36px;
+  width: 40px;
   height: 4px;
-  background: var(--border);
-  border-radius: 99px;
+  background: var(--text);
   margin: 0 auto 24px;
 }
 
 .sp-sheet__title {
   font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 900;
   color: var(--text);
   letter-spacing: -0.04em;
+  text-transform: uppercase;
   margin: 0 0 8px;
 }
 
 .sp-sheet__sub {
-  font-size: 14px;
+  font-size: 13.5px;
   color: var(--muted);
   margin: 0 0 28px;
   line-height: 1.5;
+  font-weight: 500;
 }
 
 .sp-sheet__danger {
   width: 100%;
   padding: 16px;
   background: #d94f4f;
-  color: #ffffff;
-  border-radius: 14px;
-  font-weight: 700;
-  font-size: 15px;
+  color: #fff;
+  border: 2.5px solid var(--text);
+  box-shadow: 4px 4px 0 var(--text);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   margin-bottom: 12px;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.sp-sheet__danger:active {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 var(--text);
 }
 
 .sp-sheet__cancel {
   width: 100%;
   padding: 16px;
-  background: var(--soft);
+  background: var(--bg);
   color: var(--text);
-  border-radius: 14px;
-  font-weight: 700;
-  font-size: 15px;
+  border: 2.5px solid var(--text);
+  box-shadow: 4px 4px 0 var(--text);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.sp-sheet__cancel:active {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 var(--text);
 }
