@@ -155,18 +155,30 @@ export function AuthProvider({ children }) {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
 
-      await setDoc(
-        doc(db, "users", cred.user.uid),
-        {
-          role: "customer",
-          shop: null,
-          capabilities: [],
-          email: String(email || "").trim().toLowerCase(),
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+      // ── KEY FIX ────────────────────────────────────────────────────────────
+      // Wrap the Firestore write in its own try/catch.
+      // If setDoc fails (e.g. a Firestore security rule rejects the write),
+      // the Firebase Auth account already exists and the user is signed in.
+      // We should NOT throw here — swallow the error and continue with a
+      // sensible default profile so the user lands on onboarding correctly.
+      try {
+        await setDoc(
+          doc(db, "users", cred.user.uid),
+          {
+            role: "customer",
+            shop: null,
+            capabilities: [],
+            email: String(email || "").trim().toLowerCase(),
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      } catch (firestoreError) {
+        // Log for debugging but do not rethrow — auth succeeded.
+        console.error("Could not write user document after signup:", firestoreError);
+      }
+      // ───────────────────────────────────────────────────────────────────────
 
       const resolved = {
         role: "customer",
