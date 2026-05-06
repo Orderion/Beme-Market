@@ -10,9 +10,9 @@
   z-index: 100;
   height: 68px;
   padding: 0 14px;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   background: #FCFAF2;
   border-bottom: 3px solid #0A0A0A;
   box-shadow: 0 4px 0px 0px #0A0A0A;
@@ -77,6 +77,9 @@ body.dark .hdr-icon:hover {
 
 /* ── Center logo ── */
 .hdr-logo-wrap {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -90,7 +93,7 @@ body.dark .hdr-icon:hover {
 
 .hdr-logo-wrap--hidden {
   opacity: 0;
-  transform: translateY(-10px);
+  transform: translateX(-50%) translateY(-10px);
   pointer-events: none;
 }
 
@@ -110,13 +113,12 @@ body.dark .hdr-logo {
   display: flex;
   gap: 8px;
   align-items: center;
-  justify-content: flex-end;
   flex-shrink: 0;
 }
 
 /* ── Inline search bar ── */
 .hdr-inline-search {
-  grid-column: 2;
+  flex: 1;
   margin: 0 10px;
   position: relative;
   opacity: 0;
@@ -183,8 +185,6 @@ body.dark .hdr-search-form {
   letter-spacing: 0.02em;
   min-width: 0;
   line-height: 1;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
 }
 
 body.dark .hdr-search-input {
@@ -462,7 +462,6 @@ body.dark .hdr-confirm-btn {
   .hdr {
     height: 64px;
     padding: 0 12px;
-    grid-template-columns: auto 1fr auto;
   }
 
   .hdr-right {
