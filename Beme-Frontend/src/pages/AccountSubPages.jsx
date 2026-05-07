@@ -1,9 +1,12 @@
 // src/pages/AccountSubPages.jsx
 // Neo-brutalist reskin — hard borders, offset shadows, raw uppercase type.
 // Logic and routing are unchanged.
+// UPDATED: Notifications now shows real Firebase data via useUserNotifications.
 
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useUserNotifications } from "../hooks/useNotifications";
 import CustomerSupportChat from "../components/support/CustomerSupportChat";
 import SubPageHeader from "../components/SubPageHeader";
 import "./SubPages.css";
@@ -43,9 +46,29 @@ function IcoPhone() {
   );
 }
 
+function IcoCheck() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+      width="14" height="14">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  );
+}
+
+function IcoCheckAll() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      width="15" height="15">
+      <polyline points="2 12 7 17 16 6"/>
+      <polyline points="8 12 13 17 22 6"/>
+    </svg>
+  );
+}
+
 /* ─────────────────────────────────────────────────────
-   Brutalist decorative stripe — used as visual accent
-   above empty-state blocks
+   Brutalist decorative stripe
 ───────────────────────────────────────────────────── */
 function BrutalStripe() {
   return (
@@ -60,7 +83,21 @@ function BrutalStripe() {
 }
 
 /* ─────────────────────────────────────────────────────
-   SavedItems
+   Notification type badge colour map
+───────────────────────────────────────────────────── */
+const TYPE_COLORS = {
+  admin:   { bg: "rgba(230,126,34,0.12)", color: "#e67e22", label: "Admin"   },
+  order:   { bg: "rgba(34,197,94,0.12)",  color: "#22c55e", label: "Order"   },
+  promo:   { bg: "rgba(99,102,241,0.12)", color: "#818cf8", label: "Promo"   },
+  general: { bg: "rgba(100,116,139,0.1)", color: "#94a3b8", label: "General" },
+};
+
+function typeMeta(type) {
+  return TYPE_COLORS[type] || TYPE_COLORS.general;
+}
+
+/* ─────────────────────────────────────────────────────
+   SavedItems  — UNCHANGED
 ───────────────────────────────────────────────────── */
 
 export function SavedItems() {
@@ -86,30 +123,207 @@ export function SavedItems() {
 }
 
 /* ─────────────────────────────────────────────────────
-   Notifications
+   Notifications  — REAL DATA
 ───────────────────────────────────────────────────── */
 
 export function Notifications() {
+  const { user } = useAuth();
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    error,
+    markRead,
+    markAllRead,
+    formatTime,
+  } = useUserNotifications();
+
+  const [expandedId,   setExpandedId]   = useState(null);
+  const [markingAll,   setMarkingAll]   = useState(false);
+
+  /* toggle open a notification and mark it read */
+  const handleOpen = async (notif) => {
+    const isExpanding = expandedId !== notif.id;
+    setExpandedId(isExpanding ? notif.id : null);
+    if (isExpanding && !notif.read) {
+      await markRead(notif.id, user?.uid);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    setMarkingAll(true);
+    await markAllRead();
+    setMarkingAll(false);
+  };
+
+  /* ── Loading skeleton ── */
+  if (loading) {
+    return (
+      <div className="sp-page">
+        <SubPageHeader title="Notifications" />
+        <div className="notif-body">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="notif-skeleton" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Error state ── */
+  if (error) {
+    return (
+      <div className="sp-page">
+        <SubPageHeader title="Notifications" />
+        <div className="sp-body">
+          <div className="sp-empty-icon sp-empty-icon--warn">
+            <IcoBell />
+          </div>
+          <p className="sp-empty-title">Couldn't load</p>
+          <p className="sp-empty-sub">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Empty state ── */
+  if (notifications.length === 0) {
+    return (
+      <div className="sp-page">
+        <SubPageHeader title="Notifications" />
+        <div className="sp-body">
+          <BrutalStripe />
+          <div className="sp-empty-icon">
+            <IcoBell />
+          </div>
+          <p className="sp-empty-title">No notifications yet</p>
+          <p className="sp-empty-sub">
+            We'll let you know when your order ships, arrives, or when
+            there are new offers for you.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Real list ── */
   return (
     <div className="sp-page">
       <SubPageHeader title="Notifications" />
-      <div className="sp-body">
-        <BrutalStripe />
-        <div className="sp-empty-icon">
-          <IcoBell />
+
+      <div className="notif-body">
+
+        {/* ── Header row: count + mark all read ── */}
+        <div className="notif-header-row">
+          <div className="notif-header-left">
+            <span className="notif-header-title">Inbox</span>
+            {unreadCount > 0 && (
+              <span className="notif-unread-badge">{unreadCount} new</span>
+            )}
+          </div>
+          {unreadCount > 0 && (
+            <button
+              className="notif-mark-all-btn"
+              onClick={handleMarkAllRead}
+              disabled={markingAll}
+            >
+              {markingAll ? (
+                <span className="notif-spinner" />
+              ) : (
+                <IcoCheckAll />
+              )}
+              Mark all read
+            </button>
+          )}
         </div>
-        <p className="sp-empty-title">No notifications yet</p>
-        <p className="sp-empty-sub">
-          We will let you know when your order ships, arrives, or when
-          there are new offers for you.
-        </p>
+
+        {/* ── Notification list ── */}
+        <div className="notif-list">
+          {notifications.map((notif) => {
+            const isExpanded = expandedId === notif.id;
+            const meta       = typeMeta(notif.type);
+
+            return (
+              <button
+                key={notif.id}
+                className={[
+                  "notif-item",
+                  !notif.read    ? "notif-item--unread"   : "",
+                  isExpanded     ? "notif-item--expanded"  : "",
+                ].join(" ")}
+                onClick={() => handleOpen(notif)}
+              >
+                {/* Unread dot */}
+                {!notif.read && <span className="notif-dot" />}
+
+                {/* Top row */}
+                <div className="notif-item__top">
+                  <div className="notif-item__meta">
+                    <span
+                      className="notif-type-badge"
+                      style={{ background: meta.bg, color: meta.color }}
+                    >
+                      {meta.label}
+                    </span>
+                    <span className="notif-item__time">
+                      {formatTime(notif.createdAt)}
+                    </span>
+                  </div>
+
+                  {/* Read tick */}
+                  {notif.read && (
+                    <span className="notif-read-tick">
+                      <IcoCheck />
+                    </span>
+                  )}
+                </div>
+
+                {/* Title */}
+                <p className="notif-item__title">{notif.title}</p>
+
+                {/* Body — collapsed: single line. expanded: full */}
+                <p className={`notif-item__body ${isExpanded ? "notif-item__body--full" : ""}`}>
+                  {notif.body}
+                </p>
+
+                {/* Image — only when expanded */}
+                {isExpanded && notif.imageUrl && (
+                  <div className="notif-item__img-wrap">
+                    <img
+                      src={notif.imageUrl}
+                      alt={notif.title}
+                      className="notif-item__img"
+                    />
+                  </div>
+                )}
+
+                {/* Expand chevron */}
+                <div className="notif-item__footer">
+                  <svg
+                    className={`notif-chevron ${isExpanded ? "notif-chevron--up" : ""}`}
+                    viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2.5"
+                    strokeLinecap="round" strokeLinejoin="round"
+                    width="13" height="13">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                  <span className="notif-item__hint">
+                    {isExpanded ? "Show less" : "Show more"}
+                  </span>
+                </div>
+
+              </button>
+            );
+          })}
+        </div>
+
       </div>
     </div>
   );
 }
 
 /* ─────────────────────────────────────────────────────
-   HelpSupport
+   HelpSupport  — UNCHANGED
 ───────────────────────────────────────────────────── */
 
 export function HelpSupport() {
@@ -134,7 +348,7 @@ export function HelpSupport() {
 }
 
 /* ─────────────────────────────────────────────────────
-   ContactUs
+   ContactUs  — UNCHANGED
 ───────────────────────────────────────────────────── */
 
 const PHONE_HREF = "tel:+233XXXXXXXXX";
