@@ -16,7 +16,7 @@
 
 /* ── Card shell ── */
 .tc-card {
-  width: 148px;
+  width: 100%;
   background: var(--card);
   border: 2px solid var(--border);
   border-radius: 0;
@@ -283,30 +283,6 @@ body.dark .tc-name {
   color: var(--text);
 }
 
-.tc-price-row {
-  border-top: 1.5px solid var(--border);
-  padding-top: 6px;
-}
-
-.tc-price {
-  font-family: var(--font-display, inherit);
-  font-weight: 900;
-  font-size: 0.88rem;
-  letter-spacing: -0.03em;
-  color: var(--grtheme);
-  line-height: 1;
-}
-
-body.dark .tc-price {
-  color: var(--grtheme);
-}
-
-.tc-no-price {
-  font-size: 0.75rem;
-  color: var(--muted);
-  font-weight: 700;
-}
-
 /* ── Inline card popup ── */
 .tc-popup {
   position: absolute;
@@ -333,10 +309,6 @@ body.dark .tc-price {
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
-  .tc-card {
-    width: 132px;
-  }
-
   .tc-name {
     font-size: 0.74rem;
   }
