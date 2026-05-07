@@ -301,19 +301,12 @@ export default function TrendingCard({ product }) {
             )}
           </div>
 
-          {/* Card body — name + price only */}
+          {/* Card body — name only */}
           <div className="tc-body">
             {cardPopup && (
               <div className="tc-popup" role="alert">{cardPopup}</div>
             )}
             <h3 className="tc-name">{name}</h3>
-            <div className="tc-price-row">
-              {price !== null ? (
-                <span className="tc-price">{formatMoney(price)}</span>
-              ) : (
-                <span className="tc-no-price">—</span>
-              )}
-            </div>
           </div>
 
         </div>
