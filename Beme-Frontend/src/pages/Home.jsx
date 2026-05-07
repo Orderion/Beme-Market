@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { collection, getDocs, limit, query } from "firebase/firestore";
+import {
+  collection, getDocs, limit, orderBy, query, where
+} from "firebase/firestore";
 import { db } from "../firebase";
 import ProductGrid from "../components/ProductGrid";
 import ShopCarousel from "../components/ShopCarousel";
 import FlashDealsBanner from "../components/FlashDealsBanner";
+import TrendingCard from "../components/TrendingCard";
 import useHomepageConfig from "../hooks/useHomepageConfig";
 import { SHOPS } from "../constants/catalog";
 import banner from "../assets/home_banner.PNG";
@@ -30,6 +33,7 @@ import "./Home.css";
 const COLLECTION_NAME      = "Products";
 const SEARCH_PREVIEW_LIMIT = 80;
 const SUGGESTION_LIMIT     = 4;
+const TRENDING_LIMIT       = 20;
 
 const BANNER_FALLBACKS = {
   fashion: fashionBanner,
@@ -44,7 +48,7 @@ const HARDCODED_STORE_CARDS = [
   { id: "main",    theme: "bestsellers", image: banner,        chip: "Main Store",    title: "Everyday bestsellers",            subtitle: "Mixed essentials, popular picks, and store highlights.",       shopLink: "/shop?shop=main",    ariaLabel: "Open Main Store" },
   { id: "kente",   theme: "kente",       image: kenteBanner,   chip: "Ghana Made",    title: "Mintah's Kente",                  subtitle: "Premium woven styles with heritage appeal.",                  shopLink: "/shop?shop=kente",   ariaLabel: "Open Mintah's Kente collection" },
   { id: "perfume", theme: "scents",      image: perfumeBanner, chip: "Perfume Shop",  title: "Luxury scents",                   subtitle: "Refined fragrances for daily wear and gifting.",              shopLink: "/shop?shop=perfume", ariaLabel: "Open Perfume Shop" },
-  { id: "tech",    theme: "gadgets",     image: techBanner,    chip: "Tech Shop",     title: "Latest gadgets",                  subtitle: "Smart devices and modern electronics for daily life.",         shopLink: "/shop?shop=tech",    ariaLabel: "Open Tech Shop" },
+  { id: "tech",    theme: "gadgets",     image: techBanner,    chip: "Latest gadgets",                  title: "Latest gadgets",                  subtitle: "Smart devices and modern electronics for daily life.",         shopLink: "/shop?shop=tech",    ariaLabel: "Open Tech Shop" },
 ];
 
 const HARDCODED_CATEGORY_CARDS = [
@@ -111,12 +115,7 @@ function CategoryImage({ type, label, src }) {
   const resolvedSrc = src || CATEGORY_IMAGES[type];
   if (!resolvedSrc) return <OthersFallback />;
   return (
-    <img
-      src={resolvedSrc}
-      alt={label}
-      className="home-cat-img"
-      draggable={false}
-    />
+    <img src={resolvedSrc} alt={label} className="home-cat-img" draggable={false} />
   );
 }
 
@@ -132,6 +131,32 @@ function normalizeProduct(docSnap) {
     kind:             String(d.kind             || "").trim(),
     shop:             String(d.shop             || "").trim().toLowerCase(),
     homeSlot:         String(d.homeSlot || d.home_filter || d.homeFilter || d.slot || "").trim().toLowerCase(),
+  };
+}
+
+function normalizeTrendingDoc(docSnap) {
+  const d = docSnap.data() || {};
+  const price = Number(d.price ?? d.Price ?? 0) || 0;
+  const rawOldPrice = d.oldPrice ?? d.oldprice ?? null;
+  const images = Array.isArray(d.images)
+    ? d.images.map((i) => String(i || "").trim()).filter(Boolean)
+    : [];
+  if (!images.length && d.image) images.push(String(d.image).trim());
+
+  return {
+    id: docSnap.id,
+    ...d,
+    price,
+    oldPrice: rawOldPrice !== null && rawOldPrice !== undefined && rawOldPrice !== ""
+      ? Number(rawOldPrice) || null
+      : null,
+    image: images[0] || "",
+    images,
+    inStock: typeof d.inStock === "boolean" ? d.inStock : true,
+    featured: typeof d.featured === "boolean" ? d.featured : false,
+    shop: String(d.shop || "").toLowerCase().trim(),
+    homeSlot: String(d.homeSlot || d.home_filter || d.homeFilter || d.slot || "others").toLowerCase().trim(),
+    createdAt: d.createdAt ?? null,
   };
 }
 
@@ -207,25 +232,94 @@ function buildSuggestions(products, term) {
 }
 
 /* ─────────────────────────────────────────────
-   Search icon SVG (inline, no artifact)
+   Search icon SVG
 ───────────────────────────────────────────── */
 function SearchIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="11" cy="11" r="8" />
       <path d="M21 21l-4.3-4.3" />
     </svg>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Loading Skeleton
+───────────────────────────────────────────── */
+function HomeSkeleton() {
+  return (
+    <div className="home-skeleton-full">
+      {/* Search bar stub */}
+      <div className="home-sk-search">
+        <div className="home-sk-search-bar" />
+      </div>
+
+      {/* Carousel stub */}
+      <div className="home-sk-carousel" aria-hidden="true">
+        <div className="home-sk-carousel-inner" />
+        <div className="home-sk-carousel-dots">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className={`home-sk-dot ${i === 0 ? "home-sk-dot--active" : ""}`} />
+          ))}
+        </div>
+      </div>
+
+      {/* Categories stub */}
+      <div className="home-sk-section">
+        <div className="home-sk-header">
+          <div className="home-sk-heading" />
+          <div className="home-sk-pill" />
+        </div>
+        <div className="home-sk-cat-row">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="home-sk-cat">
+              <div className="home-sk-cat-circle" />
+              <div className="home-sk-cat-label" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Trending stub */}
+      <div className="home-sk-section">
+        <div className="home-sk-header">
+          <div className="home-sk-heading" />
+          <div className="home-sk-pill" />
+        </div>
+        <div className="home-sk-trending-row">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="home-sk-trending-card">
+              <div className="home-sk-trending-img" />
+              <div className="home-sk-trending-body">
+                <div className="home-sk-line" />
+                <div className="home-sk-line home-sk-line--short" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Product grid stub */}
+      <div className="home-sk-section">
+        <div className="home-sk-header">
+          <div className="home-sk-heading" />
+          <div className="home-sk-pill" />
+        </div>
+        <div className="home-sk-grid">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="home-sk-product">
+              <div className="home-sk-product-img" />
+              <div className="home-sk-product-body">
+                <div className="home-sk-line" />
+                <div className="home-sk-line home-sk-line--short" />
+                <div className="home-sk-line home-sk-line--tiny" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -234,7 +328,6 @@ function SearchIcon() {
 ───────────────────────────────────────────── */
 export default function Home() {
   const navigate = useNavigate();
-
   const { config, loading: configLoading } = useHomepageConfig();
 
   const [search,             setSearch]             = useState("");
@@ -244,6 +337,10 @@ export default function Home() {
   const [activeIndex,        setActiveIndex]        = useState(-1);
   const [searchCollapsed,    setSearchCollapsed]    = useState(false);
   const [activeCat,          setActiveCat]          = useState(null);
+
+  /* ── Trending products state ── */
+  const [trendingProducts, setTrendingProducts] = useState([]);
+  const [trendingLoading,  setTrendingLoading]  = useState(true);
 
   const searchWrapRef = useRef(null);
   const inputRef      = useRef(null);
@@ -304,7 +401,7 @@ export default function Home() {
   const trendingText = config?.trendingText || { heading: "Trending now",      seeAllText: "See featured" };
   const continueText = config?.continueText || { heading: "Continue shopping", seeAllText: "See all"      };
 
-  /* ── Load products ── */
+  /* ── Load search suggestion products ── */
   useEffect(() => {
     let alive = true;
     async function load() {
@@ -323,6 +420,45 @@ export default function Home() {
       }
     }
     load();
+    return () => { alive = false; };
+  }, []);
+
+  /* ── Load trending (featured) products ── */
+  useEffect(() => {
+    let alive = true;
+    async function loadTrending() {
+      setTrendingLoading(true);
+      try {
+        const qRef = query(
+          collection(db, COLLECTION_NAME),
+          where("featured", "==", true),
+          orderBy("createdAt", "desc"),
+          limit(TRENDING_LIMIT)
+        );
+        const snap = await getDocs(qRef);
+        if (!alive) return;
+        setTrendingProducts(snap.docs.map(normalizeTrendingDoc));
+      } catch {
+        // Fallback without orderBy if index not ready
+        try {
+          const qRef2 = query(
+            collection(db, COLLECTION_NAME),
+            where("featured", "==", true),
+            limit(TRENDING_LIMIT)
+          );
+          const snap2 = await getDocs(qRef2);
+          if (!alive) return;
+          setTrendingProducts(snap2.docs.map(normalizeTrendingDoc));
+        } catch (e2) {
+          console.error("Trending fetch error:", e2);
+          if (!alive) return;
+          setTrendingProducts([]);
+        }
+      } finally {
+        if (alive) setTrendingLoading(false);
+      }
+    }
+    loadTrending();
     return () => { alive = false; };
   }, []);
 
@@ -403,18 +539,9 @@ export default function Home() {
 
   const goToCategory = (item) => navigate(`/shop?q=${encodeURIComponent(item.query)}`);
 
-  /* ── Loading skeleton ── */
+  /* ── Loading ── */
   if (configLoading) {
-    return (
-      <div className="home-skeleton">
-        <div className="home-skeleton-carousel" />
-        <div className="home-skeleton-cats">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="home-skeleton-cat" />
-          ))}
-        </div>
-      </div>
-    );
+    return <HomeSkeleton />;
   }
 
   /* ── Section renderers ── */
@@ -469,7 +596,29 @@ export default function Home() {
                 {trendingText.seeAllText}
               </button>
             </div>
-            <ProductGrid sortBy="new" filter={{ featuredOnly: true }} infinite={false} />
+
+            {trendingLoading ? (
+              /* Skeleton for trending row */
+              <div className="home-trending-row">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="home-sk-trending-card">
+                    <div className="home-sk-trending-img" />
+                    <div className="home-sk-trending-body">
+                      <div className="home-sk-line" />
+                      <div className="home-sk-line home-sk-line--short" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : trendingProducts.length === 0 ? (
+              <div className="home-trending-empty">No trending picks yet.</div>
+            ) : (
+              <div className="home-trending-row">
+                {trendingProducts.map((product) => (
+                  <TrendingCard key={product.id} product={product} />
+                ))}
+              </div>
+            )}
           </section>
         );
 
@@ -518,12 +667,7 @@ export default function Home() {
             />
 
             {search.length > 0 && (
-              <button
-                type="button"
-                className="home-search-clear"
-                onClick={handleClear}
-                aria-label="Clear search"
-              >
+              <button type="button" className="home-search-clear" onClick={handleClear} aria-label="Clear search">
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"
                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
@@ -532,7 +676,6 @@ export default function Home() {
               </button>
             )}
 
-            {/* Real search submit button — no filter SVG */}
             <button type="submit" className="home-search-submit" aria-label="Search">
               <SearchIcon />
             </button>
