@@ -365,18 +365,14 @@
 /* ══════════════════════════════════════════
    CATEGORY ITEMS
 ══════════════════════════════════════════ */
-.home-cat-scroll {
+
+ .home-cat-scroll {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  /* RESPONSIVE FIX: padding-left matches --home-px so first item aligns with section headers
-     padding-right adds a trailing gap so last item isn't flush to edge */
-  padding: 4px var(--home-px) 16px;
+  padding: 4px 16px 16px;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  /* RESPONSIVE FIX: add scroll-padding so snap/programmatic scroll respects padding */
-  scroll-padding-left: var(--home-px);
-  box-sizing: border-box;
 }
 
 .home-cat-scroll::-webkit-scrollbar { display: none; }
