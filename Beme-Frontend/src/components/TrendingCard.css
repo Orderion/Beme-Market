@@ -1,0 +1,362 @@
+/* ─────────────────────────────────────────
+   TRENDING CARD — TrendingCard.css
+   Neo-Brutalist · Compact · Image-first
+   ───────────────────────────────────────── */
+
+.tc-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.tc-link--disabled {
+  pointer-events: none;
+}
+
+/* ── Card shell ── */
+.tc-card {
+  width: 148px;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 0;
+  overflow: visible;
+  position: relative;
+  transition:
+    transform 0.14s var(--ease-premium, ease),
+    box-shadow 0.14s var(--ease-premium, ease);
+  animation: tc-fadeUp 0.3s ease both;
+}
+
+.tc-card:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 4px 4px 0px 0px #0A0A0A;
+}
+
+body.dark .tc-card:hover {
+  box-shadow: 4px 4px 0px 0px rgba(255,255,255,0.8);
+}
+
+.tc-card--out {
+  opacity: 0.82;
+}
+
+.tc-card--out .tc-img {
+  filter: grayscale(0.35);
+}
+
+/* ── Media ── */
+.tc-media {
+  position: relative;
+  border-bottom: 2px solid var(--border);
+  isolation: isolate;
+}
+
+.tc-media-frame {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: var(--caru, #f0ede4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.dark .tc-media-frame {
+  background: #222220;
+}
+
+.tc-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  transition: transform 0.28s ease;
+}
+
+.tc-card:hover .tc-img {
+  transform: scale(1.05);
+}
+
+.tc-img--empty {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
+  background: var(--caru, #f0ede4);
+  color: var(--muted, #888);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Discount badge — bottom-left over image ── */
+.tc-discount-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 4;
+  background: #0A0A0A;
+  color: #FCFAF2;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border: 1.5px solid #0A0A0A;
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+body.dark .tc-discount-badge {
+  background: #FCFAF2;
+  color: #0A0A0A;
+  border-color: #FCFAF2;
+}
+
+/* ── Out of stock badge ── */
+.tc-out-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 4;
+  background: #0A0A0A;
+  color: #FCFAF2;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 6px;
+  border: 1.5px solid #0A0A0A;
+  pointer-events: none;
+}
+
+body.dark .tc-out-badge {
+  background: #FCFAF2;
+  color: #0A0A0A;
+}
+
+/* ── Cart button ── */
+.tc-cart-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--border);
+  border-radius: 0;
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px 0px #0A0A0A;
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.1s ease,
+    background 0.1s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tc-cart-btn:hover {
+  transform: translate(-2px, -2px);
+  background: var(--grtheme);
+  border-color: var(--grtheme);
+  box-shadow: 3px 3px 0px 0px #0A0A0A;
+}
+
+.tc-cart-btn:hover .tc-cart-svg {
+  color: #fff;
+}
+
+.tc-cart-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.tc-cart-btn--disabled,
+.tc-cart-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.tc-cart-btn--disabled:hover,
+.tc-cart-btn:disabled:hover {
+  transform: none;
+  background: var(--card);
+  border-color: var(--border);
+}
+
+.tc-cart-svg {
+  width: 14px;
+  height: 14px;
+  color: var(--grtheme);
+  transition: color 0.1s ease;
+}
+
+/* ── Image nav ── */
+.tc-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid var(--border);
+  border-radius: 0;
+  background: var(--card);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 4;
+  box-shadow: 1px 1px 0px 0px #0A0A0A;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.tc-nav:hover {
+  transform: translateY(-50%) translate(-1px, -1px);
+  box-shadow: 2px 2px 0px 0px #0A0A0A;
+}
+
+.tc-nav:active {
+  transform: translateY(-50%) translate(1px, 1px);
+  box-shadow: none;
+}
+
+.tc-nav--prev { left: 6px; }
+.tc-nav--next { right: 6px; }
+
+/* ── Dots ── */
+.tc-dots {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 3px;
+  z-index: 4;
+  padding: 3px 5px;
+  background: rgba(10,10,10,0.7);
+}
+
+.tc-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 0;
+  background: rgba(255,255,255,0.4);
+  transition: width 0.14s ease, background 0.14s ease;
+  display: block;
+}
+
+.tc-dot--active {
+  width: 10px;
+  background: #fff;
+}
+
+/* ── Card body ── */
+.tc-body {
+  padding: 8px 10px 10px;
+  position: relative;
+}
+
+.tc-name {
+  margin: 0 0 5px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.dark .tc-name {
+  color: var(--text);
+}
+
+.tc-price-row {
+  border-top: 1.5px solid var(--border);
+  padding-top: 6px;
+}
+
+.tc-price {
+  font-family: var(--font-display, inherit);
+  font-weight: 900;
+  font-size: 0.88rem;
+  letter-spacing: -0.03em;
+  color: var(--grtheme);
+  line-height: 1;
+}
+
+body.dark .tc-price {
+  color: var(--grtheme);
+}
+
+.tc-no-price {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+/* ── Inline card popup ── */
+.tc-popup {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 7px 10px;
+  background: #0A0A0A;
+  color: #FCFAF2;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1.4;
+  z-index: 6;
+  border-bottom: 2px solid var(--grtheme);
+  animation: tc-fadeUp 0.18s ease both;
+}
+
+/* ── Animations ── */
+@keyframes tc-fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .tc-card {
+    width: 132px;
+  }
+
+  .tc-name {
+    font-size: 0.74rem;
+  }
+
+  .tc-price {
+    font-size: 0.82rem;
+  }
+
+  .tc-cart-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .tc-cart-svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .tc-discount-badge {
+    font-size: 7px;
+    padding: 2px 5px;
+  }
+}
