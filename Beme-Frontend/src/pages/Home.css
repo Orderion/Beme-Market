@@ -281,19 +281,14 @@
 }
 
 /* ══════════════════════════════════════════
-   TRENDING PICKS ROW
+   TRENDING PICKS GRID
 ══════════════════════════════════════════ */
 .home-trending-row {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   padding: 4px 16px 16px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  -webkit-overflow-scrolling: touch;
 }
-
-.home-trending-row::-webkit-scrollbar { display: none; }
 
 .home-trending-empty {
   padding: 20px 16px;
@@ -509,15 +504,14 @@
 
 /* Trending card stub row */
 .home-sk-trending-row {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   padding: 4px 16px 16px;
-  overflow: hidden;
 }
 
 .home-sk-trending-card {
-  flex-shrink: 0;
-  width: 148px;
+  width: 100%;
   border: 2px solid #0A0A0A;
   background: #FCFAF2;
   box-shadow: 3px 3px 0px 0px #0A0A0A;
@@ -626,10 +620,16 @@
 
   .home-trending-row {
     padding: 4px 24px 16px;
+    gap: 14px;
+  }
+
+  .home-sk-trending-row {
+    padding: 4px 24px 16px;
+    gap: 14px;
   }
 
   .home-sk-trending-card {
-    width: 160px;
+    width: 100%;
   }
 
   .home-sk-grid {
@@ -653,6 +653,8 @@
 
   .home-trending-row {
     padding: 4px 48px 18px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
   }
 
   .home-cat-circle { width: 64px; height: 64px; }
