@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
+import { useAdminUnreadCount } from "../hooks/useNotifications";
 import "./AdminDashboard.css";
 
 /* ═══════════════════════════════════════
@@ -43,13 +44,19 @@ function normalizeShop(value) {
 }
 
 function sortByCreatedAtDesc(rows) {
-  return [...rows].sort((a, b) => toMillis(b.createdAt || b.timestamp) - toMillis(a.createdAt || a.timestamp));
+  return [...rows].sort(
+    (a, b) =>
+      toMillis(b.createdAt || b.timestamp) -
+      toMillis(a.createdAt || a.timestamp)
+  );
 }
 
 function orderMatchesShop(order, adminShop) {
   const norm = normalizeShop(adminShop);
   if (normalizeShop(order?.primaryShop) === norm) return true;
-  const shops = Array.isArray(order?.shops) ? order.shops.map(normalizeShop) : [];
+  const shops = Array.isArray(order?.shops)
+    ? order.shops.map(normalizeShop)
+    : [];
   if (shops.includes(norm)) return true;
   const items = Array.isArray(order?.items) ? order.items : [];
   return items.some((item) => normalizeShop(item?.shop) === norm);
@@ -58,7 +65,7 @@ function orderMatchesShop(order, adminShop) {
 function formatMoney(value) {
   const n = Number(value || 0);
   if (n >= 1_000_000) return `GHS ${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `GHS ${(n / 1_000).toFixed(1)}k`;
+  if (n >= 1_000)     return `GHS ${(n / 1_000).toFixed(1)}k`;
   return `GHS ${n.toFixed(2)}`;
 }
 
@@ -70,9 +77,15 @@ function buildUniqueShopCount(products, orders) {
   }
   for (const o of orders) {
     const arr = Array.isArray(o.shops) ? o.shops : [];
-    for (const s of arr) { const n = normalizeShop(s); if (n) shops.add(n); }
+    for (const s of arr) {
+      const n = normalizeShop(s);
+      if (n) shops.add(n);
+    }
     const items = Array.isArray(o.items) ? o.items : [];
-    for (const item of items) { const n = normalizeShop(item?.shop); if (n) shops.add(n); }
+    for (const item of items) {
+      const n = normalizeShop(item?.shop);
+      if (n) shops.add(n);
+    }
   }
   return shops.size;
 }
@@ -83,24 +96,32 @@ function getDayKeyFromTimestamp(ts) {
 }
 
 function labelFromDayKey(dayKey) {
-  return new Date(`${dayKey}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return new Date(`${dayKey}T00:00:00`).toLocaleDateString(undefined, {
+    month: "short",
+    day:   "numeric",
+  });
 }
 
 function buildDailySeries(orders, days = 7) {
   const today = new Date();
-  const map = new Map();
+  const map   = new Map();
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
     const key = d.toISOString().slice(0, 10);
-    map.set(key, { key, label: labelFromDayKey(key), orders: 0, revenue: 0 });
+    map.set(key, {
+      key,
+      label:   labelFromDayKey(key),
+      orders:  0,
+      revenue: 0,
+    });
   }
   for (const order of orders) {
     const key = getDayKeyFromTimestamp(order.createdAt || order.timestamp);
     if (!map.has(key)) continue;
-    const row = map.get(key);
-    row.orders += 1;
-    row.revenue += getOrderTotal(order);
+    const row     = map.get(key);
+    row.orders   += 1;
+    row.revenue  += getOrderTotal(order);
   }
   return Array.from(map.values());
 }
@@ -109,8 +130,11 @@ function buildDailySeries(orders, days = 7) {
    ICON HELPER
 ═══════════════════════════════════════ */
 const Icon = ({ d, size = 18 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth={1.8}
+    strokeLinecap="round" strokeLinejoin="round"
+  >
     <path d={d} />
   </svg>
 );
@@ -127,24 +151,28 @@ const ICONS = {
   products:  "M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16",
   media:     "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z M4 22v-7",
   support:   "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
+  /* ── NEW ── */
+  notif:     "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0",
   logout:    "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9",
   menu:      "M3 12h18 M3 6h18 M3 18h18",
   close:     "M18 6L6 18 M6 6l12 12",
   refresh:   "M23 4v6h-6 M1 20v-6h6 M3.51 9a9 9 0 0 1 14.85-3.36L23 10 M1 14l4.64 4.36A9 9 0 0 0 20.49 15",
 };
 
+/* ── NAV ITEMS — Notifications entry added ── */
 const NAV_ITEMS = [
-  { key: "dashboard", label: "Dashboard",         path: "/admin" },
-  { key: "orders",    label: "Orders",            path: "/admin-orders" },
-  { key: "review",    label: "Review Queue",      path: "/admin-review-queue" },
-  { key: "analytics", label: "Analytics",         path: "/analytics" },
-  { key: "payouts",   label: "Payout Requests",   path: "/payout-requests" },
-  { key: "shops",     label: "Shop Applications", path: "/shop-applications" },
-  { key: "accounts",  label: "Account Mgmt",      path: "/account-management" },
-  { key: "homepage",  label: "Homepage Editor",   path: "/admin/homepage" },
-  { key: "products",  label: "Product Requests",  path: "/admin/product-requests" },
-  { key: "media",     label: "Media Manager",     path: "/admin/media" },
-  { key: "support",   label: "Support Inbox",     path: "/admin/support" },
+  { key: "dashboard", label: "Dashboard",         path: "/admin"                   },
+  { key: "orders",    label: "Orders",            path: "/admin-orders"            },
+  { key: "review",    label: "Review Queue",      path: "/admin-review-queue"      },
+  { key: "analytics", label: "Analytics",         path: "/analytics"               },
+  { key: "payouts",   label: "Payout Requests",   path: "/payout-requests"         },
+  { key: "shops",     label: "Shop Applications", path: "/shop-applications"       },
+  { key: "accounts",  label: "Account Mgmt",      path: "/account-management"      },
+  { key: "homepage",  label: "Homepage Editor",   path: "/admin/homepage"          },
+  { key: "products",  label: "Product Requests",  path: "/admin/product-requests"  },
+  { key: "media",     label: "Media Manager",     path: "/admin/media"             },
+  { key: "support",   label: "Support Inbox",     path: "/admin/support"           },
+  { key: "notif",     label: "Notifications",     path: "/admin/notifications"     }, // ← NEW
 ];
 
 const STATUS = {
@@ -178,11 +206,21 @@ function MiniBarChart({ series, valueKey, formatVal }) {
   return (
     <div className="adash-minichart">
       {series.map((item) => {
-        const pct = Math.max((item[valueKey] / max) * 100, item[valueKey] > 0 ? 4 : 0);
+        const pct = Math.max(
+          (item[valueKey] / max) * 100,
+          item[valueKey] > 0 ? 4 : 0
+        );
         return (
-          <div key={item.key} className="adash-minibar-col" title={`${item.label}: ${formatVal(item[valueKey])}`}>
+          <div
+            key={item.key}
+            className="adash-minibar-col"
+            title={`${item.label}: ${formatVal(item[valueKey])}`}
+          >
             <div className="adash-minibar-track">
-              <div className="adash-minibar-fill" style={{ height: `${pct}%` }} />
+              <div
+                className="adash-minibar-fill"
+                style={{ height: `${pct}%` }}
+              />
             </div>
             <span className="adash-minibar-label">{item.label}</span>
           </div>
@@ -192,7 +230,8 @@ function MiniBarChart({ series, valueKey, formatVal }) {
   );
 }
 
-function NavItem({ item, isActive, collapsed, onClick }) {
+/* ── NavItem — now accepts a badge prop for the notification dot ── */
+function NavItem({ item, isActive, collapsed, onClick, badge }) {
   const [hovered, setHovered] = useState(false);
   return (
     <button
@@ -207,7 +246,13 @@ function NavItem({ item, isActive, collapsed, onClick }) {
         collapsed ? "adash-nav-btn--collapsed" : "",
       ].join(" ")}
     >
-      <span className="adash-nav-icon"><Icon d={ICONS[item.key]} size={17} /></span>
+      {/* Icon wrapper — position relative so badge can sit on top */}
+      <span className="adash-nav-icon" style={{ position: "relative" }}>
+        <Icon d={ICONS[item.key]} size={17} />
+        {badge > 0 && (
+          <span className="adash-nav-badge">{badge > 99 ? "99+" : badge}</span>
+        )}
+      </span>
       {!collapsed && <span className="adash-nav-label">{item.label}</span>}
       {isActive && !collapsed && <span className="adash-nav-dot" />}
     </button>
@@ -218,21 +263,24 @@ function NavItem({ item, isActive, collapsed, onClick }) {
    MAIN COMPONENT
 ═══════════════════════════════════════ */
 export default function AdminDashboard() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { isSuperAdmin, isShopAdmin, adminShop } = useAuth();
+
+  /* ── NEW: unread notification count for sidebar badge ── */
+  const { unreadCount: notifUnread } = useAdminUnreadCount();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed,   setCollapsed]   = useState(false);
 
   /* ── data state ── */
-  const [products,      setProducts]      = useState([]);
-  const [orders,        setOrders]        = useState([]);
-  const [users,         setUsers]         = useState([]);
-  const [pendingReviews,setPendingReviews]= useState(0);
-  const [openTickets,   setOpenTickets]   = useState(0);
-  const [dataLoading,   setDataLoading]   = useState(true);
-  const [lastRefreshed, setLastRefreshed] = useState(null);
+  const [products,       setProducts]       = useState([]);
+  const [orders,         setOrders]         = useState([]);
+  const [users,          setUsers]          = useState([]);
+  const [pendingReviews, setPendingReviews] = useState(0);
+  const [openTickets,    setOpenTickets]    = useState(0);
+  const [dataLoading,    setDataLoading]    = useState(true);
+  const [lastRefreshed,  setLastRefreshed]  = useState(null);
 
   const active = location.pathname;
 
@@ -245,7 +293,9 @@ export default function AdminDashboard() {
     /* products */
     try {
       if (isShopAdmin && normShop) {
-        const snap = await getDocs(query(collection(db, "Products"), where("shop", "==", normShop)));
+        const snap = await getDocs(
+          query(collection(db, "Products"), where("shop", "==", normShop))
+        );
         loadedProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       } else {
         const snap = await getDocs(collection(db, "Products"));
@@ -257,26 +307,43 @@ export default function AdminDashboard() {
     try {
       if (isShopAdmin && normShop) {
         try {
-          const snap = await getDocs(query(
-            collection(db, "orders"),
-            where("shops", "array-contains", normShop),
-            orderBy("createdAt", "desc"), limit(300)
-          ));
+          const snap = await getDocs(
+            query(
+              collection(db, "orders"),
+              where("shops", "array-contains", normShop),
+              orderBy("createdAt", "desc"),
+              limit(300)
+            )
+          );
           loadedOrders = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         } catch {
-          const snap = await getDocs(query(collection(db, "orders"), where("shops", "array-contains", normShop)));
+          const snap = await getDocs(
+            query(
+              collection(db, "orders"),
+              where("shops", "array-contains", normShop)
+            )
+          );
           loadedOrders = sortByCreatedAtDesc(
-            snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+            snap.docs
+              .map((d) => ({ id: d.id, ...d.data() }))
               .filter((o) => orderMatchesShop(o, normShop))
           );
         }
       } else {
         try {
-          const snap = await getDocs(query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(300)));
+          const snap = await getDocs(
+            query(
+              collection(db, "orders"),
+              orderBy("createdAt", "desc"),
+              limit(300)
+            )
+          );
           loadedOrders = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         } catch {
           const snap = await getDocs(collection(db, "orders"));
-          loadedOrders = sortByCreatedAtDesc(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+          loadedOrders = sortByCreatedAtDesc(
+            snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+          );
         }
       }
     } catch (e) { console.error("orders:", e); }
@@ -291,19 +358,19 @@ export default function AdminDashboard() {
 
     /* review queue count */
     try {
-      const snap = await getDocs(query(collection(db, "reviewQueue"), where("status", "==", "pending")));
+      const snap = await getDocs(
+        query(collection(db, "reviewQueue"), where("status", "==", "pending"))
+      );
       setPendingReviews(snap.size);
-    } catch {
-      /* collection may not exist yet — keep 0 */
-    }
+    } catch { /* collection may not exist yet — keep 0 */ }
 
     /* support tickets count */
     try {
-      const snap = await getDocs(query(collection(db, "supportTickets"), where("status", "==", "open")));
+      const snap = await getDocs(
+        query(collection(db, "supportTickets"), where("status", "==", "open"))
+      );
       setOpenTickets(snap.size);
-    } catch {
-      /* keep 0 */
-    }
+    } catch { /* keep 0 */ }
 
     setProducts(loadedProducts);
     setOrders(loadedOrders);
@@ -312,9 +379,11 @@ export default function AdminDashboard() {
     setDataLoading(false);
   }
 
-  useEffect(() => { fetchData(); }, [isShopAdmin, adminShop, isSuperAdmin]);
+  useEffect(() => {
+    fetchData();
+  }, [isShopAdmin, adminShop, isSuperAdmin]);
 
-  /* ── computed metrics (same as Analytics.jsx) ── */
+  /* ── computed metrics ── */
   const metrics = useMemo(() => {
     const totalProducts    = products.length;
     const inStockProducts  = products.filter((p) => p.inStock !== false).length;
@@ -326,11 +395,23 @@ export default function AdminDashboard() {
       const items = Array.isArray(o.items) ? o.items : [];
       return sum + items.reduce((s, i) => s + Number(i?.qty || 0), 0);
     }, 0);
-    const activeCustomers  = isSuperAdmin
-      ? users.filter((u) => !["super_admin", "shop_admin", "admin"].includes(String(u.role || "").toLowerCase())).length
-      : new Set(orders.map((o) => String(o.userId || "").trim()).filter(Boolean)).size;
-    const activeShops      = buildUniqueShopCount(products, orders);
-    const stockHealth      = totalProducts > 0 ? Math.round((inStockProducts / totalProducts) * 100) : 0;
+    const activeCustomers = isSuperAdmin
+      ? users.filter(
+          (u) =>
+            !["super_admin", "shop_admin", "admin"].includes(
+              String(u.role || "").toLowerCase()
+            )
+        ).length
+      : new Set(
+          orders
+            .map((o) => String(o.userId || "").trim())
+            .filter(Boolean)
+        ).size;
+    const activeShops  = buildUniqueShopCount(products, orders);
+    const stockHealth  =
+      totalProducts > 0
+        ? Math.round((inStockProducts / totalProducts) * 100)
+        : 0;
 
     return {
       totalOrders, totalRevenue, avgOrderValue, totalUnitsSold,
@@ -362,29 +443,63 @@ export default function AdminDashboard() {
       <div className="adash-root">
 
         {/* ── Desktop Sidebar ── */}
-        <aside className={`adash-sidebar ${collapsed ? "adash-sidebar--collapsed" : "adash-sidebar--expanded"}`}>
-          <div className={`adash-logo-row ${collapsed ? "adash-logo-row--collapsed" : ""}`}>
+        <aside
+          className={`adash-sidebar ${
+            collapsed ? "adash-sidebar--collapsed" : "adash-sidebar--expanded"
+          }`}
+        >
+          <div
+            className={`adash-logo-row ${
+              collapsed ? "adash-logo-row--collapsed" : ""
+            }`}
+          >
             <Logo />
-            {!collapsed && <span className="adash-logo-text">BEME MARKET</span>}
+            {!collapsed && (
+              <span className="adash-logo-text">BEME MARKET</span>
+            )}
           </div>
 
           <nav className="adash-nav">
             {NAV_ITEMS.map((item) => (
-              <NavItem key={item.key} item={item} isActive={active === item.path}
-                collapsed={collapsed} onClick={navigate} />
+              <NavItem
+                key={item.key}
+                item={item}
+                isActive={active === item.path}
+                collapsed={collapsed}
+                onClick={navigate}
+                /* only show badge on the notifications nav item */
+                badge={item.key === "notif" ? notifUnread : 0}
+              />
             ))}
           </nav>
 
           <div className="adash-sidebar-footer">
-            <button className={`adash-footer-btn ${collapsed ? "adash-footer-btn--collapsed" : ""}`}
-              onClick={() => setCollapsed((c) => !c)}>
-              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-                <path d={collapsed ? "M13 5l7 7-7 7M5 5l7 7-7 7" : "M11 19l-7-7 7-7M19 19l-7-7 7-7"} />
+            <button
+              className={`adash-footer-btn ${
+                collapsed ? "adash-footer-btn--collapsed" : ""
+              }`}
+              onClick={() => setCollapsed((c) => !c)}
+            >
+              <svg
+                width={16} height={16} viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" strokeWidth={1.8}
+              >
+                <path
+                  d={
+                    collapsed
+                      ? "M13 5l7 7-7 7M5 5l7 7-7 7"
+                      : "M11 19l-7-7 7-7M19 19l-7-7 7-7"
+                  }
+                />
               </svg>
               {!collapsed && <span>Collapse</span>}
             </button>
-            <button className={`adash-footer-btn ${collapsed ? "adash-footer-btn--collapsed" : ""}`}
-              onClick={() => navigate("/")}>
+            <button
+              className={`adash-footer-btn ${
+                collapsed ? "adash-footer-btn--collapsed" : ""
+              }`}
+              onClick={() => navigate("/")}
+            >
               <Icon d={ICONS.logout} size={17} />
               {!collapsed && <span>Exit Admin</span>}
             </button>
@@ -394,25 +509,48 @@ export default function AdminDashboard() {
         {/* ── Mobile Drawer Overlay ── */}
         {sidebarOpen && (
           <>
-            <div className="adash-drawer-overlay" onClick={() => setSidebarOpen(false)} />
+            <div
+              className="adash-drawer-overlay"
+              onClick={() => setSidebarOpen(false)}
+            />
             <div className="adash-drawer adash-drawer--open">
-              <div className="adash-logo-row" style={{ justifyContent: "space-between" }}>
+              <div
+                className="adash-logo-row"
+                style={{ justifyContent: "space-between" }}
+              >
                 <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                  <Logo /><span className="adash-logo-text">BEME MARKET</span>
+                  <Logo />
+                  <span className="adash-logo-text">BEME MARKET</span>
                 </div>
-                <button onClick={() => setSidebarOpen(false)} className="adash-icon-btn">
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="adash-icon-btn"
+                >
                   <Icon d={ICONS.close} size={18} />
                 </button>
               </div>
               <nav className="adash-nav" style={{ overflowY: "auto" }}>
                 {NAV_ITEMS.map((item) => (
-                  <NavItem key={item.key} item={item} isActive={active === item.path}
-                    collapsed={false} onClick={(path) => { navigate(path); setSidebarOpen(false); }} />
+                  <NavItem
+                    key={item.key}
+                    item={item}
+                    isActive={active === item.path}
+                    collapsed={false}
+                    onClick={(path) => {
+                      navigate(path);
+                      setSidebarOpen(false);
+                    }}
+                    badge={item.key === "notif" ? notifUnread : 0}
+                  />
                 ))}
               </nav>
               <div className="adash-sidebar-footer">
-                <button className="adash-footer-btn" onClick={() => navigate("/")}>
-                  <Icon d={ICONS.logout} size={17} /><span>Exit Admin</span>
+                <button
+                  className="adash-footer-btn"
+                  onClick={() => navigate("/")}
+                >
+                  <Icon d={ICONS.logout} size={17} />
+                  <span>Exit Admin</span>
                 </button>
               </div>
             </div>
@@ -425,7 +563,10 @@ export default function AdminDashboard() {
           {/* Top bar */}
           <header className="adash-topbar">
             <div className="adash-topbar-left">
-              <button className="adash-hamburger adash-icon-btn" onClick={() => setSidebarOpen(true)}>
+              <button
+                className="adash-hamburger adash-icon-btn"
+                onClick={() => setSidebarOpen(true)}
+              >
                 <Icon d={ICONS.menu} size={22} />
               </button>
               <div>
@@ -437,13 +578,40 @@ export default function AdminDashboard() {
             <div className="adash-topbar-right">
               {lastRefreshed && (
                 <span className="adash-last-updated">
-                  Updated {lastRefreshed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  Updated{" "}
+                  {lastRefreshed.toLocaleTimeString([], {
+                    hour:   "2-digit",
+                    minute: "2-digit",
+                  })}
                 </span>
               )}
-              <button onClick={fetchData} className="adash-refresh-btn" title="Refresh data" disabled={dataLoading}>
+              <button
+                onClick={fetchData}
+                className="adash-refresh-btn"
+                title="Refresh data"
+                disabled={dataLoading}
+              >
                 <Icon d={ICONS.refresh} size={15} />
               </button>
-              <button onClick={() => window.open("/", "_blank")} className="adash-preview-btn">
+
+              {/* ── NEW: notification bell shortcut in topbar ── */}
+              <button
+                className="adash-notif-btn"
+                onClick={() => navigate("/admin/notifications")}
+                title="Notifications"
+              >
+                <Icon d={ICONS.notif} size={17} />
+                {notifUnread > 0 && (
+                  <span className="adash-notif-btn__badge">
+                    {notifUnread > 99 ? "99+" : notifUnread}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => window.open("/", "_blank")}
+                className="adash-preview-btn"
+              >
                 Preview ↗
               </button>
               <div className="adash-avatar">A</div>
@@ -453,7 +621,7 @@ export default function AdminDashboard() {
           {/* Content */}
           <div className="adash-content">
 
-            {/* ── Stats row (live from Firebase) ── */}
+            {/* ── Stats row ── */}
             <div className="adash-stats-grid">
               <StatCard
                 label="Total Orders"
@@ -510,7 +678,13 @@ export default function AdminDashboard() {
                 </div>
                 {dataLoading
                   ? <div className="adash-chart-skeleton" />
-                  : <MiniBarChart series={dailySeries} valueKey="revenue" formatVal={formatMoney} />
+                  : (
+                    <MiniBarChart
+                      series={dailySeries}
+                      valueKey="revenue"
+                      formatVal={formatMoney}
+                    />
+                  )
                 }
               </div>
 
@@ -522,7 +696,13 @@ export default function AdminDashboard() {
                 </div>
                 {dataLoading
                   ? <div className="adash-chart-skeleton" />
-                  : <MiniBarChart series={dailySeries} valueKey="orders" formatVal={(v) => `${v} orders`} />
+                  : (
+                    <MiniBarChart
+                      series={dailySeries}
+                      valueKey="orders"
+                      formatVal={(v) => `${v} orders`}
+                    />
+                  )
                 }
               </div>
 
@@ -532,9 +712,21 @@ export default function AdminDashboard() {
                   <span className="adash-panel-title">Admin Sections</span>
                 </div>
                 {NAV_ITEMS.filter((i) => i.key !== "dashboard").map((item) => (
-                  <div key={item.key} className="adash-qcard" onClick={() => navigate(item.path)}>
-                    <span className="adash-qcard-icon"><Icon d={ICONS[item.key]} size={16} /></span>
+                  <div
+                    key={item.key}
+                    className="adash-qcard"
+                    onClick={() => navigate(item.path)}
+                  >
+                    <span className="adash-qcard-icon">
+                      <Icon d={ICONS[item.key]} size={16} />
+                    </span>
                     <span className="adash-qcard-label">{item.label}</span>
+                    {/* badge on quick-nav card too */}
+                    {item.key === "notif" && notifUnread > 0 && (
+                      <span className="adash-qcard-notif-badge">
+                        {notifUnread}
+                      </span>
+                    )}
                     <span className="adash-qcard-arrow">→</span>
                   </div>
                 ))}
@@ -544,37 +736,61 @@ export default function AdminDashboard() {
               <div className="adash-panel">
                 <div className="adash-panel-head">
                   <span className="adash-panel-title">Recent Orders</span>
-                  <button className="adash-see-all" onClick={() => navigate("/admin-orders")}>
+                  <button
+                    className="adash-see-all"
+                    onClick={() => navigate("/admin-orders")}
+                  >
                     View all →
                   </button>
                 </div>
 
                 {dataLoading ? (
                   <div className="adash-orders-skeleton">
-                    {[1, 2, 3, 4].map((n) => <div key={n} className="adash-order-skeleton-row" />)}
+                    {[1, 2, 3, 4].map((n) => (
+                      <div key={n} className="adash-order-skeleton-row" />
+                    ))}
                   </div>
                 ) : recentOrders.length === 0 ? (
                   <p className="adash-empty">No orders yet.</p>
                 ) : (
                   recentOrders.map((order) => {
-                    const status = order.status || "pending";
+                    const status      = order.status || "pending";
                     const statusStyle = STATUS[status] || { bg: "#1f1f1f", color: "#888" };
-                    const total = getOrderTotal(order);
-                    const ts = toMillis(order.createdAt || order.timestamp);
-                    const dateStr = ts
-                      ? new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+                    const total       = getOrderTotal(order);
+                    const ts          = toMillis(order.createdAt || order.timestamp);
+                    const dateStr     = ts
+                      ? new Date(ts).toLocaleDateString(undefined, {
+                          month: "short",
+                          day:   "numeric",
+                        })
                       : "—";
-                    const buyer = order.customerName || order.userName || order.userId?.slice(0, 8) || "Customer";
+                    const buyer =
+                      order.customerName ||
+                      order.userName ||
+                      order.userId?.slice(0, 8) ||
+                      "Customer";
                     return (
                       <div key={order.id} className="adash-order-row">
                         <div className="adash-order-info">
-                          <div className="adash-order-id">#{order.id?.slice(0, 8)?.toUpperCase()}</div>
-                          <div className="adash-order-meta">{buyer} · {dateStr}</div>
-                          <div className="adash-order-total">{formatMoney(total)}</div>
+                          <div className="adash-order-id">
+                            #{order.id?.slice(0, 8)?.toUpperCase()}
+                          </div>
+                          <div className="adash-order-meta">
+                            {buyer} · {dateStr}
+                          </div>
+                          <div className="adash-order-total">
+                            {formatMoney(total)}
+                          </div>
                         </div>
-                        <div className="adash-order-badge"
-                          style={{ background: statusStyle.bg, color: statusStyle.color }}>
-                          {String(status).charAt(0).toUpperCase() + String(status).slice(1)}
+                        <div
+                          className="adash-order-badge"
+                          style={{
+                            background: statusStyle.bg,
+                            color:      statusStyle.color,
+                          }}
+                        >
+                          {String(status).charAt(0).toUpperCase() +
+                            String(status).slice(1)}
                         </div>
                       </div>
                     );
