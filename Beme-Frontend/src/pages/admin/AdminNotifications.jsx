@@ -1,6 +1,7 @@
 // src/pages/admin/AdminNotifications.jsx
 // Admin page to compose & send notifications to users.
 // Matches the dark AdminDashboard shell — same sidebar, topbar, DM Sans.
+// Images uploaded via Cloudinary. Link URL field added to payload.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -17,7 +18,7 @@ import {
 import "./AdminNotifications.css";
 
 /* ═══════════════════════════════════════
-   ICON HELPER  (mirrors AdminDashboard)
+   ICON HELPER
 ═══════════════════════════════════════ */
 const Icon = ({ d, size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
@@ -45,13 +46,13 @@ const ICONS = {
   close:      "M18 6L6 18 M6 6l12 12",
   send:       "M22 2L11 13 M22 2L15 22 9 13 2 9l20-7z",
   users:      "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 8 0 4 4 0 0 0-8 0",
-  image:      "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z M3 3l18 18",
   upload:     "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12",
   check:      "M20 6L9 17l-5-5",
-  trash:      "M3 6h18 M8 6V4h8v2 M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6",
   history:    "M12 8v4l3 3 M3.05 11a9 9 0 1 0 .5-3.5",
   search:     "M21 21l-4.35-4.35 M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0",
   broadcast:  "M19 11H5m14 0a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2m14 0V9a2 2 0 0 0-2-2M5 11V9a2 2 0 0 1 2-2m0 0V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2M7 7h10",
+  link:       "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71 M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71",
+  externalLink: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6 M15 3h6v6 M10 14L21 3",
 };
 
 const NAV_ITEMS = [
@@ -111,8 +112,8 @@ const Logo = () => (
 function formatSentTime(ts) {
   if (!ts) return "—";
   let ms;
-  if (typeof ts?.toMillis === "function") ms = ts.toMillis();
-  else if (ts instanceof Date)            ms = ts.getTime();
+  if (typeof ts?.toMillis === "function")   ms = ts.toMillis();
+  else if (ts instanceof Date)              ms = ts.getTime();
   else if (typeof ts?.seconds === "number") ms = ts.seconds * 1000;
   else return "—";
   return new Date(ms).toLocaleString(undefined, {
@@ -136,15 +137,12 @@ function UserPickerModal({ customers, selected, onToggle, onDone, onClose }) {
   return (
     <div className="an-picker-backdrop" onClick={onClose}>
       <div className="an-picker" onClick={(e) => e.stopPropagation()}>
-
         <div className="an-picker__head">
           <span className="an-picker__title">Select Users</span>
           <button className="an-icon-btn" onClick={onClose}>
             <Icon d={ICONS.close} size={17} />
           </button>
         </div>
-
-        {/* search */}
         <div className="an-picker__search-wrap">
           <Icon d={ICONS.search} size={15} />
           <input
@@ -155,20 +153,16 @@ function UserPickerModal({ customers, selected, onToggle, onDone, onClose }) {
             autoFocus
           />
         </div>
-
-        {/* count */}
         <p className="an-picker__count">
           {selected.length} selected · {filtered.length} shown
         </p>
-
-        {/* list */}
         <div className="an-picker__list">
           {filtered.length === 0 ? (
             <p className="an-picker__empty">No users found.</p>
           ) : (
             filtered.map((c) => {
-              const isOn = selected.includes(c.uid);
-              const name = c.displayName || c.email || c.uid;
+              const isOn   = selected.includes(c.uid);
+              const name   = c.displayName || c.email || c.uid;
               const initials = String(name).charAt(0).toUpperCase();
               return (
                 <button
@@ -191,7 +185,6 @@ function UserPickerModal({ customers, selected, onToggle, onDone, onClose }) {
             })
           )}
         </div>
-
         <button
           className="an-picker__done"
           onClick={onDone}
@@ -208,37 +201,38 @@ function UserPickerModal({ customers, selected, onToggle, onDone, onClose }) {
    MAIN COMPONENT
 ═══════════════════════════════════════ */
 export default function AdminNotifications() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { isSuperAdmin } = useAuth();
 
-  /* ── sidebar state ── */
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed,   setCollapsed]   = useState(false);
+  const [tab,         setTab]         = useState("compose");
 
-  /* ── tabs: compose | history ── */
-  const [tab, setTab] = useState("compose");
-
-  /* ── compose form ── */
-  const [title,     setTitle]     = useState("");
-  const [body,      setBody]      = useState("");
-  const [target,    setTarget]    = useState("all"); // "all" | "select" | "single"
-  const [singleUid, setSingleUid] = useState("");
+  /* ── form fields ── */
+  const [title,      setTitle]      = useState("");
+  const [body,       setBody]       = useState("");
+  const [linkUrl,    setLinkUrl]    = useState("");
+  const [linkLabel,  setLinkLabel]  = useState("");
+  const [target,     setTarget]     = useState("all");
+  const [singleUid,  setSingleUid]  = useState("");
 
   /* ── image ── */
-  const [imageFile,    setImageFile]    = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [imageFile,      setImageFile]      = useState(null);
+  const [imagePreview,   setImagePreview]   = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploading,      setUploading]      = useState(false);
   const fileRef = useRef(null);
 
   /* ── user picker ── */
-  const [showPicker,      setShowPicker]      = useState(false);
-  const [customers,       setCustomers]       = useState([]);
-  const [customersLoaded, setCustomersLoaded] = useState(false);
-  const [selectedUids,    setSelectedUids]    = useState([]);
+  const [showPicker,       setShowPicker]       = useState(false);
+  const [customers,        setCustomers]        = useState([]);
+  const [customersLoaded,  setCustomersLoaded]  = useState(false);
+  const [selectedUids,     setSelectedUids]     = useState([]);
 
   /* ── send state ── */
-  const [sending, setSending]   = useState(false);
-  const [toast,   setToast]     = useState(null); // { type: "ok"|"err", msg }
+  const [sending, setSending] = useState(false);
+  const [toast,   setToast]   = useState(null);
 
   /* ── history ── */
   const [history,        setHistory]        = useState([]);
@@ -246,7 +240,7 @@ export default function AdminNotifications() {
 
   const active = location.pathname;
 
-  /* ── load customers once when needed ── */
+  /* ── load customers ── */
   const loadCustomers = useCallback(async () => {
     if (customersLoaded) return;
     try {
@@ -258,7 +252,7 @@ export default function AdminNotifications() {
     }
   }, [customersLoaded]);
 
-  /* ── subscribe to sent history ── */
+  /* ── history subscription ── */
   useEffect(() => {
     if (tab !== "history") return;
     setHistoryLoading(true);
@@ -269,30 +263,32 @@ export default function AdminNotifications() {
     return () => unsub();
   }, [tab]);
 
-  /* ── image pick ── */
+  /* ── image select ── */
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
+    setUploadProgress(0);
   };
 
   const clearImage = () => {
     setImageFile(null);
     setImagePreview(null);
+    setUploadProgress(0);
     if (fileRef.current) fileRef.current.value = "";
   };
 
-  /* ── toast helper ── */
+  /* ── toast ── */
   const showToast = (type, msg) => {
     setToast({ type, msg });
-    setTimeout(() => setToast(null), 3500);
+    setTimeout(() => setToast(null), 4000);
   };
 
   /* ── SEND ── */
   const handleSend = async () => {
-    if (!title.trim()) { showToast("err", "Title is required."); return; }
-    if (!body.trim())  { showToast("err", "Message body is required."); return; }
+    if (!title.trim()) { showToast("err", "Title is required.");          return; }
+    if (!body.trim())  { showToast("err", "Message body is required.");   return; }
     if (target === "select" && selectedUids.length === 0) {
       showToast("err", "Please select at least one user."); return;
     }
@@ -300,18 +296,38 @@ export default function AdminNotifications() {
       showToast("err", "Please enter a user UID."); return;
     }
 
+    /* basic URL validation if provided */
+    if (linkUrl.trim()) {
+      try { new URL(linkUrl.trim()); }
+      catch { showToast("err", "Link URL is invalid. Include https://"); return; }
+    }
+
     setSending(true);
     try {
+      /* ── Upload image to Cloudinary first ── */
       let imageUrl = null;
       if (imageFile) {
-        imageUrl = await uploadNotificationImage(imageFile);
+        setUploading(true);
+        try {
+          imageUrl = await uploadNotificationImage(imageFile, (pct) => {
+            setUploadProgress(pct);
+          });
+        } catch (uploadErr) {
+          showToast("err", `Image upload failed: ${uploadErr.message}`);
+          setSending(false);
+          setUploading(false);
+          return;
+        }
+        setUploading(false);
       }
 
       const payload = {
-        title:    title.trim(),
-        body:     body.trim(),
+        title:     title.trim(),
+        body:      body.trim(),
         imageUrl,
-        type:     "admin",
+        linkUrl:   linkUrl.trim()   || null,
+        linkLabel: linkLabel.trim() || null,
+        type:      "admin",
       };
 
       if (target === "all") {
@@ -325,11 +341,10 @@ export default function AdminNotifications() {
         await logSentNotification({ ...payload, targetType: "single", targetUid: singleUid.trim() });
       }
 
-      // reset form
-      setTitle("");
-      setBody("");
-      setSelectedUids([]);
-      setSingleUid("");
+      /* reset */
+      setTitle(""); setBody("");
+      setLinkUrl(""); setLinkLabel("");
+      setSelectedUids([]); setSingleUid("");
       clearImage();
       showToast("ok", "Notification sent successfully!");
     } catch (e) {
@@ -337,17 +352,15 @@ export default function AdminNotifications() {
       showToast("err", "Failed to send. Please try again.");
     } finally {
       setSending(false);
+      setUploading(false);
     }
   };
 
-  /* ── toggle user in picker ── */
-  const toggleUser = (uid) => {
+  const toggleUser  = (uid) =>
     setSelectedUids((prev) =>
       prev.includes(uid) ? prev.filter((u) => u !== uid) : [...prev, uid]
     );
-  };
 
-  /* ── open picker ── */
   const openPicker = async () => {
     await loadCustomers();
     setShowPicker(true);
@@ -365,25 +378,20 @@ export default function AdminNotifications() {
           <Logo />
           {!collapsed && <span className="an-logo-text">BEME MARKET</span>}
         </div>
-
         <nav className="an-nav">
           {NAV_ITEMS.map((item) => (
             <NavItem key={item.key} item={item}
               isActive={active === item.path}
-              collapsed={collapsed}
-              onClick={navigate} />
+              collapsed={collapsed} onClick={navigate} />
           ))}
         </nav>
-
         <div className="an-sidebar-footer">
           <button
             className={`an-footer-btn ${collapsed ? "an-footer-btn--collapsed" : ""}`}
             onClick={() => setCollapsed((c) => !c)}>
             <svg width={16} height={16} viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth={1.8}>
-              <path d={collapsed
-                ? "M13 5l7 7-7 7M5 5l7 7-7 7"
-                : "M11 19l-7-7 7-7M19 19l-7-7 7-7"} />
+              <path d={collapsed ? "M13 5l7 7-7 7M5 5l7 7-7 7" : "M11 19l-7-7 7-7M19 19l-7-7 7-7"} />
             </svg>
             {!collapsed && <span>Collapse</span>}
           </button>
@@ -428,8 +436,6 @@ export default function AdminNotifications() {
 
       {/* ── Main ── */}
       <div className="an-main">
-
-        {/* Top bar */}
         <header className="an-topbar">
           <div className="an-topbar-left">
             <button className="an-hamburger an-icon-btn" onClick={() => setSidebarOpen(true)}>
@@ -448,7 +454,7 @@ export default function AdminNotifications() {
           </div>
         </header>
 
-        {/* ── Toast ── */}
+        {/* Toast */}
         {toast && (
           <div className={`an-toast an-toast--${toast.type}`}>
             <Icon d={toast.type === "ok" ? ICONS.check : ICONS.close} size={15} />
@@ -456,18 +462,15 @@ export default function AdminNotifications() {
           </div>
         )}
 
-        {/* ── Content ── */}
         <div className="an-content">
 
           {/* Tabs */}
           <div className="an-tabs">
-            <button
-              className={`an-tab ${tab === "compose" ? "an-tab--active" : ""}`}
+            <button className={`an-tab ${tab === "compose" ? "an-tab--active" : ""}`}
               onClick={() => setTab("compose")}>
               <Icon d={ICONS.send} size={14} /> Compose
             </button>
-            <button
-              className={`an-tab ${tab === "history" ? "an-tab--active" : ""}`}
+            <button className={`an-tab ${tab === "history" ? "an-tab--active" : ""}`}
               onClick={() => setTab("history")}>
               <Icon d={ICONS.history} size={14} /> Sent History
             </button>
@@ -484,71 +487,111 @@ export default function AdminNotifications() {
                 {/* Title */}
                 <div className="an-field">
                   <label className="an-label">Title <span className="an-req">*</span></label>
-                  <input
-                    className="an-input"
-                    type="text"
+                  <input className="an-input" type="text"
                     placeholder="e.g. Flash Sale — 50% off today!"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    maxLength={80}
-                    disabled={sending}
-                  />
+                    value={title} onChange={(e) => setTitle(e.target.value)}
+                    maxLength={80} disabled={sending} />
                   <span className="an-charcount">{title.length}/80</span>
                 </div>
 
                 {/* Body */}
                 <div className="an-field">
                   <label className="an-label">Message <span className="an-req">*</span></label>
-                  <textarea
-                    className="an-textarea"
+                  <textarea className="an-textarea"
                     placeholder="Write your notification message here…"
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                    maxLength={400}
-                    rows={5}
-                    disabled={sending}
-                  />
+                    value={body} onChange={(e) => setBody(e.target.value)}
+                    maxLength={400} rows={5} disabled={sending} />
                   <span className="an-charcount">{body.length}/400</span>
                 </div>
 
+                {/* ── LINK SECTION ── */}
+                <div className="an-field">
+                  <label className="an-label">
+                    <Icon d={ICONS.link} size={12} />
+                    &nbsp;Attach a Link <span className="an-optional">(optional)</span>
+                  </label>
+                  <input className="an-input" type="url"
+                    placeholder="https://bememarket.com/shop or any URL"
+                    value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)}
+                    disabled={sending} />
+                  {/* Quick link presets */}
+                  <div className="an-link-presets">
+                    <span className="an-link-presets__label">Quick:</span>
+                    {[
+                      { label: "Shop",        url: "/shop"        },
+                      { label: "Offers",      url: "/offers"      },
+                      { label: "Flash Deals", url: "/flash-deals" },
+                      { label: "Orders",      url: "/orders"      },
+                    ].map((preset) => (
+                      <button key={preset.label}
+                        className="an-link-preset-btn"
+                        onClick={() => setLinkUrl(preset.url)}
+                        disabled={sending} type="button">
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Link button label */}
+                {linkUrl.trim() && (
+                  <div className="an-field">
+                    <label className="an-label">Link Button Label</label>
+                    <input className="an-input" type="text"
+                      placeholder='e.g. "Shop Now", "View Deals", "See Order"'
+                      value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)}
+                      maxLength={40} disabled={sending} />
+                    <span className="an-charcount">{linkLabel.length}/40</span>
+                  </div>
+                )}
+
                 {/* Image upload */}
                 <div className="an-field">
-                  <label className="an-label">Attach Image <span className="an-optional">(optional)</span></label>
+                  <label className="an-label">
+                    Attach Image <span className="an-optional">(optional — Cloudinary)</span>
+                  </label>
 
                   {imagePreview ? (
                     <div className="an-img-preview">
                       <img src={imagePreview} alt="Preview" />
-                      <button className="an-img-clear" onClick={clearImage} disabled={sending}>
-                        <Icon d={ICONS.close} size={14} /> Remove
-                      </button>
+                      {/* Upload progress bar */}
+                      {uploading && (
+                        <div className="an-upload-progress">
+                          <div
+                            className="an-upload-progress__bar"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                          <span className="an-upload-progress__label">
+                            Uploading… {uploadProgress}%
+                          </span>
+                        </div>
+                      )}
+                      {!uploading && (
+                        <button className="an-img-clear" onClick={clearImage} disabled={sending}>
+                          <Icon d={ICONS.close} size={14} /> Remove
+                        </button>
+                      )}
                     </div>
                   ) : (
-                    <button
-                      className="an-upload-btn"
+                    <button className="an-upload-btn"
                       onClick={() => fileRef.current?.click()}
-                      disabled={sending}
-                    >
+                      disabled={sending}>
                       <Icon d={ICONS.upload} size={18} />
                       <span>Click to upload image</span>
-                      <span className="an-upload-hint">PNG, JPG, WebP — max 5 MB</span>
+                      <span className="an-upload-hint">PNG, JPG, WebP — uploaded to Cloudinary</span>
                     </button>
                   )}
 
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*"
-                    style={{ display: "none" }}
-                    onChange={handleImageChange}
-                  />
+                  <input ref={fileRef} type="file" accept="image/*"
+                    style={{ display: "none" }} onChange={handleImageChange} />
                 </div>
 
                 {/* Send button */}
-                <button
-                  className="an-send-btn"
-                  onClick={handleSend}
-                  disabled={sending || !title.trim() || !body.trim()}>
-                  {sending ? (
+                <button className="an-send-btn" onClick={handleSend}
+                  disabled={sending || uploading || !title.trim() || !body.trim()}>
+                  {uploading ? (
+                    <><span className="an-spinner" /> Uploading image… {uploadProgress}%</>
+                  ) : sending ? (
                     <><span className="an-spinner" /> Sending…</>
                   ) : (
                     <><Icon d={ICONS.send} size={16} /> Send Notification</>
@@ -566,9 +609,7 @@ export default function AdminNotifications() {
                   {/* All users */}
                   <button
                     className={`an-target-opt ${target === "all" ? "an-target-opt--on" : ""}`}
-                    onClick={() => setTarget("all")}
-                    disabled={sending}
-                  >
+                    onClick={() => setTarget("all")} disabled={sending}>
                     <div className="an-target-icon">
                       <Icon d={ICONS.broadcast} size={18} />
                     </div>
@@ -582,9 +623,7 @@ export default function AdminNotifications() {
                   {/* Select users */}
                   <button
                     className={`an-target-opt ${target === "select" ? "an-target-opt--on" : ""}`}
-                    onClick={() => setTarget("select")}
-                    disabled={sending}
-                  >
+                    onClick={() => setTarget("select")} disabled={sending}>
                     <div className="an-target-icon">
                       <Icon d={ICONS.users} size={18} />
                     </div>
@@ -595,25 +634,17 @@ export default function AdminNotifications() {
                     <div className={`an-target-radio ${target === "select" ? "an-target-radio--on" : ""}`} />
                   </button>
 
-                  {/* target === "select" — show picker trigger */}
                   {target === "select" && (
                     <div className="an-select-section">
-                      <button
-                        className="an-pick-btn"
-                        onClick={openPicker}
-                        disabled={sending}
-                      >
+                      <button className="an-pick-btn" onClick={openPicker} disabled={sending}>
                         <Icon d={ICONS.users} size={15} />
                         {selectedUids.length === 0
                           ? "Choose users…"
                           : `${selectedUids.length} user${selectedUids.length > 1 ? "s" : ""} selected`}
                       </button>
                       {selectedUids.length > 0 && (
-                        <button
-                          className="an-clear-btn"
-                          onClick={() => setSelectedUids([])}
-                          disabled={sending}
-                        >
+                        <button className="an-clear-btn"
+                          onClick={() => setSelectedUids([])} disabled={sending}>
                           Clear
                         </button>
                       )}
@@ -623,9 +654,7 @@ export default function AdminNotifications() {
                   {/* Single UID */}
                   <button
                     className={`an-target-opt ${target === "single" ? "an-target-opt--on" : ""}`}
-                    onClick={() => setTarget("single")}
-                    disabled={sending}
-                  >
+                    onClick={() => setTarget("single")} disabled={sending}>
                     <div className="an-target-icon">
                       <Icon d={ICONS.send} size={18} />
                     </div>
@@ -637,21 +666,16 @@ export default function AdminNotifications() {
                   </button>
 
                   {target === "single" && (
-                    <input
-                      className="an-input an-input--uid"
-                      type="text"
+                    <input className="an-input an-input--uid" type="text"
                       placeholder="Paste Firebase UID…"
-                      value={singleUid}
-                      onChange={(e) => setSingleUid(e.target.value)}
-                      disabled={sending}
-                    />
+                      value={singleUid} onChange={(e) => setSingleUid(e.target.value)}
+                      disabled={sending} />
                   )}
                 </div>
 
-                {/* Preview card */}
+                {/* Live preview */}
                 <div className="an-panel an-panel--preview">
                   <p className="an-panel-title">Preview</p>
-
                   <div className="an-preview-card">
                     <div className="an-preview-card__top">
                       <div className="an-preview-card__dot" />
@@ -667,6 +691,13 @@ export default function AdminNotifications() {
                     <p className="an-preview-card__body">
                       {body || "Your message will appear here. Keep it short and clear."}
                     </p>
+                    {/* Link preview */}
+                    {linkUrl.trim() && (
+                      <div className="an-preview-card__link">
+                        <Icon d={ICONS.externalLink} size={12} />
+                        <span>{linkLabel.trim() || "Open Link"}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -681,9 +712,7 @@ export default function AdminNotifications() {
 
               {historyLoading ? (
                 <div className="an-history-skeletons">
-                  {[1, 2, 3].map((n) => (
-                    <div key={n} className="an-history-skeleton" />
-                  ))}
+                  {[1, 2, 3].map((n) => <div key={n} className="an-history-skeleton" />)}
                 </div>
               ) : history.length === 0 ? (
                 <div className="an-empty">
@@ -697,15 +726,10 @@ export default function AdminNotifications() {
                       item.targetType === "all"    ? "All users" :
                       item.targetType === "select" ? `${item.targetCount} users` :
                       `UID: ${String(item.targetUid || "").slice(0, 12)}…`;
-
                     return (
                       <div key={item.id} className="an-history-row">
                         {item.imageUrl && (
-                          <img
-                            className="an-history-row__img"
-                            src={item.imageUrl}
-                            alt=""
-                          />
+                          <img className="an-history-row__img" src={item.imageUrl} alt="" />
                         )}
                         <div className="an-history-row__body">
                           <div className="an-history-row__head">
@@ -713,9 +737,14 @@ export default function AdminNotifications() {
                             <span className="an-history-row__target">{targetLabel}</span>
                           </div>
                           <p className="an-history-row__msg">{item.body}</p>
-                          <span className="an-history-row__time">
-                            {formatSentTime(item.sentAt)}
-                          </span>
+                          {item.linkUrl && (
+                            <a href={item.linkUrl} target="_blank" rel="noreferrer"
+                              className="an-history-row__link">
+                              <Icon d={ICONS.externalLink} size={11} />
+                              {item.linkLabel || item.linkUrl}
+                            </a>
+                          )}
+                          <span className="an-history-row__time">{formatSentTime(item.sentAt)}</span>
                         </div>
                       </div>
                     );
@@ -727,7 +756,7 @@ export default function AdminNotifications() {
         </div>
       </div>
 
-      {/* ── User Picker Modal ── */}
+      {/* User Picker Modal */}
       {showPicker && (
         <UserPickerModal
           customers={customers}
