@@ -1,7 +1,6 @@
 // src/pages/AccountSubPages.jsx
 // Neo-brutalist reskin — hard borders, offset shadows, raw uppercase type.
-// Logic and routing are unchanged.
-// UPDATED: Notifications now shows real Firebase data via useUserNotifications.
+// UPDATED: Notifications shows real Firebase data + link button support.
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -11,95 +10,82 @@ import CustomerSupportChat from "../components/support/CustomerSupportChat";
 import SubPageHeader from "../components/SubPageHeader";
 import "./SubPages.css";
 
-/* ─────────────────────────────────────────────────────
-   SVG icons
-───────────────────────────────────────────────────── */
-
+/* ── Icons ── */
 function IcoHeart() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-      width="36" height="36">
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="36" height="36">
       <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
     </svg>
   );
 }
-
 function IcoBell() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-      width="36" height="36">
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="36" height="36">
       <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
       <path d="M13.73 21a2 2 0 01-3.46 0"/>
     </svg>
   );
 }
-
 function IcoPhone() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-      width="20" height="20">
+      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
       <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 8.8 19.79 19.79 0 01.1 2.18 2 2 0 012.08 0h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 7.91a16 16 0 007.29 7.29l1.17-1.17a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
     </svg>
   );
 }
-
 function IcoCheck() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
-      width="14" height="14">
+      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
       <polyline points="20 6 9 17 4 12"/>
     </svg>
   );
 }
-
 function IcoCheckAll() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      width="15" height="15">
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
       <polyline points="2 12 7 17 16 6"/>
       <polyline points="8 12 13 17 22 6"/>
     </svg>
   );
 }
+function IcoLink() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+      <polyline points="15 3 21 3 21 9"/>
+      <line x1="10" y1="14" x2="21" y2="3"/>
+    </svg>
+  );
+}
 
-/* ─────────────────────────────────────────────────────
-   Brutalist decorative stripe
-───────────────────────────────────────────────────── */
+/* ── Brutalist stripe ── */
 function BrutalStripe() {
   return (
     <div style={{
-      width: "100%",
-      maxWidth: 320,
-      height: 6,
+      width: "100%", maxWidth: 320, height: 6, marginBottom: 28,
       background: "repeating-linear-gradient(90deg, var(--grtheme, #FF6600) 0px, var(--grtheme, #FF6600) 16px, transparent 16px, transparent 24px)",
-      marginBottom: 28,
     }} />
   );
 }
 
-/* ─────────────────────────────────────────────────────
-   Notification type badge colour map
-───────────────────────────────────────────────────── */
+/* ── Notification type colours ── */
 const TYPE_COLORS = {
-  admin:   { bg: "rgba(230,126,34,0.12)", color: "#e67e22", label: "Admin"   },
-  order:   { bg: "rgba(34,197,94,0.12)",  color: "#22c55e", label: "Order"   },
-  promo:   { bg: "rgba(99,102,241,0.12)", color: "#818cf8", label: "Promo"   },
-  general: { bg: "rgba(100,116,139,0.1)", color: "#94a3b8", label: "General" },
+  admin:   { bg: "rgba(230,126,34,0.12)",  color: "#e67e22", label: "Admin"   },
+  order:   { bg: "rgba(34,197,94,0.12)",   color: "#22c55e", label: "Order"   },
+  promo:   { bg: "rgba(99,102,241,0.12)",  color: "#818cf8", label: "Promo"   },
+  general: { bg: "rgba(100,116,139,0.1)",  color: "#94a3b8", label: "General" },
 };
+function typeMeta(type) { return TYPE_COLORS[type] || TYPE_COLORS.general; }
 
-function typeMeta(type) {
-  return TYPE_COLORS[type] || TYPE_COLORS.general;
-}
-
-/* ─────────────────────────────────────────────────────
-   SavedItems  — UNCHANGED
-───────────────────────────────────────────────────── */
-
+/* ─────────────────────────────────────────────────────────────
+   SAVED ITEMS — unchanged
+───────────────────────────────────────────────────────────── */
 export function SavedItems() {
   const navigate = useNavigate();
   return (
@@ -107,13 +93,9 @@ export function SavedItems() {
       <SubPageHeader title="Saved Items" />
       <div className="sp-body">
         <BrutalStripe />
-        <div className="sp-empty-icon">
-          <IcoHeart />
-        </div>
+        <div className="sp-empty-icon"><IcoHeart /></div>
         <p className="sp-empty-title">No saved items yet</p>
-        <p className="sp-empty-sub">
-          Tap the heart on any product to save it here for later.
-        </p>
+        <p className="sp-empty-sub">Tap the heart on any product to save it here for later.</p>
         <button className="sp-primary-btn" onClick={() => navigate("/shop")}>
           Browse the Shop
         </button>
@@ -122,12 +104,12 @@ export function SavedItems() {
   );
 }
 
-/* ─────────────────────────────────────────────────────
-   Notifications  — REAL DATA
-───────────────────────────────────────────────────── */
-
+/* ─────────────────────────────────────────────────────────────
+   NOTIFICATIONS — real data + link support
+───────────────────────────────────────────────────────────── */
 export function Notifications() {
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user }  = useAuth();
   const {
     notifications,
     unreadCount,
@@ -138,15 +120,32 @@ export function Notifications() {
     formatTime,
   } = useUserNotifications();
 
-  const [expandedId,   setExpandedId]   = useState(null);
-  const [markingAll,   setMarkingAll]   = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
+  const [markingAll, setMarkingAll] = useState(false);
 
-  /* toggle open a notification and mark it read */
+  /* open / collapse a card and mark it read */
   const handleOpen = async (notif) => {
     const isExpanding = expandedId !== notif.id;
     setExpandedId(isExpanding ? notif.id : null);
     if (isExpanding && !notif.read) {
       await markRead(notif.id, user?.uid);
+    }
+  };
+
+  /* handle link tap — internal routes use navigate, external open in new tab */
+  const handleLinkTap = (e, linkUrl) => {
+    e.stopPropagation(); // don't toggle card
+    if (!linkUrl) return;
+    const isInternal =
+      linkUrl.startsWith("/") ||
+      linkUrl.includes("bememarket.com");
+    if (isInternal) {
+      const path = linkUrl.startsWith("/")
+        ? linkUrl
+        : new URL(linkUrl).pathname;
+      navigate(path);
+    } else {
+      window.open(linkUrl, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -156,29 +155,25 @@ export function Notifications() {
     setMarkingAll(false);
   };
 
-  /* ── Loading skeleton ── */
+  /* ── Loading ── */
   if (loading) {
     return (
       <div className="sp-page">
         <SubPageHeader title="Notifications" />
         <div className="notif-body">
-          {[1, 2, 3].map((n) => (
-            <div key={n} className="notif-skeleton" />
-          ))}
+          {[1, 2, 3].map((n) => <div key={n} className="notif-skeleton" />)}
         </div>
       </div>
     );
   }
 
-  /* ── Error state ── */
+  /* ── Error ── */
   if (error) {
     return (
       <div className="sp-page">
         <SubPageHeader title="Notifications" />
         <div className="sp-body">
-          <div className="sp-empty-icon sp-empty-icon--warn">
-            <IcoBell />
-          </div>
+          <div className="sp-empty-icon sp-empty-icon--warn"><IcoBell /></div>
           <p className="sp-empty-title">Couldn't load</p>
           <p className="sp-empty-sub">{error}</p>
         </div>
@@ -186,16 +181,14 @@ export function Notifications() {
     );
   }
 
-  /* ── Empty state ── */
+  /* ── Empty ── */
   if (notifications.length === 0) {
     return (
       <div className="sp-page">
         <SubPageHeader title="Notifications" />
         <div className="sp-body">
           <BrutalStripe />
-          <div className="sp-empty-icon">
-            <IcoBell />
-          </div>
+          <div className="sp-empty-icon"><IcoBell /></div>
           <p className="sp-empty-title">No notifications yet</p>
           <p className="sp-empty-sub">
             We'll let you know when your order ships, arrives, or when
@@ -210,10 +203,9 @@ export function Notifications() {
   return (
     <div className="sp-page">
       <SubPageHeader title="Notifications" />
-
       <div className="notif-body">
 
-        {/* ── Header row: count + mark all read ── */}
+        {/* Header row */}
         <div className="notif-header-row">
           <div className="notif-header-left">
             <span className="notif-header-title">Inbox</span>
@@ -222,22 +214,15 @@ export function Notifications() {
             )}
           </div>
           {unreadCount > 0 && (
-            <button
-              className="notif-mark-all-btn"
-              onClick={handleMarkAllRead}
-              disabled={markingAll}
-            >
-              {markingAll ? (
-                <span className="notif-spinner" />
-              ) : (
-                <IcoCheckAll />
-              )}
+            <button className="notif-mark-all-btn"
+              onClick={handleMarkAllRead} disabled={markingAll}>
+              {markingAll ? <span className="notif-spinner" /> : <IcoCheckAll />}
               Mark all read
             </button>
           )}
         </div>
 
-        {/* ── Notification list ── */}
+        {/* List */}
         <div className="notif-list">
           {notifications.map((notif) => {
             const isExpanded = expandedId === notif.id;
@@ -248,62 +233,64 @@ export function Notifications() {
                 key={notif.id}
                 className={[
                   "notif-item",
-                  !notif.read    ? "notif-item--unread"   : "",
-                  isExpanded     ? "notif-item--expanded"  : "",
+                  !notif.read  ? "notif-item--unread"   : "",
+                  isExpanded   ? "notif-item--expanded"  : "",
                 ].join(" ")}
                 onClick={() => handleOpen(notif)}
               >
-                {/* Unread dot */}
                 {!notif.read && <span className="notif-dot" />}
 
-                {/* Top row */}
+                {/* Meta row */}
                 <div className="notif-item__top">
                   <div className="notif-item__meta">
-                    <span
-                      className="notif-type-badge"
-                      style={{ background: meta.bg, color: meta.color }}
-                    >
+                    <span className="notif-type-badge"
+                      style={{ background: meta.bg, color: meta.color }}>
                       {meta.label}
                     </span>
-                    <span className="notif-item__time">
-                      {formatTime(notif.createdAt)}
-                    </span>
+                    <span className="notif-item__time">{formatTime(notif.createdAt)}</span>
                   </div>
-
-                  {/* Read tick */}
                   {notif.read && (
-                    <span className="notif-read-tick">
-                      <IcoCheck />
-                    </span>
+                    <span className="notif-read-tick"><IcoCheck /></span>
                   )}
                 </div>
 
                 {/* Title */}
                 <p className="notif-item__title">{notif.title}</p>
 
-                {/* Body — collapsed: single line. expanded: full */}
+                {/* Body */}
                 <p className={`notif-item__body ${isExpanded ? "notif-item__body--full" : ""}`}>
                   {notif.body}
                 </p>
 
-                {/* Image — only when expanded */}
-                {isExpanded && notif.imageUrl && (
-                  <div className="notif-item__img-wrap">
-                    <img
-                      src={notif.imageUrl}
-                      alt={notif.title}
-                      className="notif-item__img"
-                    />
-                  </div>
+                {/* Expanded extras */}
+                {isExpanded && (
+                  <>
+                    {/* Image */}
+                    {notif.imageUrl && (
+                      <div className="notif-item__img-wrap">
+                        <img src={notif.imageUrl} alt={notif.title} className="notif-item__img" />
+                      </div>
+                    )}
+
+                    {/* ── LINK BUTTON ── */}
+                    {notif.linkUrl && (
+                      <button
+                        className="notif-item__link-btn"
+                        onClick={(e) => handleLinkTap(e, notif.linkUrl)}
+                      >
+                        <IcoLink />
+                        {notif.linkLabel || "Open Link"}
+                      </button>
+                    )}
+                  </>
                 )}
 
-                {/* Expand chevron */}
+                {/* Footer */}
                 <div className="notif-item__footer">
                   <svg
                     className={`notif-chevron ${isExpanded ? "notif-chevron--up" : ""}`}
-                    viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="2.5"
-                    strokeLinecap="round" strokeLinejoin="round"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                     width="13" height="13">
                     <polyline points="6 9 12 15 18 9"/>
                   </svg>
@@ -316,23 +303,19 @@ export function Notifications() {
             );
           })}
         </div>
-
       </div>
     </div>
   );
 }
 
-/* ─────────────────────────────────────────────────────
-   HelpSupport  — UNCHANGED
-───────────────────────────────────────────────────── */
-
+/* ─────────────────────────────────────────────────────────────
+   HELP SUPPORT — unchanged
+───────────────────────────────────────────────────────────── */
 export function HelpSupport() {
   const { user, profile } = useAuth();
-
   const customerName  = user?.displayName || profile?.displayName || "Customer";
-  const customerId    = user?.uid          || "";
-  const customerEmail = user?.email        || "";
-
+  const customerId    = user?.uid  || "";
+  const customerEmail = user?.email || "";
   return (
     <div className="sp-page">
       <SubPageHeader title="Help & Support" />
@@ -347,30 +330,23 @@ export function HelpSupport() {
   );
 }
 
-/* ─────────────────────────────────────────────────────
-   ContactUs  — UNCHANGED
-───────────────────────────────────────────────────── */
-
+/* ─────────────────────────────────────────────────────────────
+   CONTACT US — unchanged
+───────────────────────────────────────────────────────────── */
 const PHONE_HREF = "tel:+233XXXXXXXXX";
-
 export function ContactUs() {
   return (
     <div className="sp-page">
       <SubPageHeader title="Contact Us" />
       <div className="sp-body sp-body--flush">
-
         <p className="sp-section-label">Call Us Directly</p>
-
         <a href={PHONE_HREF} className="sp-action-card sp-action-card--link">
-          <div className="sp-action-card__icon">
-            <IcoPhone />
-          </div>
+          <div className="sp-action-card__icon"><IcoPhone /></div>
           <div className="sp-action-card__text">
             <p className="sp-action-card__title">Give us a call</p>
             <p className="sp-action-card__sub">Mon – Fri · 9 am – 6 pm</p>
           </div>
         </a>
-
       </div>
     </div>
   );
