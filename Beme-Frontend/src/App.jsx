@@ -34,8 +34,8 @@ import Onboarding from "./pages/Onboarding";
 import AdminLogin from "./pages/AdminLogin";
 
 /* Admin pages */
-import AdminDashboard from "./pages/AdminDashboard"; // hub at /admin
-import Admin from "./pages/Admin";                   // product manager → /admin/product-manager
+import AdminDashboard from "./pages/AdminDashboard";
+import Admin from "./pages/Admin";
 import AdminOrders from "./pages/AdminOrders";
 import AdminReviewQueue from "./pages/AdminReviewQueue";
 import Analytics from "./pages/Analytics";
@@ -46,6 +46,7 @@ import ShopOwnerApply from "./pages/ShopOwnerApply";
 import HomepageAdmin from "./pages/admin/HomepageAdmin";
 import MediaManager from "./pages/admin/MediaManager";
 import AdminSupportDashboard from "./pages/admin/AdminSupportDashboard";
+import AdminNotifications from "./pages/admin/AdminNotifications"; // ← NEW
 
 import About from "./pages/About";
 import Support from "./pages/Support";
@@ -99,6 +100,7 @@ const FULL_SCREEN_ROUTES = new Set([
   "/admin/support",
   "/admin/media",
   "/admin/product-requests",
+  "/admin/notifications",   // ← NEW
   "/admin-orders",
   "/admin-review-queue",
   "/analytics",
@@ -187,7 +189,7 @@ function AppShell() {
             }
           />
 
-          {/* ── PRODUCT MANAGER (was the old /admin page) ── */}
+          {/* ── PRODUCT MANAGER ── */}
           <Route
             path="/admin/product-manager"
             element={
@@ -314,6 +316,18 @@ function AppShell() {
               <AdminRoute>
                 <RequireAdmin>
                   <AdminSupportDashboard />
+                </RequireAdmin>
+              </AdminRoute>
+            }
+          />
+
+          {/* ── NOTIFICATIONS ── */}
+          <Route
+            path="/admin/notifications"
+            element={
+              <AdminRoute>
+                <RequireAdmin>
+                  <AdminNotifications />
                 </RequireAdmin>
               </AdminRoute>
             }
