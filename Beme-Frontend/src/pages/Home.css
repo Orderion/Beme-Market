@@ -26,7 +26,7 @@
 /* ── Page wrapper ── */
 .home {
   min-height: 100vh;
-  background: #FCFAF2;
+  background: #fff;
   color: #0A0A0A;
   /* Extra bottom padding for mobile bottom nav bar */
   padding-bottom: 80px;
