@@ -1,10 +1,7 @@
 /* =========================
    HEADER — Neo-Brutalist
-   Animation states:
-     LOGO  → logo centred, nothing else
-     BAR   → full search bar expands from centre
-     ICON  → bar shrinks to a search icon button
-     REOPEN→ icon expands back to bar
+   Search icon now on RIGHT side (near cart)
+   Bar stays open while typing/focused
 ========================= */
 
 /* ── Base ── */
@@ -27,13 +24,6 @@ body.dark .hdr {
   background: #1A1A14;
   border-bottom-color: rgba(245, 243, 232, 0.25);
   box-shadow: 0 4px 0px 0px rgba(245, 243, 232, 0.15);
-}
-
-/* ── Left cluster ── */
-.hdr-left {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
 }
 
 /* ── Icon buttons ── */
@@ -69,7 +59,7 @@ body.dark .hdr-icon:hover { background: #F5F3E8; color: #0A0A0A; }
   height: 18px;
 }
 
-/* ── Right cluster ── */
+/* ── Right cluster — search icon + cart ── */
 .hdr-right {
   display: flex;
   gap: 6px;
@@ -78,9 +68,7 @@ body.dark .hdr-icon:hover { background: #F5F3E8; color: #0A0A0A; }
 }
 
 /* ══════════════════════════════════════════════
-   CENTRE — contains all three animated states
-   stacked with position:absolute so they
-   transition independently without layout jumps
+   CENTRE — logo or search bar
 ══════════════════════════════════════════════ */
 .hdr-centre {
   flex: 1;
@@ -93,8 +81,7 @@ body.dark .hdr-icon:hover { background: #F5F3E8; color: #0A0A0A; }
 }
 
 /* ──────────────────────────────────────────────
-   STATE 1 — LOGO
-   Centred, scales + fades out when leaving
+   LOGO — centred, fades out on scroll
 ────────────────────────────────────────────── */
 .hdr-logo-wrap {
   position: absolute;
@@ -108,7 +95,6 @@ body.dark .hdr-icon:hover { background: #F5F3E8; color: #0A0A0A; }
   will-change: opacity, transform;
 }
 
-/* Leaving: shrink toward centre and fade */
 .hdr-logo-wrap--out {
   opacity: 0;
   transform: translateX(-50%) scale(0.4);
@@ -125,15 +111,12 @@ body.dark .hdr-icon:hover { background: #F5F3E8; color: #0A0A0A; }
 body.dark .hdr-logo { filter: invert(1); }
 
 /* ──────────────────────────────────────────────
-   STATE 2 — SEARCH BAR
-   Expands from the centre outward (scaleX)
-   Collapses back when going to ICON state
+   SEARCH BAR — expands from centre
 ────────────────────────────────────────────── */
 .hdr-bar-wrap {
   position: absolute;
   left: 0;
   right: 0;
-  /* Collapsed: tiny dot at centre */
   transform: scaleX(0.05);
   opacity: 0;
   pointer-events: none;
@@ -144,14 +127,12 @@ body.dark .hdr-logo { filter: invert(1); }
   will-change: transform, opacity;
 }
 
-/* Open: full width */
 .hdr-bar-wrap--open {
   transform: scaleX(1);
   opacity: 1;
   pointer-events: auto;
 }
 
-/* Search form — black border, no blue */
 .hdr-search-form {
   display: flex;
   align-items: center;
@@ -213,7 +194,6 @@ body.dark .hdr-search-input { color: #F5F3E8; }
   letter-spacing: 0.08em;
 }
 
-/* Clear button */
 .hdr-search-clear {
   display: flex;
   align-items: center;
@@ -232,7 +212,6 @@ body.dark .hdr-search-input { color: #F5F3E8; }
 .hdr-search-clear .hdr-svg { width: 13px; height: 13px; }
 .hdr-search-clear:hover { color: #0A0A0A; }
 
-/* Submit: black flush button with search icon */
 .hdr-search-submit {
   display: flex;
   align-items: center;
@@ -261,16 +240,10 @@ body.dark .hdr-search-submit {
 .hdr-search-submit .hdr-svg { width: 16px; height: 16px; }
 
 /* ──────────────────────────────────────────────
-   STATE 3 — SEARCH ICON PILL
-   Appears after 5s idle, tap to reopen bar
-   Fades + scales in from where the bar was
+   SEARCH ICON PILL — on RIGHT side, near cart
+   Appears after idle, tap to reopen bar
 ────────────────────────────────────────────── */
 .hdr-search-pill {
-  position: absolute;
-  /* Same brutalist style as other icons */
-  width: 40px;
-  height: 40px;
-  /* Hidden by default */
   opacity: 0;
   transform: scale(0.5);
   pointer-events: none;
@@ -280,7 +253,6 @@ body.dark .hdr-search-submit {
   will-change: opacity, transform;
 }
 
-/* Visible state */
 .hdr-search-pill--visible {
   opacity: 1;
   transform: scale(1);
