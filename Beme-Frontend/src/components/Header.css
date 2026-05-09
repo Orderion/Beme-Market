@@ -1,7 +1,6 @@
 /* =========================
    HEADER — Neo-Brutalist
-   Search icon now on RIGHT side (near cart)
-   Bar stays open while typing/focused
+   v2 — True grid centering · New search dropdown UI
 ========================= */
 
 /* ── Base ── */
@@ -10,14 +9,18 @@
   top: 0;
   z-index: 100;
   height: 60px;
-  padding: 0 12px;
-  display: flex;
+  padding: 0 10px;
+  /* Grid: left-btn | centre | right-btns */
+  /* Both sides equal (92px) so centre is truly centred */
+  display: grid;
+  grid-template-columns: 48px 1fr 92px;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   background: #fff;
   border-bottom: 3px solid #0A0A0A;
   box-shadow: 0 4px 0px 0px #0A0A0A;
+  /* needed so absolute logo is relative to header, not viewport */
+  position: sticky; /* keep sticky */
 }
 
 body.dark .hdr {
@@ -64,40 +67,47 @@ body.dark .hdr-icon:hover { background: #F5F3E8; color: #0A0A0A; }
   display: flex;
   gap: 6px;
   align-items: center;
-  flex-shrink: 0;
+  justify-content: flex-end;
 }
 
 /* ══════════════════════════════════════════════
-   CENTRE — logo or search bar
+   CENTRE — search bar (logo lives absolutely
+   in the header, centred across full width)
 ══════════════════════════════════════════════ */
 .hdr-centre {
-  flex: 1;
-  min-width: 0;
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
   height: 100%;
+  min-width: 0;
 }
 
 /* ──────────────────────────────────────────────
-   LOGO — centred, fades out on scroll
+   LOGO — absolutely centred to the full header
+   (not just the centre col) via CSS trick:
+   we move it to a position:absolute inside hdr
+   which is itself a grid container (= containing block)
 ────────────────────────────────────────────── */
 .hdr-logo-wrap {
+  /* sits in col 1 of the grid but positions
+     relative to the grid container (the header) */
+  grid-column: 1; /* stay in col-1 so it doesn't take layout space */
   position: absolute;
   left: 50%;
-  transform: translateX(-50%) scale(1);
+  top: 50%;
+  transform: translate(-50%, -50%) scale(1);
   opacity: 1;
   pointer-events: auto;
   transition:
     opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1),
     transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: opacity, transform;
+  z-index: 2;
 }
 
 .hdr-logo-wrap--out {
   opacity: 0;
-  transform: translateX(-50%) scale(0.4);
+  transform: translate(-50%, -50%) scale(0.4);
   pointer-events: none;
 }
 
@@ -111,12 +121,13 @@ body.dark .hdr-icon:hover { background: #F5F3E8; color: #0A0A0A; }
 body.dark .hdr-logo { filter: invert(1); }
 
 /* ──────────────────────────────────────────────
-   SEARCH BAR — expands from centre
+   SEARCH BAR — fills the centre column fully
 ────────────────────────────────────────────── */
 .hdr-bar-wrap {
   position: absolute;
-  left: 0;
-  right: 0;
+  inset: 0; /* fills hdr-centre completely */
+  display: flex;
+  align-items: center;
   transform: scaleX(0.05);
   opacity: 0;
   pointer-events: none;
@@ -141,9 +152,12 @@ body.dark .hdr-logo { filter: invert(1); }
   box-shadow: 3px 3px 0px 0px #0A0A0A;
   border-radius: 0;
   height: 40px;
+  /* fills the whole bar-wrap width */
+  width: 100%;
   padding: 0 0 0 10px;
   gap: 6px;
   overflow: hidden;
+  box-sizing: border-box;
   transition: box-shadow 0.11s;
 }
 
@@ -240,8 +254,7 @@ body.dark .hdr-search-submit {
 .hdr-search-submit .hdr-svg { width: 16px; height: 16px; }
 
 /* ──────────────────────────────────────────────
-   SEARCH ICON PILL — on RIGHT side, near cart
-   Appears after idle, tap to reopen bar
+   SEARCH ICON PILL — right side, near cart
 ────────────────────────────────────────────── */
 .hdr-search-pill {
   opacity: 0;
@@ -259,15 +272,18 @@ body.dark .hdr-search-submit {
   pointer-events: auto;
 }
 
-/* ── Suggestions dropdown ── */
+/* ══════════════════════════════════════════════
+   SEARCH DROPDOWN — Redesigned
+   Sections: Quick Categories · Recent Searches · Suggestions
+══════════════════════════════════════════════ */
 .hdr-suggestions {
   position: absolute;
-  top: calc(100% + 5px);
+  top: calc(100% + 6px);
   left: 0;
   right: 0;
   background: #FCFAF2;
   border: 2.5px solid #0A0A0A;
-  box-shadow: 5px 5px 0px 0px #0A0A0A;
+  box-shadow: 6px 6px 0px 0px #0A0A0A;
   border-radius: 0;
   overflow: hidden;
   z-index: 200;
@@ -277,25 +293,183 @@ body.dark .hdr-search-submit {
 body.dark .hdr-suggestions {
   background: #1A1A14;
   border-color: rgba(245, 243, 232, 0.3);
-  box-shadow: 5px 5px 0px 0px rgba(245, 243, 232, 0.15);
+  box-shadow: 6px 6px 0px 0px rgba(245, 243, 232, 0.15);
 }
 
 @keyframes suggestionsIn {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-.hdr-suggestion-item {
+/* ── Section header ── */
+.hdr-sug-section-label {
+  padding: 9px 12px 6px;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #999;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  border-bottom: 1.5px solid rgba(10,10,10,0.08);
+}
+
+body.dark .hdr-sug-section-label {
+  color: #555;
+  border-bottom-color: rgba(245,243,232,0.08);
+}
+
+/* ── Quick category chips row ── */
+.hdr-sug-chips {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  border-bottom: 1.5px solid rgba(10,10,10,0.1);
+}
+
+body.dark .hdr-sug-chips {
+  border-bottom-color: rgba(245,243,232,0.08);
+}
+
+.hdr-sug-chips::-webkit-scrollbar { display: none; }
+
+.hdr-sug-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 2px solid #0A0A0A;
+  box-shadow: 2px 2px 0px 0px #0A0A0A;
+  background: #FCFAF2;
+  color: #0A0A0A;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s, transform 0.08s, box-shadow 0.08s;
+}
+
+body.dark .hdr-sug-chip {
+  background: #1A1A14;
+  color: #F5F3E8;
+  border-color: rgba(245,243,232,0.3);
+  box-shadow: 2px 2px 0px 0px rgba(245,243,232,0.15);
+}
+
+.hdr-sug-chip:hover {
+  background: #0057FF;
+  color: #fff;
+  border-color: #0057FF;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px 0px #0A0A0A;
+}
+
+.hdr-sug-chip:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.hdr-sug-chip-icon {
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.hdr-sug-chip:hover .hdr-sug-chip-icon { opacity: 1; }
+
+/* ── Recent search item ── */
+.hdr-recent-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 10px 12px;
+  padding: 9px 12px;
   background: none;
   border: none;
   cursor: pointer;
   text-align: left;
   gap: 8px;
+  transition: background 0.1s;
+  border-bottom: 1px solid rgba(10,10,10,0.06);
+}
+
+body.dark .hdr-recent-item {
+  border-bottom-color: rgba(245,243,232,0.06);
+}
+
+.hdr-recent-item:last-child { border-bottom: none; }
+.hdr-recent-item:hover { background: #F0EEE6; }
+body.dark .hdr-recent-item:hover { background: rgba(245,243,232,0.05); }
+
+.hdr-recent-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.hdr-recent-clock {
+  width: 14px;
+  height: 14px;
+  color: #AAA;
+  flex-shrink: 0;
+}
+
+.hdr-recent-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0A0A0A;
+  font-family: 'Archivo', 'Arial', sans-serif;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.dark .hdr-recent-text { color: #F5F3E8; }
+
+.hdr-recent-remove {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #CCC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+  border-radius: 0;
+  transition: color 0.1s;
+}
+
+.hdr-recent-remove:hover { color: #CC0000; }
+
+/* ── Suggestion items (when typing) ── */
+.hdr-suggestion-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 9px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  gap: 10px;
   transition: background 0.1s;
 }
 
@@ -305,8 +479,39 @@ body.dark .hdr-suggestions {
 body.dark .hdr-suggestion-item:hover,
 body.dark .hdr-suggestion-item.active { background: rgba(0, 87, 255, 0.15); }
 
-.hdr-suggestion-item + .hdr-suggestion-item { border-top: 1.5px solid #0A0A0A; }
-body.dark .hdr-suggestion-item + .hdr-suggestion-item { border-top-color: rgba(245, 243, 232, 0.15); }
+.hdr-suggestion-item + .hdr-suggestion-item {
+  border-top: 1px solid rgba(10,10,10,0.07);
+}
+
+body.dark .hdr-suggestion-item + .hdr-suggestion-item {
+  border-top-color: rgba(245,243,232,0.08);
+}
+
+/* Badge on the LEFT (like ref image) */
+.hdr-sug-type {
+  font-size: 8px;
+  font-weight: 900;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+  background: #0A0A0A;
+  border: 1.5px solid #0A0A0A;
+  padding: 3px 7px;
+  border-radius: 0;
+  min-width: 52px;
+  text-align: center;
+}
+
+/* Type-specific badge colours */
+.hdr-sug-type--product    { background: #0A0A0A; }
+.hdr-sug-type--category   { background: #0057FF; border-color: #0057FF; }
+.hdr-sug-type--brand      { background: #7B2FBE; border-color: #7B2FBE; }
+.hdr-sug-type--department { background: #0A7E3F; border-color: #0A7E3F; }
+.hdr-sug-type--type       { background: #C25900; border-color: #C25900; }
+.hdr-sug-type--shop       { background: #B80000; border-color: #B80000; }
+.hdr-sug-type--keyword    { background: #555;    border-color: #555; }
 
 .hdr-sug-label {
   font-size: 12px;
@@ -323,22 +528,43 @@ body.dark .hdr-suggestion-item + .hdr-suggestion-item { border-top-color: rgba(2
 
 body.dark .hdr-sug-label { color: #F5F3E8; }
 
-.hdr-sug-type {
-  font-size: 8px;
+/* ── Show more footer ── */
+.hdr-sug-more {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-top: 2px solid #0A0A0A;
+  background: #F0EEE6;
+  cursor: pointer;
+  font-size: 10px;
   font-weight: 900;
-  font-family: 'Archivo Black', 'Arial Black', sans-serif;
-  color: #fff;
-  text-transform: uppercase;
   letter-spacing: 0.1em;
-  flex-shrink: 0;
-  background: #0057FF;
-  border: 1.5px solid #0A0A0A;
-  padding: 2px 6px;
-  border-radius: 0;
+  text-transform: uppercase;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  color: #0A0A0A;
+  transition: background 0.1s;
 }
 
+body.dark .hdr-sug-more {
+  background: #111108;
+  border-top-color: rgba(245,243,232,0.2);
+  color: #F5F3E8;
+}
+
+.hdr-sug-more:hover { background: #0057FF; color: #fff; }
+body.dark .hdr-sug-more:hover { background: #0057FF; }
+
+.hdr-sug-more-arrow {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* ── Empty state ── */
 .hdr-suggestion-empty {
-  padding: 12px 14px;
+  padding: 14px 12px;
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.1em;
@@ -378,12 +604,19 @@ body.dark .hdr-sug-label { color: #F5F3E8; }
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
-  .hdr { height: 56px; padding: 0 10px; gap: 6px; }
-  .hdr-icon { width: 38px; height: 38px; }
-  .hdr-logo { width: 26px; height: 26px; }
-  .hdr-search-form { height: 38px; }
-  .hdr-search-submit { width: 38px; height: 38px; }
-  .hdr-search-pill { width: 38px; height: 38px; }
+  .hdr {
+    height: 56px;
+    padding: 0 8px;
+    gap: 5px;
+    grid-template-columns: 44px 1fr 88px;
+  }
+  .hdr-icon           { width: 38px; height: 38px; }
+  .hdr-logo           { width: 26px; height: 26px; }
+  .hdr-search-form    { height: 38px; }
+  .hdr-search-submit  { width: 38px; height: 38px; }
+  .hdr-search-pill    { width: 38px; height: 38px; }
+  .hdr-sug-chips      { padding: 7px 10px 9px; gap: 5px; }
+  .hdr-sug-chip       { font-size: 8px; padding: 4px 8px; }
 }
 
 /* ── Reduced motion ── */
@@ -394,7 +627,8 @@ body.dark .hdr-sug-label { color: #F5F3E8; }
   .hdr-icon,
   .hdr-badge,
   .hdr-search-form,
-  .hdr-suggestions {
+  .hdr-suggestions,
+  .hdr-sug-chip {
     transition: none !important;
     animation: none !important;
   }
