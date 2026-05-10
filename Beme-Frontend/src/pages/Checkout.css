@@ -61,14 +61,15 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 32px 0 24px;
+  padding: 48px 0 36px;
   border-bottom: 1.5px solid #ebebeb;
-  margin-bottom: 28px;
+  margin-bottom: 32px;
 }
 
 .co-logo-header__img {
-  height: 44px;
+  height: 96px;
   width: auto;
+  max-width: 280px;
   object-fit: contain;
   display: block;
 }
@@ -1208,8 +1209,8 @@
 ═══════════════════════════════════════════ */
 @media (min-width: 860px) {
   .co-wrap { padding: 0 32px 72px; }
-  .co-logo-header { padding: 36px 0 28px; margin-bottom: 32px; }
-  .co-logo-header__img { height: 52px; }
+  .co-logo-header { padding: 56px 0 40px; margin-bottom: 36px; }
+  .co-logo-header__img { height: 110px; max-width: 320px; }
   .co-page-title { font-size: 38px; }
 
   .co-grid {
@@ -1231,7 +1232,8 @@
 /* ── Tablet tweaks ── */
 @media (max-width: 860px) and (min-width: 481px) {
   .co-wrap { padding: 0 20px 60px; }
-  .co-logo-header { padding: 24px 0 20px; margin-bottom: 22px; }
+  .co-logo-header { padding: 40px 0 30px; margin-bottom: 26px; }
+  .co-logo-header__img { height: 84px; max-width: 260px; }
 }
 
 /* ═══════════════════════════════════════════
@@ -1239,8 +1241,8 @@
 ═══════════════════════════════════════════ */
 @media (max-width: 480px) {
   .co-wrap { padding: 0 14px 52px; }
-  .co-logo-header { padding: 20px 0 16px; margin-bottom: 18px; }
-  .co-logo-header__img { height: 36px; }
+  .co-logo-header { padding: 32px 0 24px; margin-bottom: 20px; }
+  .co-logo-header__img { height: 72px; max-width: 220px; }
   .co-page-title { font-size: 26px; }
 
   .co-timer {
