@@ -256,13 +256,17 @@ function removeRecent(list, term) {
 
 function usePrefersDark() {
   const [dark, setDark] = useState(
-    () => window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false
+    () => document.body.classList.contains("dark")
   );
   useEffect(() => {
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const h = (e) => setDark(e.matches);
-    mq.addEventListener("change", h);
-    return () => mq.removeEventListener("change", h);
+    const observer = new MutationObserver(() => {
+      setDark(document.body.classList.contains("dark"));
+    });
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
   }, []);
   return dark;
 }
