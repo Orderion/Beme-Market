@@ -383,9 +383,6 @@ export default function Checkout() {
         })),
         delivery: buildDeliveryPayload(),
         pricing: { subtotal: subtotalUI, deliveryFee: deliveryFeeUI, total: totalUI, currency: "GHS" },
-        // ✅ FIX: Pass the complete customer object including userId, network,
-        // notes, and country. Previously these were omitted, causing the backend
-        // to reject the request with a generic "An error occurred" response.
         customer: {
           userId:    user?.uid || "",
           firstName: sanitizeText(form.firstName, 80),
@@ -423,6 +420,20 @@ export default function Checkout() {
   return (
     <div className="co-page">
       <div className="co-wrap">
+
+        {/* ── LOGO HEADER ── */}
+        <div className="co-logo-header">
+          <img
+            src="/favicon_black.png"
+            alt="Store logo"
+            className="co-logo-header__img"
+            onError={(e) => {
+              /* fallback to white version if black not found */
+              e.currentTarget.src = "/Favicon-white.PNG";
+              e.currentTarget.onerror = null;
+            }}
+          />
+        </div>
 
         {/* cancelled notice */}
         {cancelledPayment && (
