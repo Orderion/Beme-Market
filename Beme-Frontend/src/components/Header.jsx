@@ -47,12 +47,79 @@ function IconClose() {
 
 function IconClock() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="1.8" strokeLinecap="round" width="14" height="14" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="hdr-recent-clock" fill="none"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
       <circle cx="12" cy="12" r="9"/>
       <path d="M12 7v5l3 3"/>
     </svg>
   );
+}
+
+function IconArrowRight() {
+  return (
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12h14M12 5l7 7-7 7"/>
+    </svg>
+  );
+}
+
+/* ── Per-category chip icons ── */
+function ChipIcon({ value }) {
+  const map = {
+    iphone: (
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+        <rect x="7" y="2" width="10" height="20" rx="2.5"/>
+        <circle cx="12" cy="17.5" r="0.8" fill="currentColor" stroke="none"/>
+      </svg>
+    ),
+    clothing: (
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+        <path d="M9 3L3 7l3 2v12h12V9l3-2-6-4c0 1.66-1.34 3-3 3S9 4.66 9 3z"/>
+      </svg>
+    ),
+    shoes: (
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+        <path d="M2 16s1-1 4-1 5 2 8 2 6-2 8-2v3s-2 2-8 2-8-2-8-2H2v-2z"/>
+        <path d="M6 15V9l4-4h4"/>
+      </svg>
+    ),
+    laptop: (
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+        <rect x="3" y="5" width="18" height="12" rx="1.5"/>
+        <path d="M1 19h22"/>
+      </svg>
+    ),
+    game: (
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+        <rect x="2" y="7" width="20" height="12" rx="4"/>
+        <path d="M8 11v4M6 13h4M15 12h2M15 14h2"/>
+      </svg>
+    ),
+    appliances: (
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <path d="M3 9h18"/>
+        <circle cx="7" cy="6" r="0.8" fill="currentColor" stroke="none"/>
+        <circle cx="11" cy="6" r="0.8" fill="currentColor" stroke="none"/>
+      </svg>
+    ),
+    kids: (
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+        <circle cx="12" cy="7" r="4"/>
+        <path d="M8 21v-2a4 4 0 0 1 8 0v2"/>
+      </svg>
+    ),
+    accessories: (
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+        <circle cx="12" cy="12" r="3"/>
+        <circle cx="12" cy="12" r="9"/>
+      </svg>
+    ),
+  };
+  const icon = map[value];
+  if (!icon) return null;
+  return <span className="hdr-sug-chip-icon">{icon}</span>;
 }
 
 /* ================= CONSTANTS ================= */
@@ -61,16 +128,15 @@ const SUGGESTION_LIMIT     = 5;
 const MAX_RECENT           = 5;
 const RECENT_KEY           = "beme_recent_searches";
 
-/* Quick-pick category chips shown when search bar is focused but empty */
 const QUICK_CATEGORIES = [
-  { label: "Phones",     value: "iphone"     },
-  { label: "Fashion",    value: "clothing"   },
-  { label: "Shoes",      value: "shoes"      },
-  { label: "Laptops",    value: "laptop"     },
-  { label: "Gaming",     value: "game"       },
-  { label: "Appliances", value: "appliances" },
-  { label: "Kids",       value: "kids"       },
-  { label: "Perfume",    value: "accessories"},
+  { label: "Phones",      value: "iphone"      },
+  { label: "Fashion",     value: "clothing"    },
+  { label: "Shoes",       value: "shoes"       },
+  { label: "Laptops",     value: "laptop"      },
+  { label: "Gaming",      value: "game"        },
+  { label: "Appliances",  value: "appliances"  },
+  { label: "Kids",        value: "kids"        },
+  { label: "Accessories", value: "accessories" },
 ];
 
 const CATEGORY_KEYWORDS = [
@@ -94,7 +160,7 @@ const TYPE_LABELS = {
   keyword:    "Keyword",
 };
 
-/* ─── Helpers ─── */
+/* ================= HELPERS ================= */
 function normalizeProduct(docSnap) {
   const d = docSnap.data() || {};
   return {
@@ -113,7 +179,7 @@ function normalizeProduct(docSnap) {
 function titleize(value) {
   return String(value || "")
     .replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim()
-    .replace(/\b\w/g, m => m.toUpperCase());
+    .replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
 function buildSuggestions(products, term) {
@@ -133,7 +199,7 @@ function buildSuggestions(products, term) {
   };
 
   for (const cat of CATEGORY_KEYWORDS) {
-    if (cat.aliases.some(a => a.includes(q)) || q.includes(cat.value))
+    if (cat.aliases.some((a) => a.includes(q)) || q.includes(cat.value))
       push(cat.label, cat.type, cat.value, 200);
   }
 
@@ -144,16 +210,16 @@ function buildSuggestions(products, term) {
     const nl = name.toLowerCase(), bl = brand.toLowerCase(), dl = dept.toLowerCase();
     const kl = kind.toLowerCase(), sl = shop.toLowerCase(), hl = homeSlot.toLowerCase();
 
-    if (nl.startsWith(q))        push(name,              "product",    name,              100);
-    else if (nl.includes(q))     push(name,              "product",    name,               90);
-    if (bl && bl.includes(q))    push(titleize(brand),   "brand",      brand,              84);
-    if (dl.startsWith(q))        push(titleize(dept),    "department", titleize(dept),      70);
-    else if (dl.includes(q))     push(titleize(dept),    "department", titleize(dept),      60);
-    if (kl.startsWith(q))        push(titleize(kind),    "type",       titleize(kind),      65);
-    else if (kl.includes(q))     push(titleize(kind),    "type",       titleize(kind),      55);
-    if (hl && hl.includes(q))    push(titleize(homeSlot),"category",   homeSlot,            75);
-    if (sl.startsWith(q))        push(titleize(shop),    "shop",       `shop:${shop}`,      68);
-    else if (sl.includes(q))     push(titleize(shop),    "shop",       `shop:${shop}`,      58);
+    if (nl.startsWith(q))       push(name, "product", name, 100);
+    else if (nl.includes(q))    push(name, "product", name, 90);
+    if (bl && bl.includes(q))   push(titleize(brand), "brand", brand, 84);
+    if (dl.startsWith(q))       push(titleize(dept), "department", titleize(dept), 70);
+    else if (dl.includes(q))    push(titleize(dept), "department", titleize(dept), 60);
+    if (kl.startsWith(q))       push(titleize(kind), "type", titleize(kind), 65);
+    else if (kl.includes(q))    push(titleize(kind), "type", titleize(kind), 55);
+    if (hl && hl.includes(q))   push(titleize(homeSlot), "category", homeSlot, 75);
+    if (sl.startsWith(q))       push(titleize(shop), "shop", `shop:${shop}`, 68);
+    else if (sl.includes(q))    push(titleize(shop), "shop", `shop:${shop}`, 58);
 
     if (full.includes(q)) {
       full.split(/[\s,.;:/()[\]-]+/).map(w => w.trim()).filter(Boolean).forEach(word => {
@@ -167,29 +233,50 @@ function buildSuggestions(products, term) {
     .slice(0, SUGGESTION_LIMIT);
 }
 
+/* ── localStorage helpers ── */
+function loadRecent() {
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); }
+  catch { return []; }
+}
+
+function saveRecent(list) {
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(list)); } catch {}
+}
+
+function addRecent(list, term) {
+  const t = String(term || "").trim();
+  if (!t) return list;
+  const next = [t, ...list.filter((x) => x.toLowerCase() !== t.toLowerCase())].slice(0, MAX_RECENT);
+  saveRecent(next);
+  return next;
+}
+
+function removeRecent(list, term) {
+  const next = list.filter((x) => x !== term);
+  saveRecent(next);
+  return next;
+}
+
 function usePrefersDark() {
   const [dark, setDark] = useState(
     () => window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false
   );
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = e => setDark(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
+    const h = (e) => setDark(e.matches);
+    mq.addEventListener("change", h);
+    return () => mq.removeEventListener("change", h);
   }, []);
   return dark;
 }
 
-/* ═══════════════════════════════════════════════
-   ANIMATION STATES
-   LOGO   → at top: logo centred, search hidden
-   BAR    → scrolled: logo fades, search bar opens
-   ICON   → 5 s idle: bar shrinks to icon on right
-   REOPEN → tap icon: bar expands again
-═══════════════════════════════════════════════ */
+/* ── Animation states ── */
 const S = { LOGO: "logo", BAR: "bar", ICON: "icon", REOPEN: "reopen" };
 const IDLE_MS = 5000;
 
+/* ===============================================================
+   COMPONENT
+   =============================================================== */
 export default function Header({ onMenu, onCart }) {
   const navigate      = useNavigate();
   const location      = useLocation();
@@ -199,45 +286,26 @@ export default function Header({ onMenu, onCart }) {
 
   const isHome = location.pathname === "/" || location.pathname === "/home";
 
-  const [anim,        setAnim]        = useState(S.LOGO);
-  const [products,    setProducts]    = useState([]);
-  const [loadingSugs, setLoadingSugs] = useState(false);
-  const [search,      setSearch]      = useState("");
-  const [sugOpen,     setSugOpen]     = useState(false);
-  const [activeIdx,   setActiveIdx]   = useState(-1);
-  const [isFocused,   setIsFocused]   = useState(false);
+  const [anim,           setAnim]           = useState(S.LOGO);
+  const [products,       setProducts]       = useState([]);
+  const [loadingSugs,    setLoadingSugs]    = useState(false);
+  const [search,         setSearch]         = useState("");
+  const [sugOpen,        setSugOpen]        = useState(false);
+  const [activeIdx,      setActiveIdx]      = useState(-1);
+  const [isFocused,      setIsFocused]      = useState(false);
+  const [recentSearches, setRecentSearches] = useState(() => loadRecent());
 
-  /* ── Recent searches (persisted in localStorage) ── */
-  const [recentSearches, setRecentSearches] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); }
-    catch { return []; }
-  });
-
-  const saveSearch = useCallback((term) => {
-    const t = String(term || "").trim();
-    if (!t || t.startsWith("shop:")) return;
-    setRecentSearches(prev => {
-      const next = [t, ...prev.filter(s => s.toLowerCase() !== t.toLowerCase())]
-        .slice(0, MAX_RECENT);
-      try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch {}
-      return next;
-    });
-  }, []);
-
-  const removeRecent = useCallback((term, e) => {
-    e?.stopPropagation();
-    setRecentSearches(prev => {
-      const next = prev.filter(s => s !== term);
-      try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch {}
-      return next;
-    });
-  }, []);
+  const isBar          = anim === S.BAR || anim === S.REOPEN;
+  const isLogo         = anim === S.LOGO;
+  const isIcon         = anim === S.ICON;
+  const isTyping       = search.trim().length > 0;
+  const showDropdown   = sugOpen && isBar;
 
   const inputRef  = useRef(null);
   const wrapRef   = useRef(null);
   const idleTimer = useRef(null);
 
-  /* ── Idle timer — collapses bar to icon after IDLE_MS of inactivity ── */
+  /* ── Idle timer: collapse bar → icon after 5s of no activity ── */
   const resetIdle = useCallback(() => {
     clearTimeout(idleTimer.current);
     if (!isFocused && !search.trim()) {
@@ -248,7 +316,7 @@ export default function Header({ onMenu, onCart }) {
     }
   }, [isFocused, search]);
 
-  /* ── Scroll handler: LOGO → BAR ── */
+  /* ── Scroll handler: LOGO ↔ BAR ── */
   useEffect(() => {
     if (!isHome) {
       setAnim(S.LOGO);
@@ -261,9 +329,8 @@ export default function Header({ onMenu, onCart }) {
 
     const onScroll = () => {
       const scrolled = (window.scrollY || document.documentElement.scrollTop) > 80;
-      window.dispatchEvent(
-        new CustomEvent("home-search-collapse", { detail: { collapsed: scrolled } })
-      );
+      window.dispatchEvent(new CustomEvent("home-search-collapse", { detail: { collapsed: scrolled } }));
+
       if (scrolled) {
         setAnim(prev => prev === S.LOGO ? S.BAR : prev);
       } else {
@@ -284,7 +351,7 @@ export default function Header({ onMenu, onCart }) {
     };
   }, [isHome]);
 
-  /* ── Stop/start idle timer based on focus/search activity ── */
+  /* ── Stop idle timer while user is typing / focused ── */
   useEffect(() => {
     if (isFocused || search.trim()) {
       clearTimeout(idleTimer.current);
@@ -301,16 +368,14 @@ export default function Header({ onMenu, onCart }) {
     }
   }, [anim]);
 
-  /* ── Fetch products for suggestion engine ── */
+  /* ── Fetch products for suggestions ── */
   useEffect(() => {
     if (!isHome) return;
     let alive = true;
     (async () => {
       setLoadingSugs(true);
       try {
-        const snap = await getDocs(
-          query(collection(db, "Products"), limit(SEARCH_PREVIEW_LIMIT))
-        );
+        const snap = await getDocs(query(collection(db, "Products"), limit(SEARCH_PREVIEW_LIMIT)));
         if (alive) setProducts(snap.docs.map(normalizeProduct));
       } catch (e) {
         console.error("Header suggestion fetch:", e);
@@ -321,9 +386,9 @@ export default function Header({ onMenu, onCart }) {
     return () => { alive = false; };
   }, [isHome]);
 
-  /* ── Click outside → close dropdown ── */
+  /* ── Click / tap outside → close dropdown ── */
   useEffect(() => {
-    const onDown = e => {
+    const onDown = (e) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) {
         setSugOpen(false);
         setActiveIdx(-1);
@@ -337,127 +402,219 @@ export default function Header({ onMenu, onCart }) {
     };
   }, []);
 
-  /* ── Derived ── */
-  const suggestions = useMemo(
-    () => buildSuggestions(products, search),
-    [products, search]
-  );
-  const count  = cartItems?.reduce((sum, i) => sum + Number(i.qty || 1), 0) || 0;
-  const isLogo = anim === S.LOGO;
-  const isBar  = anim === S.BAR || anim === S.REOPEN;
-  const isIcon = anim === S.ICON;
+  const suggestions = useMemo(() => buildSuggestions(products, search), [products, search]);
+  const cartCount   = cartItems?.reduce((sum, i) => sum + Number(i.qty || 1), 0) || 0;
 
-  /*
-   * Dropdown visibility:
-   *   showEmpty       → focused, no text → show chips + recent searches
-   *   showSuggestions → typing          → show suggestion items
-   */
-  const showEmpty       = isFocused && !search.trim();
-  const showSuggestions = !!search.trim() && sugOpen;
-  const dropdownOpen    = isBar && (showEmpty || showSuggestions);
-
-  const logoSrc = prefersDark ? "/favicon_white.png" : "/favicon_black.png";
-
-  /* ── Action handlers ── */
-  const pulseLock    = () => {
-    actionLockRef.current = true;
-    setTimeout(() => { actionLockRef.current = false; }, 220);
-  };
-  const handleMenuOpen = () => { if (!actionLockRef.current) { pulseLock(); onMenu?.(); } };
-  const handleCartOpen = () => { if (!actionLockRef.current) { pulseLock(); onCart?.(); } };
-  const handleIconTap  = () => { setAnim(S.REOPEN); setIsFocused(false); };
-
-  const goToSearch = (value) => {
+  /* ── Navigate to search result & save recent ── */
+  const goToSearch = useCallback((value) => {
     const q = String(value || "").trim();
     setSugOpen(false);
     setActiveIdx(-1);
+
+    /* Save non-category searches to recent */
+    if (q && !q.startsWith("shop:")) {
+      setRecentSearches(prev => addRecent(prev, q));
+    }
+
     setSearch("");
     setIsFocused(false);
-    if (!q) { navigate("/shop"); return; }
-    saveSearch(q);                          // save every real query
+
+    if (!q)                  { navigate("/shop"); return; }
     if (q.startsWith("shop:")) {
       navigate(`/shop?shop=${encodeURIComponent(q.replace(/^shop:/, "").trim())}`);
       return;
     }
     navigate(`/shop?q=${encodeURIComponent(q)}`);
+  }, [navigate]);
+
+  /* ── Remove one recent search ── */
+  const handleRemoveRecent = useCallback((e, term) => {
+    e.stopPropagation();
+    setRecentSearches(prev => removeRecent(prev, term));
+  }, []);
+
+  /* ── Form / input handlers ── */
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const picked = activeIdx >= 0 && suggestions[activeIdx]
+      ? suggestions[activeIdx].value
+      : search;
+    goToSearch(picked);
   };
 
-  const handleSubmit = e => {
-    e.preventDefault();
-    goToSearch(
-      activeIdx >= 0 && suggestions[activeIdx]
-        ? suggestions[activeIdx].value
-        : search
+  const handleChange = (e) => {
+    setSearch(e.target.value);
+    setActiveIdx(-1);
+    setSugOpen(true);
+  };
+
+  const handleFocus  = () => { setIsFocused(true);  setSugOpen(true); };
+  const handleBlur   = () => { setIsFocused(false); };
+
+  const handleKeyDown = (e) => {
+    if (!showDropdown) return;
+    if (isTyping && suggestions.length) {
+      if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx(p => p < suggestions.length - 1 ? p + 1 : 0); }
+      if (e.key === "ArrowUp")   { e.preventDefault(); setActiveIdx(p => p > 0 ? p - 1 : suggestions.length - 1); }
+    }
+    if (e.key === "Escape") { setSugOpen(false); setActiveIdx(-1); }
+  };
+
+  /* ── Button helpers ── */
+  const pulseLock      = () => { actionLockRef.current = true; setTimeout(() => { actionLockRef.current = false; }, 220); };
+  const handleMenuOpen = () => { if (!actionLockRef.current) { pulseLock(); onMenu?.(); } };
+  const handleCartOpen = () => { if (!actionLockRef.current) { pulseLock(); onCart?.(); } };
+  const handleIconTap  = () => { setAnim(S.REOPEN); setIsFocused(false); };
+
+  const logoSrc = prefersDark ? "/favicon_white.png" : "/favicon_black.png";
+
+  /* ══════════════════════════════════════════
+     DROPDOWN RENDERER
+     — Idle / focused + no text  → chips + recent
+     — Typing                    → suggestions + show-more
+  ══════════════════════════════════════════ */
+  const renderDropdown = () => {
+    if (!showDropdown) return null;
+
+    /* ── TYPING: suggestions ── */
+    if (isTyping) {
+      return (
+        <div className="hdr-suggestions">
+          {loadingSugs ? (
+            <div className="hdr-suggestion-empty">Loading…</div>
+          ) : suggestions.length ? (
+            <>
+              {suggestions.map((item, idx) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`hdr-suggestion-item ${idx === activeIdx ? "active" : ""}`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => goToSearch(item.value)}
+                >
+                  {/* Coloured badge on the LEFT (like reference UI) */}
+                  <span className={`hdr-sug-type hdr-sug-type--${item.type}`}>
+                    {TYPE_LABELS[item.type] || item.type}
+                  </span>
+                  <span className="hdr-sug-label">{item.label}</span>
+                </button>
+              ))}
+
+              {/* "Show more" footer */}
+              <button
+                type="button"
+                className="hdr-sug-more"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => goToSearch(search)}
+              >
+                <span>Search for &ldquo;{search}&rdquo;</span>
+                <span className="hdr-sug-more-arrow"><IconArrowRight /></span>
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="hdr-suggestion-empty">No results for &ldquo;{search}&rdquo;</div>
+              <button
+                type="button"
+                className="hdr-sug-more"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => goToSearch(search)}
+              >
+                <span>Search anyway</span>
+                <span className="hdr-sug-more-arrow"><IconArrowRight /></span>
+              </button>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    /* ── IDLE / EMPTY: category chips + recent searches ── */
+    const hasRecent = recentSearches.length > 0;
+
+    return (
+      <div className="hdr-suggestions">
+
+        {/* Quick category chips — always shown */}
+        <div className="hdr-sug-section-label">I&apos;M LOOKING FOR</div>
+        <div className="hdr-sug-chips">
+          {QUICK_CATEGORIES.map((cat) => (
+            <button
+              key={cat.value}
+              type="button"
+              className="hdr-sug-chip"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => goToSearch(cat.value)}
+            >
+              <ChipIcon value={cat.value} />
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Recent searches — shown only if any exist */}
+        {hasRecent && (
+          <>
+            <div className="hdr-sug-section-label">RECENT SEARCHES</div>
+            {recentSearches.map((term) => (
+              <div
+                key={term}
+                className="hdr-recent-item"
+                role="button"
+                tabIndex={0}
+                onClick={() => goToSearch(term)}
+                onKeyDown={(e) => e.key === "Enter" && goToSearch(term)}
+              >
+                <div className="hdr-recent-left">
+                  <IconClock />
+                  <span className="hdr-recent-text">{term}</span>
+                </div>
+                <button
+                  type="button"
+                  className="hdr-recent-remove"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={(e) => handleRemoveRecent(e, term)}
+                  aria-label={`Remove ${term}`}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </>
+        )}
+
+      </div>
     );
   };
 
-  const handleChange = e => {
-    const v = e.target.value;
-    setSearch(v);
-    setActiveIdx(-1);
-    setSugOpen(!!v.trim());
-  };
-
-  const handleFocus = () => {
-    setIsFocused(true);
-    setSugOpen(true);       // open dropdown to show chips/recent even if empty
-  };
-
-  const handleBlur = () => {
-    setIsFocused(false);
-  };
-
-  const handleKeyDown = e => {
-    if (!sugOpen || !suggestions.length) return;
-    if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx(p => p < suggestions.length - 1 ? p + 1 : 0); }
-    if (e.key === "ArrowUp")   { e.preventDefault(); setActiveIdx(p => p > 0 ? p - 1 : suggestions.length - 1); }
-    if (e.key === "Escape")    { setSugOpen(false); setActiveIdx(-1); }
-  };
-
-  /* ────────────────────────────────────────────
+  /* ══════════════════════════════════════════
      RENDER
-     Header uses display:flex (see Header.css).
-     Search pill is ONLY rendered in ICON state
-     so right side = single cart button in LOGO
-     state, matching the left (menu) width →
-     logo in hdr-centre appears truly centred.
-  ──────────────────────────────────────────── */
+  ══════════════════════════════════════════ */
   return (
     <header className="hdr">
 
-      {/* ══ LEFT: Menu ══ */}
-      <button
-        className="hdr-icon"
-        onClick={handleMenuOpen}
-        aria-label="Open menu"
-        type="button"
-      >
+      {/* ── Col 1: Menu button ── */}
+      <button className="hdr-icon" onClick={handleMenuOpen} aria-label="Open menu" type="button">
         <IconMenu />
       </button>
 
-      {/* ══ CENTRE: Logo + Search bar ══ */}
+      {/* ── Logo: position:absolute so it centres across the FULL header width,
+              not just the centre grid column. hdr has position:sticky which
+              makes it a containing block for absolute children. ── */}
+      <div
+        className={`hdr-logo-wrap ${!isLogo ? "hdr-logo-wrap--out" : ""}`}
+        aria-hidden={!isLogo}
+      >
+        <img src={logoSrc} alt="Beme Market" className="hdr-logo" draggable={false} />
+      </div>
+
+      {/* ── Col 2: Search bar (fills centre column edge-to-edge) ── */}
       <div className="hdr-centre" ref={wrapRef}>
-
-        {/* Logo — centred inside hdr-centre */}
-        <div
-          className={`hdr-logo-wrap ${!isLogo ? "hdr-logo-wrap--out" : ""}`}
-          aria-hidden={!isLogo}
-        >
-          <img
-            src={logoSrc}
-            alt="Beme Market"
-            className="hdr-logo"
-            draggable={false}
-          />
-        </div>
-
-        {/* Search bar — home page only */}
         {isHome && (
           <div
             className={`hdr-bar-wrap ${isBar ? "hdr-bar-wrap--open" : ""}`}
             aria-hidden={!isBar}
           >
-            {/* ── Search form ── */}
             <form className="hdr-search-form" onSubmit={handleSubmit}>
               <span className="hdr-search-icon-left" aria-hidden="true">
                 <IconSearch />
@@ -475,17 +632,15 @@ export default function Header({ onMenu, onCart }) {
                 className="hdr-search-input"
                 autoComplete="off"
                 tabIndex={isBar ? 0 : -1}
+                aria-label="Search products"
+                aria-expanded={showDropdown}
               />
 
               {search && (
                 <button
                   type="button"
                   className="hdr-search-clear"
-                  onClick={() => {
-                    setSearch("");
-                    setSugOpen(false);
-                    inputRef.current?.focus();
-                  }}
+                  onClick={() => { setSearch(""); setSugOpen(true); inputRef.current?.focus(); }}
                   tabIndex={isBar ? 0 : -1}
                   aria-label="Clear search"
                 >
@@ -503,129 +658,20 @@ export default function Header({ onMenu, onCart }) {
               </button>
             </form>
 
-            {/* ════════════════════════════════════════
-                DROPDOWN
-                ─ Empty/focused  → chips + recent
-                ─ Typing         → suggestions + more
-            ════════════════════════════════════════ */}
-            {dropdownOpen && (
-              <div className="hdr-suggestions" role="listbox">
-
-                {/* ── IDLE STATE: category chips + recent searches ── */}
-                {showEmpty && (
-                  <>
-                    {/* Quick category chips */}
-                    <div className="hdr-sug-section-label">I'M LOOKING FOR</div>
-                    <div className="hdr-sug-chips">
-                      {QUICK_CATEGORIES.map(cat => (
-                        <button
-                          key={cat.value}
-                          type="button"
-                          className="hdr-sug-chip"
-                          onMouseDown={e => e.preventDefault()}
-                          onClick={() => goToSearch(cat.value)}
-                          role="option"
-                        >
-                          {cat.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Recent searches — only if there are any */}
-                    {recentSearches.length > 0 && (
-                      <>
-                        <div className="hdr-sug-section-label">RECENT SEARCHES</div>
-                        {recentSearches.map(term => (
-                          <div key={term} className="hdr-recent-item">
-                            <button
-                              type="button"
-                              className="hdr-recent-left"
-                              onMouseDown={e => e.preventDefault()}
-                              onClick={() => goToSearch(term)}
-                              aria-label={`Search again for ${term}`}
-                            >
-                              <span className="hdr-recent-clock">
-                                <IconClock />
-                              </span>
-                              <span className="hdr-recent-text">{term}</span>
-                            </button>
-                            <button
-                              type="button"
-                              className="hdr-recent-remove"
-                              onMouseDown={e => e.preventDefault()}
-                              onClick={e => removeRecent(term, e)}
-                              aria-label={`Remove ${term} from recent searches`}
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                  </>
-                )}
-
-                {/* ── TYPING STATE: suggestions + show more ── */}
-                {showSuggestions && (
-                  <>
-                    {loadingSugs ? (
-                      <div className="hdr-suggestion-empty">Loading…</div>
-                    ) : suggestions.length > 0 ? (
-                      <>
-                        {suggestions.map((item, idx) => (
-                          <button
-                            key={item.id}
-                            type="button"
-                            role="option"
-                            aria-selected={idx === activeIdx}
-                            className={`hdr-suggestion-item ${idx === activeIdx ? "active" : ""}`}
-                            onMouseDown={e => e.preventDefault()}
-                            onClick={() => goToSearch(item.value)}
-                          >
-                            {/* Coloured badge on the LEFT */}
-                            <span className={`hdr-sug-type hdr-sug-type--${item.type}`}>
-                              {TYPE_LABELS[item.type] || item.type}
-                            </span>
-                            <span className="hdr-sug-label">{item.label}</span>
-                          </button>
-                        ))}
-
-                        {/* Show more footer */}
-                        <button
-                          type="button"
-                          className="hdr-sug-more"
-                          onMouseDown={e => e.preventDefault()}
-                          onClick={() => goToSearch(search)}
-                        >
-                          <span>See all results for &quot;{search}&quot;</span>
-                          <span className="hdr-sug-more-arrow">→</span>
-                        </button>
-                      </>
-                    ) : (
-                      <div className="hdr-suggestion-empty">
-                        No results found for &quot;{search}&quot;
-                      </div>
-                    )}
-                  </>
-                )}
-
-              </div>
-            )}
+            {renderDropdown()}
           </div>
         )}
       </div>
 
-      {/* ══ RIGHT: Search icon pill (ICON state only) + Cart ══
-          KEY: search pill is only rendered in ICON state.
-          In LOGO state → right = cart only (40px) = same as
-          left (menu 40px) → hdr-centre is symmetric → logo centred. */}
+      {/* ── Col 3: Search pill (idle) + Cart ── */}
       <div className="hdr-right">
-        {isHome && isIcon && (
+        {isHome && (
           <button
-            className="hdr-icon hdr-search-pill hdr-search-pill--visible"
+            className={`hdr-icon hdr-search-pill ${isIcon ? "hdr-search-pill--visible" : ""}`}
             onClick={handleIconTap}
             aria-label="Open search"
             type="button"
+            tabIndex={isIcon ? 0 : -1}
           >
             <IconSearch />
           </button>
@@ -638,8 +684,8 @@ export default function Header({ onMenu, onCart }) {
           type="button"
         >
           <IconCart />
-          {count > 0 && (
-            <span className="hdr-badge">{count > 99 ? "99+" : count}</span>
+          {cartCount > 0 && (
+            <span className="hdr-badge">{cartCount > 99 ? "99+" : cartCount}</span>
           )}
         </button>
       </div>
