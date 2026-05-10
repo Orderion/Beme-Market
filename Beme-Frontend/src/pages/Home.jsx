@@ -58,7 +58,7 @@ const HARDCODED_CATEGORY_CARDS = [
   { key: "clothing",        label: "Clothing",        subtitle: "Fresh fits and wardrobe staples",           query: "clothing"    },
   { key: "kids",            label: "Kids",            subtitle: "Everyday picks for little ones",            query: "kids"        },
   { key: "game",            label: "Game",            subtitle: "Consoles, accessories, and gaming gear",    query: "game"        },
-  { key: "home_appliances", label: "Home Appliances", subtitle: "Essentials for modern living",              query: "appliances"  },
+  { key: "home_appliances", label: "Home APLC", subtitle: "Essentials for modern living",              query: "appliances"  },
   { key: "others",          label: "Others",          subtitle: "Accessories, extras, and more",             query: "accessories" },
 ];
 
