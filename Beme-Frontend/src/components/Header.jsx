@@ -238,21 +238,18 @@ function loadRecent() {
   try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); }
   catch { return []; }
 }
-
 function saveRecent(list) {
   try { localStorage.setItem(RECENT_KEY, JSON.stringify(list)); } catch {}
 }
-
 function addRecent(list, term) {
   const t = String(term || "").trim();
   if (!t) return list;
-  const next = [t, ...list.filter((x) => x.toLowerCase() !== t.toLowerCase())].slice(0, MAX_RECENT);
+  const next = [t, ...list.filter(x => x.toLowerCase() !== t.toLowerCase())].slice(0, MAX_RECENT);
   saveRecent(next);
   return next;
 }
-
 function removeRecent(list, term) {
-  const next = list.filter((x) => x !== term);
+  const next = list.filter(x => x !== term);
   saveRecent(next);
   return next;
 }
@@ -295,17 +292,18 @@ export default function Header({ onMenu, onCart }) {
   const [isFocused,      setIsFocused]      = useState(false);
   const [recentSearches, setRecentSearches] = useState(() => loadRecent());
 
-  const isBar          = anim === S.BAR || anim === S.REOPEN;
-  const isLogo         = anim === S.LOGO;
-  const isIcon         = anim === S.ICON;
-  const isTyping       = search.trim().length > 0;
-  const showDropdown   = sugOpen && isBar;
+  /* Derived booleans */
+  const isLogo       = anim === S.LOGO;
+  const isBar        = anim === S.BAR || anim === S.REOPEN;
+  const isIcon       = anim === S.ICON;
+  const isTyping     = search.trim().length > 0;
+  const showDropdown = sugOpen && isBar;
 
   const inputRef  = useRef(null);
   const wrapRef   = useRef(null);
   const idleTimer = useRef(null);
 
-  /* ── Idle timer: collapse bar → icon after 5s of no activity ── */
+  /* ── Idle timer ── */
   const resetIdle = useCallback(() => {
     clearTimeout(idleTimer.current);
     if (!isFocused && !search.trim()) {
@@ -316,7 +314,7 @@ export default function Header({ onMenu, onCart }) {
     }
   }, [isFocused, search]);
 
-  /* ── Scroll handler: LOGO ↔ BAR ── */
+  /* ── Scroll: LOGO → BAR ── */
   useEffect(() => {
     if (!isHome) {
       setAnim(S.LOGO);
@@ -351,7 +349,7 @@ export default function Header({ onMenu, onCart }) {
     };
   }, [isHome]);
 
-  /* ── Stop idle timer while user is typing / focused ── */
+  /* ── Manage idle timer ── */
   useEffect(() => {
     if (isFocused || search.trim()) {
       clearTimeout(idleTimer.current);
@@ -386,7 +384,7 @@ export default function Header({ onMenu, onCart }) {
     return () => { alive = false; };
   }, [isHome]);
 
-  /* ── Click / tap outside → close dropdown ── */
+  /* ── Click outside → close dropdown ── */
   useEffect(() => {
     const onDown = (e) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) {
@@ -405,13 +403,12 @@ export default function Header({ onMenu, onCart }) {
   const suggestions = useMemo(() => buildSuggestions(products, search), [products, search]);
   const cartCount   = cartItems?.reduce((sum, i) => sum + Number(i.qty || 1), 0) || 0;
 
-  /* ── Navigate to search result & save recent ── */
+  /* ── Navigate to search result ── */
   const goToSearch = useCallback((value) => {
     const q = String(value || "").trim();
     setSugOpen(false);
     setActiveIdx(-1);
 
-    /* Save non-category searches to recent */
     if (q && !q.startsWith("shop:")) {
       setRecentSearches(prev => addRecent(prev, q));
     }
@@ -419,7 +416,7 @@ export default function Header({ onMenu, onCart }) {
     setSearch("");
     setIsFocused(false);
 
-    if (!q)                  { navigate("/shop"); return; }
+    if (!q)                    { navigate("/shop"); return; }
     if (q.startsWith("shop:")) {
       navigate(`/shop?shop=${encodeURIComponent(q.replace(/^shop:/, "").trim())}`);
       return;
@@ -427,7 +424,6 @@ export default function Header({ onMenu, onCart }) {
     navigate(`/shop?q=${encodeURIComponent(q)}`);
   }, [navigate]);
 
-  /* ── Remove one recent search ── */
   const handleRemoveRecent = useCallback((e, term) => {
     e.stopPropagation();
     setRecentSearches(prev => removeRecent(prev, term));
@@ -437,19 +433,13 @@ export default function Header({ onMenu, onCart }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     const picked = activeIdx >= 0 && suggestions[activeIdx]
-      ? suggestions[activeIdx].value
-      : search;
+      ? suggestions[activeIdx].value : search;
     goToSearch(picked);
   };
 
-  const handleChange = (e) => {
-    setSearch(e.target.value);
-    setActiveIdx(-1);
-    setSugOpen(true);
-  };
-
-  const handleFocus  = () => { setIsFocused(true);  setSugOpen(true); };
-  const handleBlur   = () => { setIsFocused(false); };
+  const handleChange  = (e) => { setSearch(e.target.value); setActiveIdx(-1); setSugOpen(true); };
+  const handleFocus   = ()  => { setIsFocused(true);  setSugOpen(true); };
+  const handleBlur    = ()  => { setIsFocused(false); };
 
   const handleKeyDown = (e) => {
     if (!showDropdown) return;
@@ -460,23 +450,22 @@ export default function Header({ onMenu, onCart }) {
     if (e.key === "Escape") { setSugOpen(false); setActiveIdx(-1); }
   };
 
-  /* ── Button helpers ── */
+  /* ── Button lock ── */
   const pulseLock      = () => { actionLockRef.current = true; setTimeout(() => { actionLockRef.current = false; }, 220); };
   const handleMenuOpen = () => { if (!actionLockRef.current) { pulseLock(); onMenu?.(); } };
   const handleCartOpen = () => { if (!actionLockRef.current) { pulseLock(); onCart?.(); } };
+  /* Re-open search bar from idle icon */
   const handleIconTap  = () => { setAnim(S.REOPEN); setIsFocused(false); };
 
   const logoSrc = prefersDark ? "/favicon_white.png" : "/favicon_black.png";
 
   /* ══════════════════════════════════════════
-     DROPDOWN RENDERER
-     — Idle / focused + no text  → chips + recent
-     — Typing                    → suggestions + show-more
+     DROPDOWN
   ══════════════════════════════════════════ */
   const renderDropdown = () => {
     if (!showDropdown) return null;
 
-    /* ── TYPING: suggestions ── */
+    /* ── Typing: show suggestions ── */
     if (isTyping) {
       return (
         <div className="hdr-suggestions">
@@ -492,15 +481,12 @@ export default function Header({ onMenu, onCart }) {
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => goToSearch(item.value)}
                 >
-                  {/* Coloured badge on the LEFT (like reference UI) */}
                   <span className={`hdr-sug-type hdr-sug-type--${item.type}`}>
                     {TYPE_LABELS[item.type] || item.type}
                   </span>
                   <span className="hdr-sug-label">{item.label}</span>
                 </button>
               ))}
-
-              {/* "Show more" footer */}
               <button
                 type="button"
                 className="hdr-sug-more"
@@ -529,13 +515,9 @@ export default function Header({ onMenu, onCart }) {
       );
     }
 
-    /* ── IDLE / EMPTY: category chips + recent searches ── */
-    const hasRecent = recentSearches.length > 0;
-
+    /* ── Idle / focused: category chips + recent searches ── */
     return (
       <div className="hdr-suggestions">
-
-        {/* Quick category chips — always shown */}
         <div className="hdr-sug-section-label">I&apos;M LOOKING FOR</div>
         <div className="hdr-sug-chips">
           {QUICK_CATEGORIES.map((cat) => (
@@ -552,8 +534,7 @@ export default function Header({ onMenu, onCart }) {
           ))}
         </div>
 
-        {/* Recent searches — shown only if any exist */}
-        {hasRecent && (
+        {recentSearches.length > 0 && (
           <>
             <div className="hdr-sug-section-label">RECENT SEARCHES</div>
             {recentSearches.map((term) => (
@@ -582,25 +563,34 @@ export default function Header({ onMenu, onCart }) {
             ))}
           </>
         )}
-
       </div>
     );
   };
 
   /* ══════════════════════════════════════════
      RENDER
+     KEY LAYOUT DECISION:
+     • hdr-logo-wrap is a direct child of <header> (not inside hdr-centre)
+       so position:absolute is relative to the sticky header itself,
+       making left:50% truly centre across the full header width.
+     • hdr-centre only contains the search bar.
+     • hdr-right only renders the search pill when isIcon is true —
+       this means the right grid column stays at 48px (cart only) when
+       the search bar is open, letting the bar fill edge-to-edge.
   ══════════════════════════════════════════ */
   return (
-    <header className="hdr">
+    <header className={`hdr ${isIcon ? "hdr--has-pill" : ""}`}>
 
-      {/* ── Col 1: Menu button ── */}
+      {/* Col 1 — Menu */}
       <button className="hdr-icon" onClick={handleMenuOpen} aria-label="Open menu" type="button">
         <IconMenu />
       </button>
 
-      {/* ── Logo: position:absolute so it centres across the FULL header width,
-              not just the centre grid column. hdr has position:sticky which
-              makes it a containing block for absolute children. ── */}
+      {/*
+        Logo — sits in col 1 of the grid (zero extra space) but is
+        absolutely positioned relative to the header so it appears
+        centred across the full width, not just col 1.
+      */}
       <div
         className={`hdr-logo-wrap ${!isLogo ? "hdr-logo-wrap--out" : ""}`}
         aria-hidden={!isLogo}
@@ -608,7 +598,7 @@ export default function Header({ onMenu, onCart }) {
         <img src={logoSrc} alt="Beme Market" className="hdr-logo" draggable={false} />
       </div>
 
-      {/* ── Col 2: Search bar (fills centre column edge-to-edge) ── */}
+      {/* Col 2 — Search bar (fills entire centre column) */}
       <div className="hdr-centre" ref={wrapRef}>
         {isHome && (
           <div
@@ -663,15 +653,22 @@ export default function Header({ onMenu, onCart }) {
         )}
       </div>
 
-      {/* ── Col 3: Search pill (idle) + Cart ── */}
+      {/*
+        Col 3 — Right buttons.
+        CRITICAL FIX: search pill is conditionally rendered — it only
+        exists in the DOM when isIcon is true (idle/collapsed state).
+        When the search bar is open, this column only holds the cart
+        button (48px), so the search bar fills all the way to the cart.
+        The hdr--has-pill class on the header expands col 3 to 92px
+        when the pill IS present.
+      */}
       <div className="hdr-right">
-        {isHome && (
+        {isHome && isIcon && (
           <button
-            className={`hdr-icon hdr-search-pill ${isIcon ? "hdr-search-pill--visible" : ""}`}
+            className="hdr-icon hdr-search-pill"
             onClick={handleIconTap}
             aria-label="Open search"
             type="button"
-            tabIndex={isIcon ? 0 : -1}
           >
             <IconSearch />
           </button>
