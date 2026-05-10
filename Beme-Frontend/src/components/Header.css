@@ -1,674 +1,605 @@
-import { useRef, useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { collection, getDocs, limit, query } from "firebase/firestore";
-import { db } from "../firebase";
-import { useCart } from "../context/CartContext";
-import "./Header.css";
+/* =========================
+   HEADER — Neo-Brutalist v3
+   Transparent · Bigger logo · Correct file paths
+========================= */
 
-/* ================= ICONS ================= */
-function IconMenu() {
-  return (
-    <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true" fill="none"
-      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <path d="M4 7h16M4 12h16M4 17h10" />
-    </svg>
-  );
+/* ── Base ── */
+.hdr {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 60px;
+  padding: 0 10px;
+  display: grid;
+  grid-template-columns: 48px 1fr 48px;
+  align-items: center;
+  gap: 6px;
+
+  /* ── TRANSPARENT HEADER ── */
+  background: transparent;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  border-bottom: none;
+  box-shadow: none;
+  box-sizing: border-box;
 }
 
-function IconCart() {
-  return (
-    <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true" fill="none"
-      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="9" cy="21" r="1"/>
-      <circle cx="20" cy="21" r="1"/>
-      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-    </svg>
-  );
+body.dark .hdr {
+  background: transparent;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom-color: transparent;
+  box-shadow: none;
 }
 
-function IconSearch() {
-  return (
-    <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true" fill="none"
-      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <circle cx="11" cy="11" r="8"/>
-      <path d="M21 21l-4.3-4.3"/>
-    </svg>
-  );
+/* When search pill is shown (idle state), right col expands to fit both buttons */
+.hdr--has-pill {
+  grid-template-columns: 48px 1fr 92px;
 }
 
-function IconClose() {
-  return (
-    <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true" fill="none"
-      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <path d="M18 6L6 18M6 6l12 12"/>
-    </svg>
-  );
+/* ── Icon buttons ── */
+.hdr-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 0;
+  border: 2.5px solid #0A0A0A;
+  box-shadow: 3px 3px 0px 0px #0A0A0A;
+  background: #FCFAF2;
+  color: #0A0A0A;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: box-shadow 0.11s, transform 0.1s, background 0.13s, color 0.13s;
+  position: relative;
 }
 
-function IconClock() {
-  return (
-    <svg viewBox="0 0 24 24" className="hdr-recent-clock" fill="none"
-      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <circle cx="12" cy="12" r="9"/>
-      <path d="M12 7v5l3 3"/>
-    </svg>
-  );
+body.dark .hdr-icon {
+  background: #1A1A14;
+  color: #F5F3E8;
+  border-color: rgba(245, 243, 232, 0.35);
+  box-shadow: 3px 3px 0px 0px rgba(245, 243, 232, 0.2);
 }
 
-function IconArrowRight() {
-  return (
-    <svg viewBox="0 0 24 24" width="13" height="13" fill="none"
-      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12h14M12 5l7 7-7 7"/>
-    </svg>
-  );
+.hdr-icon:hover  { background: #0A0A0A; color: #FCFAF2; }
+body.dark .hdr-icon:hover { background: #F5F3E8; color: #0A0A0A; }
+.hdr-icon:active { transform: translate(3px, 3px); box-shadow: none; }
+
+.hdr-svg { width: 18px; height: 18px; }
+
+/* ── Right cluster ── */
+.hdr-right {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
 }
 
-/* ── Per-category chip icons ── */
-function ChipIcon({ value }) {
-  const map = {
-    iphone: (
-      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-        <rect x="7" y="2" width="10" height="20" rx="2.5"/>
-        <circle cx="12" cy="17.5" r="0.8" fill="currentColor" stroke="none"/>
-      </svg>
-    ),
-    clothing: (
-      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-        <path d="M9 3L3 7l3 2v12h12V9l3-2-6-4c0 1.66-1.34 3-3 3S9 4.66 9 3z"/>
-      </svg>
-    ),
-    shoes: (
-      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-        <path d="M2 16s1-1 4-1 5 2 8 2 6-2 8-2v3s-2 2-8 2-8-2-8-2H2v-2z"/>
-        <path d="M6 15V9l4-4h4"/>
-      </svg>
-    ),
-    laptop: (
-      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-        <rect x="3" y="5" width="18" height="12" rx="1.5"/>
-        <path d="M1 19h22"/>
-      </svg>
-    ),
-    game: (
-      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-        <rect x="2" y="7" width="20" height="12" rx="4"/>
-        <path d="M8 11v4M6 13h4M15 12h2M15 14h2"/>
-      </svg>
-    ),
-    appliances: (
-      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-        <rect x="3" y="3" width="18" height="18" rx="2"/>
-        <path d="M3 9h18"/>
-        <circle cx="7" cy="6" r="0.8" fill="currentColor" stroke="none"/>
-        <circle cx="11" cy="6" r="0.8" fill="currentColor" stroke="none"/>
-      </svg>
-    ),
-    kids: (
-      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-        <circle cx="12" cy="7" r="4"/>
-        <path d="M8 21v-2a4 4 0 0 1 8 0v2"/>
-      </svg>
-    ),
-    accessories: (
-      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-        <circle cx="12" cy="12" r="3"/>
-        <circle cx="12" cy="12" r="9"/>
-      </svg>
-    ),
-  };
-  const icon = map[value];
-  if (!icon) return null;
-  return <span className="hdr-sug-chip-icon">{icon}</span>;
+/* ══════════════════════════════════════════════
+   CENTRE — search bar wrapper (grid col 2)
+══════════════════════════════════════════════ */
+.hdr-centre {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  min-width: 0;
 }
 
-/* ================= CONSTANTS ================= */
-const SEARCH_PREVIEW_LIMIT = 80;
-const SUGGESTION_LIMIT     = 5;
-const MAX_RECENT           = 5;
-const RECENT_KEY           = "beme_recent_searches";
-
-const QUICK_CATEGORIES = [
-  { label: "Phones",      value: "iphone"      },
-  { label: "Fashion",     value: "clothing"    },
-  { label: "Shoes",       value: "shoes"       },
-  { label: "Laptops",     value: "laptop"      },
-  { label: "Gaming",      value: "game"        },
-  { label: "Appliances",  value: "appliances"  },
-  { label: "Kids",        value: "kids"        },
-  { label: "Accessories", value: "accessories" },
-];
-
-const CATEGORY_KEYWORDS = [
-  { label: "Iphones",         type: "category", value: "iphone",      aliases: ["phone","phones","iphone","android","mobile","smartphone","tecno","infinix","samsung","itel","pixel","ipad","tablet"] },
-  { label: "Laptops",         type: "category", value: "laptop",      aliases: ["laptop","laptops","macbook","notebook","computer","pc","dell","hp","lenovo","acer","asus"] },
-  { label: "Shoes",           type: "category", value: "shoes",       aliases: ["shoe","shoes","sneaker","sneakers","slides","sandals","heels","boots","slippers","airforce","air force"] },
-  { label: "Clothing",        type: "category", value: "clothing",    aliases: ["clothing","clothes","fashion","shirt","shirts","dress","dresses","hoodie","hoodies","trousers","jeans","top","tops"] },
-  { label: "Kids",            type: "category", value: "kids",        aliases: ["kids","kid","children","child","baby","babies","toddler","infant"] },
-  { label: "Game",            type: "category", value: "game",        aliases: ["game","games","gaming","console","ps5","playstation","xbox","controller","controllers","nintendo","gaming pad","joystick"] },
-  { label: "Home Appliances", type: "category", value: "appliances",  aliases: ["appliance","appliances","home appliance","fridge","refrigerator","microwave","blender","kettle","tv","television","fan","air conditioner","ac","washing machine","iron"] },
-  { label: "Accessories",     type: "category", value: "accessories", aliases: ["accessories","accessory","watch","bag","bags","power bank","speaker","perfume","cosmetics","others"] },
-];
-
-const TYPE_LABELS = {
-  category:   "Category",
-  product:    "Product",
-  brand:      "Brand",
-  department: "Dept",
-  type:       "Type",
-  shop:       "Shop",
-  keyword:    "Keyword",
-};
-
-/* ================= HELPERS ================= */
-function normalizeProduct(docSnap) {
-  const d = docSnap.data() || {};
-  return {
-    id:               docSnap.id,
-    name:             String(d.name             || "").trim(),
-    description:      String(d.description      || "").trim(),
-    shortDescription: String(d.shortDescription || d.short_description || "").trim(),
-    brand:            String(d.brand            || "").trim(),
-    dept:             String(d.dept             || "").trim(),
-    kind:             String(d.kind             || "").trim(),
-    shop:             String(d.shop             || "").trim().toLowerCase(),
-    homeSlot:         String(d.homeSlot || d.home_filter || d.homeFilter || d.slot || "").trim().toLowerCase(),
-  };
+/* ──────────────────────────────────────────────
+   LOGO — absolutely centred across full header.
+────────────────────────────────────────────── */
+.hdr-logo-wrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+  transition:
+    opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+  z-index: 2;
 }
 
-function titleize(value) {
-  return String(value || "")
-    .replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim()
-    .replace(/\b\w/g, (m) => m.toUpperCase());
+.hdr-logo-wrap--out {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.4);
+  pointer-events: none;
 }
 
-function buildSuggestions(products, term) {
-  const q = term.trim().toLowerCase();
-  if (!q) return [];
-  const seen = new Set();
-  const out  = [];
+/* ── BIGGER LOGO: 44px (up from 30px) ── */
+.hdr-logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  display: block;
+  /* No filter: invert() — correct files are used directly */
+}
 
-  const push = (label, type, value, score) => {
-    const l = String(label || "").trim();
-    const v = String(value || "").trim();
-    if (!l || !v) return;
-    const key = `${type}:${v.toLowerCase()}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-    out.push({ id: key, label: l, type, value: v, score });
-  };
+/* ──────────────────────────────────────────────
+   SEARCH BAR
+────────────────────────────────────────────── */
+.hdr-bar-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  transform: scaleX(0.05);
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: center center;
+  transition:
+    transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity   0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+}
 
-  for (const cat of CATEGORY_KEYWORDS) {
-    if (cat.aliases.some((a) => a.includes(q)) || q.includes(cat.value))
-      push(cat.label, cat.type, cat.value, 200);
+.hdr-bar-wrap--open {
+  transform: scaleX(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.hdr-search-form {
+  display: flex;
+  align-items: center;
+  background: #FCFAF2;
+  border: 2.5px solid #0A0A0A;
+  box-shadow: 3px 3px 0px 0px #0A0A0A;
+  height: 40px;
+  width: 100%;
+  padding: 0 0 0 10px;
+  gap: 6px;
+  overflow: hidden;
+  box-sizing: border-box;
+  transition: box-shadow 0.11s;
+}
+
+body.dark .hdr-search-form {
+  background: #1A1A14;
+  border-color: rgba(245, 243, 232, 0.35);
+  box-shadow: 3px 3px 0px 0px rgba(245, 243, 232, 0.2);
+}
+
+.hdr-search-form:focus-within {
+  box-shadow: 4px 4px 0px 0px #0A0A0A;
+}
+
+.hdr-search-icon-left {
+  display: flex;
+  align-items: center;
+  color: #888;
+  flex-shrink: 0;
+}
+
+.hdr-search-icon-left .hdr-svg { width: 15px; height: 15px; }
+
+.hdr-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #0A0A0A;
+  font-size: 12px;
+  font-family: 'Archivo', 'Arial', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  min-width: 0;
+  line-height: 1;
+}
+
+body.dark .hdr-search-input { color: #F5F3E8; }
+
+.hdr-search-input::placeholder {
+  color: #AAA;
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.hdr-search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  color: #888;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.hdr-search-clear .hdr-svg { width: 13px; height: 13px; }
+.hdr-search-clear:hover { color: #0A0A0A; }
+
+.hdr-search-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-left: 2.5px solid #0A0A0A;
+  background: #0A0A0A;
+  color: #FCFAF2;
+  cursor: pointer;
+  padding: 0;
+  margin: -1px -1px -1px 0;
+  transition: background 0.12s;
+}
+
+body.dark .hdr-search-submit {
+  background: #F5F3E8;
+  color: #0A0A0A;
+  border-left-color: rgba(245, 243, 232, 0.35);
+}
+
+.hdr-search-submit:hover  { background: #0057FF; border-left-color: #0057FF; }
+.hdr-search-submit:active { background: #003DCC; }
+.hdr-search-submit .hdr-svg { width: 16px; height: 16px; }
+
+/* ── Search pill ── */
+.hdr-search-pill {
+  animation: pillIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes pillIn {
+  from { opacity: 0; transform: scale(0.5); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ══════════════════════════════════════════════
+   SEARCH DROPDOWN
+══════════════════════════════════════════════ */
+.hdr-suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #FCFAF2;
+  border: 2.5px solid #0A0A0A;
+  box-shadow: 6px 6px 0px 0px #0A0A0A;
+  overflow: hidden;
+  z-index: 200;
+  animation: suggestionsIn 0.18s ease;
+}
+
+body.dark .hdr-suggestions {
+  background: #1A1A14;
+  border-color: rgba(245, 243, 232, 0.3);
+  box-shadow: 6px 6px 0px 0px rgba(245, 243, 232, 0.15);
+}
+
+@keyframes suggestionsIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Section label ── */
+.hdr-sug-section-label {
+  padding: 9px 12px 6px;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #999;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  border-bottom: 1.5px solid rgba(10,10,10,0.08);
+}
+
+body.dark .hdr-sug-section-label {
+  color: #555;
+  border-bottom-color: rgba(245,243,232,0.08);
+}
+
+/* ── Category chips ── */
+.hdr-sug-chips {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  border-bottom: 1.5px solid rgba(10,10,10,0.1);
+}
+
+body.dark .hdr-sug-chips { border-bottom-color: rgba(245,243,232,0.08); }
+.hdr-sug-chips::-webkit-scrollbar { display: none; }
+
+.hdr-sug-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 2px solid #0A0A0A;
+  box-shadow: 2px 2px 0px 0px #0A0A0A;
+  background: #FCFAF2;
+  color: #0A0A0A;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s, transform 0.08s, box-shadow 0.08s;
+}
+
+body.dark .hdr-sug-chip {
+  background: #1A1A14;
+  color: #F5F3E8;
+  border-color: rgba(245,243,232,0.3);
+  box-shadow: 2px 2px 0px 0px rgba(245,243,232,0.15);
+}
+
+.hdr-sug-chip:hover {
+  background: #0057FF;
+  color: #fff;
+  border-color: #0057FF;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px 0px #0A0A0A;
+}
+
+.hdr-sug-chip:active { transform: translate(2px, 2px); box-shadow: none; }
+
+.hdr-sug-chip-icon {
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.hdr-sug-chip:hover .hdr-sug-chip-icon { opacity: 1; }
+
+/* ── Recent search items ── */
+.hdr-recent-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 9px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  gap: 8px;
+  transition: background 0.1s;
+  border-bottom: 1px solid rgba(10,10,10,0.06);
+}
+
+body.dark .hdr-recent-item { border-bottom-color: rgba(245,243,232,0.06); }
+.hdr-recent-item:last-of-type { border-bottom: none; }
+.hdr-recent-item:hover { background: #F0EEE6; }
+body.dark .hdr-recent-item:hover { background: rgba(245,243,232,0.05); }
+
+.hdr-recent-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.hdr-recent-clock {
+  width: 14px;
+  height: 14px;
+  color: #AAA;
+  flex-shrink: 0;
+}
+
+.hdr-recent-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0A0A0A;
+  font-family: 'Archivo', 'Arial', sans-serif;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.dark .hdr-recent-text { color: #F5F3E8; }
+
+.hdr-recent-remove {
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #CCC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.1s;
+  padding: 0;
+}
+
+.hdr-recent-remove:hover { color: #CC0000; }
+
+/* ── Suggestion items (while typing) ── */
+.hdr-suggestion-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 9px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  gap: 10px;
+  transition: background 0.1s;
+}
+
+.hdr-suggestion-item:hover,
+.hdr-suggestion-item.active { background: #D6E4FF; }
+
+body.dark .hdr-suggestion-item:hover,
+body.dark .hdr-suggestion-item.active { background: rgba(0, 87, 255, 0.15); }
+
+.hdr-suggestion-item + .hdr-suggestion-item {
+  border-top: 1px solid rgba(10,10,10,0.07);
+}
+
+body.dark .hdr-suggestion-item + .hdr-suggestion-item {
+  border-top-color: rgba(245,243,232,0.08);
+}
+
+/* Badge on the LEFT */
+.hdr-sug-type {
+  font-size: 8px;
+  font-weight: 900;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+  padding: 3px 7px;
+  min-width: 52px;
+  text-align: center;
+}
+
+.hdr-sug-type--product    { background: #0A0A0A; }
+.hdr-sug-type--category   { background: #0057FF; }
+.hdr-sug-type--brand      { background: #7B2FBE; }
+.hdr-sug-type--department { background: #0A7E3F; }
+.hdr-sug-type--type       { background: #C25900; }
+.hdr-sug-type--shop       { background: #B80000; }
+.hdr-sug-type--keyword    { background: #555;    }
+
+.hdr-sug-label {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Archivo', 'Arial', sans-serif;
+  color: #0A0A0A;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.02em;
+}
+
+body.dark .hdr-sug-label { color: #F5F3E8; }
+
+/* ── Show more footer ── */
+.hdr-sug-more {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-top: 2px solid #0A0A0A;
+  background: #F0EEE6;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  color: #0A0A0A;
+  transition: background 0.1s, color 0.1s;
+}
+
+body.dark .hdr-sug-more {
+  background: #111108;
+  border-top-color: rgba(245,243,232,0.2);
+  color: #F5F3E8;
+}
+
+.hdr-sug-more:hover { background: #0057FF; color: #fff; }
+
+.hdr-sug-more-arrow {
+  display: flex;
+  align-items: center;
+}
+
+/* ── Empty state ── */
+.hdr-suggestion-empty {
+  padding: 14px 12px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  color: #888;
+  text-align: center;
+}
+
+/* ── Cart badge ── */
+.hdr-bag { position: relative; }
+
+.hdr-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 3px;
+  border: 2px solid #0A0A0A;
+  background: #0057FF;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 900;
+  font-family: 'Archivo Black', 'Arial Black', sans-serif;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  animation: badgePop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes badgePop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .hdr {
+    height: 56px;
+    padding: 0 8px;
+    gap: 5px;
+    grid-template-columns: 44px 1fr 44px;
   }
-
-  for (const p of products) {
-    const { name, description, shortDescription, brand, dept, kind, shop, homeSlot } = p;
-    const full = [name, description, shortDescription, brand, dept, kind, shop, homeSlot]
-      .filter(Boolean).join(" ").toLowerCase();
-    const nl = name.toLowerCase(), bl = brand.toLowerCase(), dl = dept.toLowerCase();
-    const kl = kind.toLowerCase(), sl = shop.toLowerCase(), hl = homeSlot.toLowerCase();
-
-    if (nl.startsWith(q))       push(name, "product", name, 100);
-    else if (nl.includes(q))    push(name, "product", name, 90);
-    if (bl && bl.includes(q))   push(titleize(brand), "brand", brand, 84);
-    if (dl.startsWith(q))       push(titleize(dept), "department", titleize(dept), 70);
-    else if (dl.includes(q))    push(titleize(dept), "department", titleize(dept), 60);
-    if (kl.startsWith(q))       push(titleize(kind), "type", titleize(kind), 65);
-    else if (kl.includes(q))    push(titleize(kind), "type", titleize(kind), 55);
-    if (hl && hl.includes(q))   push(titleize(homeSlot), "category", homeSlot, 75);
-    if (sl.startsWith(q))       push(titleize(shop), "shop", `shop:${shop}`, 68);
-    else if (sl.includes(q))    push(titleize(shop), "shop", `shop:${shop}`, 58);
-
-    if (full.includes(q)) {
-      full.split(/[\s,.;:/()[\]-]+/).map(w => w.trim()).filter(Boolean).forEach(word => {
-        if (word.length >= 3 && word.includes(q)) push(titleize(word), "keyword", word, 40);
-      });
-    }
+  .hdr--has-pill {
+    grid-template-columns: 44px 1fr 88px;
   }
-
-  return out
-    .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label))
-    .slice(0, SUGGESTION_LIMIT);
+  .hdr-icon          { width: 38px; height: 38px; }
+  /* ── Bigger logo on mobile too: 38px (up from 26px) ── */
+  .hdr-logo          { width: 38px; height: 38px; }
+  .hdr-search-form   { height: 38px; }
+  .hdr-search-submit { width: 38px; height: 38px; }
+  .hdr-sug-chips     { padding: 7px 10px 9px; gap: 5px; }
+  .hdr-sug-chip      { font-size: 8px; padding: 4px 8px; }
 }
 
-/* ── localStorage helpers ── */
-function loadRecent() {
-  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); }
-  catch { return []; }
-}
-function saveRecent(list) {
-  try { localStorage.setItem(RECENT_KEY, JSON.stringify(list)); } catch {}
-}
-function addRecent(list, term) {
-  const t = String(term || "").trim();
-  if (!t) return list;
-  const next = [t, ...list.filter(x => x.toLowerCase() !== t.toLowerCase())].slice(0, MAX_RECENT);
-  saveRecent(next);
-  return next;
-}
-function removeRecent(list, term) {
-  const next = list.filter(x => x !== term);
-  saveRecent(next);
-  return next;
-}
-
-function usePrefersDark() {
-  const [dark, setDark] = useState(
-    () => window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false
-  );
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const h = (e) => setDark(e.matches);
-    mq.addEventListener("change", h);
-    return () => mq.removeEventListener("change", h);
-  }, []);
-  return dark;
-}
-
-/* ── Animation states ── */
-const S = { LOGO: "logo", BAR: "bar", ICON: "icon", REOPEN: "reopen" };
-const IDLE_MS = 5000;
-
-/* ===============================================================
-   COMPONENT
-   =============================================================== */
-export default function Header({ onMenu, onCart }) {
-  const navigate      = useNavigate();
-  const location      = useLocation();
-  const { cartItems } = useCart();
-  const actionLockRef = useRef(false);
-  const prefersDark   = usePrefersDark();
-
-  const isHome = location.pathname === "/" || location.pathname === "/home";
-
-  const [anim,           setAnim]           = useState(S.LOGO);
-  const [products,       setProducts]       = useState([]);
-  const [loadingSugs,    setLoadingSugs]    = useState(false);
-  const [search,         setSearch]         = useState("");
-  const [sugOpen,        setSugOpen]        = useState(false);
-  const [activeIdx,      setActiveIdx]      = useState(-1);
-  const [isFocused,      setIsFocused]      = useState(false);
-  const [recentSearches, setRecentSearches] = useState(() => loadRecent());
-
-  /* Derived booleans */
-  const isLogo       = anim === S.LOGO;
-  const isBar        = anim === S.BAR || anim === S.REOPEN;
-  const isIcon       = anim === S.ICON;
-  const isTyping     = search.trim().length > 0;
-  const showDropdown = sugOpen && isBar;
-
-  const inputRef  = useRef(null);
-  const wrapRef   = useRef(null);
-  const idleTimer = useRef(null);
-
-  /* ── Idle timer ── */
-  const resetIdle = useCallback(() => {
-    clearTimeout(idleTimer.current);
-    if (!isFocused && !search.trim()) {
-      idleTimer.current = setTimeout(() => {
-        setAnim(prev => (prev === S.BAR || prev === S.REOPEN) ? S.ICON : prev);
-        setSugOpen(false);
-      }, IDLE_MS);
-    }
-  }, [isFocused, search]);
-
-  /* ── Scroll: LOGO → BAR ── */
-  useEffect(() => {
-    if (!isHome) {
-      setAnim(S.LOGO);
-      setSearch("");
-      setSugOpen(false);
-      setIsFocused(false);
-      clearTimeout(idleTimer.current);
-      return;
-    }
-
-    const onScroll = () => {
-      const scrolled = (window.scrollY || document.documentElement.scrollTop) > 80;
-      window.dispatchEvent(new CustomEvent("home-search-collapse", { detail: { collapsed: scrolled } }));
-
-      if (scrolled) {
-        setAnim(prev => prev === S.LOGO ? S.BAR : prev);
-      } else {
-        clearTimeout(idleTimer.current);
-        setAnim(S.LOGO);
-        setSearch("");
-        setSugOpen(false);
-        setActiveIdx(-1);
-        setIsFocused(false);
-      }
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      clearTimeout(idleTimer.current);
-    };
-  }, [isHome]);
-
-  /* ── Manage idle timer ── */
-  useEffect(() => {
-    if (isFocused || search.trim()) {
-      clearTimeout(idleTimer.current);
-    } else if (anim === S.BAR || anim === S.REOPEN) {
-      resetIdle();
-    }
-  }, [isFocused, search, anim, resetIdle]);
-
-  /* ── Auto-focus input when bar opens ── */
-  useEffect(() => {
-    if (anim === S.BAR || anim === S.REOPEN) {
-      const t = setTimeout(() => inputRef.current?.focus(), 340);
-      return () => clearTimeout(t);
-    }
-  }, [anim]);
-
-  /* ── Fetch products for suggestions ── */
-  useEffect(() => {
-    if (!isHome) return;
-    let alive = true;
-    (async () => {
-      setLoadingSugs(true);
-      try {
-        const snap = await getDocs(query(collection(db, "Products"), limit(SEARCH_PREVIEW_LIMIT)));
-        if (alive) setProducts(snap.docs.map(normalizeProduct));
-      } catch (e) {
-        console.error("Header suggestion fetch:", e);
-      } finally {
-        if (alive) setLoadingSugs(false);
-      }
-    })();
-    return () => { alive = false; };
-  }, [isHome]);
-
-  /* ── Click outside → close dropdown ── */
-  useEffect(() => {
-    const onDown = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
-        setSugOpen(false);
-        setActiveIdx(-1);
-      }
-    };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("touchstart", onDown);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("touchstart", onDown);
-    };
-  }, []);
-
-  const suggestions = useMemo(() => buildSuggestions(products, search), [products, search]);
-  const cartCount   = cartItems?.reduce((sum, i) => sum + Number(i.qty || 1), 0) || 0;
-
-  /* ── Navigate to search result ── */
-  const goToSearch = useCallback((value) => {
-    const q = String(value || "").trim();
-    setSugOpen(false);
-    setActiveIdx(-1);
-
-    if (q && !q.startsWith("shop:")) {
-      setRecentSearches(prev => addRecent(prev, q));
-    }
-
-    setSearch("");
-    setIsFocused(false);
-
-    if (!q)                    { navigate("/shop"); return; }
-    if (q.startsWith("shop:")) {
-      navigate(`/shop?shop=${encodeURIComponent(q.replace(/^shop:/, "").trim())}`);
-      return;
-    }
-    navigate(`/shop?q=${encodeURIComponent(q)}`);
-  }, [navigate]);
-
-  const handleRemoveRecent = useCallback((e, term) => {
-    e.stopPropagation();
-    setRecentSearches(prev => removeRecent(prev, term));
-  }, []);
-
-  /* ── Form / input handlers ── */
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const picked = activeIdx >= 0 && suggestions[activeIdx]
-      ? suggestions[activeIdx].value : search;
-    goToSearch(picked);
-  };
-
-  const handleChange  = (e) => { setSearch(e.target.value); setActiveIdx(-1); setSugOpen(true); };
-  const handleFocus   = ()  => { setIsFocused(true);  setSugOpen(true); };
-  const handleBlur    = ()  => { setIsFocused(false); };
-
-  const handleKeyDown = (e) => {
-    if (!showDropdown) return;
-    if (isTyping && suggestions.length) {
-      if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx(p => p < suggestions.length - 1 ? p + 1 : 0); }
-      if (e.key === "ArrowUp")   { e.preventDefault(); setActiveIdx(p => p > 0 ? p - 1 : suggestions.length - 1); }
-    }
-    if (e.key === "Escape") { setSugOpen(false); setActiveIdx(-1); }
-  };
-
-  /* ── Button lock ── */
-  const pulseLock      = () => { actionLockRef.current = true; setTimeout(() => { actionLockRef.current = false; }, 220); };
-  const handleMenuOpen = () => { if (!actionLockRef.current) { pulseLock(); onMenu?.(); } };
-  const handleCartOpen = () => { if (!actionLockRef.current) { pulseLock(); onCart?.(); } };
-  /* Re-open search bar from idle icon */
-  const handleIconTap  = () => { setAnim(S.REOPEN); setIsFocused(false); };
-
-  /*
-    LOGO PATH FIX:
-    - "Favicon-white.PNG" is the actual coloured/dark logo → shown on light backgrounds
-    - "Favicon-black.PNG" is the white/light logo           → shown on dark backgrounds
-  */
-  const logoSrc = prefersDark ? "/Favicon-black.PNG" : "/Favicon-white.PNG";
-
-  /* ══════════════════════════════════════════
-     DROPDOWN
-  ══════════════════════════════════════════ */
-  const renderDropdown = () => {
-    if (!showDropdown) return null;
-
-    /* ── Typing: show suggestions ── */
-    if (isTyping) {
-      return (
-        <div className="hdr-suggestions">
-          {loadingSugs ? (
-            <div className="hdr-suggestion-empty">Loading…</div>
-          ) : suggestions.length ? (
-            <>
-              {suggestions.map((item, idx) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`hdr-suggestion-item ${idx === activeIdx ? "active" : ""}`}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => goToSearch(item.value)}
-                >
-                  <span className={`hdr-sug-type hdr-sug-type--${item.type}`}>
-                    {TYPE_LABELS[item.type] || item.type}
-                  </span>
-                  <span className="hdr-sug-label">{item.label}</span>
-                </button>
-              ))}
-              <button
-                type="button"
-                className="hdr-sug-more"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => goToSearch(search)}
-              >
-                <span>Search for &ldquo;{search}&rdquo;</span>
-                <span className="hdr-sug-more-arrow"><IconArrowRight /></span>
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="hdr-suggestion-empty">No results for &ldquo;{search}&rdquo;</div>
-              <button
-                type="button"
-                className="hdr-sug-more"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => goToSearch(search)}
-              >
-                <span>Search anyway</span>
-                <span className="hdr-sug-more-arrow"><IconArrowRight /></span>
-              </button>
-            </>
-          )}
-        </div>
-      );
-    }
-
-    /* ── Idle / focused: category chips + recent searches ── */
-    return (
-      <div className="hdr-suggestions">
-        <div className="hdr-sug-section-label">I&apos;M LOOKING FOR</div>
-        <div className="hdr-sug-chips">
-          {QUICK_CATEGORIES.map((cat) => (
-            <button
-              key={cat.value}
-              type="button"
-              className="hdr-sug-chip"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => goToSearch(cat.value)}
-            >
-              <ChipIcon value={cat.value} />
-              {cat.label}
-            </button>
-          ))}
-        </div>
-
-        {recentSearches.length > 0 && (
-          <>
-            <div className="hdr-sug-section-label">RECENT SEARCHES</div>
-            {recentSearches.map((term) => (
-              <div
-                key={term}
-                className="hdr-recent-item"
-                role="button"
-                tabIndex={0}
-                onClick={() => goToSearch(term)}
-                onKeyDown={(e) => e.key === "Enter" && goToSearch(term)}
-              >
-                <div className="hdr-recent-left">
-                  <IconClock />
-                  <span className="hdr-recent-text">{term}</span>
-                </div>
-                <button
-                  type="button"
-                  className="hdr-recent-remove"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={(e) => handleRemoveRecent(e, term)}
-                  aria-label={`Remove ${term}`}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </>
-        )}
-      </div>
-    );
-  };
-
-  return (
-    <header className={`hdr ${isIcon ? "hdr--has-pill" : ""}`}>
-
-      {/* Col 1 — Menu */}
-      <button className="hdr-icon" onClick={handleMenuOpen} aria-label="Open menu" type="button">
-        <IconMenu />
-      </button>
-
-      {/* Logo — absolutely centred across full header width */}
-      <div
-        className={`hdr-logo-wrap ${!isLogo ? "hdr-logo-wrap--out" : ""}`}
-        aria-hidden={!isLogo}
-      >
-        <img src={logoSrc} alt="Beme Market" className="hdr-logo" draggable={false} />
-      </div>
-
-      {/* Col 2 — Search bar */}
-      <div className="hdr-centre" ref={wrapRef}>
-        {isHome && (
-          <div
-            className={`hdr-bar-wrap ${isBar ? "hdr-bar-wrap--open" : ""}`}
-            aria-hidden={!isBar}
-          >
-            <form className="hdr-search-form" onSubmit={handleSubmit}>
-              <span className="hdr-search-icon-left" aria-hidden="true">
-                <IconSearch />
-              </span>
-
-              <input
-                ref={inputRef}
-                type="text"
-                value={search}
-                onChange={handleChange}
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-                onKeyDown={handleKeyDown}
-                placeholder="Search products or stores"
-                className="hdr-search-input"
-                autoComplete="off"
-                tabIndex={isBar ? 0 : -1}
-                aria-label="Search products"
-                aria-expanded={showDropdown}
-              />
-
-              {search && (
-                <button
-                  type="button"
-                  className="hdr-search-clear"
-                  onClick={() => { setSearch(""); setSugOpen(true); inputRef.current?.focus(); }}
-                  tabIndex={isBar ? 0 : -1}
-                  aria-label="Clear search"
-                >
-                  <IconClose />
-                </button>
-              )}
-
-              <button
-                type="submit"
-                className="hdr-search-submit"
-                tabIndex={isBar ? 0 : -1}
-                aria-label="Search"
-              >
-                <IconSearch />
-              </button>
-            </form>
-
-            {renderDropdown()}
-          </div>
-        )}
-      </div>
-
-      {/* Col 3 — Right buttons */}
-      <div className="hdr-right">
-        {isHome && isIcon && (
-          <button
-            className="hdr-icon hdr-search-pill"
-            onClick={handleIconTap}
-            aria-label="Open search"
-            type="button"
-          >
-            <IconSearch />
-          </button>
-        )}
-
-        <button
-          className="hdr-icon hdr-bag"
-          onClick={handleCartOpen}
-          aria-label="Open cart"
-          type="button"
-        >
-          <IconCart />
-          {cartCount > 0 && (
-            <span className="hdr-badge">{cartCount > 99 ? "99+" : cartCount}</span>
-          )}
-        </button>
-      </div>
-
-    </header>
-  );
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .hdr-logo-wrap,
+  .hdr-bar-wrap,
+  .hdr-search-pill,
+  .hdr-icon,
+  .hdr-badge,
+  .hdr-search-form,
+  .hdr-suggestions,
+  .hdr-sug-chip {
+    transition: none !important;
+    animation: none !important;
+  }
 }
