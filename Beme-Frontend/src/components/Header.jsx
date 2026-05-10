@@ -457,7 +457,12 @@ export default function Header({ onMenu, onCart }) {
   /* Re-open search bar from idle icon */
   const handleIconTap  = () => { setAnim(S.REOPEN); setIsFocused(false); };
 
-  const logoSrc = prefersDark ? "/favicon_white.png" : "/favicon_black.png";
+  /*
+    LOGO PATH FIX:
+    - "Favicon-white.PNG" is the actual coloured/dark logo → shown on light backgrounds
+    - "Favicon-black.PNG" is the white/light logo           → shown on dark backgrounds
+  */
+  const logoSrc = prefersDark ? "/Favicon-black.PNG" : "/Favicon-white.PNG";
 
   /* ══════════════════════════════════════════
      DROPDOWN
@@ -567,17 +572,6 @@ export default function Header({ onMenu, onCart }) {
     );
   };
 
-  /* ══════════════════════════════════════════
-     RENDER
-     KEY LAYOUT DECISION:
-     • hdr-logo-wrap is a direct child of <header> (not inside hdr-centre)
-       so position:absolute is relative to the sticky header itself,
-       making left:50% truly centre across the full header width.
-     • hdr-centre only contains the search bar.
-     • hdr-right only renders the search pill when isIcon is true —
-       this means the right grid column stays at 48px (cart only) when
-       the search bar is open, letting the bar fill edge-to-edge.
-  ══════════════════════════════════════════ */
   return (
     <header className={`hdr ${isIcon ? "hdr--has-pill" : ""}`}>
 
@@ -586,11 +580,7 @@ export default function Header({ onMenu, onCart }) {
         <IconMenu />
       </button>
 
-      {/*
-        Logo — sits in col 1 of the grid (zero extra space) but is
-        absolutely positioned relative to the header so it appears
-        centred across the full width, not just col 1.
-      */}
+      {/* Logo — absolutely centred across full header width */}
       <div
         className={`hdr-logo-wrap ${!isLogo ? "hdr-logo-wrap--out" : ""}`}
         aria-hidden={!isLogo}
@@ -598,7 +588,7 @@ export default function Header({ onMenu, onCart }) {
         <img src={logoSrc} alt="Beme Market" className="hdr-logo" draggable={false} />
       </div>
 
-      {/* Col 2 — Search bar (fills entire centre column) */}
+      {/* Col 2 — Search bar */}
       <div className="hdr-centre" ref={wrapRef}>
         {isHome && (
           <div
@@ -653,15 +643,7 @@ export default function Header({ onMenu, onCart }) {
         )}
       </div>
 
-      {/*
-        Col 3 — Right buttons.
-        CRITICAL FIX: search pill is conditionally rendered — it only
-        exists in the DOM when isIcon is true (idle/collapsed state).
-        When the search bar is open, this column only holds the cart
-        button (48px), so the search bar fills all the way to the cart.
-        The hdr--has-pill class on the header expands col 3 to 92px
-        when the pill IS present.
-      */}
+      {/* Col 3 — Right buttons */}
       <div className="hdr-right">
         {isHome && isIcon && (
           <button
