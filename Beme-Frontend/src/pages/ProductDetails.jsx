@@ -77,6 +77,146 @@ function getShippingBadgeLabel(source) { if (source === "abroad") return "Ships 
 function getNumericStock(product) { const p = Number(product?.stock); return Number.isFinite(p) ? p : null; }
 function getAbroadDeliveryFee(product) { const p = Number(product?.abroadDeliveryFee); return Number.isFinite(p) && p > 0 ? p : 0; }
 
+/* ─── Color helpers ─── */
+
+/**
+ * Resolves a color label (e.g. "Space Black", "Rose Gold", "#3a7bd5")
+ * into a displayable CSS color string.
+ */
+function resolveSwatchColor(label) {
+  const raw = String(label || "").trim();
+  if (!raw) return "#ccc";
+
+  // Already a CSS color value — use directly
+  if (/^#[0-9a-fA-F]{3,8}$/.test(raw)) return raw;
+  if (/^(rgb|hsl)a?\s*\(/.test(raw)) return raw;
+
+  const lower = raw.toLowerCase();
+  // Compact: remove spaces, hyphens, underscores for matching
+  const compact = lower.replace(/[\s\-_]+/g, "");
+
+  const map = {
+    // ── Whites & neutrals ──
+    white: "#f5f5f5", offwhite: "#f5f0e8", ivory: "#fffff0",
+    cream: "#faf6ee", beige: "#f5f0e8", linen: "#faf0e6",
+    snow: "#fffafa", pearl: "#f0ede8", chalk: "#f5f5f5",
+    natural: "#f0ede8", light: "#e8e8e8",
+    // ── Blacks & darks ──
+    black: "#111111", jet: "#343434", onyx: "#353839",
+    charcoal: "#36454f", graphite: "#383838", slate: "#708090",
+    obsidian: "#1c1c1e", matte: "#222222",
+    // ── Greys ──
+    grey: "#9e9e9e", gray: "#9e9e9e", silver: "#c0c0c0",
+    ash: "#b2bec3", fog: "#d5d5d5", smoke: "#f0f0f0",
+    pewter: "#96a8a1", stone: "#928e85", cement: "#a0a098",
+    // ── Reds ──
+    red: "#e24b4a", crimson: "#dc143c", scarlet: "#ff2400",
+    burgundy: "#800020", maroon: "#800000", wine: "#722f37",
+    cherry: "#de3163", rust: "#b7410e", brick: "#cb4154",
+    cardinal: "#c41e3a",
+    // ── Pinks ──
+    pink: "#e91e8c", rose: "#e0457b", blush: "#de5d83",
+    coral: "#ff6b6b", salmon: "#fa8072", peach: "#ffcba4",
+    hotpink: "#ff69b4", magenta: "#ff00ff", fuchsia: "#c71585",
+    dustyrose: "#dcb4b4", babypink: "#f4c2c2",
+    // ── Oranges ──
+    orange: "#f4a261", amber: "#ffbf00", tangerine: "#f28500",
+    apricot: "#fbceb1", terracotta: "#e2725b", clay: "#cc7357",
+    // ── Yellows ──
+    yellow: "#f9c74f", gold: "#ffd700", lemon: "#fff44f",
+    mustard: "#ffdb58", butter: "#fffaa0", canary: "#ffef00",
+    // ── Greens ──
+    green: "#4caf50", lime: "#8bc34a", olive: "#808000",
+    forest: "#228b22", emerald: "#50c878", mint: "#98ff98",
+    sage: "#87a878", hunter: "#355e3b", teal: "#008080",
+    jade: "#00a86b", seafoam: "#71eeb8", moss: "#8a9a5b",
+    army: "#4b5320", khaki: "#c3b091",
+    // ── Blues ──
+    blue: "#2196f3", navy: "#1a2a5e", cobalt: "#0047ab",
+    royal: "#4169e1", sky: "#87ceeb", skyblue: "#87ceeb",
+    babyblue: "#89cff0", powder: "#b0e0e6", denim: "#1560bd",
+    indigo: "#3f51b5", cyan: "#00bcd4", turquoise: "#40e0d0",
+    aqua: "#00bcd4", ultramarine: "#3c50e0", ocean: "#006994",
+    electric: "#7df9ff", steel: "#4682b4", darkblue: "#00008b",
+    lightblue: "#add8e6", deepblue: "#1a237e",
+    // ── Purples ──
+    purple: "#9c27b0", violet: "#7f00ff", lavender: "#c8b4e8",
+    lilac: "#c8a2c8", plum: "#8e4585", mauve: "#c8a0b8",
+    grape: "#6f2da8", orchid: "#da70d6", periwinkle: "#ccccff",
+    // ── Browns & tans ──
+    brown: "#795548", tan: "#d2b48c", camel: "#c19a6b",
+    mocha: "#967969", chocolate: "#7b3f00", taupe: "#483c32",
+    nude: "#e3bc9a", sand: "#c2b280", walnut: "#5c3317",
+    espresso: "#4b3832", toffee: "#a0785a",
+    // ── Rose & metallic ──
+    rosegold: "#b76e79", champagne: "#f7e7ce", bronze: "#cd7f32",
+    copper: "#b87333", platinum: "#e5e4e2",
+    // ── Apple & tech specific ──
+    starlight: "#f5f0e8", midnight: "#1c1c1e",
+    titanium: "#878681",
+    naturaltitanium: "#878681",
+    whitetitanium: "#f0ede8",
+    blacktitanium: "#2c2c2c",
+    deserttitanium: "#c5b8a5",
+    bluetitanium: "#4a6fa5",
+    spaceblack: "#1c1c1e",
+    spacegrey: "#48484a", spacegray: "#48484a",
+    sierrablue: "#9eb4ca",
+    alpinegreen: "#4c6652",
+    deepviolet: "#5e2d79",
+    productred: "#b30000",
+    goldcolor: "#f0d080",
+    // ── Multi-word via compact ──
+    darkgreen: "#006400", lightgreen: "#90ee90",
+    darkred: "#8b0000", lightpink: "#ffb6c1",
+    darkgrey: "#a9a9a9", darkgray: "#a9a9a9",
+    lightgrey: "#d3d3d3", lightgray: "#d3d3d3",
+    warmgrey: "#9e9e8e", warmgray: "#9e9e8e",
+    coolgrey: "#8e9e9e", coolgray: "#8e9e9e",
+  };
+
+  // 1. Exact compact match (e.g. "spaceblack", "rosegold")
+  if (map[compact]) return map[compact];
+  // 2. Exact lower match
+  if (map[lower]) return map[lower];
+
+  // 3. Partial match — find longest key contained in the label
+  const matched = Object.keys(map)
+    .filter((k) => compact.includes(k) || lower.includes(k))
+    .sort((a, b) => b.length - a.length)[0];
+  if (matched) return map[matched];
+
+  // 4. Deterministic HSL fallback based on string hash
+  let hash = 0;
+  for (let i = 0; i < raw.length; i++) {
+    hash = raw.charCodeAt(i) + ((hash << 5) - hash);
+    hash |= 0;
+  }
+  const h = Math.abs(hash) % 360;
+  const s = 45 + (Math.abs(hash >> 8) % 25);
+  const l = 42 + (Math.abs(hash >> 16) % 22);
+  return `hsl(${h}, ${s}%, ${l}%)`;
+}
+
+/**
+ * Returns a check-mark colour (#111 or #fff) that contrasts
+ * against the given swatch background colour.
+ */
+function getSwatchCheckColor(bg) {
+  const hex = String(bg || "").replace("#", "");
+  if (hex.length === 6) {
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    if (!isNaN(r + g + b)) {
+      const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return lum > 0.60 ? "#111" : "#fff";
+    }
+  }
+  // For hsl / named / other — default to white (most swatches are mid-dark)
+  return "#fff";
+}
+
 /* ─── Review helpers ─── */
 function formatReviewDate(timestamp) {
   if (!timestamp) return "";
@@ -123,9 +263,6 @@ function CartIcon() {
 }
 function CheckIcon() {
   return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
-}
-function PlusIcon() {
-  return <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
 }
 function StarIcon({ filled = true }) {
   return (
@@ -844,7 +981,10 @@ export default function ProductDetails() {
   const sliderTranslate = `calc(${-activeImageIndex * 100}% + ${dragOffset}px)`;
   const hasDiscount     = oldPrice > finalUnitPrice;
 
-  const colorGroup = customizations.find((g) => g.name.toLowerCase().includes("color") || g.name.toLowerCase().includes("colour"));
+  // Find the colour customization group
+  const colorGroup = customizations.find(
+    (g) => g.name.toLowerCase().includes("color") || g.name.toLowerCase().includes("colour")
+  );
 
   const socialLinks = [
     { label: "Facebook",  href: "#", icon: <FacebookIcon />  },
@@ -996,26 +1136,20 @@ export default function ProductDetails() {
             </div>
           )}
 
-          {/* Color swatches */}
-          <div className="pd-section">
-            <h3 className="pd-section-label">
-              Color
-              {colorGroup && selectedOptions[colorGroup.name] && (
-                <span className="pd-section-value"> · {selectedOptions[colorGroup.name]}</span>
-              )}
-            </h3>
-            <div className="pd-swatches">
-              {colorGroup ? (
-                colorGroup.values.map((val) => {
+          {/* ── Color swatches ── */}
+          {colorGroup && (
+            <div className="pd-section">
+              <h3 className="pd-section-label">
+                {colorGroup.name}
+                {selectedOptions[colorGroup.name] && (
+                  <span className="pd-section-value"> · {selectedOptions[colorGroup.name]}</span>
+                )}
+              </h3>
+              <div className="pd-swatches">
+                {colorGroup.values.map((val) => {
                   const active = selectedOptions[colorGroup.name] === val.label;
-                  const colorMap = {
-                    white: "#f0eeea", black: "#111", red: "#e24b4a", blue: "#378add",
-                    green: "#639922", yellow: "#ef9f27", navy: "#1a2a5e", grey: "#b0aba3",
-                    gray: "#b0aba3", pink: "#d4537e", purple: "#7f77dd", brown: "#8b5e3c",
-                    beige: "#f5f0e8", cream: "#faf6ee",
-                  };
-                  const key = val.label.toLowerCase();
-                  const bg = Object.entries(colorMap).find(([k]) => key.includes(k))?.[1] || "#ccc";
+                  const bg = resolveSwatchColor(val.label);
+                  const checkColor = getSwatchCheckColor(bg);
                   return (
                     <button
                       key={val.id}
@@ -1025,22 +1159,25 @@ export default function ProductDetails() {
                       title={val.label}
                       style={{ "--swatch-bg": bg }}
                     >
-                      {active && <CheckIcon />}
+                      {active && (
+                        <span
+                          className="pd-swatch-check"
+                          style={{
+                            color: checkColor,
+                            filter: "drop-shadow(0 0 1.5px rgba(0,0,0,0.55))",
+                          }}
+                        >
+                          <CheckIcon />
+                        </span>
+                      )}
                     </button>
                   );
-                })
-              ) : (
-                <button type="button" className="pd-swatch active" style={{ "--swatch-bg": "#f0eeea" }} title="Default">
-                  <CheckIcon />
-                </button>
-              )}
-              <button type="button" className="pd-swatch pd-swatch--add" title="Add color (admin)">
-                <PlusIcon />
-              </button>
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Other customizations */}
+          {/* Other customizations (excluding the color group) */}
           {customizations.length > 0 && (
             <div className="pd-section">
               {customizations.filter((g) => g !== colorGroup).map((group) => (
@@ -1134,7 +1271,7 @@ export default function ProductDetails() {
             <div className={addedFeedback ? "pd-success-strip" : "pd-error"}>{cartFeedback}</div>
           )}
 
-          {/* CTAs — grtheme primary, purple pay */}
+          {/* CTAs */}
           <div className="pd-cta">
             <button
               type="button"
@@ -1166,16 +1303,11 @@ export default function ProductDetails() {
             {isOutOfStock ? "Unavailable" : "Pay now · " + formatMoney(finalUnitPrice * qty)}
           </button>
 
-          {/* ── ACCORDIONS: description + care below CTAs ── */}
+          {/* ── ACCORDIONS ── */}
           <div className="pd-accordion">
 
-            {/* Product Details */}
             <div className={`pd-accordion-item${openSection === "details" ? " open" : ""}`}>
-              <button
-                className="pd-accordion-trigger"
-                type="button"
-                onClick={() => toggleSection("details")}
-              >
+              <button className="pd-accordion-trigger" type="button" onClick={() => toggleSection("details")}>
                 Product Details
                 <span className="pd-accordion-icon" />
               </button>
@@ -1188,14 +1320,9 @@ export default function ProductDetails() {
               </div>
             </div>
 
-            {/* Care & Material — only if data exists */}
             {careInfo && (
               <div className={`pd-accordion-item${openSection === "care" ? " open" : ""}`}>
-                <button
-                  className="pd-accordion-trigger"
-                  type="button"
-                  onClick={() => toggleSection("care")}
-                >
+                <button className="pd-accordion-trigger" type="button" onClick={() => toggleSection("care")}>
                   Care &amp; Material
                   <span className="pd-accordion-icon" />
                 </button>
@@ -1209,13 +1336,8 @@ export default function ProductDetails() {
               </div>
             )}
 
-            {/* Delivery & Returns */}
             <div className={`pd-accordion-item${openSection === "shipping" ? " open" : ""}`}>
-              <button
-                className="pd-accordion-trigger"
-                type="button"
-                onClick={() => toggleSection("shipping")}
-              >
+              <button className="pd-accordion-trigger" type="button" onClick={() => toggleSection("shipping")}>
                 Delivery &amp; Returns
                 <span className="pd-accordion-icon" />
               </button>
@@ -1233,7 +1355,7 @@ export default function ProductDetails() {
               </div>
             </div>
 
-          </div>{/* end pd-accordion */}
+          </div>
 
           {/* ── ASK ME ANYTHING ── */}
           <AskAnything product={product} />
