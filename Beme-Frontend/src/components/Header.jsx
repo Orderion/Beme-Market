@@ -462,9 +462,7 @@ export default function Header({ onMenu, onCart }) {
     - "Favicon-white.PNG" is the actual coloured/dark logo → shown on light backgrounds
     - "Favicon-black.PNG" is the white/light logo           → shown on dark backgrounds
   */
-  /* favicon_black.png = white logo (use on dark bg)
-     favicon_white.png = black logo (use on light bg) */
-  const logoSrc = prefersDark ? "/favicon_black.png" : "/favicon_white.png";
+  const logoSrc = prefersDark ? "/Favicon-black.PNG" : "/Favicon-white.PNG";
 
   /* ══════════════════════════════════════════
      DROPDOWN
