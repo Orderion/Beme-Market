@@ -287,17 +287,6 @@ body.dark .pd-page {
   margin: 0 0 6px;
 }
 
-/* Variant label (e.g. "BLACK") */
-.pd-variant-label {
-  font-family: var(--font-main);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  margin: 0 0 14px;
-}
-
 /* Badges row */
 .pd-badges {
   display: flex;
@@ -415,39 +404,62 @@ body.dark .pd-badge { border-color: rgba(255,255,255,0.2); }
   box-shadow: 3px 3px 0 var(--text);
 }
 
-/* ── Color swatches ── */
+/* ─────────────────────────────────────────────
+   COLOR SWATCHES
+   The background color comes from --swatch-bg
+   which is set via inline style in the JSX
+   using resolveSwatchColor(label).
+───────────────────────────────────────────── */
 .pd-swatches {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
+  align-items: center;
 }
 
 .pd-swatch {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border: 2px solid transparent;
   background: var(--swatch-bg, #ccc);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: transparent;
-  transition: border-color 150ms, transform 120ms;
+  /* NOTE: color is NOT set to transparent here —
+     it is controlled per-swatch via inline style
+     on the .pd-swatch-check span so the icon is
+     always readable against its specific background. */
+  transition: border-color 180ms, box-shadow 180ms, transform 120ms;
   padding: 0;
-  box-shadow: 2px 2px 0 rgba(0,0,0,0.12);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.14);
+  position: relative;
 }
 
+/* Active swatch: bold border + offset shadow */
 .pd-swatch.active {
   border-color: var(--text);
   box-shadow: 3px 3px 0 var(--text);
   transform: translate(-1px, -1px);
 }
 
-.pd-swatch--add {
-  background: transparent !important;
-  border: 1.5px dashed var(--muted);
-  color: var(--muted);
-  box-shadow: none;
+/* Hover on inactive swatches */
+.pd-swatch:not(.active):hover {
+  border-color: rgba(0,0,0,0.35);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.25);
+}
+
+body.dark .pd-swatch:not(.active):hover {
+  border-color: rgba(255,255,255,0.4);
+}
+
+/* The check icon wrapper — color & filter set inline */
+.pd-swatch-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  line-height: 0;
 }
 
 /* ── Option pills (size selector — SDMN hard style) ── */
@@ -540,21 +552,6 @@ body.dark .pd-option-pill--oos::after {
   padding: 0 14px;
 }
 
-/* Size guide link */
-.pd-size-guide-link {
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 800;
-  font-family: var(--font-main);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  color: var(--text);
-  margin-top: 8px;
-  cursor: pointer;
-}
-
 /* ── Quantity ── */
 .pd-qty-row {
   display: flex;
@@ -644,38 +641,10 @@ body.dark .pd-option-pill--oos::after {
   text-transform: uppercase;
 }
 
-/* Blue info strip */
 .pd-info-strip--blue {
   background: var(--pd-blue-bg);
   color: var(--pd-blue-text);
   border-color: rgba(30, 100, 200, 0.22);
-}
-
-/* Clearpay strip */
-.pd-clearpay-strip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 11px 14px;
-  background: var(--soft);
-  border: var(--pd-border-light);
-  margin-bottom: 12px;
-  font-size: 13px;
-  font-family: var(--font-main);
-  font-weight: 600;
-  color: var(--text);
-}
-
-.pd-clearpay-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  background: #00d2c8;
-  color: #111;
-  font-size: 12px;
-  font-weight: 800;
-  font-family: var(--font-main);
-  letter-spacing: -0.01em;
 }
 
 .pd-error {
@@ -737,7 +706,6 @@ body.dark .pd-success-strip { color: #5dd68b; background: rgba(34,160,88,0.12); 
   box-shadow: 1px 1px 0 rgba(0,0,0,0.3) !important;
 }
 
-/* Primary — grtheme (Add to Cart) */
 .pd-btn--primary {
   background: var(--grtheme);
   color: #fff;
@@ -746,7 +714,6 @@ body.dark .pd-success-strip { color: #5dd68b; background: rgba(34,160,88,0.12); 
 
 .pd-btn--primary:not(:disabled):hover { opacity: 0.9; }
 
-/* Pay button — purple */
 .pd-btn--pay {
   background: var(--pd-purple);
   color: #fff;
@@ -756,7 +723,6 @@ body.dark .pd-success-strip { color: #5dd68b; background: rgba(34,160,88,0.12); 
 
 .pd-btn--pay:not(:disabled):hover { opacity: 0.92; }
 
-/* Outline */
 .pd-btn--outline {
   background: transparent;
   color: var(--text);
@@ -766,26 +732,6 @@ body.dark .pd-success-strip { color: #5dd68b; background: rgba(34,160,88,0.12); 
 
 .pd-btn--outline:not(:disabled):hover {
   background: var(--soft);
-}
-
-/* More payment options link */
-.pd-more-payment {
-  display: block;
-  text-align: center;
-  font-size: 12px;
-  font-weight: 700;
-  font-family: var(--font-main);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  color: var(--muted);
-  margin-top: 2px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  width: 100%;
-  padding: 4px 0;
 }
 
 /* ─────────────────────────────────────────────
@@ -931,7 +877,6 @@ body.dark .pd-ask-panel { border-bottom-color: rgba(255,255,255,0.12); }
   padding: 0 0 20px;
 }
 
-/* Chat messages */
 .pd-ask-messages {
   display: flex;
   flex-direction: column;
@@ -992,7 +937,6 @@ body.dark .pd-ask-panel { border-bottom-color: rgba(255,255,255,0.12); }
   30% { transform: translateY(-5px); opacity: 1; }
 }
 
-/* Ask input row */
 .pd-ask-form {
   display: flex;
   gap: 0;
@@ -1039,7 +983,6 @@ body.dark .pd-ask-panel { border-bottom-color: rgba(255,255,255,0.12); }
   color: #fff;
 }
 
-/* Suggested questions */
 .pd-ask-suggestions {
   display: flex;
   flex-wrap: wrap;
@@ -1359,49 +1302,6 @@ body.dark .pd-sug-img-wrap { border-color: rgba(255,255,255,0.08); }
   font-weight: 700;
   color: var(--muted);
   font-family: var(--font-main);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-/* Review filter row */
-.pd-reviews-filter-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.pd-review-filter-btn {
-  padding: 6px 14px;
-  border: var(--pd-border-light);
-  background: transparent;
-  font-size: 11px;
-  font-weight: 800;
-  font-family: var(--font-main);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-  cursor: pointer;
-  transition: border-color 150ms, color 150ms, background 150ms;
-}
-
-.pd-review-filter-btn.active {
-  border-color: var(--text);
-  color: var(--text);
-  background: var(--soft);
-}
-
-.pd-review-sort-select {
-  margin-left: auto;
-  height: 34px;
-  padding: 0 12px;
-  border: var(--pd-border-light);
-  background: var(--card);
-  color: var(--text);
-  font-size: 11px;
-  font-family: var(--font-main);
-  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -1865,7 +1765,6 @@ body.dark .pd-verified-badge { color: #5dd68b; border-color: rgba(34,160,88,0.4)
   .pd-cta { flex-direction: row; }
   .pd-btn { flex: 1; width: auto; }
 
-  /* Reviews full-width two columns */
   .pd-reviews {
     border-top: 1.5px solid var(--soft);
     padding: 48px 0 24px;
@@ -1882,7 +1781,6 @@ body.dark .pd-verified-badge { color: #5dd68b; border-color: rgba(34,160,88,0.4)
 
   .pd-rating-big { font-size: 52px; }
 
-  /* Suggestions grid */
   .pd-suggestions {
     border-top: 1.5px solid var(--soft);
     padding: 48px 0 16px;
