@@ -30,6 +30,7 @@ import FlashDeals from "./pages/FlashDeals";
 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import VerifyEmail from "./pages/VerifyEmail"; // ← NEW
 import Onboarding from "./pages/Onboarding";
 import AdminLogin from "./pages/AdminLogin";
 
@@ -46,7 +47,7 @@ import ShopOwnerApply from "./pages/ShopOwnerApply";
 import HomepageAdmin from "./pages/admin/HomepageAdmin";
 import MediaManager from "./pages/admin/MediaManager";
 import AdminSupportDashboard from "./pages/admin/AdminSupportDashboard";
-import AdminNotifications from "./pages/admin/AdminNotifications"; // ← NEW
+import AdminNotifications from "./pages/admin/AdminNotifications";
 
 import About from "./pages/About";
 import Support from "./pages/Support";
@@ -82,14 +83,11 @@ function SuperAdminOnly({ children }) {
   return children;
 }
 
-/* ================= FULL-SCREEN ADMIN PATHS ================= */
-/*
- * Routes that completely hide the public Header / Footer / BottomNav.
- * AdminDashboard owns its own shell (sidebar + topbar) for all of these.
- */
+/* ================= FULL-SCREEN PATHS ================= */
 const FULL_SCREEN_ROUTES = new Set([
   "/login",
   "/signup",
+  "/verify-email",   // ← NEW — hides header/footer on the verification page
   "/admin-login",
   "/onboarding",
   // admin hub
@@ -100,7 +98,7 @@ const FULL_SCREEN_ROUTES = new Set([
   "/admin/support",
   "/admin/media",
   "/admin/product-requests",
-  "/admin/notifications",   // ← NEW
+  "/admin/notifications",
   "/admin-orders",
   "/admin-review-queue",
   "/analytics",
@@ -162,10 +160,11 @@ function AppShell() {
           <Route path="/orders"        element={<Orders />} />
 
           {/* ── AUTH ── */}
-          <Route path="/login"       element={<Login />} />
-          <Route path="/signup"      element={<Signup />} />
-          <Route path="/onboarding"  element={<Onboarding />} />
-          <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="/login"         element={<Login />} />
+          <Route path="/signup"        element={<Signup />} />
+          <Route path="/verify-email"  element={<VerifyEmail />} /> {/* ← NEW */}
+          <Route path="/onboarding"    element={<Onboarding />} />
+          <Route path="/admin-login"   element={<AdminLogin />} />
 
           {/* ── ACCOUNT ── */}
           <Route path="/account"               element={<Account />} />
@@ -177,7 +176,7 @@ function AppShell() {
           <Route path="/saved"                 element={<SavedItems />} />
           <Route path="/account/requests"      element={<UserRequests />} />
 
-          {/* ── ADMIN HUB (dashboard) ── */}
+          {/* ── ADMIN HUB ── */}
           <Route
             path="/admin"
             element={
