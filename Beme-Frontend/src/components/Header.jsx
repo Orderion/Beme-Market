@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { collection, getDocs, limit, query } from "firebase/firestore";
 import { db } from "../firebase";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import "./Header.css";
 
 /* ================= ICONS ================= */
@@ -60,6 +61,82 @@ function IconArrowRight() {
     <svg viewBox="0 0 24 24" width="13" height="13" fill="none"
       stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M5 12h14M12 5l7 7-7 7"/>
+    </svg>
+  );
+}
+
+/* ── Settings gear icon ── */
+function IconSettings() {
+  return (
+    <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true" fill="none"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  );
+}
+
+/* ── Settings dropdown nav icons (16×16 inline SVGs) ── */
+function SetIconHome() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5Z"/>
+      <path d="M9 21V12h6v9"/>
+    </svg>
+  );
+}
+
+function SetIconOffers() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.78 0l-8-4A2 2 0 0 1 2 16.76V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"/>
+      <polyline points="2.32 6.16 12 11 21.68 6.16"/>
+      <line x1="12" y1="22.76" x2="12" y2="11"/>
+    </svg>
+  );
+}
+
+function SetIconOrders() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 11l3 3L22 4"/>
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+    </svg>
+  );
+}
+
+function SetIconUser() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 20a8 8 0 0 1 16 0"/>
+    </svg>
+  );
+}
+
+function SetIconLogout() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+      <polyline points="16 17 21 12 16 7"/>
+      <line x1="21" y1="12" x2="9" y2="12"/>
+    </svg>
+  );
+}
+
+function SetIconSignup() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <line x1="19" y1="8" x2="19" y2="14"/>
+      <line x1="16" y1="11" x2="22" y2="11"/>
     </svg>
   );
 }
@@ -282,6 +359,7 @@ export default function Header({ onMenu, onCart }) {
   const navigate      = useNavigate();
   const location      = useLocation();
   const { cartItems } = useCart();
+  const { user, logout } = useAuth();
   const actionLockRef = useRef(false);
   const prefersDark   = usePrefersDark();
 
@@ -296,6 +374,10 @@ export default function Header({ onMenu, onCart }) {
   const [isFocused,      setIsFocused]      = useState(false);
   const [recentSearches, setRecentSearches] = useState(() => loadRecent());
 
+  /* Settings state */
+  const [settingsOpen,   setSettingsOpen]   = useState(false);
+  const [logoutConfirm,  setLogoutConfirm]  = useState(false);
+
   /* Derived booleans */
   const isLogo       = anim === S.LOGO;
   const isBar        = anim === S.BAR || anim === S.REOPEN;
@@ -303,9 +385,10 @@ export default function Header({ onMenu, onCart }) {
   const isTyping     = search.trim().length > 0;
   const showDropdown = sugOpen && isBar;
 
-  const inputRef  = useRef(null);
-  const wrapRef   = useRef(null);
-  const idleTimer = useRef(null);
+  const inputRef    = useRef(null);
+  const wrapRef     = useRef(null);
+  const settingsRef = useRef(null);
+  const idleTimer   = useRef(null);
 
   /* ── Idle timer ── */
   const resetIdle = useCallback(() => {
@@ -388,7 +471,7 @@ export default function Header({ onMenu, onCart }) {
     return () => { alive = false; };
   }, [isHome]);
 
-  /* ── Click outside → close dropdown ── */
+  /* ── Click outside → close search dropdown ── */
   useEffect(() => {
     const onDown = (e) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) {
@@ -401,6 +484,28 @@ export default function Header({ onMenu, onCart }) {
     return () => {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("touchstart", onDown);
+    };
+  }, []);
+
+  /* ── Click outside + Escape → close settings dropdown ── */
+  useEffect(() => {
+    const onDown = (e) => {
+      if (settingsRef.current && !settingsRef.current.contains(e.target)) {
+        setSettingsOpen(false);
+        setLogoutConfirm(false);
+      }
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        setSettingsOpen(false);
+        setLogoutConfirm(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
     };
   }, []);
 
@@ -458,23 +563,48 @@ export default function Header({ onMenu, onCart }) {
   const pulseLock      = () => { actionLockRef.current = true; setTimeout(() => { actionLockRef.current = false; }, 220); };
   const handleMenuOpen = () => { if (!actionLockRef.current) { pulseLock(); onMenu?.(); } };
   const handleCartOpen = () => { if (!actionLockRef.current) { pulseLock(); onCart?.(); } };
-  /* Re-open search bar from idle icon */
+
+  /* ── Re-open search bar from idle icon ── */
   const handleIconTap  = () => { setAnim(S.REOPEN); setIsFocused(false); };
 
-  /*
-    LOGO PATH FIX:
-    - "Favicon-white.PNG" is the actual coloured/dark logo → shown on light backgrounds
-    - "Favicon-black.PNG" is the white/light logo           → shown on dark backgrounds
-  */
+  /* ── Settings toggle ── */
+  const handleSettingsToggle = () => {
+    setSettingsOpen(prev => !prev);
+    setLogoutConfirm(false);
+  };
+
+  /* ── Logout ── */
+  const handleLogout = useCallback(async () => {
+    try {
+      await logout();
+      navigate("/");
+    } catch (e) {
+      console.error("Logout error:", e);
+    } finally {
+      setSettingsOpen(false);
+      setLogoutConfirm(false);
+    }
+  }, [logout, navigate]);
+
+  /* ── Settings nav helper — navigate and close ── */
+  const settingsNav = useCallback((path) => {
+    navigate(path);
+    setSettingsOpen(false);
+    setLogoutConfirm(false);
+  }, [navigate]);
+
   const logoSrc = prefersDark ? "/Favicon-black.PNG" : "/Favicon-white.PNG";
 
+  /* ── User display name / initial ── */
+  const userInitial   = (user?.displayName || user?.email || "U")[0].toUpperCase();
+  const userDisplay   = user?.displayName || user?.email || "";
+
   /* ══════════════════════════════════════════
-     DROPDOWN
+     SEARCH DROPDOWN
   ══════════════════════════════════════════ */
   const renderDropdown = () => {
     if (!showDropdown) return null;
 
-    /* ── Typing: show suggestions ── */
     if (isTyping) {
       return (
         <div className="hdr-suggestions">
@@ -524,7 +654,6 @@ export default function Header({ onMenu, onCart }) {
       );
     }
 
-    /* ── Idle / focused: category chips + recent searches ── */
     return (
       <div className="hdr-suggestions">
         <div className="hdr-sug-section-label">I&apos;M LOOKING FOR</div>
@@ -576,10 +705,139 @@ export default function Header({ onMenu, onCart }) {
     );
   };
 
+  /* ══════════════════════════════════════════
+     SETTINGS DROPDOWN (PC only — hidden on mobile via CSS)
+  ══════════════════════════════════════════ */
+  const renderSettingsDropdown = () => {
+    if (!settingsOpen) return null;
+
+    return (
+      <div className="hdr-settings-dropdown" role="dialog" aria-label="Navigation menu">
+
+        {/* ── User info (when signed in) ── */}
+        {user && (
+          <>
+            <div className="hdr-set-label">Currently signed in</div>
+            <div className="hdr-set-user">
+              <div className="hdr-set-avatar">{userInitial}</div>
+              <div className="hdr-set-user-info">
+                <span className="hdr-set-user-name">
+                  {user.displayName || "Account"}
+                </span>
+                <span className="hdr-set-user-email">{user.email}</span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── Navigate section ── */}
+        <div className="hdr-set-label">Navigate</div>
+
+        <button
+          className="hdr-set-item"
+          onClick={() => settingsNav("/")}
+          type="button"
+        >
+          <span className="hdr-set-item-icon"><SetIconHome /></span>
+          Home
+        </button>
+
+        <button
+          className="hdr-set-item"
+          onClick={() => settingsNav("/offers")}
+          type="button"
+        >
+          <span className="hdr-set-item-icon"><SetIconOffers /></span>
+          Offers
+        </button>
+
+        <button
+          className="hdr-set-item"
+          onClick={() => settingsNav("/orders")}
+          type="button"
+        >
+          <span className="hdr-set-item-icon"><SetIconOrders /></span>
+          Orders
+        </button>
+
+        {/* ── Account section ── */}
+        <hr className="hdr-set-divider" />
+        <div className="hdr-set-label">Account</div>
+
+        {user ? (
+          <>
+            <button
+              className="hdr-set-item"
+              onClick={() => settingsNav("/account")}
+              type="button"
+            >
+              <span className="hdr-set-item-icon"><SetIconUser /></span>
+              My Account
+            </button>
+
+            {!logoutConfirm ? (
+              <button
+                className="hdr-set-item hdr-set-item--danger"
+                onClick={() => setLogoutConfirm(true)}
+                type="button"
+              >
+                <span className="hdr-set-item-icon"><SetIconLogout /></span>
+                Logout
+              </button>
+            ) : (
+              <div className="hdr-set-confirm">
+                <p className="hdr-set-confirm-text">Sign out of Beme?</p>
+                <div className="hdr-set-confirm-btns">
+                  <button
+                    type="button"
+                    className="hdr-set-confirm-yes"
+                    onClick={handleLogout}
+                  >
+                    Yes, logout
+                  </button>
+                  <button
+                    type="button"
+                    className="hdr-set-confirm-no"
+                    onClick={() => setLogoutConfirm(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <button
+              className="hdr-set-item"
+              onClick={() => settingsNav("/login")}
+              type="button"
+            >
+              <span className="hdr-set-item-icon"><SetIconUser /></span>
+              Login
+            </button>
+            <button
+              className="hdr-set-item"
+              onClick={() => settingsNav("/signup")}
+              type="button"
+            >
+              <span className="hdr-set-item-icon"><SetIconSignup /></span>
+              Sign Up
+            </button>
+          </>
+        )}
+
+      </div>
+    );
+  };
+
+  /* ══════════════════════════════════════════
+     RENDER
+  ══════════════════════════════════════════ */
   return (
     <header className={`hdr ${isIcon ? "hdr--has-pill" : ""}`}>
 
-      {/* Col 1 — Menu */}
+      {/* Col 1 — Menu (unchanged) */}
       <button className="hdr-icon" onClick={handleMenuOpen} aria-label="Open menu" type="button">
         <IconMenu />
       </button>
@@ -592,7 +850,7 @@ export default function Header({ onMenu, onCart }) {
         <img src={logoSrc} alt="Beme Market" className="hdr-logo" draggable={false} />
       </div>
 
-      {/* Col 2 — Search bar */}
+      {/* Col 2 — Search bar (constrained width on PC via CSS) */}
       <div className="hdr-centre" ref={wrapRef}>
         {isHome && (
           <div
@@ -649,6 +907,8 @@ export default function Header({ onMenu, onCart }) {
 
       {/* Col 3 — Right buttons */}
       <div className="hdr-right">
+
+        {/* Search re-open pill (home + idle) */}
         {isHome && isIcon && (
           <button
             className="hdr-icon hdr-search-pill"
@@ -660,6 +920,21 @@ export default function Header({ onMenu, onCart }) {
           </button>
         )}
 
+        {/* ── Settings button + dropdown — PC only (hidden on mobile via CSS) ── */}
+        <div className="hdr-settings-wrap" ref={settingsRef}>
+          <button
+            className="hdr-icon"
+            onClick={handleSettingsToggle}
+            aria-label="Open navigation menu"
+            aria-expanded={settingsOpen}
+            type="button"
+          >
+            <IconSettings />
+          </button>
+          {renderSettingsDropdown()}
+        </div>
+
+        {/* Cart */}
         <button
           className="hdr-icon hdr-bag"
           onClick={handleCartOpen}
@@ -671,6 +946,7 @@ export default function Header({ onMenu, onCart }) {
             <span className="hdr-badge">{cartCount > 99 ? "99+" : cartCount}</span>
           )}
         </button>
+
       </div>
 
     </header>
