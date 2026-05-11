@@ -5,7 +5,10 @@ import {
   onAuthStateChanged,
   reauthenticateWithCredential,
   reload,
-  sendEmailVerification,
+  // NOTE: sendEmailVerification intentionally removed.
+  // The Cloud Function `sendVerificationOnSignup` in functions/index.js
+  // fires on auth.user().onCreate and sends the email via Brevo SMTP
+  // from your custom verified domain — no client-side call needed.
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
@@ -37,16 +40,13 @@ function normalizeCapabilities(value) {
 
 async function resolveProfile(uid) {
   const snap = await getDoc(doc(db, "users", uid));
-
   if (!snap.exists()) {
     return { role: "customer", shop: null, capabilities: [], profile: null };
   }
-
   const data         = snap.data() || {};
   const role         = normalizeRole(data.role);
   const shop         = normalizeShop(data.shop);
   const capabilities = normalizeCapabilities(data.capabilities);
-
   return {
     role,
     shop,
@@ -131,37 +131,28 @@ export function AuthProvider({ children }) {
   };
 
   // ── SIGNUP ────────────────────────────────────────────────────────────────
-  // Creates the Firebase Auth account, sends a verification email, then
-  // writes the user document in Firestore.  The caller should redirect to
-  // /verify-email immediately — the account is NOT considered "active" until
-  // the user confirms their address.
+  // Creates the Firebase Auth account + Firestore user document.
+  // The verification email is sent automatically by the Cloud Function
+  // `sendVerificationOnSignup` (functions/index.js) via Brevo SMTP.
+  // Caller navigates to /verify-email immediately after this resolves.
   const signup = async (email, password) => {
     setLoading(true);
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
 
-      // ── Step 1: send verification email ──────────────────────────────────
-      // Wrapped in its own try/catch so a transient email failure doesn't
-      // block account creation — the user can resend from /verify-email.
-      try {
-        await sendEmailVerification(cred.user);
-      } catch (emailError) {
-        console.error("Could not send verification email:", emailError);
-      }
-
-      // ── Step 2: write the Firestore user document ─────────────────────────
-      // Also wrapped — a Firestore rule rejection must not undo auth success.
+      // Write Firestore user document (wrapped so a rule rejection can't
+      // undo a successful Auth account creation)
       try {
         await setDoc(
           doc(db, "users", cred.user.uid),
           {
-            role:               "customer",
-            shop:               null,
-            capabilities:       [],
-            email:              String(email || "").trim().toLowerCase(),
-            emailVerified:      false,   // will be updated via Cloud Function or next login
-            createdAt:          serverTimestamp(),
-            updatedAt:          serverTimestamp(),
+            role:          "customer",
+            shop:          null,
+            capabilities:  [],
+            email:         String(email || "").trim().toLowerCase(),
+            emailVerified: false,
+            createdAt:     serverTimestamp(),
+            updatedAt:     serverTimestamp(),
           },
           { merge: true }
         );
@@ -196,21 +187,12 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // ── SEND VERIFICATION EMAIL (standalone, for resend) ──────────────────────
-  // Can be called from VerifyEmail.jsx's "Resend" button.
-  const sendVerificationEmail = async () => {
-    if (!auth.currentUser) throw new Error("No signed-in user.");
-    await sendEmailVerification(auth.currentUser);
-  };
-
-  // ── RELOAD USER  (checks fresh emailVerified flag from Firebase) ──────────
-  // Returns true if now verified, false otherwise.
+  // ── RELOAD USER ───────────────────────────────────────────────────────────
+  // Fetches a fresh token from Firebase and returns the up-to-date
+  // emailVerified flag. Used by VerifyEmail.jsx on the "I've verified" button.
   const reloadUser = async () => {
     if (!auth.currentUser) return false;
     await reload(auth.currentUser);
-    // Force the user state to a new reference so consumers re-render.
-    // We purposely spread only the plain-serialisable fields we need.
-    setUser((prev) => (prev ? Object.assign(Object.create(Object.getPrototypeOf(prev)), prev) : prev));
     return auth.currentUser.emailVerified;
   };
 
@@ -256,8 +238,8 @@ export function AuthProvider({ children }) {
 
     const hasCapability = (capability) => {
       const key = String(capability || "").trim().toLowerCase();
-      if (!key)          return false;
-      if (isSuperAdmin)  return true;
+      if (!key)         return false;
+      if (isSuperAdmin) return true;
       return capabilities.includes(key);
     };
 
@@ -268,22 +250,16 @@ export function AuthProvider({ children }) {
       capabilities,
       profile,
       loading,
-      // ── Derived convenience flags ──────────────────────────────────────
       isAdmin,
       isSuperAdmin,
       isShopAdmin,
-      // emailVerified reflects the Firebase Auth token value.
-      // Use auth.currentUser.emailVerified directly after reloadUser() for
-      // the most up-to-date value (the token is cached until reloaded).
       emailVerified: user?.emailVerified ?? false,
-      // ── Methods ───────────────────────────────────────────────────────
       hasCapability,
       login,
       signup,
       logout,
       reauthenticate,
       refreshProfile,
-      sendVerificationEmail,
       reloadUser,
     };
   }, [user, role, adminShop, capabilities, profile, loading]);

@@ -17,7 +17,7 @@ function normalizeEmail(value) {
 function getApiBaseUrl() {
   const raw =
     import.meta.env.VITE_BACKEND_URL ||
-    import.meta.env.VITE_API_URL ||
+    import.meta.env.VITE_API_URL     ||
     "http://localhost:5000";
   return String(raw).replace(/\/+$/, "");
 }
@@ -57,8 +57,8 @@ function Spinner() {
 }
 
 export default function Login() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [email,      setEmail]      = useState("");
   const [password,   setPassword]   = useState("");
@@ -86,26 +86,42 @@ export default function Login() {
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr(""); setMsg("");
+
     const emailTrim    = normalizeEmail(email);
     const passwordTrim = String(password || "").trim();
+
     if (!emailTrim || !passwordTrim) { setErr("Enter your email and password."); return; }
     if (!isValidEmail(emailTrim))    { setErr("Enter a valid email address.");   return; }
+
     setLoading(true);
     try {
       const cred = await signInWithEmailAndPassword(auth, emailTrim, passwordTrim);
+
+      // ── Guard: email not yet verified ─────────────────────────────────────
+      // If the user signed up but never confirmed their email, send them to
+      // the verification holding page instead of letting them through.
+      if (!cred.user.emailVerified) {
+        navigate("/verify-email", { replace: true });
+        return;
+      }
+
+      // ── Onboarding check ──────────────────────────────────────────────────
       try {
         const userSnap = await getDoc(doc(db, "users", cred.user.uid));
         if (!userSnap.exists() || !userSnap.data()?.onboardingComplete) {
           navigate("/onboarding", { replace: true });
           return;
         }
-      } catch (_) { /* safe to continue */ }
+      } catch (_) {
+        /* safe to continue if Firestore is temporarily unavailable */
+      }
+
       navigate(redirectTo, { replace: true });
     } catch (e) {
       const code = e?.code || "";
       if (
         code.includes("auth/invalid-credential") ||
-        code.includes("auth/user-not-found") ||
+        code.includes("auth/user-not-found")     ||
         code.includes("auth/wrong-password")
       )
         setErr("Invalid email or password.");
@@ -115,28 +131,33 @@ export default function Login() {
         setErr("Too many attempts. Please wait and try again.");
       else
         setErr("Login failed. Try again.");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const onForgot = async () => {
     if (loading || resetLoading) return;
     setErr(""); setMsg("");
+
     const emailTrim = normalizeEmail(email);
     if (!emailTrim)               { setErr("Enter your email address first.");    return; }
     if (!isValidEmail(emailTrim)) { setErr("Enter a valid email address first."); return; }
+
     const cooldownRem = RESET_COOLDOWN_MS - (Date.now() - lastResetAt);
     if (cooldownRem > 0) {
       setErr(`Please wait ${Math.ceil(cooldownRem / 1000)} seconds before trying again.`);
       return;
     }
+
     setResetLoading(true);
     try {
       const response = await fetchWithTimeout(
         `${getApiBaseUrl()}/api/auth/forgot-password`,
         {
-          method: "POST",
+          method:  "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: emailTrim }),
+          body:    JSON.stringify({ email: emailTrim }),
         }
       );
       const data = await response.json().catch(() => ({}));
@@ -151,7 +172,9 @@ export default function Login() {
         setErr("Reset request timed out.");
       else
         setErr(e?.message || "Could not send reset email. Try again.");
-    } finally { setResetLoading(false); }
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   const onSubscribe = async () => {
@@ -170,7 +193,9 @@ export default function Login() {
     } catch (e) {
       console.error("Subscription error:", e);
       setNewsErr("Could not subscribe right now. Try again.");
-    } finally { setNewsLoading(false); }
+    } finally {
+      setNewsLoading(false);
+    }
   };
 
   return (

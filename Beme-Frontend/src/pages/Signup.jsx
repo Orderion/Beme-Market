@@ -54,24 +54,32 @@ export default function Signup() {
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr("");
+
     const emailTrim    = email.trim();
     const passwordTrim = password.trim();
-    if (!emailTrim || !passwordTrim) { setErr("Enter email and password.");                     return; }
-    if (!isValidEmail(emailTrim))    { setErr("Enter a valid email address.");                  return; }
-    if (passwordTrim.length < 6)     { setErr("Password must be at least 6 characters.");      return; }
+
+    if (!emailTrim || !passwordTrim) { setErr("Enter email and password.");                      return; }
+    if (!isValidEmail(emailTrim))    { setErr("Enter a valid email address.");                   return; }
+    if (passwordTrim.length < 6)     { setErr("Password must be at least 6 characters.");       return; }
     if (!agreedToTerms)              { setErr("Please agree to the terms of use to continue."); return; }
+
     setLoading(true);
     try {
       await signup(emailTrim, passwordTrim);
-      navigate("/onboarding", { replace: true });
+      // ── After signup the user MUST verify their email before doing
+      //    anything else (checkout, orders, profile, etc.).
+      //    Send them to the holding page, not directly to onboarding.
+      navigate("/verify-email", { replace: true });
     } catch (e) {
       // Firebase may have successfully created the account but thrown an error
-      // afterwards (e.g. a Firestore write or email verification step failed).
-      // If auth.currentUser is set, the account exists — just continue.
+      // afterwards (e.g. a Firestore write or email send step failed).
+      // If auth.currentUser is set the account exists — still send them
+      // to verify-email so the flow stays consistent.
       if (auth.currentUser) {
-        navigate("/onboarding", { replace: true });
+        navigate("/verify-email", { replace: true });
         return;
       }
+
       const code = e?.code || "";
       if (code.includes("auth/email-already-in-use"))
         setErr("An account with this email already exists. Log in instead.");
@@ -81,7 +89,9 @@ export default function Signup() {
         setErr("Invalid email address.");
       else
         setErr("Signup failed. Try again.");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const onSubscribe = async () => {
@@ -100,7 +110,9 @@ export default function Signup() {
     } catch (e) {
       console.error("Subscription error:", e);
       setNewsErr("Could not subscribe right now. Try again.");
-    } finally { setNewsLoading(false); }
+    } finally {
+      setNewsLoading(false);
+    }
   };
 
   return (
@@ -193,7 +205,9 @@ export default function Signup() {
               </span>
             </div>
 
-            {err && <div className="auth-alert auth-alert--error" role="alert">{err}</div>}
+            {err && (
+              <div className="auth-alert auth-alert--error" role="alert">{err}</div>
+            )}
 
             <button className="auth-cta" type="submit" disabled={loading}>
               {loading ? <><Spinner /> Creating account...</> : "Create account"}

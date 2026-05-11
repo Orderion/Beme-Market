@@ -1,0 +1,226 @@
+/* ================================================================
+   VERIFY EMAIL — VerifyEmail.css
+   Neo-Brutalist style — extends the shared variables from Login.css.
+   Import BOTH files in VerifyEmail.jsx:
+     import "./Login.css";
+     import "./VerifyEmail.css";
+================================================================ */
+
+/* ── Page container ── */
+.verify-container {
+  padding: 24px 20px 64px;
+}
+
+/* ── Main card ── */
+.verify-card {
+  background: var(--nb-card);
+  border: var(--nb-border);
+  border-radius: var(--nb-radius);
+  padding: 32px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--nb-shadow-lg);
+  text-align: center;
+}
+
+/* ── Envelope icon stamp ── */
+.verify-icon-wrap {
+  margin-bottom: 4px;
+}
+
+.verify-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  border: var(--nb-border);
+  border-radius: var(--nb-radius);
+  background: var(--nb-blue-bg);
+  color: var(--nb-blue);
+  box-shadow: var(--nb-shadow);
+  /* Slight press tilt for personality */
+  transform: rotate(-2deg);
+}
+
+/* ── Heading ── */
+.verify-title {
+  font-family:    var(--nb-font);
+  font-size:      26px;
+  font-weight:    900;
+  letter-spacing: -0.04em;
+  color:          var(--nb-text);
+  margin:         0;
+  /* Hard underline stamp */
+  border-bottom:  3px solid var(--nb-text);
+  padding-bottom: 4px;
+}
+
+/* ── "We sent a link to…" line ── */
+.verify-subtitle {
+  font-size:   13px;
+  font-weight: 600;
+  color:       var(--nb-muted);
+  margin:      0;
+}
+
+/* ── Email address display pill ── */
+.verify-email-pill {
+  font-size:    13px;
+  font-weight:  900;
+  color:        var(--nb-text);
+  background:   var(--nb-blue-bg);
+  border:       var(--nb-border-sm);
+  border-radius: var(--nb-radius-sm);
+  padding:      9px 16px;
+  word-break:   break-all;
+  width:        100%;
+  box-shadow:   var(--nb-shadow-sm);
+}
+
+/* ── Instructions paragraph ── */
+.verify-instructions {
+  font-size:   13px;
+  font-weight: 600;
+  color:       var(--nb-muted);
+  line-height: 1.65;
+  margin:      0;
+  max-width:   340px;
+}
+
+.verify-instructions strong {
+  color:       var(--nb-text);
+  font-weight: 900;
+}
+
+/* ── Primary CTA — full width, overrides the shared .auth-cta gap ── */
+.verify-cta {
+  width: 100%;
+  gap:   10px;
+}
+
+/* ── Auto-check pulse row ── */
+.verify-auto-row {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  margin-top:  2px;
+}
+
+/* Green breathing dot */
+@keyframes verify-breathe {
+  0%, 100% { opacity: 1;    transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
+}
+
+.verify-pulse {
+  display:       inline-block;
+  width:         8px;
+  height:        8px;
+  border-radius: 50%;
+  background:    var(--nb-green);
+  flex-shrink:   0;
+  animation:     verify-breathe 2s ease-in-out infinite;
+}
+
+.verify-auto-label {
+  font-size:      10px;
+  font-weight:    900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color:          var(--nb-muted);
+}
+
+/* ── "Didn't get it?" tips accordion ── */
+.verify-tips {
+  width:      100%;
+  text-align: left;
+  border:     var(--nb-border-sm);
+  border-radius: var(--nb-radius-sm);
+  background: var(--nb-bg);
+  box-shadow: var(--nb-shadow-sm);
+  overflow:   hidden;
+}
+
+.verify-tips-toggle {
+  display:        flex;
+  align-items:    center;
+  justify-content: space-between;
+  padding:        11px 14px;
+  font-size:      11px;
+  font-weight:    900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color:          var(--nb-muted);
+  cursor:         pointer;
+  list-style:     none;    /* hide default arrow in Firefox */
+  user-select:    none;
+}
+
+/* Hide the default triangle in WebKit */
+.verify-tips-toggle::-webkit-details-marker { display: none; }
+
+/* Custom chevron via ::after */
+.verify-tips-toggle::after {
+  content:     "▾";
+  font-size:   14px;
+  transition:  transform 0.15s;
+}
+
+details[open] .verify-tips-toggle::after {
+  transform: rotate(-180deg);
+}
+
+.verify-tips-toggle:hover { color: var(--nb-text); }
+
+.verify-tips-list {
+  margin:      0;
+  padding:     4px 14px 14px 28px;
+  display:     flex;
+  flex-direction: column;
+  gap:         7px;
+  border-top:  var(--nb-border-sm);
+  background:  var(--nb-card);
+}
+
+.verify-tips-list li {
+  font-size:   12px;
+  font-weight: 600;
+  color:       var(--nb-muted);
+  line-height: 1.5;
+}
+
+.verify-tips-list li strong {
+  color:       var(--nb-text);
+  font-weight: 900;
+}
+
+/* ── Back to login link ── */
+.verify-back {
+  margin-top: 2px;
+}
+
+/* ── Alerts inside the card go full-width ── */
+.verify-card .auth-alert {
+  width:      100%;
+  text-align: left;
+}
+
+/* ================================================================
+   MOBILE
+================================================================ */
+@media (max-width: 480px) {
+  .verify-container { padding: 18px 14px 56px; }
+
+  .verify-card {
+    padding:  24px 16px 22px;
+    gap:      12px;
+  }
+
+  .verify-icon  { width: 64px; height: 64px; }
+  .verify-title { font-size: 22px; }
+
+  .verify-instructions { font-size: 12px; }
+}
