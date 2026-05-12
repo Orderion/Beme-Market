@@ -6,6 +6,15 @@ import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import "./Header.css";
 
+/* ── Category images for nav mega-dropdown ── */
+import phoneImg    from "../assets/Phone.JPG";
+import laptopImg   from "../assets/Laptop.JPG";
+import shoeImg     from "../assets/Shoe.JPG";
+import clothingImg from "../assets/Clothing .JPG";
+import kidsImg     from "../assets/Kids.JPG";
+import gameImg     from "../assets/Game.JPG";
+import homeAppImg  from "../assets/Home appliances .JPG";
+
 /* ================= ICONS ================= */
 function IconMenu() {
   return (
@@ -65,7 +74,6 @@ function IconArrowRight() {
   );
 }
 
-/* ── Settings gear icon ── */
 function IconSettings() {
   return (
     <svg viewBox="0 0 24 24" className="hdr-svg" aria-hidden="true" fill="none"
@@ -76,7 +84,18 @@ function IconSettings() {
   );
 }
 
-/* ── Settings dropdown nav icons (16×16 inline SVGs) ── */
+/* ── Chevron for categories dropdown ── */
+function IconChevronDown() {
+  return (
+    <svg viewBox="0 0 24 24" width="11" height="11" fill="none"
+      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true">
+      <path d="M6 9l6 6 6-6"/>
+    </svg>
+  );
+}
+
+/* ── Settings dropdown nav icons ── */
 function SetIconHome() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
@@ -86,7 +105,6 @@ function SetIconHome() {
     </svg>
   );
 }
-
 function SetIconOffers() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
@@ -97,7 +115,6 @@ function SetIconOffers() {
     </svg>
   );
 }
-
 function SetIconOrders() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
@@ -107,7 +124,6 @@ function SetIconOrders() {
     </svg>
   );
 }
-
 function SetIconUser() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
@@ -117,7 +133,6 @@ function SetIconUser() {
     </svg>
   );
 }
-
 function SetIconLogout() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
@@ -128,7 +143,6 @@ function SetIconLogout() {
     </svg>
   );
 }
-
 function SetIconSignup() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
@@ -215,6 +229,29 @@ const QUICK_CATEGORIES = [
   { label: "Kids",        value: "kids"        },
   { label: "Accessories", value: "accessories" },
 ];
+
+/* ── Desktop nav mega-dropdown categories ── */
+const NAV_CATEGORIES = [
+  { key: "iphones",         label: "Iphones",        subtitle: "Smartphones & mobile",   image: phoneImg,    query: "iphone"      },
+  { key: "laptops",         label: "Laptops",         subtitle: "Portable computing",      image: laptopImg,   query: "laptop"      },
+  { key: "shoes",           label: "Shoes",           subtitle: "Sneakers & footwear",     image: shoeImg,     query: "shoes"       },
+  { key: "clothing",        label: "Clothing",        subtitle: "Fresh fits & wardrobe",   image: clothingImg, query: "clothing"    },
+  { key: "kids",            label: "Kids",            subtitle: "Picks for little ones",   image: kidsImg,     query: "kids"        },
+  { key: "game",            label: "Game",            subtitle: "Consoles & gaming gear",  image: gameImg,     query: "game"        },
+  { key: "home_appliances", label: "Home Appliances", subtitle: "Essentials for living",   image: homeAppImg,  query: "appliances"  },
+  { key: "others",          label: "Others",          subtitle: "Accessories & more",      image: null,        query: "accessories" },
+];
+
+const NAV_CAT_BG = {
+  iphones:         "#DDEEFF",
+  laptops:         "#EAE7FD",
+  shoes:           "#FFE8DF",
+  clothing:        "#FFE3EE",
+  kids:            "#FFF0D6",
+  game:            "#DDF3E4",
+  home_appliances: "#D6F4EC",
+  others:          "#FFF3DB",
+};
 
 const CATEGORY_KEYWORDS = [
   { label: "Iphones",         type: "category", value: "iphone",      aliases: ["phone","phones","iphone","android","mobile","smartphone","tecno","infinix","samsung","itel","pixel","ipad","tablet"] },
@@ -310,7 +347,6 @@ function buildSuggestions(products, term) {
     .slice(0, SUGGESTION_LIMIT);
 }
 
-/* ── localStorage helpers ── */
 function loadRecent() {
   try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); }
   catch { return []; }
@@ -332,23 +368,17 @@ function removeRecent(list, term) {
 }
 
 function usePrefersDark() {
-  const [dark, setDark] = useState(
-    () => document.body.classList.contains("dark")
-  );
+  const [dark, setDark] = useState(() => document.body.classList.contains("dark"));
   useEffect(() => {
     const observer = new MutationObserver(() => {
       setDark(document.body.classList.contains("dark"));
     });
-    observer.observe(document.body, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
+    observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
     return () => observer.disconnect();
   }, []);
   return dark;
 }
 
-/* ── Animation states ── */
 const S = { LOGO: "logo", BAR: "bar", ICON: "icon", REOPEN: "reopen" };
 const IDLE_MS = 5000;
 
@@ -378,7 +408,10 @@ export default function Header({ onMenu, onCart }) {
   const [settingsOpen,   setSettingsOpen]   = useState(false);
   const [logoutConfirm,  setLogoutConfirm]  = useState(false);
 
-  /* Derived booleans */
+  /* ── NEW: categories mega dropdown ── */
+  const [catMenuOpen,    setCatMenuOpen]    = useState(false);
+  const navCatRef  = useRef(null);
+
   const isLogo       = anim === S.LOGO;
   const isBar        = anim === S.BAR || anim === S.REOPEN;
   const isIcon       = anim === S.ICON;
@@ -436,7 +469,6 @@ export default function Header({ onMenu, onCart }) {
     };
   }, [isHome]);
 
-  /* ── Manage idle timer ── */
   useEffect(() => {
     if (isFocused || search.trim()) {
       clearTimeout(idleTimer.current);
@@ -445,7 +477,6 @@ export default function Header({ onMenu, onCart }) {
     }
   }, [isFocused, search, anim, resetIdle]);
 
-  /* ── Auto-focus input when bar opens ── */
   useEffect(() => {
     if (anim === S.BAR || anim === S.REOPEN) {
       const t = setTimeout(() => inputRef.current?.focus(), 340);
@@ -487,7 +518,7 @@ export default function Header({ onMenu, onCart }) {
     };
   }, []);
 
-  /* ── Click outside + Escape → close settings dropdown ── */
+  /* ── Click outside + Escape → close settings ── */
   useEffect(() => {
     const onDown = (e) => {
       if (settingsRef.current && !settingsRef.current.contains(e.target)) {
@@ -505,6 +536,26 @@ export default function Header({ onMenu, onCart }) {
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  /* ── NEW: Click outside + Escape → close categories mega menu ── */
+  useEffect(() => {
+    const onDown = (e) => {
+      if (navCatRef.current && !navCatRef.current.contains(e.target)) {
+        setCatMenuOpen(false);
+      }
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") setCatMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
       document.removeEventListener("keydown", onKey);
     };
   }, []);
@@ -538,7 +589,6 @@ export default function Header({ onMenu, onCart }) {
     setRecentSearches(prev => removeRecent(prev, term));
   }, []);
 
-  /* ── Form / input handlers ── */
   const handleSubmit = (e) => {
     e.preventDefault();
     const picked = activeIdx >= 0 && suggestions[activeIdx]
@@ -559,21 +609,16 @@ export default function Header({ onMenu, onCart }) {
     if (e.key === "Escape") { setSugOpen(false); setActiveIdx(-1); }
   };
 
-  /* ── Button lock ── */
   const pulseLock      = () => { actionLockRef.current = true; setTimeout(() => { actionLockRef.current = false; }, 220); };
   const handleMenuOpen = () => { if (!actionLockRef.current) { pulseLock(); onMenu?.(); } };
   const handleCartOpen = () => { if (!actionLockRef.current) { pulseLock(); onCart?.(); } };
-
-  /* ── Re-open search bar from idle icon ── */
   const handleIconTap  = () => { setAnim(S.REOPEN); setIsFocused(false); };
 
-  /* ── Settings toggle ── */
   const handleSettingsToggle = () => {
     setSettingsOpen(prev => !prev);
     setLogoutConfirm(false);
   };
 
-  /* ── Logout ── */
   const handleLogout = useCallback(async () => {
     try {
       await logout();
@@ -586,7 +631,6 @@ export default function Header({ onMenu, onCart }) {
     }
   }, [logout, navigate]);
 
-  /* ── Settings nav helper — navigate and close ── */
   const settingsNav = useCallback((path) => {
     navigate(path);
     setSettingsOpen(false);
@@ -595,9 +639,7 @@ export default function Header({ onMenu, onCart }) {
 
   const logoSrc = prefersDark ? "/Favicon-black.PNG" : "/Favicon-white.PNG";
 
-  /* ── User display name / initial ── */
-  const userInitial   = (user?.displayName || user?.email || "U")[0].toUpperCase();
-  const userDisplay   = user?.displayName || user?.email || "";
+  const userInitial = (user?.displayName || user?.email || "U")[0].toUpperCase();
 
   /* ══════════════════════════════════════════
      SEARCH DROPDOWN
@@ -613,25 +655,19 @@ export default function Header({ onMenu, onCart }) {
           ) : suggestions.length ? (
             <>
               {suggestions.map((item, idx) => (
-                <button
-                  key={item.id}
-                  type="button"
+                <button key={item.id} type="button"
                   className={`hdr-suggestion-item ${idx === activeIdx ? "active" : ""}`}
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => goToSearch(item.value)}
-                >
+                  onClick={() => goToSearch(item.value)}>
                   <span className={`hdr-sug-type hdr-sug-type--${item.type}`}>
                     {TYPE_LABELS[item.type] || item.type}
                   </span>
                   <span className="hdr-sug-label">{item.label}</span>
                 </button>
               ))}
-              <button
-                type="button"
-                className="hdr-sug-more"
+              <button type="button" className="hdr-sug-more"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => goToSearch(search)}
-              >
+                onClick={() => goToSearch(search)}>
                 <span>Search for &ldquo;{search}&rdquo;</span>
                 <span className="hdr-sug-more-arrow"><IconArrowRight /></span>
               </button>
@@ -639,12 +675,9 @@ export default function Header({ onMenu, onCart }) {
           ) : (
             <>
               <div className="hdr-suggestion-empty">No results for &ldquo;{search}&rdquo;</div>
-              <button
-                type="button"
-                className="hdr-sug-more"
+              <button type="button" className="hdr-sug-more"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => goToSearch(search)}
-              >
+                onClick={() => goToSearch(search)}>
                 <span>Search anyway</span>
                 <span className="hdr-sug-more-arrow"><IconArrowRight /></span>
               </button>
@@ -659,13 +692,9 @@ export default function Header({ onMenu, onCart }) {
         <div className="hdr-sug-section-label">I&apos;M LOOKING FOR</div>
         <div className="hdr-sug-chips">
           {QUICK_CATEGORIES.map((cat) => (
-            <button
-              key={cat.value}
-              type="button"
-              className="hdr-sug-chip"
+            <button key={cat.value} type="button" className="hdr-sug-chip"
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => goToSearch(cat.value)}
-            >
+              onClick={() => goToSearch(cat.value)}>
               <ChipIcon value={cat.value} />
               {cat.label}
             </button>
@@ -676,27 +705,17 @@ export default function Header({ onMenu, onCart }) {
           <>
             <div className="hdr-sug-section-label">RECENT SEARCHES</div>
             {recentSearches.map((term) => (
-              <div
-                key={term}
-                className="hdr-recent-item"
-                role="button"
-                tabIndex={0}
+              <div key={term} className="hdr-recent-item" role="button" tabIndex={0}
                 onClick={() => goToSearch(term)}
-                onKeyDown={(e) => e.key === "Enter" && goToSearch(term)}
-              >
+                onKeyDown={(e) => e.key === "Enter" && goToSearch(term)}>
                 <div className="hdr-recent-left">
                   <IconClock />
                   <span className="hdr-recent-text">{term}</span>
                 </div>
-                <button
-                  type="button"
-                  className="hdr-recent-remove"
+                <button type="button" className="hdr-recent-remove"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={(e) => handleRemoveRecent(e, term)}
-                  aria-label={`Remove ${term}`}
-                >
-                  ×
-                </button>
+                  aria-label={`Remove ${term}`}>×</button>
               </div>
             ))}
           </>
@@ -706,130 +725,137 @@ export default function Header({ onMenu, onCart }) {
   };
 
   /* ══════════════════════════════════════════
-     SETTINGS DROPDOWN (PC only — hidden on mobile via CSS)
+     SETTINGS DROPDOWN
   ══════════════════════════════════════════ */
   const renderSettingsDropdown = () => {
     if (!settingsOpen) return null;
-
     return (
       <div className="hdr-settings-dropdown" role="dialog" aria-label="Navigation menu">
-
-        {/* ── User info (when signed in) ── */}
         {user && (
           <>
             <div className="hdr-set-label">Currently signed in</div>
             <div className="hdr-set-user">
               <div className="hdr-set-avatar">{userInitial}</div>
               <div className="hdr-set-user-info">
-                <span className="hdr-set-user-name">
-                  {user.displayName || "Account"}
-                </span>
+                <span className="hdr-set-user-name">{user.displayName || "Account"}</span>
                 <span className="hdr-set-user-email">{user.email}</span>
               </div>
             </div>
           </>
         )}
-
-        {/* ── Navigate section ── */}
         <div className="hdr-set-label">Navigate</div>
-
-        <button
-          className="hdr-set-item"
-          onClick={() => settingsNav("/")}
-          type="button"
-        >
-          <span className="hdr-set-item-icon"><SetIconHome /></span>
-          Home
+        <button className="hdr-set-item" onClick={() => settingsNav("/")} type="button">
+          <span className="hdr-set-item-icon"><SetIconHome /></span>Home
         </button>
-
-        <button
-          className="hdr-set-item"
-          onClick={() => settingsNav("/offers")}
-          type="button"
-        >
-          <span className="hdr-set-item-icon"><SetIconOffers /></span>
-          Offers
+        <button className="hdr-set-item" onClick={() => settingsNav("/offers")} type="button">
+          <span className="hdr-set-item-icon"><SetIconOffers /></span>Offers
         </button>
-
-        <button
-          className="hdr-set-item"
-          onClick={() => settingsNav("/orders")}
-          type="button"
-        >
-          <span className="hdr-set-item-icon"><SetIconOrders /></span>
-          Orders
+        <button className="hdr-set-item" onClick={() => settingsNav("/orders")} type="button">
+          <span className="hdr-set-item-icon"><SetIconOrders /></span>Orders
         </button>
-
-        {/* ── Account section ── */}
         <hr className="hdr-set-divider" />
         <div className="hdr-set-label">Account</div>
-
         {user ? (
           <>
-            <button
-              className="hdr-set-item"
-              onClick={() => settingsNav("/account")}
-              type="button"
-            >
-              <span className="hdr-set-item-icon"><SetIconUser /></span>
-              My Account
+            <button className="hdr-set-item" onClick={() => settingsNav("/account")} type="button">
+              <span className="hdr-set-item-icon"><SetIconUser /></span>My Account
             </button>
-
             {!logoutConfirm ? (
-              <button
-                className="hdr-set-item hdr-set-item--danger"
-                onClick={() => setLogoutConfirm(true)}
-                type="button"
-              >
-                <span className="hdr-set-item-icon"><SetIconLogout /></span>
-                Logout
+              <button className="hdr-set-item hdr-set-item--danger" onClick={() => setLogoutConfirm(true)} type="button">
+                <span className="hdr-set-item-icon"><SetIconLogout /></span>Logout
               </button>
             ) : (
               <div className="hdr-set-confirm">
                 <p className="hdr-set-confirm-text">Sign out of Beme?</p>
                 <div className="hdr-set-confirm-btns">
-                  <button
-                    type="button"
-                    className="hdr-set-confirm-yes"
-                    onClick={handleLogout}
-                  >
-                    Yes, logout
-                  </button>
-                  <button
-                    type="button"
-                    className="hdr-set-confirm-no"
-                    onClick={() => setLogoutConfirm(false)}
-                  >
-                    Cancel
-                  </button>
+                  <button type="button" className="hdr-set-confirm-yes" onClick={handleLogout}>Yes, logout</button>
+                  <button type="button" className="hdr-set-confirm-no" onClick={() => setLogoutConfirm(false)}>Cancel</button>
                 </div>
               </div>
             )}
           </>
         ) : (
           <>
-            <button
-              className="hdr-set-item"
-              onClick={() => settingsNav("/login")}
-              type="button"
-            >
-              <span className="hdr-set-item-icon"><SetIconUser /></span>
-              Login
+            <button className="hdr-set-item" onClick={() => settingsNav("/login")} type="button">
+              <span className="hdr-set-item-icon"><SetIconUser /></span>Login
             </button>
-            <button
-              className="hdr-set-item"
-              onClick={() => settingsNav("/signup")}
-              type="button"
-            >
-              <span className="hdr-set-item-icon"><SetIconSignup /></span>
-              Sign Up
+            <button className="hdr-set-item" onClick={() => settingsNav("/signup")} type="button">
+              <span className="hdr-set-item-icon"><SetIconSignup /></span>Sign Up
             </button>
           </>
         )}
-
       </div>
     );
   };
+
+  /* ══════════════════════════════════════════
+     NEW: CATEGORIES MEGA DROPDOWN
+  ══════════════════════════════════════════ */
+  const renderCatMegaMenu = () => (
+    <>
+      {/* Backdrop — covers page below header */}
+      <div
+        className="hdr-cat-backdrop"
+        onClick={() => setCatMenuOpen(false)}
+        aria-hidden="true"
+      />
+      {/* Panel */}
+      <div className="hdr-cat-mega" role="dialog" aria-label="Browse categories">
+        <div className="hdr-cat-mega-inner">
+          <div className="hdr-cat-mega-grid">
+            {NAV_CATEGORIES.map((cat) => (
+              <button
+                key={cat.key}
+                type="button"
+                className="hdr-cat-mega-item"
+                onClick={() => {
+                  navigate(`/shop?q=${encodeURIComponent(cat.query)}`);
+                  setCatMenuOpen(false);
+                }}
+              >
+                <div
+                  className="hdr-cat-mega-img-wrap"
+                  style={{ background: NAV_CAT_BG[cat.key] || "#F1EFE8" }}
+                >
+                  {cat.image ? (
+                    <img
+                      src={cat.image}
+                      alt={cat.label}
+                      className="hdr-cat-mega-img"
+                      draggable={false}
+                    />
+                  ) : (
+                    /* Others fallback SVG */
+                    <svg width="34" height="34" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+                      <rect x="9" y="8" width="22" height="26" rx="3.5" fill="#D08020"/>
+                      <rect x="9" y="8" width="22" height="26" rx="3.5" fill="white" fillOpacity="0.12"/>
+                      <path d="M14 8V6h12v2" stroke="#A06010" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      <rect x="13" y="16" width="14" height="2" rx="1" fill="#A06010" fillOpacity="0.8"/>
+                      <rect x="13" y="21" width="14" height="2" rx="1" fill="#A06010" fillOpacity="0.6"/>
+                      <rect x="13" y="26" width="9"  height="2" rx="1" fill="#A06010" fillOpacity="0.4"/>
+                      <circle cx="29" cy="10" r="3" fill="#F0C060"/>
+                    </svg>
+                  )}
+                </div>
+                <span className="hdr-cat-mega-label">{cat.label}</span>
+                <span className="hdr-cat-mega-sub">{cat.subtitle}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="hdr-cat-mega-footer">
+            <button
+              type="button"
+              className="hdr-cat-mega-all"
+              onClick={() => { navigate("/shop"); setCatMenuOpen(false); }}
+            >
+              See all categories →
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
 
   /* ══════════════════════════════════════════
      RENDER
@@ -837,12 +863,12 @@ export default function Header({ onMenu, onCart }) {
   return (
     <header className={`hdr ${isIcon ? "hdr--has-pill" : ""}`}>
 
-      {/* Col 1 — Menu (unchanged) */}
-      <button className="hdr-icon" onClick={handleMenuOpen} aria-label="Open menu" type="button">
+      {/* Col 1 — Menu (always visible; triggers mobile drawer) */}
+      <button className="hdr-icon hdr-menu-btn" onClick={handleMenuOpen} aria-label="Open menu" type="button">
         <IconMenu />
       </button>
 
-      {/* Logo — absolutely centred across full header width */}
+      {/* Logo — centred on mobile, left-aligned on desktop */}
       <div
         className={`hdr-logo-wrap ${!isLogo ? "hdr-logo-wrap--out" : ""}`}
         aria-hidden={!isLogo}
@@ -850,7 +876,51 @@ export default function Header({ onMenu, onCart }) {
         <img src={logoSrc} alt="Beme Market" className="hdr-logo" draggable={false} />
       </div>
 
-      {/* Col 2 — Search bar (constrained width on PC via CSS) */}
+      {/* ── Desktop nav links (hidden on mobile/tablet) ── */}
+      <nav className="hdr-nav" aria-label="Main navigation">
+        <button
+          type="button"
+          className={`hdr-nav-link ${location.pathname === "/shop" ? "hdr-nav-link--active" : ""}`}
+          onClick={() => navigate("/shop")}
+        >
+          Products
+        </button>
+
+        {/* Categories with mega dropdown */}
+        <div className="hdr-nav-cat-wrap" ref={navCatRef}>
+          <button
+            type="button"
+            className={`hdr-nav-link hdr-nav-link--has-chevron ${catMenuOpen ? "hdr-nav-link--open" : ""}`}
+            onClick={() => setCatMenuOpen((v) => !v)}
+            aria-expanded={catMenuOpen}
+            aria-haspopup="dialog"
+          >
+            Categories
+            <span className={`hdr-nav-chevron ${catMenuOpen ? "hdr-nav-chevron--open" : ""}`}>
+              <IconChevronDown />
+            </span>
+          </button>
+          {catMenuOpen && renderCatMegaMenu()}
+        </div>
+
+        <button
+          type="button"
+          className={`hdr-nav-link ${location.pathname === "/pricing" ? "hdr-nav-link--active" : ""}`}
+          onClick={() => navigate("/pricing")}
+        >
+          Pricing
+        </button>
+
+        <button
+          type="button"
+          className={`hdr-nav-link ${location.pathname === "/support" ? "hdr-nav-link--active" : ""}`}
+          onClick={() => navigate("/support")}
+        >
+          Support
+        </button>
+      </nav>
+
+      {/* Col 2 — Search bar */}
       <div className="hdr-centre" ref={wrapRef}>
         {isHome && (
           <div
@@ -861,7 +931,6 @@ export default function Header({ onMenu, onCart }) {
               <span className="hdr-search-icon-left" aria-hidden="true">
                 <IconSearch />
               </span>
-
               <input
                 ref={inputRef}
                 type="text"
@@ -873,33 +942,23 @@ export default function Header({ onMenu, onCart }) {
                 placeholder="Search products or stores"
                 className="hdr-search-input"
                 autoComplete="off"
-                tabIndex={isBar ? 0 : -1}
+                tabIndex={isBar || window.innerWidth >= 1024 ? 0 : -1}
                 aria-label="Search products"
                 aria-expanded={showDropdown}
               />
-
               {search && (
-                <button
-                  type="button"
-                  className="hdr-search-clear"
+                <button type="button" className="hdr-search-clear"
                   onClick={() => { setSearch(""); setSugOpen(true); inputRef.current?.focus(); }}
                   tabIndex={isBar ? 0 : -1}
-                  aria-label="Clear search"
-                >
+                  aria-label="Clear search">
                   <IconClose />
                 </button>
               )}
-
-              <button
-                type="submit"
-                className="hdr-search-submit"
-                tabIndex={isBar ? 0 : -1}
-                aria-label="Search"
-              >
+              <button type="submit" className="hdr-search-submit"
+                tabIndex={isBar ? 0 : -1} aria-label="Search">
                 <IconSearch />
               </button>
             </form>
-
             {renderDropdown()}
           </div>
         )}
@@ -908,39 +967,23 @@ export default function Header({ onMenu, onCart }) {
       {/* Col 3 — Right buttons */}
       <div className="hdr-right">
 
-        {/* Search re-open pill (home + idle) */}
         {isHome && isIcon && (
-          <button
-            className="hdr-icon hdr-search-pill"
-            onClick={handleIconTap}
-            aria-label="Open search"
-            type="button"
-          >
+          <button className="hdr-icon hdr-search-pill" onClick={handleIconTap}
+            aria-label="Open search" type="button">
             <IconSearch />
           </button>
         )}
 
-        {/* ── Settings button + dropdown — PC only (hidden on mobile via CSS) ── */}
         <div className="hdr-settings-wrap" ref={settingsRef}>
-          <button
-            className="hdr-icon"
-            onClick={handleSettingsToggle}
-            aria-label="Open navigation menu"
-            aria-expanded={settingsOpen}
-            type="button"
-          >
+          <button className="hdr-icon" onClick={handleSettingsToggle}
+            aria-label="Open navigation menu" aria-expanded={settingsOpen} type="button">
             <IconSettings />
           </button>
           {renderSettingsDropdown()}
         </div>
 
-        {/* Cart */}
-        <button
-          className="hdr-icon hdr-bag"
-          onClick={handleCartOpen}
-          aria-label="Open cart"
-          type="button"
-        >
+        <button className="hdr-icon hdr-bag" onClick={handleCartOpen}
+          aria-label="Open cart" type="button">
           <IconCart />
           {cartCount > 0 && (
             <span className="hdr-badge">{cartCount > 99 ? "99+" : cartCount}</span>

@@ -662,14 +662,15 @@ body.dark .home-cat-circle {
 
 @media (min-width: 425px) and (max-width: 639px) {
   :root { --home-px: 16px; }
-
   .home-cat-item     { min-width: 76px; }
   .home-cat-circle   { width: 56px; height: 56px; }
   .home-cat-label    { font-size: 10px; }
 }
 
+/* ── Tablet ── */
 @media (min-width: 640px) and (max-width: 1023px) {
-  .home { padding-left: 48px; }
+  /* ✦ FIXED: removed padding-left: 48px that was misaligning content */
+  .home { padding-left: 0; }
 
   :root { --home-px: 20px; }
 
@@ -696,13 +697,25 @@ body.dark .home-cat-circle {
   .home-trending-empty  { padding: 20px 20px; }
 }
 
+/* ── Desktop ── */
 @media (min-width: 1024px) {
   :root { --home-px: 48px; }
 
-  .home { padding-left: 64px; padding-bottom: 72px; }
+  /* ✦ FIXED: was padding-left: 64px — removed to fix content misalignment */
+  .home { padding-left: 0; padding-bottom: 72px; }
+
+  /* ✦ HIDDEN: categories section moved to header nav mega-dropdown on desktop */
+  .home-section--cats {
+    display: none;
+  }
+
+  /* ✦ CAROUSEL fills the space categories used to occupy — tighter top gap */
+  .home-section--carousel {
+    padding-top: 10px;
+    padding-bottom: 0;
+  }
 
   .home-search-sticky  { padding: 12px 48px 10px; }
-  .home-section--cats  { padding-top: 24px; }
 
   .home-cat-scroll {
     flex-wrap: wrap;
@@ -733,7 +746,7 @@ body.dark .home-cat-circle {
 @media (min-width: 1280px) {
   :root { --home-px: 64px; }
 
-  .home           { padding-left: 72px; }
+  .home           { padding-left: 0; }
   .home-cat-circle { width: 72px; height: 72px; }
   .home-cat-item   { min-width: 90px; max-width: 108px; }
   .home-cat-label  { font-size: 12px; }

@@ -1,13 +1,14 @@
 /* =========================
    HEADER — Clean Modern
    grtheme (#046EF2) primary
+   Desktop: 5-col grid with nav links + categories mega dropdown
 ========================= */
 
 /* ── Base ── */
 .hdr {
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 600; /* raised so backdrop/mega panel sit below header */
   height: 60px;
   padding: 0 10px;
   display: grid;
@@ -263,7 +264,6 @@ body.dark .hdr-suggestions {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Section label ── */
 .hdr-sug-section-label {
   padding: 10px 14px 7px;
   font-size: 9px;
@@ -274,7 +274,6 @@ body.dark .hdr-suggestions {
   font-family: var(--font-main);
 }
 
-/* ── Category chips ── */
 .hdr-sug-chips {
   display: flex;
   gap: 6px;
@@ -285,7 +284,6 @@ body.dark .hdr-suggestions {
   border-bottom: 1px solid var(--border);
 }
 
-body.dark .hdr-sug-chips { border-bottom-color: var(--border); }
 .hdr-sug-chips::-webkit-scrollbar { display: none; }
 
 .hdr-sug-chip {
@@ -312,8 +310,6 @@ body.dark .hdr-sug-chips { border-bottom-color: var(--border); }
   border-color: var(--grtheme);
 }
 
-.hdr-sug-chip:active { opacity: 0.75; }
-
 .hdr-sug-chip-icon {
   width: 12px;
   height: 12px;
@@ -326,7 +322,6 @@ body.dark .hdr-sug-chips { border-bottom-color: var(--border); }
 
 .hdr-sug-chip:hover .hdr-sug-chip-icon { opacity: 1; }
 
-/* ── Recent search items ── */
 .hdr-recent-item {
   display: flex;
   align-items: center;
@@ -393,7 +388,6 @@ body.dark .hdr-sug-chips { border-bottom-color: var(--border); }
   color: #d94f4f;
 }
 
-/* ── Suggestion items (while typing) ── */
 .hdr-suggestion-item {
   display: flex;
   align-items: center;
@@ -454,7 +448,6 @@ body.dark .hdr-suggestion-item.active {
   text-overflow: ellipsis;
 }
 
-/* ── Show more footer ── */
 .hdr-sug-more {
   display: flex;
   align-items: center;
@@ -482,7 +475,6 @@ body.dark .hdr-suggestion-item.active {
   align-items: center;
 }
 
-/* ── Empty state ── */
 .hdr-suggestion-empty {
   padding: 16px 14px;
   font-size: 13px;
@@ -533,7 +525,6 @@ body.dark .hdr-suggestion-item.active {
   }
 }
 
-/* ── Dropdown panel ── */
 .hdr-settings-dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -557,7 +548,6 @@ body.dark .hdr-settings-dropdown {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── User info row ── */
 .hdr-set-user {
   display: flex;
   align-items: center;
@@ -608,7 +598,6 @@ body.dark .hdr-settings-dropdown {
   text-overflow: ellipsis;
 }
 
-/* ── Section label ── */
 .hdr-set-label {
   padding: 10px 14px 7px;
   font-size: 9px;
@@ -619,7 +608,6 @@ body.dark .hdr-settings-dropdown {
   font-family: var(--font-main);
 }
 
-/* ── Nav item rows ── */
 .hdr-set-item {
   display: flex;
   align-items: center;
@@ -666,7 +654,6 @@ body.dark .hdr-settings-dropdown {
 .hdr-set-item--danger .hdr-set-item-icon { color: #d94f4f; }
 .hdr-set-item:hover .hdr-set-item-icon   { opacity: 1; }
 
-/* ── Divider ── */
 .hdr-set-divider {
   height: 0;
   border: none;
@@ -674,7 +661,6 @@ body.dark .hdr-settings-dropdown {
   margin: 0;
 }
 
-/* ── Logout confirm ── */
 .hdr-set-confirm {
   padding: 12px 14px 14px;
   background: var(--soft);
@@ -706,30 +692,320 @@ body.dark .hdr-settings-dropdown {
   transition: opacity 140ms ease, transform 140ms ease;
 }
 
-.hdr-set-confirm-btns button:active {
-  transform: scale(0.97);
-  opacity: 0.8;
-}
-
-.hdr-set-confirm-yes {
-  background: #d94f4f;
-  color: #fff;
-}
-
+.hdr-set-confirm-btns button:active { transform: scale(0.97); opacity: 0.8; }
+.hdr-set-confirm-yes { background: #d94f4f; color: #fff; }
 .hdr-set-confirm-yes:hover { opacity: 0.88; }
-
-.hdr-set-confirm-no {
-  background: var(--card);
-  color: var(--text);
-  border: 1px solid var(--border) !important;
-}
-
+.hdr-set-confirm-no { background: var(--card); color: var(--text); border: 1px solid var(--border) !important; }
 .hdr-set-confirm-no:hover { background: var(--soft); }
 
 /* ══════════════════════════════════════════════
-   PC — SEARCH BAR WIDTH (≥ 768px)
+   DESKTOP NAV — hidden on mobile/tablet
 ══════════════════════════════════════════════ */
-@media (min-width: 768px) {
+.hdr-nav {
+  display: none; /* hidden below 1024px */
+}
+
+/* ── Nav link base ── */
+.hdr-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1;
+  transition: background 130ms ease, color 130ms ease;
+  text-decoration: none;
+}
+
+.hdr-nav-link:hover {
+  background: rgba(4, 110, 242, 0.07);
+  color: var(--grtheme);
+}
+
+.hdr-nav-link:active { opacity: 0.72; }
+
+.hdr-nav-link--active {
+  color: var(--grtheme);
+  background: rgba(4, 110, 242, 0.06);
+}
+
+.hdr-nav-link--open {
+  color: var(--grtheme);
+  background: rgba(4, 110, 242, 0.07);
+}
+
+/* ── Chevron ── */
+.hdr-nav-chevron {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.65;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.15s ease;
+}
+
+.hdr-nav-chevron--open {
+  transform: rotate(180deg);
+  opacity: 1;
+}
+
+/* ── Categories wrap (anchor for mega panel) ── */
+.hdr-nav-cat-wrap {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+}
+
+/* ══════════════════════════════════════════════
+   CATEGORIES MEGA DROPDOWN
+   Backdrop + Panel — both position: fixed
+   so they're relative to viewport, not header
+══════════════════════════════════════════════ */
+
+/* ── Backdrop — dims page below header ── */
+.hdr-cat-backdrop {
+  position: fixed;
+  top: 64px; /* sit flush below header */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 550; /* above page, below header (600) */
+  background: rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+  animation: backdropIn 0.2s ease;
+}
+
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Mega panel ── */
+.hdr-cat-mega {
+  position: fixed;
+  top: 64px; /* flush below header */
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(920px, calc(100vw - 48px));
+  background: var(--card);
+  border: 2.5px solid #111;
+  box-shadow: 6px 6px 0 #111; /* neo-brutalist offset */
+  z-index: 575; /* above backdrop (550), below header (600) */
+  animation: megaIn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.dark .hdr-cat-mega {
+  border-color: rgba(255, 255, 255, 0.82);
+  box-shadow: 6px 6px 0 rgba(255, 255, 255, 0.82);
+}
+
+@keyframes megaIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Inner padding ── */
+.hdr-cat-mega-inner {
+  padding: 22px 24px 18px;
+}
+
+/* ── 4-column category grid ── */
+.hdr-cat-mega-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+/* ── Individual category card ── */
+.hdr-cat-mega-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 14px 10px 12px;
+  border: 2px solid transparent;
+  border-radius: 0; /* sharp — neo-brutalist */
+  background: none;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.1s ease, box-shadow 0.1s ease, transform 0.1s ease, background 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hdr-cat-mega-item:hover {
+  border-color: #111;
+  box-shadow: 3px 3px 0 #111;
+  transform: translate(-1.5px, -1.5px);
+  background: var(--soft);
+}
+
+body.dark .hdr-cat-mega-item:hover {
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 3px 3px 0 rgba(255, 255, 255, 0.8);
+}
+
+.hdr-cat-mega-item:active {
+  transform: translate(1.5px, 1.5px);
+  box-shadow: none;
+}
+
+/* ── Image container ── */
+.hdr-cat-mega-img-wrap {
+  width: 76px;
+  height: 76px;
+  border-radius: 6px;
+  border: 1.5px solid rgba(0, 0, 0, 0.07);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+body.dark .hdr-cat-mega-img-wrap {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.hdr-cat-mega-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Text ── */
+.hdr-cat-mega-label {
+  font-family: var(--font-main);
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.hdr-cat-mega-sub {
+  font-family: var(--font-main);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.35;
+  text-align: center;
+}
+
+/* ── Footer row ── */
+.hdr-cat-mega-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 14px;
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.hdr-cat-mega-all {
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--grtheme);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 2px;
+  transition: opacity 0.15s ease;
+  letter-spacing: 0.01em;
+}
+
+.hdr-cat-mega-all:hover {
+  opacity: 0.72;
+  text-decoration: underline;
+}
+
+/* ══════════════════════════════════════════════
+   PC — DESKTOP LAYOUT (≥ 1024px)
+   5-column grid: menu | logo | nav | search | right
+══════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+  .hdr {
+    height: 64px;
+    padding: 0 32px;
+    gap: 0 16px;
+    /* menu(48px) | logo(auto) | nav(auto) | search(1fr) | right(auto) */
+    grid-template-columns: 48px auto auto 1fr auto;
+  }
+
+  .hdr--has-pill {
+    grid-template-columns: 48px auto auto 1fr auto;
+  }
+
+  /* ── Logo: remove absolute centering, become normal grid item ── */
+  .hdr-logo-wrap,
+  .hdr-logo-wrap--out {
+    position: relative !important;
+    left: unset !important;
+    top: unset !important;
+    transform: translate(0, 0) scale(1) !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    z-index: auto;
+    margin-right: 4px;
+    align-self: center;
+  }
+
+  .hdr-logo {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* ── Show desktop nav ── */
+  .hdr-nav {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 100%;
+  }
+
+  /* ── Search bar: always visible on desktop ── */
+  .hdr-bar-wrap,
+  .hdr-bar-wrap:not(.hdr-bar-wrap--open) {
+    position: relative !important;
+    inset: unset !important;
+    transform: scaleX(1) !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    width: 100%;
+    height: 40px;
+  }
+
+  /* ── Centre col: justify to start (search sits left-to-right) ── */
+  .hdr-centre {
+    justify-content: stretch;
+  }
+
+  /* Search form fills hdr-centre */
+  .hdr-bar-wrap .hdr-search-form {
+    width: 100%;
+  }
+
+  /* Suggestions min-width on desktop */
+  .hdr-suggestions {
+    min-width: 340px;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   TABLET (768px – 1023px) — existing bar layout
+══════════════════════════════════════════════ */
+@media (min-width: 768px) and (max-width: 1023px) {
   .hdr {
     padding: 0 16px;
     gap: 10px;
@@ -787,7 +1063,10 @@ body.dark .hdr-settings-dropdown {
   .hdr-search-form,
   .hdr-suggestions,
   .hdr-sug-chip,
-  .hdr-settings-dropdown {
+  .hdr-settings-dropdown,
+  .hdr-cat-mega,
+  .hdr-cat-backdrop,
+  .hdr-cat-mega-item {
     transition: none !important;
     animation: none !important;
   }
