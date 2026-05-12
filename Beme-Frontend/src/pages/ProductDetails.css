@@ -1471,13 +1471,20 @@ body.dark .pd-btn--outline:not(:disabled):hover {
   padding: 8px 12px;
 }
 
-/* Review cards */
+/* Review cards — horizontal scroll */
 .pd-review-cards {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 10px;
   margin-bottom: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
 }
+
+.pd-review-cards::-webkit-scrollbar { display: none; }
 
 .pd-review-card {
   border: var(--pd-border);
@@ -1485,6 +1492,9 @@ body.dark .pd-btn--outline:not(:disabled):hover {
   padding: 14px 16px;
   background: var(--card);
   box-shadow: var(--pd-shadow);
+  flex-shrink: 0;
+  width: 280px;
+  scroll-snap-align: start;
 }
 
 .pd-review-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
@@ -1713,6 +1723,13 @@ body.dark .pd-verified-badge { color: #5dd68b; }
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 14px;
+    overflow-x: visible;
+    scroll-snap-type: none;
+  }
+
+  .pd-review-card {
+    width: auto;
+    flex-shrink: unset;
   }
 
   .pd-rating-big { font-size: 48px; }
