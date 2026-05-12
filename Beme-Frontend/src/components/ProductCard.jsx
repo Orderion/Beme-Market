@@ -92,7 +92,7 @@ function getDescriptionSnippet(product) {
   return "";
 }
 
-function CartIcon({ inStock }) {
+function CartIcon() {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -100,14 +100,31 @@ function CartIcon({ inStock }) {
       className="cart-svg"
       aria-hidden="true"
       focusable="false"
+      fill="none"
     >
-      <path d="M6 7h12l-1 12H7L6 7z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-      <path d="M9 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      {inStock ? (
-        <path d="M12 11v6M9 14h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      ) : (
-        <path d="M9 15l6-6M9 9l6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      )}
+      <path
+        d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <line
+        x1="3"
+        y1="6"
+        x2="21"
+        y2="6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M16 10a4 4 0 01-8 0"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -150,6 +167,7 @@ export default function ProductCard({ product }) {
   const abroadDeliveryFee = useMemo(() => getItemAbroadDeliveryFee(product), [product]);
   const inStock = useMemo(() => normalizeStock(product), [product]);
   const stock = useMemo(() => getNumericStock(product), [product]);
+  const isRestocked = parseBooleanish(product?.restocked, false);
 
   const priceRaw = product?.price;
   const oldPriceRaw = product?.oldPrice;
@@ -171,6 +189,10 @@ export default function ProductCard({ product }) {
   const discountPct = hasDiscount
     ? Math.round(((oldPrice - price) / oldPrice) * 100)
     : 0;
+
+  // Subtitle: color/variant or short description
+  const subtitle = String(product?.color || product?.variant || product?.subtitle || "").trim()
+    || descriptionSnippet;
 
   const formatMoney = (n) => {
     if (n === null || Number.isNaN(n)) return "";
@@ -282,11 +304,17 @@ export default function ProductCard({ product }) {
                   <img className="p-img" src={activeImage} alt={name} loading="lazy" />
                 </div>
 
-                {!inStock && (
-                  <div className="p-stock-badge p-stock-badge--out">Out of stock</div>
-                )}
+                {/* ── Status badges — top-left ── */}
+                <div className="p-badges">
+                  {isRestocked && (
+                    <span className="p-badge p-badge--restocked">Restocked</span>
+                  )}
+                  {!inStock && (
+                    <span className="p-badge p-badge--soldout">Sold Out</span>
+                  )}
+                </div>
 
-                {/* ── Cart button — top-right corner of image ── */}
+                {/* ── Cart button — bottom-right corner of image ── */}
                 <button
                   className={`p-cart-btn ${!inStock ? "p-cart-btn--disabled" : ""}`}
                   onClick={handleAddToCart}
@@ -294,7 +322,7 @@ export default function ProductCard({ product }) {
                   type="button"
                   disabled={!inStock}
                 >
-                  <CartIcon inStock={inStock} />
+                  <CartIcon />
                 </button>
 
                 {imageCount > 1 && (
@@ -359,29 +387,20 @@ export default function ProductCard({ product }) {
 
             <h3 className="p-name">{name}</h3>
 
-            {descriptionSnippet ? (
-              <p className="p-desc">{descriptionSnippet}</p>
+            {subtitle ? (
+              <p className="p-subtitle">{subtitle}</p>
             ) : (
-              <div className="p-desc p-desc--empty" aria-hidden="true" />
+              <div className="p-subtitle p-subtitle--empty" aria-hidden="true" />
             )}
 
-            {/* ── Price row with inline discount badge ── */}
+            {/* ── Price row ── */}
             <div className="p-prices">
               {price !== null ? (
-                <div className="p-price-col">
-                  <div className="p-price-row">
-                    <span className="p-price">{formatMoney(price)}</span>
-                    {hasDiscount && (
-                      <span className="p-deal-badge" aria-label={`${discountPct}% off`}>
-                        {discountPct}% off
-                      </span>
-                    )}
-                  </div>
+                <div className="p-price-row">
                   {hasDiscount && (
-                    <div className="p-old-wrap">
-                      <span className="p-old">{formatMoney(oldPrice)}</span>
-                    </div>
+                    <span className="p-old">{formatMoney(oldPrice)}</span>
                   )}
+                  <span className="p-price">{formatMoney(price)}</span>
                 </div>
               ) : (
                 <span className="p-missing">No price</span>
