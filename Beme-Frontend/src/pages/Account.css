@@ -45,7 +45,7 @@
   align-items: center;
   gap: 5px;
   padding: 5px 12px 5px 10px;
-  border-radius: 100px;
+  border-radius: 4px;
   background: var(--grtheme);
   font-size: 10px;
   font-weight: 700;
@@ -99,7 +99,7 @@
 ================================================================ */
 .acc-profile-card {
   background: var(--card);
-  border-radius: 16px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   padding: 18px 16px 16px;
   margin-top: 22px;
@@ -145,7 +145,7 @@ body.dark .acc-profile-card {
   align-items: center;
   gap: 5px;
   padding: 7px 14px;
-  border-radius: 100px;
+  border-radius: 4px;
   border: 1.5px solid var(--grtheme);
   background: transparent;
   color: var(--grtheme);
@@ -202,7 +202,7 @@ body.dark .acc-profile-card {
   align-items: center;
   gap: 5px;
   padding: 5px 11px;
-  border-radius: 100px;
+  border-radius: 4px;
   background: rgba(4, 110, 242, 0.08);
   border: 1.5px solid rgba(4, 110, 242, 0.2);
   font-size: 11px;
@@ -230,7 +230,7 @@ body.dark .acc-pref-pill {
 .acc-tile {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 6px;
   padding: 18px 8px 14px;
   display: flex;
   flex-direction: column;
@@ -275,7 +275,7 @@ body.dark .acc-tile {
   font-weight: 800;
   font-family: var(--font-main);
   padding: 1px 5px;
-  border-radius: 100px;
+  border-radius: 4px;
   min-width: 16px;
   text-align: center;
   line-height: 1.6;
@@ -295,7 +295,7 @@ body.dark .acc-tile {
 ================================================================ */
 .acc-promo-card {
   background: var(--card);
-  border-radius: 14px;
+  border-radius: 6px;
   border: 1px solid var(--border);
   padding: 18px 16px;
   margin-top: 16px;
@@ -356,7 +356,7 @@ body.dark .acc-promo-card--done {
 .acc-promo-icon {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
+  border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--soft);
   display: flex;
@@ -381,7 +381,7 @@ body.dark .acc-promo-card--done {
 
 .acc-group {
   background: var(--card);
-  border-radius: 16px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   overflow: hidden;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
@@ -427,7 +427,7 @@ body.dark .acc-row { border-bottom-color: var(--border); }
 .acc-row-icon-wrap {
   width: 36px;
   height: 36px;
-  border-radius: 10px;
+  border-radius: 5px;
   background: rgba(4, 110, 242, 0.08);
   display: flex;
   align-items: center;
@@ -491,7 +491,7 @@ body.dark .acc-row-icon-wrap {
 /* Row badge */
 .acc-row-badge {
   padding: 2px 9px;
-  border-radius: 100px;
+  border-radius: 4px;
   background: var(--grtheme);
   color: #fff;
   font-size: 11px;
@@ -544,7 +544,7 @@ body.dark .acc-row-icon-wrap {
 .acc-sheet {
   width: 100%;
   background: var(--card);
-  border-radius: 24px 24px 0 0;
+  border-radius: 10px 10px 0 0;
   padding: 20px 20px 48px;
   transition: background var(--motion-slow);
 }
@@ -553,7 +553,7 @@ body.dark .acc-row-icon-wrap {
   width: 36px;
   height: 4px;
   background: var(--border);
-  border-radius: 100px;
+  border-radius: 4px;
   margin: 0 auto 22px;
   opacity: 0.3;
 }
@@ -579,7 +579,7 @@ body.dark .acc-row-icon-wrap {
 .acc-sheet__btn {
   width: 100%;
   padding: 15px;
-  border-radius: 12px;
+  border-radius: 6px;
   font-weight: 700;
   font-size: 14px;
   font-family: var(--font-main);
@@ -620,7 +620,7 @@ body.dark .acc-row-icon-wrap {
   width: 100%;
   max-height: 92vh;
   background: var(--card);
-  border-radius: 24px 24px 0 0;
+  border-radius: 10px 10px 0 0;
   padding: 0 20px 48px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -685,7 +685,7 @@ body.dark .acc-modal__close:hover { background: rgba(255,255,255,0.12); }
 .acc-modal__input {
   width: 100%;
   padding: 13px 16px;
-  border-radius: 12px;
+  border-radius: 6px;
   border: 1.5px solid var(--border);
   background: var(--bg);
   color: var(--text);
@@ -728,7 +728,7 @@ body.dark .acc-modal__input { background: var(--bg); }
   align-items: center;
   gap: 6px;
   padding: 9px 16px;
-  border-radius: 100px;
+  border-radius: 4px;
   border: 1.5px solid var(--border);
   background: transparent;
   color: var(--text);
@@ -775,7 +775,7 @@ body.dark .acc-modal__input { background: var(--bg); }
   align-items: center;
   gap: 8px;
   padding: 13px 12px;
-  border-radius: 12px;
+  border-radius: 6px;
   border: 1.5px solid var(--border);
   background: transparent;
   color: var(--text);
@@ -825,7 +825,7 @@ body.dark .acc-modal__pref--on {
 
 .acc-modal__err {
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: 5px;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.5;
@@ -845,7 +845,7 @@ body.dark .acc-modal__err {
 .acc-modal__save {
   width: 100%;
   padding: 15px 20px;
-  border-radius: 12px;
+  border-radius: 6px;
   background: var(--grtheme);
   color: #fff;
   font-size: 14px;
