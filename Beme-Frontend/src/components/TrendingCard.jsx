@@ -80,16 +80,31 @@ function getItemAbroadDeliveryFee(product) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
-function CartIcon({ inStock }) {
+function CartIcon() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="tc-cart-svg" aria-hidden="true" focusable="false">
-      <path d="M6 7h12l-1 12H7L6 7z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-      <path d="M9 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      {inStock ? (
-        <path d="M12 11v6M9 14h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      ) : (
-        <path d="M9 15l6-6M9 9l6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      )}
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      className="tc-cart-svg"
+      aria-hidden="true"
+      focusable="false"
+      fill="none"
+    >
+      <path
+        d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path
+        d="M16 10a4 4 0 01-8 0"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -132,6 +147,7 @@ export default function TrendingCard({ product }) {
   const abroadDeliveryFee = useMemo(() => getItemAbroadDeliveryFee(product), [product]);
   const inStock = useMemo(() => normalizeStock(product), [product]);
   const stock = useMemo(() => getNumericStock(product), [product]);
+  const isRestocked = parseBooleanish(product?.restocked, false);
 
   const priceRaw = product?.price;
   const oldPriceRaw = product?.oldPrice;
@@ -257,19 +273,20 @@ export default function TrendingCard({ product }) {
                   <img className="tc-img" src={activeImage} alt={name} loading="lazy" />
                 </div>
 
-                {/* Discount badge — bottom left over image */}
-                {hasDiscount && (
-                  <div className="tc-discount-badge" aria-label={`${discountPct}% off`}>
-                    {discountPct}% OFF
-                  </div>
-                )}
+                {/* Status badges — top left */}
+                <div className="tc-badges">
+                  {isRestocked && (
+                    <span className="tc-badge tc-badge--restocked">Restocked</span>
+                  )}
+                  {!inStock && (
+                    <span className="tc-badge tc-badge--soldout">Sold Out</span>
+                  )}
+                  {hasDiscount && inStock && (
+                    <span className="tc-badge tc-badge--discount">{discountPct}% Off</span>
+                  )}
+                </div>
 
-                {/* Out of stock badge */}
-                {!inStock && (
-                  <div className="tc-out-badge">Out of stock</div>
-                )}
-
-                {/* Cart button — top right */}
+                {/* Cart button — bottom right */}
                 <button
                   className={`tc-cart-btn ${!inStock ? "tc-cart-btn--disabled" : ""}`}
                   onClick={handleAddToCart}
@@ -277,7 +294,7 @@ export default function TrendingCard({ product }) {
                   type="button"
                   disabled={!inStock}
                 >
-                  <CartIcon inStock={inStock} />
+                  <CartIcon />
                 </button>
 
                 {/* Image nav arrows */}
@@ -301,12 +318,18 @@ export default function TrendingCard({ product }) {
             )}
           </div>
 
-          {/* Card body — name only */}
+          {/* Card body */}
           <div className="tc-body">
             {cardPopup && (
               <div className="tc-popup" role="alert">{cardPopup}</div>
             )}
             <h3 className="tc-name">{name}</h3>
+            {price !== null && (
+              <div className="tc-price-row">
+                {hasDiscount && <span className="tc-old">{formatMoney(oldPrice)}</span>}
+                <span className="tc-price">{formatMoney(price)}</span>
+              </div>
+            )}
           </div>
 
         </div>
