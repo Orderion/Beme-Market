@@ -905,10 +905,10 @@ export default function Header({ onMenu, onCart }) {
 
         <button
           type="button"
-          className={`hdr-nav-link ${location.pathname === "/pricing" ? "hdr-nav-link--active" : ""}`}
-          onClick={() => navigate("/pricing")}
+          className={`hdr-nav-link ${location.pathname === "/custom-store" ? "hdr-nav-link--active" : ""}`}
+          onClick={() => navigate("/custom-store")}
         >
-          Pricing
+          Get a store
         </button>
 
         <button
