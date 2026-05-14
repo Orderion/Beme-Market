@@ -1,169 +1,244 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { useUserUnreadCount } from "../../hooks/useNotifications";
+import { useEffect, useRef, useState } from "react";
+import { useWishlist } from "../../hooks/useWishlist";
+import "./BottomNav.css";
 
-/* ─── SVG icon helper ─────────────────────────────────────────────────────── */
-function Icon({ path, size = 22, color = "currentColor", fill = "none" }) {
+/* ================= ICONS — strokeWidth 1.5 for thin line-art ================= */
+
+function IconHome() {
   return (
-    <svg
-      width={size} height={size} viewBox="0 0 24 24"
-      fill={fill} stroke={color} strokeWidth="1.8"
-      strokeLinecap="round" strokeLinejoin="round"
-    >
-      {path.split(" M").map((seg, i) => (
-        <path key={i} d={(i === 0 ? "" : "M") + seg} />
-      ))}
+    <svg viewBox="0 0 24 24" className="bn-svg" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5Z"/>
+      <path d="M9 21V12h6v9"/>
     </svg>
   );
 }
 
-/* ─── Icons ──────────────────────────────────────────────────────────────── */
-const ICONS = {
-  home:      "M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5Z M9 21V12h6v9",
-  store:     "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z M3.27 6.96L12 12.01l8.73-5.05 M12 22.08V12",
-  // ── NEW: "Get a Store" star/shop icon ─────────────────────────────────────
-  getStore:  "M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0",
-  orders:    "M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2 M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2 M9 5a2 2 0 0 0 2-2h2a2 2 0 0 0 2 2",
-  account:   "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
-  login:     "M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4 M10 17l5-5-5-5 M15 12H3",
-};
-
-/* ─── Nav tab component ───────────────────────────────────────────────────── */
-function Tab({ to, icon, label, badge }) {
+function IconShop() {
   return (
-    <NavLink
-      to={to}
-      style={({ isActive }) => ({
-        display:        "flex",
-        flexDirection:  "column",
-        alignItems:     "center",
-        justifyContent: "center",
-        gap:            "3px",
-        flex:           1,
-        paddingBlock:   "8px",
-        color:          isActive ? "var(--grtheme, #046EF2)" : "var(--muted, #888)",
-        textDecoration: "none",
-        position:       "relative",
-        transition:     "color 0.15s",
-        fontSize:       "10px",
-        fontWeight:     600,
-        fontFamily:     "var(--font-main, Manrope, system-ui)",
-        letterSpacing:  "0.01em",
-      })}
-    >
-      <Icon path={ICONS[icon]} size={21} />
-      {label}
-      {badge > 0 && (
-        <span style={{
-          position:   "absolute",
-          top:        "6px",
-          right:      "calc(50% - 14px)",
-          background: "#EF4444",
-          color:      "#fff",
-          borderRadius: "100px",
-          fontSize:   "9px",
-          fontWeight: 800,
-          padding:    "1px 5px",
-          lineHeight: 1.4,
-          minWidth:   "16px",
-          textAlign:  "center",
-        }}>
-          {badge > 9 ? "9+" : badge}
-        </span>
-      )}
-    </NavLink>
+    <svg viewBox="0 0 24 24" className="bn-svg" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <path d="M16 10a4 4 0 0 1-8 0"/>
+    </svg>
   );
 }
 
-/* ─── Centre store button ─────────────────────────────────────────────────── */
-function CentreStoreBtn() {
-  const navigate = useNavigate();
+function IconOrders() {
   return (
-    <button
-      onClick={() => navigate("/shop")}
-      style={{
-        display:        "flex",
-        flexDirection:  "column",
-        alignItems:     "center",
-        justifyContent: "center",
-        gap:            "3px",
-        flex:           1,
-        paddingBlock:   "8px",
-        background:     "none",
-        border:         "none",
-        cursor:         "pointer",
-        color:          "var(--muted, #888)",
-        fontSize:       "10px",
-        fontWeight:     600,
-        fontFamily:     "var(--font-main, Manrope, system-ui)",
-      }}
-    >
-      <div style={{
-        width:          "38px",
-        height:         "38px",
-        borderRadius:   "50%",
-        background:     "var(--grtheme, #046EF2)",
-        display:        "flex",
-        alignItems:     "center",
-        justifyContent: "center",
-        marginBottom:   "2px",
-        boxShadow:      "0 4px 12px rgba(4,110,242,0.35)",
-      }}>
-        <Icon path={ICONS.store} size={18} color="#fff" />
-      </div>
-      Shop
-    </button>
+    <svg viewBox="0 0 24 24" className="bn-svg" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 11l3 3L22 4"/>
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+    </svg>
   );
 }
 
-/* ─── BottomNav ───────────────────────────────────────────────────────────── */
+function IconUser() {
+  return (
+    <svg viewBox="0 0 24 24" className="bn-svg" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 20a8 8 0 0 1 16 0"/>
+    </svg>
+  );
+}
+
+function IconOffers() {
+  return (
+    <svg viewBox="0 0 24 24" className="bn-svg" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.78 0l-8-4A2 2 0 0 1 2 16.76V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"/>
+      <polyline points="2.32 6.16 12 11 21.68 6.16"/>
+      <line x1="12" y1="22.76" x2="12" y2="11"/>
+    </svg>
+  );
+}
+
+function IconChevronUp() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 15l-6-6-6 6"/>
+    </svg>
+  );
+}
+
+/* ================= COMPONENT ================= */
+
 export default function BottomNav() {
-  const { user, isSeller } = useAuth();
-  const { count: unreadCount } = useUserUnreadCount?.() ?? { count: 0 };
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, logout } = useAuth();
+
+  const { wishlistCount } = useWishlist(null);
+
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [logoutConfirmMounted, setLogoutConfirmMounted] = useState(false);
+  const logoutWrapRef = useRef(null);
+
+  /* ── Scroll-hide logic ── */
+  const [navVisible, setNavVisible] = useState(true);
+  const [showBackTop, setShowBackTop] = useState(false);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
+
+  useEffect(() => {
+    const SCROLL_THRESHOLD = 8;
+    const BACK_TOP_THRESHOLD = 320;
+
+    const onScroll = () => {
+      if (ticking.current) return;
+      ticking.current = true;
+      requestAnimationFrame(() => {
+        const currentY = window.scrollY;
+        const diff = currentY - lastScrollY.current;
+        if (Math.abs(diff) >= SCROLL_THRESHOLD) {
+          setNavVisible(diff < 0 || currentY < 60);
+          lastScrollY.current = currentY;
+        }
+        setShowBackTop(currentY > BACK_TOP_THRESHOLD);
+        ticking.current = false;
+      });
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setNavVisible(true);
+  };
+
+  const isActive = (path) => location.pathname === path;
+
+  /* ── Logout confirm mount/unmount ── */
+  useEffect(() => {
+    let timeoutId;
+    if (showLogoutConfirm) {
+      setLogoutConfirmMounted(true);
+    } else {
+      timeoutId = setTimeout(() => setLogoutConfirmMounted(false), 200);
+    }
+    return () => clearTimeout(timeoutId);
+  }, [showLogoutConfirm]);
+
+  /* ── Close on outside click or ESC ── */
+  useEffect(() => {
+    if (!showLogoutConfirm && !logoutConfirmMounted) return;
+
+    const handleClickOutside = (event) => {
+      if (!logoutWrapRef.current) return;
+      if (!logoutWrapRef.current.contains(event.target)) {
+        setShowLogoutConfirm(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") setShowLogoutConfirm(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [showLogoutConfirm, logoutConfirmMounted]);
+
+  const displayCount = user && wishlistCount > 0 ? wishlistCount : 0;
 
   return (
-    <nav style={{
-      position:       "fixed",
-      bottom:         0,
-      left:           0,
-      right:          0,
-      height:         "64px",
-      background:     "var(--card, #fff)",
-      borderTop:      "1px solid var(--border, rgba(0,0,0,0.08))",
-      display:        "flex",
-      alignItems:     "stretch",
-      zIndex:         90,
-      paddingBottom:  "env(safe-area-inset-bottom, 0)",
-      boxShadow:      "0 -1px 12px rgba(0,0,0,0.06)",
-    }}>
+    <>
+      {/* ── Back-to-top — square brutalist button ── */}
+      <button
+        className={[
+          "bn-back-top",
+          showBackTop ? "bn-back-top--visible" : "",
+          !navVisible ? "bn-back-top--nav-hidden" : "",
+        ].join(" ")}
+        onClick={scrollToTop}
+        aria-label="Back to top"
+      >
+        <IconChevronUp />
+      </button>
 
-      {/* 1 — Home */}
-      <Tab to="/" icon="home" label="Home" />
+      {/* ── Nav ── */}
+      <nav className={`bottom-nav${navVisible ? "" : " bottom-nav--hidden"}`}>
 
-      {/* ── 2 — CHANGED: "Offers" → "Get a Store" ─────────────────────────────
-          Previously this was <Tab to="/offers" icon="offers" label="Offers" />
-          Now it points to /get-a-store with a shop bag icon.
-          Sellers see "Dashboard" pointing to their seller dashboard instead.
-      ── */}
-      {isSeller ? (
-        <Tab to="/seller-dashboard" icon="store" label="Dashboard" />
-      ) : (
-        <Tab to="/get-a-store" icon="getStore" label="Get a Store" />
-      )}
+        {/* HOME */}
+        <button
+          className={`bn-item ${isActive("/") ? "active" : ""}`}
+          onClick={() => navigate("/")}
+        >
+          <IconHome />
+          <span>Home</span>
+          <span className="bn-active-pip" />
+        </button>
 
-      {/* 3 — Centre shop button */}
-      <CentreStoreBtn />
+        {/* OFFERS */}
+        <button
+          className={`bn-item ${isActive("/offers") ? "active" : ""}`}
+          onClick={() => navigate("/offers")}
+        >
+          <IconOffers />
+          <span>Offers</span>
+          <span className="bn-active-pip" />
+        </button>
 
-      {/* 4 — Orders */}
-      <Tab to="/orders" icon="orders" label="Orders" />
+        {/* CENTER SHOP — square with hard shadow */}
+        <button
+          className="bn-center"
+          onClick={() => navigate("/shop")}
+          aria-label="Shop"
+        >
+          <IconShop />
+        </button>
 
-      {/* 5 — Account / Login */}
-      {user ? (
-        <Tab to="/profile" icon="account" label="Account" badge={unreadCount} />
-      ) : (
-        <Tab to="/login" icon="login" label="Login" />
-      )}
-    </nav>
+        {/* ORDERS */}
+        <button
+          className={`bn-item ${isActive("/orders") ? "active" : ""}`}
+          onClick={() => navigate("/orders")}
+        >
+          <IconOrders />
+          <span>Orders</span>
+          <span className="bn-active-pip" />
+        </button>
+
+        {/* ACCOUNT / LOGIN */}
+        {!user ? (
+          <button
+            className={`bn-item ${isActive("/login") ? "active" : ""}`}
+            onClick={() => navigate("/login")}
+          >
+            <IconUser />
+            <span>Login</span>
+            <span className="bn-active-pip" />
+          </button>
+        ) : (
+          <button
+            className={`bn-item ${isActive("/account") ? "active" : ""}`}
+            onClick={() => navigate("/account")}
+            aria-label="Go to account"
+          >
+            <span className="bn-icon-wrap">
+              <IconUser />
+              {displayCount > 0 && (
+                <span className="bn-saved-badge">
+                  {displayCount > 99 ? "99+" : displayCount}
+                </span>
+              )}
+            </span>
+            <span>Account</span>
+            <span className="bn-active-pip" />
+          </button>
+        )}
+
+      </nav>
+    </>
   );
 }
-
