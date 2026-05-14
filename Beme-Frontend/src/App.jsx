@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+\import { useEffect, useMemo, useState } from "react";
 import {
   Routes,
   Route,
@@ -246,13 +246,8 @@ function AppShell() {
           />
 
           {/* ── NEW: Seller dashboard (full-screen, seller role required) ── */}
-          <Route path="/seller-dashboard"
-            element={
-              <SellerRoute requireOnly="auth">
-                <SellerDashboard />
-              </SellerRoute>
-            }
-          />
+          {/* No SellerRoute wrapper — auth check is inside SellerDashboard */}
+          <Route path="/seller-dashboard" element={<SellerDashboard />} />
 
           {/* ── ADMIN HUB ── */}
           <Route
