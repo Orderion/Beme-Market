@@ -389,7 +389,10 @@ export default function Header({ onMenu, onCart }) {
   const navigate      = useNavigate();
   const location      = useLocation();
   const { cartItems } = useCart();
-  const { user, logout } = useAuth();
+
+  // ── CHANGED: added isSellerActive to destructure ──────────────
+  const { user, logout, isSellerActive } = useAuth();
+
   const actionLockRef = useRef(false);
   const prefersDark   = usePrefersDark();
 
@@ -540,7 +543,7 @@ export default function Header({ onMenu, onCart }) {
     };
   }, []);
 
-  /* ── NEW: Click outside + Escape → close categories mega menu ── */
+  /* ── Click outside + Escape → close categories mega menu ── */
   useEffect(() => {
     const onDown = (e) => {
       if (navCatRef.current && !navCatRef.current.contains(e.target)) {
@@ -789,7 +792,7 @@ export default function Header({ onMenu, onCart }) {
   };
 
   /* ══════════════════════════════════════════
-     NEW: CATEGORIES MEGA DROPDOWN
+     CATEGORIES MEGA DROPDOWN
   ══════════════════════════════════════════ */
   const renderCatMegaMenu = () => (
     <>
@@ -903,12 +906,13 @@ export default function Header({ onMenu, onCart }) {
           {catMenuOpen && renderCatMegaMenu()}
         </div>
 
+        {/* ── CHANGED: /custom-store → /get-a-store, smart label for sellers ── */}
         <button
           type="button"
-          className={`hdr-nav-link ${location.pathname === "/custom-store" ? "hdr-nav-link--active" : ""}`}
-          onClick={() => navigate("/custom-store")}
+          className={`hdr-nav-link ${location.pathname === (isSellerActive ? "/seller-dashboard" : "/get-a-store") ? "hdr-nav-link--active" : ""}`}
+          onClick={() => navigate(isSellerActive ? "/seller-dashboard" : "/get-a-store")}
         >
-          Get a store
+          {isSellerActive ? "My Dashboard" : "Get a store"}
         </button>
 
         <button
