@@ -1,0 +1,39 @@
+/* StoreSurvey.css */
+.ss-root { min-height: 100vh; background: #F8F9FF; display: flex; flex-direction: column; font-family: 'Manrope', system-ui, sans-serif; }
+.ss-header { display: flex; align-items: center; gap: 16px; padding: 16px 24px; background: #fff; border-bottom: 1px solid rgba(0,0,0,0.06); position: sticky; top: 0; z-index: 10; }
+.ss-back { background: none; border: none; cursor: pointer; font-size: 14px; font-weight: 600; color: #8B8FA8; padding: 6px 10px; border-radius: 6px; transition: all 0.12s; flex-shrink: 0; }
+.ss-back:hover { color: #1A1D3B; background: rgba(0,0,0,0.04); }
+.ss-progress-bar { flex: 1; height: 6px; background: rgba(0,0,0,0.08); border-radius: 100px; overflow: hidden; }
+.ss-progress-fill { height: 100%; background: #046EF2; border-radius: 100px; transition: width 0.4s ease; }
+.ss-step-label { font-size: 12px; font-weight: 600; color: #8B8FA8; flex-shrink: 0; }
+.ss-content { max-width: 560px; margin: 0 auto; padding: 48px 24px; width: 100%; }
+.ss-intro { margin-bottom: 32px; }
+.ss-title { font-family: 'Space Grotesk', sans-serif; font-size: clamp(22px, 3vw, 30px); font-weight: 800; color: #111111; letter-spacing: -0.04em; margin-bottom: 8px; }
+.ss-sub { font-size: 15px; color: #6B7280; line-height: 1.6; }
+.ss-form { display: flex; flex-direction: column; gap: 4px; }
+.ss-form-group { margin-bottom: 18px; }
+.ss-label { display: block; font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 7px; letter-spacing: 0.02em; }
+.ss-input, .ss-select, .ss-textarea {
+  width: 100%; padding: 12px 14px; border: 1.5px solid rgba(0,0,0,0.1); border-radius: 8px;
+  font-size: 14px; font-weight: 500; color: #111111; background: #fff; outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s; font-family: 'Manrope', sans-serif; box-sizing: border-box;
+}
+.ss-input:focus, .ss-select:focus, .ss-textarea:focus { border-color: #046EF2; box-shadow: 0 0 0 3px rgba(4,110,242,0.15); }
+.ss-textarea { resize: vertical; min-height: 100px; }
+.ss-hint { font-size: 11px; color: #9CA3AF; margin-top: 5px; }
+.ss-input-prefix-wrap { display: flex; border: 1.5px solid rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }
+.ss-prefix { padding: 12px 12px; background: #F8F9FF; color: #8B8FA8; font-size: 13px; font-weight: 600; border-right: 1px solid rgba(0,0,0,0.08); white-space: nowrap; }
+.ss-input-prefix { border: none; border-radius: 0; box-shadow: none; flex: 1; }
+.ss-input-prefix:focus { box-shadow: none; }
+.ss-input-icon-wrap { position: relative; }
+.ss-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 16px; }
+.ss-input-icon { padding-left: 40px; }
+.ss-radio-group { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.ss-radio { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; color: #111111; cursor: pointer; padding: 12px 14px; border: 1.5px solid rgba(0,0,0,0.1); border-radius: 8px; transition: all 0.12s; }
+.ss-radio:has(input:checked) { border-color: #046EF2; background: rgba(4,110,242,0.06); }
+.ss-checkbox { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: #374151; cursor: pointer; line-height: 1.6; }
+.ss-footer { margin-top: 32px; }
+.ss-next-btn { width: 100%; padding: 14px; background: #046EF2; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.15s; font-family: 'Manrope', sans-serif; }
+.ss-next-btn:hover:not(:disabled) { background: #0357C7; }
+.ss-next-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
