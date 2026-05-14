@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { verifySubscriptionPayment } from "../services/subscriptionService";
+import { SELLER_APPLIED_KEY } from "../components/SellerRoute";
 import "./SubscriptionSuccess.css";
 
 function SpinnerIcon() {
@@ -24,7 +25,7 @@ function SuccessIcon() {
 function ErrorIcon() {
   return (
     <div className="succ-icon-wrap">
-      <div className="succ-icon-circle" style={{ background:"#EF4444" }}>
+      <div className="succ-icon-circle" style={{ background: "#EF4444" }}>
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
           stroke="#fff" strokeWidth="2" strokeLinecap="round">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -34,17 +35,10 @@ function ErrorIcon() {
   );
 }
 
-function StepDot({ delay = 0 }) {
-  return (
-    <div className="succ-step-dot succ-step-loading"
-      style={{ animationDelay: `${delay}s` }} />
-  );
-}
-
 function CheckItem({ label }) {
   return (
     <div className="succ-check-item">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
         stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round">
         <polyline points="20 6 9 17 4 12"/>
       </svg>
@@ -61,32 +55,48 @@ export default function SubscriptionSuccess() {
   const reference = params.get("reference") || params.get("trxref");
   const status    = params.get("status");
 
-  const [phase,     setPhase]     = useState("verifying");
-  const [message,   setMessage]   = useState("Verifying your payment…");
-  const [storeName, setStoreName] = useState("");
+  const [phase,   setPhase]   = useState("verifying");
+  const [message, setMessage] = useState("Verifying your payment…");
 
   useEffect(() => {
     let mounted = true;
+
     const process = async () => {
+      // ── Free / basic plan ───────────────────────────────────────────────────
       if (status === "free") {
-        setPhase("success");
-        setMessage("Your free store is ready!");
-        await refreshProfile?.();
+        if (user?.uid) {
+          // Mark this user as having completed onboarding on this device.
+          // SellerRoute checks this flag to grant dashboard access until
+          // Cloud Functions deploy and set role="seller" in Firestore.
+          localStorage.setItem(SELLER_APPLIED_KEY, user.uid);
+          await refreshProfile?.();
+        }
+        if (mounted) {
+          setPhase("success");
+          setMessage("Your free store is ready!");
+        }
         return;
       }
+
+      // ── Paid plan — verify Paystack reference ────────────────────────────────
       if (!reference) {
-        setPhase("error");
-        setMessage("No payment reference found. Please contact support.");
+        if (mounted) {
+          setPhase("error");
+          setMessage("No payment reference found. Please contact support.");
+        }
         return;
       }
+
       setMessage("Confirming payment with Paystack…");
+
       try {
         const result = await verifySubscriptionPayment(reference);
         if (!mounted) return;
         if (result?.success) {
-          setStoreName(result.shopName || "Your Store");
-          setPhase("success");
+          // Mark onboarding complete
+          if (user?.uid) localStorage.setItem(SELLER_APPLIED_KEY, user.uid);
           await refreshProfile?.();
+          setPhase("success");
         } else {
           throw new Error(result?.error || "Verification failed.");
         }
@@ -96,36 +106,44 @@ export default function SubscriptionSuccess() {
         setMessage(err.message || "Something went wrong. Please contact support.");
       }
     };
+
     process();
     return () => { mounted = false; };
-  }, [reference, status]);
+  }, [reference, status, user?.uid]);
+
+  const goToDashboard = () => {
+    // Navigate directly — SellerRoute will allow through because of localStorage flag
+    navigate("/seller-dashboard", { replace: true });
+  };
 
   return (
     <div className="succ-root">
-      {/* CSS confetti (no emojis) */}
+      {/* Confetti on success */}
       {phase === "success" && (
-        <div className="succ-confetti">
-          {[...Array(20)].map((_, i) => (
+        <div className="succ-confetti" aria-hidden="true">
+          {[...Array(18)].map((_, i) => (
             <div key={i} className="succ-confetti-piece" style={{
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 2}s`,
+              left: `${(i / 18) * 100}%`,
+              animationDelay: `${(i % 5) * 0.3}s`,
               background: ["#046EF2","#22C55E","#F59E0B","#7C3AED","#EF4444"][i % 5],
-            }} />
+            }}/>
           ))}
         </div>
       )}
 
       <div className="succ-card">
-        {/* Verifying */}
+
+        {/* ── Verifying ── */}
         {phase === "verifying" && (
           <>
             <SpinnerIcon />
             <h2 className="succ-title">Setting Up Your Store</h2>
             <p className="succ-sub">{message}</p>
             <div className="succ-steps">
-              {["Confirming payment", "Creating your storefront", "Activating your account"].map((s, i) => (
+              {["Confirming payment","Creating your storefront","Activating your account"].map((s, i) => (
                 <div key={s} className="succ-step-item">
-                  <StepDot delay={i * 0.3} />
+                  <div className="succ-step-dot succ-step-loading"
+                    style={{ animationDelay: `${i * 0.3}s` }}/>
                   <span>{s}</span>
                 </div>
               ))}
@@ -133,14 +151,13 @@ export default function SubscriptionSuccess() {
           </>
         )}
 
-        {/* Success */}
+        {/* ── Success ── */}
         {phase === "success" && (
           <>
             <SuccessIcon />
             <h2 className="succ-title">Welcome to Beme Market!</h2>
             <p className="succ-sub">
-              {storeName ? `${storeName} is now live!` : "Your store is live!"}{" "}
-              Start adding products and sharing your store link with customers.
+              Your store is live! Start adding products and sharing your store link with customers.
             </p>
             <div className="succ-checklist">
               <CheckItem label="Store created and activated" />
@@ -148,34 +165,37 @@ export default function SubscriptionSuccess() {
               <CheckItem label="Seller dashboard ready" />
               <CheckItem label="Products can be listed now" />
             </div>
-            <button className="succ-cta-btn" onClick={() => navigate("/seller-dashboard", { replace:true })}>
+            <button className="succ-cta-btn" onClick={goToDashboard}>
               Go to My Dashboard →
             </button>
             <div className="succ-support">
               Need help?{" "}
-              <a href="/support" style={{ color:"#046EF2" }}>Contact support</a>
+              <a href="/support" style={{ color: "#046EF2" }}>Contact support</a>
             </div>
           </>
         )}
 
-        {/* Error */}
+        {/* ── Error ── */}
         {phase === "error" && (
           <>
             <ErrorIcon />
             <h2 className="succ-title">Something Went Wrong</h2>
             <p className="succ-sub">{message}</p>
-            <div style={{ display:"flex", gap:12, justifyContent:"center", marginTop:24 }}>
-              <button className="succ-cta-btn" style={{ background:"#EF4444" }} onClick={() => navigate("/store-plans")}>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 24, flexWrap: "wrap" }}>
+              <button className="succ-cta-btn" style={{ background: "#EF4444" }}
+                onClick={() => navigate("/store-plans")}>
                 Try Again
               </button>
-              <button className="succ-cta-btn" style={{ background:"rgba(0,0,0,0.08)", color:"#111" }} onClick={() => navigate("/support")}>
+              <button className="succ-cta-btn"
+                style={{ background: "rgba(0,0,0,0.08)", color: "#111" }}
+                onClick={() => navigate("/support")}>
                 Contact Support
               </button>
             </div>
           </>
         )}
+
       </div>
     </div>
   );
 }
-
