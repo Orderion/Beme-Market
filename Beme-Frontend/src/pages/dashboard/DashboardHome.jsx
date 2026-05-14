@@ -1,325 +1,450 @@
-import { useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis,
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  BarChart, Bar, XAxis, YAxis,
+  Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
-import { useStoreAnalytics } from "../../hooks/useStoreAnalytics";
+import {
+  collection, query, where, getDocs, orderBy, limit, Timestamp,
+} from "firebase/firestore";
+import { db } from "../../firebase";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
-import { useSubscription } from "../../hooks/useSubscription";
+import { useAuth } from "../../context/AuthContext";
 
-/* ── Helpers ── */
+/* ─── Helpers ─────────────────────────────────────────────── */
 function fmtMoney(n) {
   const v = Number(n || 0);
-  if (v >= 1000) return `GHS ${(v / 1000).toFixed(1)}k`;
-  return `GHS ${v.toFixed(0)}`;
+  if (v >= 1000000) return `GHS ${(v / 1000000).toFixed(1)}M`;
+  if (v >= 1000)    return `GHS ${(v / 1000).toFixed(1)}k`;
+  return `GHS ${v.toFixed(2)}`;
+}
+function fmtDate(ts) {
+  if (!ts) return "—";
+  const d = ts?.toMillis ? new Date(ts.toMillis()) : new Date(ts);
+  return d.toLocaleDateString("en-GH", { day: "numeric", month: "short" });
+}
+function startOfWeek() {
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate() - d.getDay());
+  return Timestamp.fromDate(d);
+}
+function startOfMonth() {
+  const d = new Date();
+  d.setDate(1); d.setHours(0,0,0,0);
+  return Timestamp.fromDate(d);
+}
+function startOfLastMonth() {
+  const d = new Date();
+  d.setDate(1); d.setHours(0,0,0,0);
+  d.setMonth(d.getMonth() - 1);
+  return Timestamp.fromDate(d);
+}
+function pctChange(current, previous) {
+  if (!previous || previous === 0) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
 }
 
-function TrendArrow({ up }) {
-  return up
-    ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-    : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>;
-}
+/* ─── SVG icons ───────────────────────────────────────────── */
+function IconBox()     { return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>; }
+function IconCheck()   { return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>; }
+function IconDollar()  { return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>; }
+function IconUsers()   { return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>; }
+function IconCart()    { return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>; }
+function IconTrend()   { return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>; }
+function UpArrow()     { return <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="18 15 12 9 6 15"/></svg>; }
+function DownArrow()   { return <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>; }
 
-/* ── Stat Card ── */
-function StatCard({ label, value, trend, trendLabel, icon, color = "#046EF2", loading }) {
-  const up = Number(trend) >= 0;
+/* ─── Stat Card ───────────────────────────────────────────── */
+function StatCard({ label, value, pct, icon, color = "#046EF2", loading }) {
+  const up = pct >= 0;
   return (
     <div className="sd-stat-card">
       <div className="sd-stat-top">
         <div className="sd-stat-label">{label}</div>
-        <div className="sd-stat-icon" style={{ background: `${color}15` }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d={icon} />
-          </svg>
+        <div className="sd-stat-icon" style={{ background: `${color}15`, color }}>
+          {icon}
         </div>
       </div>
       {loading
-        ? <div className="sd-skeleton" style={{ height: 28, width: "70%", marginBottom: 8 }} />
+        ? <div className="sd-skeleton" style={{ height: 28, width: "60%", margin: "8px 0" }}/>
         : <div className="sd-stat-value">{value}</div>
       }
       {!loading && (
-        <div className={`sd-stat-trend ${up ? "up" : "down"}`}>
-          <TrendArrow up={up} />
-          {Math.abs(trend)}%
-          <span className="sd-stat-trend-sub">&nbsp;since last month</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 700, color: up ? "#22C55E" : "#EF4444" }}>
+          {up ? <UpArrow/> : <DownArrow/>}
+          {Math.abs(pct)}%
+          <span style={{ color: "#9CA3AF", fontWeight: 500 }}>vs last month</span>
         </div>
       )}
     </div>
   );
 }
 
-/* ── Custom tooltip ── */
-function CustomTooltip({ active, payload, label, prefix = "GHS " }) {
+/* ─── Tooltip ─────────────────────────────────────────────── */
+function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: "var(--sd-card,#fff)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "10px 14px", fontSize: 12, fontWeight: 600 }}>
+    <div style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8, padding: "10px 14px", fontSize: 12, fontWeight: 600 }}>
       <div style={{ color: "#8B8FA8", marginBottom: 4 }}>{label}</div>
       {payload.map((p, i) => (
-        <div key={i} style={{ color: p.color || "#046EF2" }}>{prefix}{Number(p.value).toLocaleString()}</div>
+        <div key={i} style={{ color: p.color || "#046EF2" }}>GHS {Number(p.value).toFixed(2)}</div>
       ))}
     </div>
   );
 }
 
-const ORDER_STATUS_COLORS = {
-  delivered: "#22C55E",
+const STATUS_COLOR = {
+  delivered:  "#22C55E",
   processing: "#046EF2",
-  pending: "#F59E0B",
-  cancelled: "#EF4444",
+  pending:    "#F59E0B",
+  cancelled:  "#EF4444",
+  paid:       "#22C55E",
+  shipped:    "#7C3AED",
 };
 
+const DAY_LABELS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+/* ─── Main ─────────────────────────────────────────────────── */
 export default function DashboardHome() {
-  const { weekSeries, weekRevenue, weekOrders, weekVisitors, loading } = useStoreAnalytics();
-  const { shop, subscriptionPlan } = useSellerAuth();
-  const { subscription, daysUntilRenewal } = useSubscription();
+  const { user } = useAuth();
+  const { shop, storeId, subscriptionPlan } = useSellerAuth();
 
-  // Mock order status donut (replace with real data from orders query)
-  const orderStatusData = [
-    { name: "Delivered",  value: 58, color: "#22C55E" },
-    { name: "Processing", value: 28, color: "#046EF2" },
-    { name: "Pending",    value: 10, color: "#F59E0B" },
-    { name: "Cancelled",  value: 4,  color: "#EF4444" },
-  ];
+  const [orders,      setOrders]      = useState([]);
+  const [lastOrders,  setLastOrders]  = useState([]);
+  const [loading,     setLoading]     = useState(true);
 
-  // Subscription donut
-  const planData = [
-    { name: "Paid",  value: 70, color: "#046EF2" },
-    { name: "Trial", value: 30, color: "#E8EFFF" },
-  ];
+  /* Fetch this store's orders (current + last month) */
+  useEffect(() => {
+    const sid = storeId || shop?.id;
+    if (!sid && !user?.uid) return;
 
-  const today = new Date().toLocaleDateString("en-GH", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+    setLoading(true);
+
+    const fetchOrders = async () => {
+      try {
+        const base = collection(db, "orders");
+
+        /* Query by sellerId or shops array */
+        const field = "sellerId";
+        const idVal = sid || user.uid;
+
+        const [curSnap, prevSnap] = await Promise.all([
+          getDocs(query(base, where(field, "==", idVal),
+            where("createdAt", ">=", startOfLastMonth()),
+            orderBy("createdAt", "desc"), limit(200))),
+          getDocs(query(base, where(field, "==", idVal),
+            where("createdAt", ">=", startOfLastMonth()),
+            orderBy("createdAt", "asc"), limit(200))),
+        ]);
+
+        const all = curSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        const monthStart = startOfMonth().toMillis();
+        const lastMonthStart = startOfLastMonth().toMillis();
+
+        const thisMonth = all.filter(o => {
+          const t = o.createdAt?.toMillis?.() || 0;
+          return t >= monthStart;
+        });
+        const lastMonth = all.filter(o => {
+          const t = o.createdAt?.toMillis?.() || 0;
+          return t >= lastMonthStart && t < monthStart;
+        });
+
+        setOrders(thisMonth);
+        setLastOrders(lastMonth);
+      } catch (err) {
+        console.error("[DashboardHome] orders fetch:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [storeId, shop?.id, user?.uid]);
+
+  /* ── Computed metrics ── */
+  const metrics = useMemo(() => {
+    const weekStart = startOfWeek().toMillis();
+
+    const weekOrders   = orders.filter(o => (o.createdAt?.toMillis?.() || 0) >= weekStart);
+    const lastWeekEnd  = weekStart;
+    const lastWeekStart = weekStart - 7 * 24 * 60 * 60 * 1000;
+    const prevWeekOrders = lastOrders.filter(o => {
+      const t = o.createdAt?.toMillis?.() || 0;
+      return t >= lastWeekStart && t < lastWeekEnd;
+    });
+
+    const revenue      = orders.reduce((s, o) => s + Number(o.pricing?.total || 0), 0);
+    const prevRevenue  = lastOrders.reduce((s, o) => s + Number(o.pricing?.total || 0), 0);
+
+    const approved     = orders.filter(o => ["paid","delivered","processing","shipped"].includes(o.status));
+    const prevApproved = lastOrders.filter(o => ["paid","delivered","processing","shipped"].includes(o.status));
+
+    const uniqueCustomers = new Set(orders.map(o => o.userId || o.customer?.email)).size;
+    const prevCustomers   = new Set(lastOrders.map(o => o.userId || o.customer?.email)).size;
+
+    const avgOrder = orders.length > 0 ? revenue / orders.length : 0;
+
+    /* Status breakdown for donut */
+    const statusMap = {};
+    orders.forEach(o => {
+      const s = o.status || "pending";
+      statusMap[s] = (statusMap[s] || 0) + 1;
+    });
+    const statusData = Object.entries(statusMap).map(([name, value]) => ({
+      name: name.charAt(0).toUpperCase() + name.slice(1),
+      value,
+      color: STATUS_COLOR[name] || "#9CA3AF",
+    }));
+
+    /* Daily revenue for bar chart (last 7 days) */
+    const today = new Date();
+    const barData = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() - (6 - i));
+      d.setHours(0,0,0,0);
+      const next = new Date(d); next.setDate(d.getDate() + 1);
+      const rev = orders
+        .filter(o => {
+          const t = o.createdAt?.toMillis?.() || 0;
+          return t >= d.getTime() && t < next.getTime();
+        })
+        .reduce((s, o) => s + Number(o.pricing?.total || 0), 0);
+      return { day: DAY_LABELS[d.getDay()], revenue: rev };
+    });
+
+    /* Recent 5 orders */
+    const recent = [...orders]
+      .sort((a,b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0))
+      .slice(0, 5);
+
+    return {
+      weekOrderCount:  weekOrders.length,
+      prevWeekCount:   prevWeekOrders.length,
+      revenue,         prevRevenue,
+      approvedCount:   approved.length,
+      prevApproved:    prevApproved.length,
+      uniqueCustomers, prevCustomers,
+      avgOrder,
+      statusData,      barData, recent,
+      totalOrders:     orders.length,
+    };
+  }, [orders, lastOrders]);
+
+  const today = new Date().toLocaleDateString("en-GH", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
+
+  const STATUS_BADGE = {
+    paid: "sd-badge-green", delivered: "sd-badge-green",
+    processing: "sd-badge-blue", shipped: "sd-badge-blue",
+    pending: "sd-badge-yellow", cancelled: "sd-badge-red",
+  };
 
   return (
     <div>
-      {/* Welcome */}
-      <div className="sd-page-head">
+      {/* Page header */}
+      <div className="sd-page-head" style={{ alignItems: "flex-start" }}>
         <div>
           <div className="sd-page-title">Analytics</div>
           <div className="sd-page-sub">{today}</div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#8B8FA8" }}>
-          <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22C55E" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "#22C55E" }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#22C55E" }}/>
           Store Active
         </div>
       </div>
 
-      {/* Stats grid */}
-      <div className="sd-stats-grid">
+      {/* ── 4 stat cards ── */}
+      <div className="sd-stats-row">
         <StatCard
-          label="Orders (Week)" value={weekOrders}
-          trend={8.2} icon="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0"
-          color="#046EF2" loading={loading}
+          label="Orders (Week)" icon={<IconBox/>}    color="#046EF2"
+          value={metrics.weekOrderCount}
+          pct={pctChange(metrics.weekOrderCount, metrics.prevWeekCount)}
+          loading={loading}
         />
         <StatCard
-          label="Approved Orders" value={Math.round(weekOrders * 0.85)}
-          trend={3.4} icon="M9 11l3 3L22 4 M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
-          color="#22C55E" loading={loading}
+          label="Approved Orders" icon={<IconCheck/>}  color="#22C55E"
+          value={metrics.approvedCount}
+          pct={pctChange(metrics.approvedCount, metrics.prevApproved)}
+          loading={loading}
         />
         <StatCard
-          label="Revenue (Week)" value={fmtMoney(weekRevenue)}
-          trend={-1.2} icon="M12 1v22 M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
-          color="#7C3AED" loading={loading}
+          label="Revenue (Month)" icon={<IconDollar/>} color="#7C3AED"
+          value={fmtMoney(metrics.revenue)}
+          pct={pctChange(metrics.revenue, metrics.prevRevenue)}
+          loading={loading}
         />
         <StatCard
-          label="Visitors (Week)" value={weekVisitors}
-          trend={12.5} icon="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 8 0 4 4 0 0 0-8 0 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75"
-          color="#F59E0B" loading={loading}
+          label="Customers" icon={<IconUsers/>}  color="#F59E0B"
+          value={metrics.uniqueCustomers}
+          pct={pctChange(metrics.uniqueCustomers, metrics.prevCustomers)}
+          loading={loading}
         />
       </div>
 
-      {/* Second row — Month total + Revenue + Donut charts */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14, marginBottom: 14 }}>
-        {/* Month total */}
-        <div className="sd-stat-card" style={{ gridColumn: "span 1" }}>
-          <div className="sd-stat-top">
-            <div className="sd-stat-label">Month Total</div>
-            <div className="sd-stat-icon" style={{ background: "#046EF215" }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#046EF2" strokeWidth="1.8" strokeLinecap="round"><path d="M12 1v22 M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            </div>
-          </div>
-          <div className="sd-stat-value" style={{ fontSize: 22 }}>{fmtMoney((weekRevenue || 0) * 4.3)}</div>
-          <div className="sd-stat-trend down"><TrendArrow up={false} /> 0.2% <span className="sd-stat-trend-sub">&nbsp;since last month</span></div>
-        </div>
+      {/* ── 2 more stat cards ── */}
+      <div className="sd-stats-row" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px,1fr))", marginBottom: 20 }}>
+        <StatCard
+          label="Avg Order Value" icon={<IconCart/>}  color="#046EF2"
+          value={fmtMoney(metrics.avgOrder)}
+          pct={0} loading={loading}
+        />
+        <StatCard
+          label="Total Orders" icon={<IconTrend/>} color="#22C55E"
+          value={metrics.totalOrders}
+          pct={pctChange(metrics.totalOrders, lastOrders.length)}
+          loading={loading}
+        />
+      </div>
 
-        {/* Revenue */}
-        <div className="sd-stat-card">
-          <div className="sd-stat-top">
-            <div className="sd-stat-label">Avg Order Value</div>
-            <div className="sd-stat-icon" style={{ background: "#7C3AED15" }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="1.8" strokeLinecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-            </div>
+      {/* ── Charts row ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16, marginBottom: 20 }}>
+
+        {/* Bar chart — daily revenue */}
+        <div className="sd-panel">
+          <div className="sd-panel-head">
+            <span className="sd-panel-title">Daily Revenue (Last 7 Days)</span>
           </div>
-          <div className="sd-stat-value" style={{ fontSize: 22 }}>
-            {weekOrders > 0 ? fmtMoney(weekRevenue / weekOrders) : "GHS 0"}
-          </div>
-          <div className="sd-stat-trend down"><TrendArrow up={false} /> 1.2% <span className="sd-stat-trend-sub">&nbsp;since last month</span></div>
+          {loading
+            ? <div className="sd-skeleton" style={{ height: 180, borderRadius: 8 }}/>
+            : metrics.barData.every(d => d.revenue === 0)
+              ? <div className="sd-empty" style={{ height: 180 }}>
+                  <div className="sd-empty-title">No sales yet this week</div>
+                  <div className="sd-empty-text">Revenue will appear here once you receive orders.</div>
+                </div>
+              : (
+                <ResponsiveContainer width="100%" height={180}>
+                  <BarChart data={metrics.barData} barSize={22}>
+                    <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false}/>
+                    <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} tickFormatter={v => `${v}`}/>
+                    <Tooltip content={<ChartTooltip/>}/>
+                    <Bar dataKey="revenue" fill="#046EF2" radius={[4,4,0,0]}/>
+                  </BarChart>
+                </ResponsiveContainer>
+              )
+          }
         </div>
 
         {/* Order status donut */}
-        <div className="sd-stat-card">
-          <div className="sd-stat-label" style={{ marginBottom: 8 }}>Order Status</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <PieChart width={80} height={80}>
-              <Pie data={orderStatusData} cx={35} cy={35} innerRadius={22} outerRadius={38} dataKey="value" strokeWidth={0}>
-                {orderStatusData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-              </Pie>
-            </PieChart>
-            <div className="sd-donut-legend">
-              {orderStatusData.map((d) => (
-                <div key={d.name} className="sd-donut-legend-item">
-                  <div className="sd-donut-dot" style={{ background: d.color }} />
-                  {d.value}% {d.name}
-                </div>
-              ))}
-            </div>
+        <div className="sd-panel">
+          <div className="sd-panel-head">
+            <span className="sd-panel-title">Order Status</span>
           </div>
-        </div>
-
-        {/* Subscription donut */}
-        <div className="sd-stat-card">
-          <div className="sd-stat-label" style={{ marginBottom: 8 }}>Subscription</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <PieChart width={80} height={80}>
-              <Pie data={planData} cx={35} cy={35} innerRadius={22} outerRadius={38} dataKey="value" strokeWidth={0}>
-                {planData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-              </Pie>
-            </PieChart>
-            <div className="sd-donut-legend">
-              {planData.map((d) => (
-                <div key={d.name} className="sd-donut-legend-item">
-                  <div className="sd-donut-dot" style={{ background: d.color }} />
-                  {d.value}% {d.name}
+          {loading
+            ? <div className="sd-skeleton" style={{ height: 180, borderRadius: 8 }}/>
+            : metrics.statusData.length === 0
+              ? <div className="sd-empty" style={{ height: 180 }}>
+                  <div className="sd-empty-title">No orders yet</div>
                 </div>
-              ))}
-            </div>
-          </div>
+              : (
+                <>
+                  <ResponsiveContainer width="100%" height={140}>
+                    <PieChart>
+                      <Pie data={metrics.statusData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} dataKey="value" strokeWidth={0}>
+                        {metrics.statusData.map((entry, i) => (
+                          <Cell key={i} fill={entry.color}/>
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(v, n) => [`${v} orders`, n]}/>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {metrics.statusData.map((s) => (
+                      <div key={s.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: "50%", background: s.color }}/>
+                          <span style={{ color: "#374151", fontWeight: 600 }}>{s.name}</span>
+                        </div>
+                        <span style={{ fontWeight: 700, color: "#111" }}>{s.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )
+          }
         </div>
       </div>
 
-      {/* Charts row */}
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 14, marginBottom: 14 }}>
-        {/* Sales bar chart */}
-        <div className="sd-panel">
-          <div className="sd-panel-head">
-            <span className="sd-panel-title">Sales Dynamics</span>
-            <span className="sd-panel-sub">
-              {new Date().getFullYear()} ↓
-            </span>
-          </div>
-          {loading
-            ? <div className="sd-skeleton" style={{ height: 180 }} />
-            : (
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={weekSeries} margin={{ top: 0, right: 0, left: -20, bottom: 0 }} barSize={18}>
-                  <XAxis dataKey="label" stroke="transparent" tick={{ fontSize: 11, fill: "#8B8FA8" }} axisLine={false} tickLine={false} />
-                  <YAxis stroke="transparent" tick={{ fontSize: 11, fill: "#8B8FA8" }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(4,110,242,0.05)" }} />
-                  <Bar dataKey="revenue" fill="#046EF2" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="orders" fill="#E8EFFF" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )
-          }
+      {/* ── Recent orders ── */}
+      <div className="sd-panel">
+        <div className="sd-panel-head">
+          <span className="sd-panel-title">Recent Orders</span>
+          <span style={{ fontSize: 12, color: "#8B8FA8" }}>{metrics.totalOrders} total</span>
         </div>
 
-        {/* Paid/Received cards */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div className="sd-panel" style={{ flex: 1 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(34,197,94,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="1.8" strokeLinecap="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4 M3 5v14a2 2 0 0 0 2 2h16v-5"/></svg>
+        {loading
+          ? [1,2,3].map(i => <div key={i} className="sd-skeleton" style={{ height: 48, marginBottom: 10, borderRadius: 8 }}/>)
+          : metrics.recent.length === 0
+            ? (
+              <div className="sd-empty">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="1.4" strokeLinecap="round" style={{ marginBottom: 10 }}>
+                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                </svg>
+                <div className="sd-empty-title">No orders yet</div>
+                <div className="sd-empty-text">Your first order will appear here.</div>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#22C55E", background: "rgba(34,197,94,0.1)", padding: "2px 8px", borderRadius: 100 }}>+15%</span>
-            </div>
-            <div style={{ fontSize: 11, color: "#8B8FA8", marginBottom: 4 }}>Total Earnings</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "#1A1D3B", letterSpacing: "-0.03em", fontFamily: "'Space Grotesk', sans-serif" }}>
-              {fmtMoney((weekRevenue || 0) * 4.3)}
-            </div>
-            <div style={{ fontSize: 11, color: "#8B8FA8", marginTop: 4 }}>Current Month</div>
-          </div>
-
-          <div className="sd-panel" style={{ flex: 1 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(4,110,242,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#046EF2" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#046EF2", background: "rgba(4,110,242,0.1)", padding: "2px 8px", borderRadius: 100 }}>+59%</span>
-            </div>
-            <div style={{ fontSize: 11, color: "#8B8FA8", marginBottom: 4 }}>Pending Payouts</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "#1A1D3B", letterSpacing: "-0.03em", fontFamily: "'Space Grotesk', sans-serif" }}>GHS 0</div>
-            <div style={{ fontSize: 11, color: "#8B8FA8", marginTop: 4 }}>Awaiting Review</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Activity chart + Recent orders */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        {/* Visitor activity line chart */}
-        <div className="sd-panel">
-          <div className="sd-panel-head">
-            <span className="sd-panel-title">Overall Visitor Activity</span>
-            <span className="sd-panel-sub">{new Date().getFullYear()} ↓</span>
-          </div>
-          {loading
-            ? <div className="sd-skeleton" style={{ height: 150 }} />
-            : (
-              <ResponsiveContainer width="100%" height={150}>
-                <AreaChart data={weekSeries} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="visitorGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#7C3AED" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#7C3AED" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="label" stroke="transparent" tick={{ fontSize: 10, fill: "#8B8FA8" }} axisLine={false} tickLine={false} />
-                  <YAxis stroke="transparent" tick={{ fontSize: 10, fill: "#8B8FA8" }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<CustomTooltip prefix="" />} />
-                  <Area type="monotone" dataKey="visitors" stroke="#7C3AED" strokeWidth={2} fill="url(#visitorGrad)" dot={false} />
-                </AreaChart>
-              </ResponsiveContainer>
             )
-          }
-        </div>
-
-        {/* Recent orders */}
-        <div className="sd-panel">
-          <div className="sd-panel-head">
-            <span className="sd-panel-title">Customer Orders</span>
-            <button className="sd-btn sd-btn-ghost sd-btn-sm" style={{ fontSize: 11 }}>Refresh ↺</button>
-          </div>
-          <div className="sd-table-wrap">
-            <table className="sd-table">
-              <thead>
-                <tr>
-                  <th>Customer</th>
-                  <th>Date</th>
-                  <th>Status</th>
-                  <th>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { name: "Kofi M.", date: "22.05.2025", status: "delivered", amt: 1200 },
-                  { name: "Akosua B.", date: "24.05.2025", status: "processing", amt: 450 },
-                  { name: "Yaw D.", date: "25.05.2025", status: "cancelled", amt: 380 },
-                  { name: "Ama S.", date: "26.05.2025", status: "delivered", amt: 2400 },
-                ].map((o, i) => {
-                  const sc = { delivered: "sd-badge-green", processing: "sd-badge-blue", cancelled: "sd-badge-red", pending: "sd-badge-yellow" };
-                  return (
-                    <tr key={i}>
-                      <td style={{ fontWeight: 600 }}>{o.name}</td>
-                      <td style={{ color: "#8B8FA8", fontSize: 12 }}>{o.date}</td>
-                      <td><span className={`sd-badge ${sc[o.status] || "sd-badge-gray"}`}>{o.status}</span></td>
-                      <td style={{ fontWeight: 700 }}>GHS {o.amt.toLocaleString()}</td>
+            : (
+              <div className="sd-table-wrap">
+                <table className="sd-table">
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>Customer</th>
+                      <th>Amount</th>
+                      <th>Date</th>
+                      <th>Status</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {metrics.recent.map(o => {
+                      const cust = o.customer;
+                      const name = [cust?.firstName, cust?.lastName].filter(Boolean).join(" ") || "Customer";
+                      return (
+                        <tr key={o.id}>
+                          <td style={{ fontSize: 12, color: "#8B8FA8", fontFamily: "monospace" }}>
+                            #{o.id?.slice(0,8).toUpperCase()}
+                          </td>
+                          <td style={{ fontWeight: 600 }}>{name}</td>
+                          <td style={{ fontWeight: 700 }}>GHS {Number(o.pricing?.total || 0).toFixed(2)}</td>
+                          <td style={{ fontSize: 12, color: "#8B8FA8" }}>{fmtDate(o.createdAt)}</td>
+                          <td>
+                            <span className={`sd-badge ${STATUS_BADGE[o.status] || "sd-badge-gray"}`}>
+                              {o.status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )
+        }
+      </div>
+
+      {/* Empty state hint for new stores */}
+      {!loading && metrics.totalOrders === 0 && (
+        <div style={{
+          marginTop: 16, padding: "20px 24px",
+          background: "rgba(4,110,242,0.05)",
+          borderRadius: 14, border: "1px solid rgba(4,110,242,0.1)",
+          display: "flex", alignItems: "center", gap: 14,
+        }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#046EF2" strokeWidth="1.8" strokeLinecap="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#046EF2" }}>Your store is live — start listing products!</div>
+            <div style={{ fontSize: 13, color: "#6B7280", fontWeight: 500 }}>
+              Go to <strong>Products</strong> to add your first product, then share your store link on WhatsApp and TikTok.
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
-
