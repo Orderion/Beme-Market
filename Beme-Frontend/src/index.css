@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Exo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&display=swap");
 
 /* =========================
    THEME VARIABLES (GLOBAL)
@@ -35,12 +35,13 @@
   --btnText: #ffffff;
   --overlay: rgba(8, 8, 10, 0.6);
 
-  /* ── FONTS UPDATED ────────────────────────────────────────────
-     Inter      → body text  (Stripe, Linear, Vercel, Notion…)
-     Plus Jakarta Sans → headings / display  (modern marketplaces)
+  /* ── FONT: Exo ─────────────────────────────────────────────────
+     Technology · Futuristic · Clean · Variable weight
+     Used for both body and display — different weights create
+     the hierarchy without needing a second font family.
   ── */
-  --font-main:    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  --font-display: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-main:    "Exo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Exo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   /* Motion — snappier to match the raw aesthetic */
   --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
@@ -139,7 +140,7 @@ body.dark ::selection {
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 1.02;
   margin: 0;
@@ -151,6 +152,7 @@ p, span, li, label, input, textarea, select, button, a {
 
 .hero-title, .shop-title, .product-title, .logo, .auth-title, .pd-title, .order-success-title {
   font-family: var(--font-display);
+  font-weight: 900;
 }
 
 img, video {
