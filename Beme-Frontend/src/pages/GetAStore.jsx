@@ -1,251 +1,423 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "./GetAStore.css";
 
-const FEATURES = [
-  { icon: "🏪", title: "Your Own Storefront",  desc: "Get a beautiful, shareable store page in minutes. Customise your logo, banner, and brand colors." },
-  { icon: "📦", title: "Easy Product Listing",  desc: "List products with photos, prices, and descriptions. Manage stock and featured items effortlessly." },
-  { icon: "💬", title: "WhatsApp Integration",  desc: "Let customers reach you on WhatsApp directly from your store. Ghana's favourite way to close deals." },
-  { icon: "📊", title: "Sales Analytics",        desc: "Track revenue, orders, visitors, and customer trends in real time with a beautiful dashboard." },
-  { icon: "🚀", title: "Marketplace Boosts",    desc: "Feature your products on the Beme Market homepage and trending sections for maximum visibility." },
-  { icon: "✅", title: "Verified Seller Badge", desc: "Get verified to build customer trust and unlock higher withdrawal limits." },
-];
-
-const HOW_IT_WORKS = [
-  { step: "1", title: "Create Your Account",   desc: "Sign up or log in to Beme Market. Your buyer account doubles as your seller account."   },
-  { step: "2", title: "Set Up Your Store",      desc: "Choose your business type, fill in your store details, pick a theme, and upload your logo." },
-  { step: "3", title: "Choose a Plan",          desc: "Start free with Basic or unlock premium features with Standard or Pro. Powered by Paystack." },
-  { step: "4", title: "Start Selling",          desc: "Go live instantly! Add products, share your store link, and accept orders from anywhere in Ghana." },
-];
-
-const TESTIMONIALS = [
-  { name: "Abena K.",    role: "Fashion Seller, Kumasi",  text: "I went from selling on Instagram to having a proper storefront. My sales doubled in the first month!", avatar: "A" },
-  { name: "Kwame A.",    role: "Electronics Dealer, Accra", text: "The WhatsApp integration alone is worth it. Customers can chat me immediately — conversion is way up.", avatar: "K" },
-  { name: "Efua M.",     role: "Cosmetics & Hair, Takoradi", text: "The dashboard is so clean and easy to use. I check my sales analytics every morning like it's my news.", avatar: "E" },
-];
+/* ─── Pricing data ────────────────────────────────────────────────────────── */
+const MONTHLY = { free: 0, starter: 29, standard: 99, pro: 249 };
+const YEARLY  = { free: 0, starter: 23, standard: 79, pro: 199 };
 
 const PLANS = [
-  { id: "basic",    name: "Basic",    price: 0,   unit: "Free forever", highlight: false, color: "#6B7280", features: ["25 products",  "Basic storefront",  "MoMo checkout",   "Order management", "Basic analytics"]   },
-  { id: "standard", name: "Standard", price: 99,  unit: "/ month",      highlight: true,  color: "#046EF2", features: ["500 products", "Premium themes",   "Live customer chat","Discount codes",  "Featured boosts",  "Verified badge eligible"] },
-  { id: "pro",      name: "Pro",      price: 249, unit: "/ month",      highlight: false, color: "#7C3AED", features: ["Unlimited products", "Custom domain", "AI captions", "Live selling", "Loyalty rewards", "Priority support", "Homepage boosts", "Pro verified badge"] },
+  {
+    id: "free", name: "Free", tagline: "Test the waters",
+    bg: "#fff", nameColor: "#9CA3AF", amtColor: "#111", cta: "Start for Free",
+    ctaBg: "#111", ctaColor: "#fff", ctaBorder: "#111",
+    dividerColor: "rgba(0,0,0,0.08)",
+    features: [
+      { t: "10 products",             ok: true  },
+      { t: "Basic storefront",         ok: true  },
+      { t: "WhatsApp redirect button", ok: true  },
+      { t: "Order management",         ok: true  },
+      { t: "Basic analytics",          ok: true  },
+      { t: "Live customer chat",        ok: false },
+      { t: "Product boosts",           ok: false },
+      { t: "Verified badge",           ok: false },
+    ],
+  },
+  {
+    id: "starter", name: "Starter", tagline: "Launch your store",
+    bg: "#fff", nameColor: "#9CA3AF", amtColor: "#111", cta: "Get Starter",
+    ctaBg: "transparent", ctaColor: "#111", ctaBorder: "rgba(0,0,0,0.2)",
+    dividerColor: "rgba(0,0,0,0.08)",
+    features: [
+      { t: "25 products",              ok: true  },
+      { t: "Custom banner & colors",   ok: true  },
+      { t: "WhatsApp redirect",        ok: true  },
+      { t: "Order notifications",      ok: true  },
+      { t: "Basic categories",         ok: true  },
+      { t: "Reduced Beme branding",    ok: true  },
+      { t: "Live customer chat",       ok: false },
+      { t: "Product boosts",           ok: false },
+    ],
+  },
+  {
+    id: "standard", name: "Standard", tagline: "Grow your brand", badge: "Most Popular",
+    bg: "#046EF2", nameColor: "rgba(255,255,255,0.6)", amtColor: "#fff",
+    cta: "Get Standard", ctaBg: "#fff", ctaColor: "#046EF2", ctaBorder: "#fff",
+    dividerColor: "rgba(255,255,255,0.15)",
+    features: [
+      { t: "500 products",              ok: true },
+      { t: "Premium store themes",       ok: true },
+      { t: "Real-time customer chat",    ok: true },
+      { t: "Discount codes & flash sales", ok: true },
+      { t: "Featured product boosts",   ok: true },
+      { t: "Verified badge eligible",   ok: true },
+      { t: "TikTok / Instagram links",  ok: true },
+      { t: "Customer reviews enabled",  ok: true },
+      { t: "Sales & visit analytics",   ok: true },
+    ],
+  },
+  {
+    id: "pro", name: "Pro", tagline: "Dominate the market", badge: "Business Pro",
+    bg: "#fff", nameColor: "#7C3AED", amtColor: "#111", cta: "Get Pro",
+    ctaBg: "#7C3AED", ctaColor: "#fff", ctaBorder: "#7C3AED",
+    dividerColor: "rgba(0,0,0,0.08)",
+    features: [
+      { t: "Unlimited products",          ok: true },
+      { t: "Custom domain",               ok: true },
+      { t: "AI captions & descriptions",  ok: true },
+      { t: "Live selling sessions",        ok: true },
+      { t: "Loyalty rewards & referrals", ok: true },
+      { t: "Homepage featured placement", ok: true },
+      { t: "Priority marketplace ranking",ok: true },
+      { t: "AI auto-replies in chat",     ok: true },
+      { t: "Pro Verified badge",          ok: true },
+      { t: "Remove Beme branding",        ok: true },
+    ],
+  },
 ];
 
-const FAQ = [
-  { q: "Do I need a Ghana Card to sell?",          a: "No, you can start selling immediately. Ghana Card is only needed for store verification to unlock the verified badge and higher payout limits." },
-  { q: "How do I get paid?",                        a: "We pay directly to your MTN, Telecel, or AirtelTigo Mobile Money account, or to your Ghanaian bank account. Minimum payout is GHS 50." },
-  { q: "Can I sell used or second-hand items?",     a: "Yes! Used and second-hand items are allowed as long as they're legal and accurately described. No counterfeit or stolen goods." },
-  { q: "What happens if a customer disputes an order?", a: "Our support team reviews both sides. Sellers with clear product descriptions and photos are usually protected. We encourage honest listings." },
-  { q: "Is Basic really free forever?",             a: "Yes. The Basic plan is permanently free. You only pay for Standard (GHS 99/mo) or Pro (GHS 249/mo) if you want premium features." },
-  { q: "Can I upgrade or downgrade my plan?",       a: "Yes, at any time from your Seller Dashboard. Upgrades take effect immediately. Downgrades apply at the next billing cycle." },
+const STATS = [
+  { value: "2,400+",  label: "Active sellers across Ghana" },
+  { value: "GHS 1M+", label: "Processed every month"       },
+  { value: "160+",    label: "Cities and towns reached"     },
+  { value: "4.9 / 5", label: "Average seller rating"       },
 ];
 
+const WHY = [
+  {
+    title: "Built for Ghana",
+    desc: "MoMo, Visa, and bank payments built in. Customers pay the way they already do — no signup needed.",
+    d: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z M12 9m-2.5 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0 -5 0",
+  },
+  {
+    title: "Your Products, Your Prices",
+    desc: "Sell fashion, electronics, food, handmade goods — anything legal. You control what you list and what you charge.",
+    d: "M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5Z M9 21V12h6v9",
+  },
+  {
+    title: "Get Paid to MoMo",
+    desc: "Withdraw earnings directly to MTN, Telecel, or AirtelTigo. Or to your Ghanaian bank. Minimum GHS 50.",
+    d: "M21 12V7H5a2 2 0 0 1 0-4h14v4 M3 5v14a2 2 0 0 0 2 2h16v-5 M18 12h.01",
+  },
+  {
+    title: "Real Buyers Waiting",
+    desc: "Beme Market already has thousands of active Ghanaian shoppers. A store puts your products right in front of them.",
+    d: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 8 0 4 4 0 0 0-8 0 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75",
+  },
+  {
+    title: "Sell on WhatsApp & TikTok",
+    desc: "Share your Beme store link anywhere. Every click lands on your store. Every order goes straight to your dashboard.",
+    d: "M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8 M16 6l-4-4-4 4 M12 2v13",
+  },
+  {
+    title: "Chat With Buyers",
+    desc: "Standard and Pro sellers get in-app live chat. Close deals faster without switching to WhatsApp.",
+    d: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
+  },
+];
+
+const HOW = [
+  { n: "01", title: "Create Your Account",   desc: "Sign up in under a minute. Your buyer account is your seller account — no switching." },
+  { n: "02", title: "Set Up Your Store",      desc: "Add your store name, products, banner image, and WhatsApp number. Done in 10 minutes." },
+  { n: "03", title: "Pick a Plan",           desc: "Start free or go straight to Standard. Pay with MoMo, Visa, or Mastercard via Paystack." },
+  { n: "04", title: "Share & Get Paid",      desc: "Post your store link on WhatsApp and TikTok. Orders come in. Withdraw to MoMo." },
+];
+
+const FAQS = [
+  { q: "Is this like Jumia?",                    a: "Not exactly. On Jumia you can only buy. On Beme Market you can also open your own store and sell your own products — think Jumia meets your own personal shop, built for Ghana." },
+  { q: "Do I need a Ghana Card?",                 a: "No — you can start selling immediately. A Ghana Card is only needed later if you apply for the Verified Seller badge." },
+  { q: "How do I get paid?",                      a: "Payments go to your Beme wallet. Withdraw anytime to MTN, Telecel, or AirtelTigo MoMo — or to your Ghanaian bank account. Minimum withdrawal is GHS 50." },
+  { q: "Is the Free plan really free?",           a: "Yes. No card, no trial. You get 10 products and a real storefront for as long as you want. Upgrade whenever you're ready." },
+  { q: "Can I sell second-hand items?",           a: "Yes — as long as they're legal and accurately described. No counterfeit or stolen goods allowed." },
+  { q: "Can I change my plan later?",             a: "Yes, anytime from your seller dashboard. Upgrades apply immediately. Downgrades kick in at the next billing date." },
+];
+
+/* ─── SVG icon helper ─────────────────────────────────────────────────────── */
+function Ico({ d, size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {d.split(" M").map((seg, i) => <path key={i} d={(i === 0 ? "" : "M") + seg} />)}
+    </svg>
+  );
+}
+
+function CheckIcon({ color = "#046EF2" }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color}
+      strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  );
+}
+
+function CrossIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB"
+      strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  );
+}
+
+/* ─── Component ───────────────────────────────────────────────────────────── */
 export default function GetAStore() {
-  const navigate  = useNavigate();
-  const { user }  = useAuth();
+  const navigate        = useNavigate();
+  const { user }        = useAuth();
+  const [billing, setBilling] = useState("monthly");
 
-  const handleStart = () => {
-    if (!user) navigate("/login?redirect=/store-onboarding");
-    else navigate("/store-onboarding");
+  const prices = billing === "yearly" ? YEARLY : MONTHLY;
+
+  const goStart = (planId) => {
+    const to = `/store-onboarding?plan=${planId}`;
+    navigate(user ? to : `/login?redirect=${encodeURIComponent(to)}`);
   };
 
   return (
     <div className="gsa-root">
-      {/* ── HERO ── */}
+
+      {/* ══ HERO ══════════════════════════════════════════════════════════════ */}
       <section className="gsa-hero">
-        <div className="gsa-hero-inner">
-          <div className="gsa-hero-badge">🇬🇭 Ghana's Premier Seller Platform</div>
-          <h1 className="gsa-hero-title">
-            Turn What You Love<br />Into a Thriving Business
-          </h1>
-          <p className="gsa-hero-sub">
-            Get your own Beme Market storefront in minutes. List products, accept orders, chat with customers on WhatsApp, and get paid to your MoMo account. Simple, fast, built for Ghana.
-          </p>
-          <div className="gsa-hero-actions">
-            <button className="gsa-btn-primary" onClick={handleStart}>
-              Get Your Free Store →
-            </button>
-            <button className="gsa-btn-ghost" onClick={() => document.getElementById("gsa-pricing").scrollIntoView({ behavior: "smooth" })}>
-              View Pricing
-            </button>
-          </div>
-          <div className="gsa-hero-social-proof">
-            <div className="gsa-avatars">
-              {["K","A","E","M","D"].map((l, i) => (
-                <div key={i} className="gsa-avatar-dot" style={{ zIndex: 5 - i, background: ["#046EF2","#22C55E","#7C3AED","#F59E0B","#EF4444"][i] }}>{l}</div>
-              ))}
-            </div>
-            <span className="gsa-proof-text">Joined by <strong>2,400+</strong> sellers across Ghana</span>
-          </div>
+        <div className="gsa-hero-tag">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+          </svg>
+          Selling in Ghana, made simple
         </div>
 
-        {/* Hero visual */}
-        <div className="gsa-hero-visual">
-          <div className="gsa-dashboard-mockup">
-            <div className="gsa-mockup-bar">
-              <div className="gsa-dot" style={{ background: "#EF4444" }} />
-              <div className="gsa-dot" style={{ background: "#F59E0B" }} />
-              <div className="gsa-dot" style={{ background: "#22C55E" }} />
-              <span style={{ fontSize: 11, color: "#8B8FA8", flex: 1, textAlign: "center" }}>Beme Seller Dashboard</span>
+        <h1 className="gsa-hero-title">
+          Open your store.<br />
+          Sell to Ghana.<br />
+          Get paid to MoMo.
+        </h1>
+
+        <p className="gsa-hero-sub">
+          Beme Market is where thousands of Ghanaians shop every day. Get your own store, list your products, and receive orders from customers across the country — starting free.
+        </p>
+
+        <div className="gsa-hero-btns">
+          <button className="gsa-btn-primary" onClick={() => goStart("free")}>
+            Open a Free Store →
+          </button>
+          <button className="gsa-btn-ghost"
+            onClick={() => document.getElementById("gsa-pricing").scrollIntoView({ behavior: "smooth" })}>
+            View Pricing
+          </button>
+        </div>
+
+        <div className="gsa-hero-trust">
+          {["No card required", "MoMo payouts", "Free plan available", "Setup in 10 minutes"].map((t) => (
+            <div key={t} className="gsa-hero-trust-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {t}
             </div>
-            <div className="gsa-mockup-body">
-              {[{ l: "Revenue",   v: "GHS 4,280", up: true  },
-                { l: "Orders",    v: "38",         up: true  },
-                { l: "Visitors",  v: "1,204",      up: true  },
-                { l: "Products",  v: "52",         up: false }].map((c) => (
-                <div key={c.l} className="gsa-mockup-card">
-                  <div style={{ fontSize: 10, color: "#8B8FA8", marginBottom: 4 }}>{c.l}</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: "#1A1D3B", fontFamily: "'Space Grotesk', sans-serif" }}>{c.v}</div>
-                  <div style={{ fontSize: 10, color: c.up ? "#22C55E" : "#EF4444" }}>{c.up ? "↑" : "↓"} this week</div>
-                </div>
-              ))}
-              <div className="gsa-mockup-chart">
-                {[40,65,45,80,60,90,75,95].map((h, i) => (
-                  <div key={i} style={{ flex: 1, background: i === 7 ? "#046EF2" : "#E8EFFF", borderRadius: "3px 3px 0 0", height: `${h}%` }} />
-                ))}
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
-      {/* ── STATS BAR ── */}
-      <section className="gsa-stats-bar">
-        {[
-          { value: "2,400+",  label: "Active Sellers"   },
-          { value: "GHS 1M+", label: "Processed Monthly" },
-          { value: "160+",    label: "Cities in Ghana"   },
-          { value: "4.9★",    label: "Seller Rating"     },
-        ].map((s) => (
-          <div key={s.label} className="gsa-stat">
-            <div className="gsa-stat-value">{s.value}</div>
-            <div className="gsa-stat-label">{s.label}</div>
+      {/* ══ STATS ══════════════════════════════════════════════════════════════ */}
+      <section className="gsa-stats">
+        {STATS.map((s) => (
+          <div key={s.label} className="gsa-stat-item">
+            <div className="gsa-stat-val">{s.value}</div>
+            <div className="gsa-stat-lbl">{s.label}</div>
           </div>
         ))}
       </section>
 
-      {/* ── FEATURES ── */}
+      {/* ══ WHY ════════════════════════════════════════════════════════════════ */}
       <section className="gsa-section">
-        <div className="gsa-section-head">
-          <div className="gsa-section-badge">Everything You Need</div>
-          <h2 className="gsa-section-title">Built for Ghana's Digital Economy</h2>
-          <p className="gsa-section-sub">From Kumasi to Accra, Takoradi to Tamale — sell to customers across the country and get paid to your phone.</p>
-        </div>
-        <div className="gsa-features-grid">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="gsa-feature-card">
-              <div className="gsa-feature-icon">{f.icon}</div>
-              <h3 className="gsa-feature-title">{f.title}</h3>
-              <p className="gsa-feature-desc">{f.desc}</p>
+        <div className="gsa-section-label">Why Open a Store</div>
+        <h2 className="gsa-section-title">Everything you need to sell in Ghana</h2>
+        <div className="gsa-why-grid">
+          {WHY.map((w) => (
+            <div key={w.title} className="gsa-why-card">
+              <div className="gsa-why-icon">
+                <Ico d={w.d} size={22} />
+              </div>
+              <h3 className="gsa-why-title">{w.title}</h3>
+              <p className="gsa-why-desc">{w.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── HOW IT WORKS ── */}
-      <section className="gsa-section gsa-section-dark">
-        <div className="gsa-section-head">
-          <div className="gsa-section-badge" style={{ background: "rgba(4,110,242,0.15)", color: "#60A5FA" }}>Simple Process</div>
-          <h2 className="gsa-section-title" style={{ color: "#fff" }}>Get Selling in 4 Steps</h2>
-        </div>
-        <div className="gsa-steps-grid">
-          {HOW_IT_WORKS.map((s) => (
-            <div key={s.step} className="gsa-step">
-              <div className="gsa-step-num">{s.step}</div>
-              <h3 className="gsa-step-title">{s.title}</h3>
-              <p className="gsa-step-desc">{s.desc}</p>
-            </div>
-          ))}
-        </div>
-        <div style={{ textAlign: "center", marginTop: 40 }}>
-          <button className="gsa-btn-primary" onClick={handleStart}>Start Now — It's Free →</button>
+      {/* ══ HOW IT WORKS ═══════════════════════════════════════════════════════ */}
+      <section className="gsa-dark-section">
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div className="gsa-section-label gsa-label-dark">How it works</div>
+          <h2 className="gsa-section-title gsa-title-dark">Up and selling in 4 steps</h2>
+          <div className="gsa-how-grid">
+            {HOW.map((h) => (
+              <div key={h.n} className="gsa-how-item">
+                <div className="gsa-how-num">{h.n}</div>
+                <h3 className="gsa-how-title">{h.title}</h3>
+                <p className="gsa-how-desc">{h.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div style={{ textAlign: "center", marginTop: 52 }}>
+            <button className="gsa-btn-white" onClick={() => goStart("free")}>
+              Open Your Store — It's Free →
+            </button>
+          </div>
         </div>
       </section>
 
-      {/* ── PRICING ── */}
+      {/* ══ PRICING ═══════════════════════════════════════════════════════════ */}
       <section className="gsa-section" id="gsa-pricing">
-        <div className="gsa-section-head">
-          <div className="gsa-section-badge">Pricing</div>
-          <h2 className="gsa-section-title">Choose Your Plan</h2>
-          <p className="gsa-section-sub">Start free. Scale when you're ready. No hidden fees, no contracts.</p>
+        <div className="gsa-section-label">Pricing</div>
+        <h2 className="gsa-section-title">Choose how you want to sell</h2>
+        <p className="gsa-section-sub">Start free. Upgrade when you're ready. Cancel anytime.</p>
+
+        {/* Billing toggle */}
+        <div className="gsa-billing-toggle">
+          <button
+            className={`gsa-toggle-btn ${billing === "monthly" ? "gsa-toggle-active" : ""}`}
+            onClick={() => setBilling("monthly")}
+          >
+            Monthly
+          </button>
+          <button
+            className={`gsa-toggle-btn ${billing === "yearly" ? "gsa-toggle-active" : ""}`}
+            onClick={() => setBilling("yearly")}
+          >
+            Yearly
+            <span className="gsa-toggle-badge">Save 20%</span>
+          </button>
         </div>
-        <div className="gsa-pricing-grid">
-          {PLANS.map((plan) => (
-            <div key={plan.id} className={`gsa-plan-card ${plan.highlight ? "gsa-plan-highlight" : ""}`}>
-              {plan.highlight && <div className="gsa-plan-popular">Most Popular</div>}
-              <div className="gsa-plan-name" style={{ color: plan.color }}>{plan.name}</div>
-              <div className="gsa-plan-price">
-                {plan.price === 0 ? <span className="gsa-plan-amt">Free</span>
-                  : <><span className="gsa-plan-amt">GHS {plan.price}</span><span className="gsa-plan-unit">{plan.unit}</span></>
-                }
-              </div>
-              <ul className="gsa-plan-features">
-                {plan.features.map((f) => (
-                  <li key={f}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={plan.highlight ? "#fff" : plan.color} strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <button
-                className={plan.highlight ? "gsa-btn-primary" : "gsa-btn-outline"}
-                style={{ width: "100%", borderColor: plan.color, color: plan.highlight ? "#fff" : plan.color }}
-                onClick={() => navigate(`/store-plans?plan=${plan.id}`)}
+
+        {/* 4 plan cards */}
+        <div className="gsa-plans-grid">
+          {PLANS.map((plan) => {
+            const price  = prices[plan.id];
+            const isFree = price === 0;
+            const isDark = plan.bg === "#046EF2";
+
+            return (
+              <div
+                key={plan.id}
+                className={`gsa-plan-card ${plan.badge === "Most Popular" ? "gsa-plan-popular" : ""}`}
+                style={{ background: plan.bg }}
               >
-                {plan.price === 0 ? "Start Free" : `Get ${plan.name}`}
-              </button>
-            </div>
-          ))}
-        </div>
-      </section>
+                {/* Badge */}
+                {plan.badge && (
+                  <div
+                    className="gsa-plan-badge"
+                    style={{
+                      background: plan.badge === "Most Popular" ? "#111" : "#7C3AED",
+                      color: "#fff",
+                    }}
+                  >
+                    {plan.badge}
+                  </div>
+                )}
 
-      {/* ── TESTIMONIALS ── */}
-      <section className="gsa-section gsa-section-soft">
-        <div className="gsa-section-head">
-          <div className="gsa-section-badge">Seller Stories</div>
-          <h2 className="gsa-section-title">Real Sellers, Real Results</h2>
-        </div>
-        <div className="gsa-testimonials-grid">
-          {TESTIMONIALS.map((t) => (
-            <div key={t.name} className="gsa-testimonial">
-              <p className="gsa-testimonial-text">"{t.text}"</p>
-              <div className="gsa-testimonial-author">
-                <div className="gsa-testimonial-avatar">{t.avatar}</div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 13 }}>{t.name}</div>
-                  <div style={{ color: "#8B8FA8", fontSize: 12 }}>{t.role}</div>
+                {/* Name */}
+                <div className="gsa-plan-name" style={{ color: plan.nameColor }}>
+                  {plan.name}
                 </div>
+
+                {/* Price */}
+                <div className="gsa-plan-price">
+                  {isFree
+                    ? <span className="gsa-plan-amt" style={{ color: plan.amtColor }}>Free</span>
+                    : <>
+                        <span className="gsa-plan-amt" style={{ color: plan.amtColor }}>
+                          GHS {price}
+                        </span>
+                        <span className="gsa-plan-unit"
+                          style={{ color: isDark ? "rgba(255,255,255,0.55)" : "#9CA3AF" }}>
+                          / mo
+                        </span>
+                      </>
+                  }
+                </div>
+
+                {billing === "yearly" && !isFree && (
+                  <div className="gsa-plan-yearly-note"
+                    style={{ color: isDark ? "rgba(255,255,255,0.5)" : "#9CA3AF" }}>
+                    Billed GHS {price * 12} / year
+                  </div>
+                )}
+
+                <div className="gsa-plan-tagline"
+                  style={{ color: isDark ? "rgba(255,255,255,0.7)" : "#6B7280" }}>
+                  {plan.tagline}
+                </div>
+
+                {/* CTA */}
+                <button
+                  className="gsa-plan-cta"
+                  style={{
+                    background:  plan.ctaBg,
+                    color:       plan.ctaColor,
+                    border:      `2px solid ${plan.ctaBorder}`,
+                  }}
+                  onClick={() => goStart(plan.id)}
+                >
+                  {plan.cta}
+                </button>
+
+                <div className="gsa-plan-divider"
+                  style={{ borderTopColor: plan.dividerColor }} />
+
+                {/* Features */}
+                <ul className="gsa-plan-features">
+                  {plan.features.map((f) => (
+                    <li key={f.t}
+                      style={{ color: f.ok ? (isDark ? "rgba(255,255,255,0.9)" : "#1A1D3B") : "#9CA3AF" }}>
+                      {f.ok
+                        ? <CheckIcon color={isDark ? "#fff" : (plan.id === "pro" ? "#7C3AED" : "#046EF2")} />
+                        : <CrossIcon />
+                      }
+                      {f.t}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+
+        {billing === "yearly" && (
+          <p className="gsa-yearly-note">
+            All yearly plans billed upfront · 20% cheaper than monthly · Cancel anytime
+          </p>
+        )}
+      </section>
+
+      {/* ══ FAQ ═══════════════════════════════════════════════════════════════ */}
+      <section className="gsa-dark-section">
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div className="gsa-section-label gsa-label-dark">FAQ</div>
+          <h2 className="gsa-section-title gsa-title-dark">Common questions</h2>
+          <div className="gsa-faq-grid">
+            {FAQS.map((f) => (
+              <div key={f.q} className="gsa-faq-card">
+                <h4 className="gsa-faq-q">{f.q}</h4>
+                <p className="gsa-faq-a">{f.a}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* ── FAQ ── */}
-      <section className="gsa-section">
-        <div className="gsa-section-head">
-          <div className="gsa-section-badge">FAQ</div>
-          <h2 className="gsa-section-title">Common Questions</h2>
-        </div>
-        <div className="gsa-faq-grid">
-          {FAQ.map((f) => (
-            <div key={f.q} className="gsa-faq-item">
-              <h4 className="gsa-faq-q">{f.q}</h4>
-              <p className="gsa-faq-a">{f.a}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <section className="gsa-cta">
-        <h2 className="gsa-cta-title">Ready to Start Selling?</h2>
-        <p className="gsa-cta-sub">Join over 2,400 Ghanaian sellers already growing on Beme Market. Your store is one click away.</p>
-        <button className="gsa-btn-primary gsa-btn-lg" onClick={handleStart}>
-          Get Your Free Store Today →
+      {/* ══ BOTTOM CTA ════════════════════════════════════════════════════════ */}
+      <section className="gsa-cta-section">
+        <h2 className="gsa-cta-title">Ready to start selling?</h2>
+        <p className="gsa-cta-sub">
+          Join 2,400+ Ghanaian sellers already making money on Beme Market.<br />
+          Free. No card. No contract.
+        </p>
+        <button className="gsa-btn-primary gsa-cta-btn" onClick={() => goStart("free")}>
+          Open a Free Store →
         </button>
-        <div style={{ marginTop: 16, fontSize: 13, color: "rgba(255,255,255,0.6)" }}>No credit card required • Free plan available • Setup in minutes</div>
       </section>
+
     </div>
   );
 }
-
