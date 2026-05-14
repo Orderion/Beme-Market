@@ -13,6 +13,10 @@
 
 /* ── HERO ─────────────────────────────────────────────────── */
 .gsa-hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
   padding: 80px clamp(20px, 6vw, 100px) 72px;
   max-width: 1200px;
   margin: 0 auto;
@@ -524,4 +528,17 @@
   .gsa-hero-btns .gsa-btn-ghost { width: 100%; justify-content: center; }
   .gsa-dark-section { padding: 56px 20px; }
   .gsa-cta-section { padding: 56px 20px; }
+}
+
+/* ── Hero 2-col layout additions ── */
+.gsa-hero-inner { max-width: 560px; }
+.gsa-hero-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+@media (max-width: 900px) {
+  .gsa-hero { grid-template-columns: 1fr; gap: 40px; padding: 48px 20px; }
+  .gsa-hero-inner { max-width: 100%; }
+  .gsa-hero-visual { order: -1; max-width: 360px; margin: 0 auto; }
 }

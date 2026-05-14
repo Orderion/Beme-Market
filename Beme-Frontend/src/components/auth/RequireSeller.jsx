@@ -1,7 +1,5 @@
 // src/components/auth/RequireSeller.jsx
-// Alias of SellerRoute — used inside nested route wrappers.
-// Guards any page that requires role === "seller".
-
+// Same as SellerRoute — used for seller-only pages in nested contexts.
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
@@ -26,4 +24,3 @@ export default function RequireSeller({ children }) {
 
   return children;
 }
-
