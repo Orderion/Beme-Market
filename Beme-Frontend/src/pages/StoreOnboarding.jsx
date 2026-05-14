@@ -2,23 +2,24 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { saveApplicationStep } from "../services/storeService";
+import { BUSINESS_ICONS } from "../components/icons/SellerIcons";
 import "./StoreOnboarding.css";
 
 const BUSINESS_TYPES = [
-  { id: "fashion",     icon: "👗", label: "Fashion & Clothing",  desc: "Clothes, outfits, accessories"  },
-  { id: "sneakers",    icon: "👟", label: "Sneakers & Footwear",  desc: "Shoes, boots, sandals"          },
-  { id: "jewelry",     icon: "💍", label: "Jewelry & Accessories", desc: "Rings, necklaces, bracelets"   },
-  { id: "cosmetics",   icon: "💄", label: "Perfumes & Cosmetics",  desc: "Makeup, fragrance, skincare"   },
-  { id: "hair",        icon: "💇", label: "Hair & Beauty",          desc: "Wigs, extensions, salons"      },
-  { id: "food",        icon: "🍔", label: "Food & Bakery",          desc: "Meals, snacks, pastries, drinks" },
-  { id: "electronics", icon: "📱", label: "Phones & Electronics",  desc: "Gadgets, accessories, tech"    },
-  { id: "home",        icon: "🏠", label: "Home & Living",          desc: "Furniture, decor, kitchenware" },
-  { id: "arts",        icon: "🎨", label: "Creative Arts",          desc: "Paintings, crafts, photography" },
-  { id: "digital",     icon: "💻", label: "Digital Products",       desc: "Templates, ebooks, courses"    },
-  { id: "services",    icon: "🔧", label: "Services",               desc: "Repairs, cleaning, consulting" },
-  { id: "health",      icon: "💪", label: "Health & Fitness",       desc: "Supplements, equipment, wellness" },
-  { id: "handmade",    icon: "🧶", label: "Handmade Goods",         desc: "Kente, weaving, artisan crafts" },
-  { id: "other",       icon: "📦", label: "Other",                   desc: "Anything else you sell"        },
+  { id: "fashion",     label: "Fashion & Clothing",   desc: "Clothes, outfits, accessories"    },
+  { id: "sneakers",    label: "Sneakers & Footwear",   desc: "Shoes, boots, sandals"            },
+  { id: "jewelry",     label: "Jewelry & Accessories", desc: "Rings, necklaces, bracelets"      },
+  { id: "cosmetics",   label: "Perfumes & Cosmetics",  desc: "Makeup, fragrance, skincare"      },
+  { id: "hair",        label: "Hair & Beauty",          desc: "Wigs, extensions, salons"         },
+  { id: "food",        label: "Food & Bakery",          desc: "Meals, snacks, pastries, drinks"  },
+  { id: "electronics", label: "Phones & Electronics",  desc: "Gadgets, accessories, tech"       },
+  { id: "home",        label: "Home & Living",          desc: "Furniture, decor, kitchenware"    },
+  { id: "arts",        label: "Creative Arts",          desc: "Paintings, crafts, photography"   },
+  { id: "digital",     label: "Digital Products",       desc: "Templates, ebooks, courses"       },
+  { id: "services",    label: "Services",               desc: "Repairs, cleaning, consulting"    },
+  { id: "health",      label: "Health & Fitness",       desc: "Supplements, equipment, wellness" },
+  { id: "handmade",    label: "Handmade Goods",         desc: "Kente, weaving, artisan crafts"   },
+  { id: "other",       label: "Other",                   desc: "Anything else you sell"           },
 ];
 
 export default function StoreOnboarding() {
@@ -26,12 +27,11 @@ export default function StoreOnboarding() {
   const { user } = useAuth();
 
   const [selected, setSelected] = useState(null);
-  const [saving, setSaving]     = useState(false);
+  const [saving,   setSaving]   = useState(false);
 
   const handleContinue = async () => {
     if (!selected) return;
     if (!user) { navigate("/login?redirect=/store-onboarding"); return; }
-
     setSaving(true);
     try {
       await saveApplicationStep(user.uid, 1, { businessType: selected });
@@ -46,18 +46,14 @@ export default function StoreOnboarding() {
 
   return (
     <div className="so-root">
-      {/* Header */}
       <div className="so-header">
-        <button className="so-back" onClick={() => navigate("/get-a-store")}>
-          ← Back
-        </button>
+        <button className="so-back" onClick={() => navigate("/get-a-store")}>← Back</button>
         <div className="so-progress-bar">
           <div className="so-progress-fill" style={{ width: "25%" }} />
         </div>
         <div className="so-step-label">Step 1 of 4</div>
       </div>
 
-      {/* Content */}
       <div className="so-content">
         <div className="so-intro">
           <h1 className="so-title">What do you sell?</h1>
@@ -65,18 +61,34 @@ export default function StoreOnboarding() {
         </div>
 
         <div className="so-grid">
-          {BUSINESS_TYPES.map((bt) => (
-            <button
-              key={bt.id}
-              className={`so-card ${selected === bt.id ? "so-card-selected" : ""}`}
-              onClick={() => setSelected(bt.id)}
-            >
-              <div className="so-card-icon">{bt.icon}</div>
-              <div className="so-card-label">{bt.label}</div>
-              <div className="so-card-desc">{bt.desc}</div>
-              {selected === bt.id && <div className="so-card-check">✓</div>}
-            </button>
-          ))}
+          {BUSINESS_TYPES.map((bt) => {
+            const IconComp = BUSINESS_ICONS[bt.id];
+            const isSelected = selected === bt.id;
+            return (
+              <button
+                key={bt.id}
+                className={`so-card ${isSelected ? "so-card-selected" : ""}`}
+                onClick={() => setSelected(bt.id)}
+              >
+                <div className="so-card-icon-wrap" style={{
+                  color: isSelected ? "#046EF2" : "#6B7280",
+                  background: isSelected ? "rgba(4,110,242,0.1)" : "rgba(0,0,0,0.05)",
+                }}>
+                  <IconComp size={26} color={isSelected ? "#046EF2" : "#6B7280"} />
+                </div>
+                <div className="so-card-label">{bt.label}</div>
+                <div className="so-card-desc">{bt.desc}</div>
+                {isSelected && (
+                  <div className="so-card-check">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                      stroke="#fff" strokeWidth="3" strokeLinecap="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         <div className="so-footer">
