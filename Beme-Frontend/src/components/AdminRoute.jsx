@@ -1,19 +1,19 @@
-import { Navigate, useLocation } from "react-router-dom";
+// src/components/AdminRoute.jsx
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function AdminRoute({ children }) {
-  const { user, isAdmin, loading } = useAuth();
-  const location = useLocation();
+  const { user, role, loading } = useAuth();
 
   if (loading) return null;
 
-  if (!user) {
-    return <Navigate to="/admin-login" replace state={{ from: location.pathname }} />;
-  }
+  if (!user) return <Navigate to="/admin-login" replace />;
 
-  if (!isAdmin) {
-    return <Navigate to="/admin-login" replace state={{ from: location.pathname }} />;
-  }
+  // Accept both "admin" (stored in Firestore) and
+  // "super_admin" (normalised by AuthContext)
+  const isAdmin = role === "super_admin" || role === "admin";
+
+  if (!isAdmin) return <Navigate to="/" replace />;
 
   return children;
 }
