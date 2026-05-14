@@ -112,8 +112,9 @@ export default function SubscriptionSuccess() {
   }, [reference, status, user?.uid]);
 
   const goToDashboard = () => {
-    // Navigate directly — SellerRoute will allow through because of localStorage flag
-    navigate("/seller-dashboard", { replace: true });
+    // window.location.href forces a full page reload — bypasses any SPA routing
+    // guards that might have stale state. Works regardless of SellerRoute version.
+    window.location.href = "/seller-dashboard";
   };
 
   return (

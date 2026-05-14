@@ -248,7 +248,7 @@ function AppShell() {
           {/* ── NEW: Seller dashboard (full-screen, seller role required) ── */}
           <Route path="/seller-dashboard"
             element={
-              <SellerRoute>
+              <SellerRoute requireOnly="auth">
                 <SellerDashboard />
               </SellerRoute>
             }
