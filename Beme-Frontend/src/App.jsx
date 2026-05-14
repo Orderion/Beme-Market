@@ -10,6 +10,7 @@ import { useAuth } from "./context/AuthContext";
 
 import AdminRoute from "./components/AdminRoute";
 import RequireAdmin from "./components/auth/RequireAdmin";
+import SellerRoute from "./components/SellerRoute"; // ← NEW
 
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
@@ -18,7 +19,7 @@ import Footer from "./components/Footer";
 import LoaderOverlay from "./components/LoaderOverlay";
 import BottomNav from "./components/navigation/BottomNav.jsx";
 
-/* PAGES */
+/* PAGES — existing (untouched) */
 import Home from "./pages/Home";
 import Shop from "./pages/Shop";
 import Offers from "./pages/Offers";
@@ -30,11 +31,11 @@ import FlashDeals from "./pages/FlashDeals";
 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import VerifyEmail from "./pages/VerifyEmail"; // ← NEW
+import VerifyEmail from "./pages/VerifyEmail";
 import Onboarding from "./pages/Onboarding";
 import AdminLogin from "./pages/AdminLogin";
 
-/* Admin pages */
+/* Admin pages — existing (untouched) */
 import AdminDashboard from "./pages/AdminDashboard";
 import Admin from "./pages/Admin";
 import AdminOrders from "./pages/AdminOrders";
@@ -74,6 +75,24 @@ import {
 import UserRequests from "./pages/UserRequests";
 import ProductRequests from "./pages/ProductRequests";
 
+/* ── NEW: Seller public pages (header + footer show) ── */
+import GetAStore           from "./pages/GetAStore";
+import StorePlans          from "./pages/StorePlans";
+import SellerTerms         from "./pages/SellerTerms";
+import SellerPolicy        from "./pages/SellerPolicy";
+import CommunityGuidelines from "./pages/CommunityGuidelines";
+
+/* ── NEW: Seller onboarding + dashboard (full-screen) ── */
+import StoreOnboarding     from "./pages/StoreOnboarding";
+import StoreSurvey         from "./pages/StoreSurvey";
+import SubscriptionSuccess from "./pages/SubscriptionSuccess";
+import SellerDashboard     from "./pages/SellerDashboard";
+
+/* ── NEW: Admin seller management pages ── */
+import SellerPayoutRequests from "./pages/admin/PayoutRequests";
+import VerificationRequests from "./pages/admin/VerificationRequests";
+import StoreModeration      from "./pages/admin/StoreModeration";
+
 /* ================= HELPERS ================= */
 
 function SuperAdminOnly({ children }) {
@@ -87,12 +106,12 @@ function SuperAdminOnly({ children }) {
 const FULL_SCREEN_ROUTES = new Set([
   "/login",
   "/signup",
-  "/verify-email",   // ← NEW — hides header/footer on the verification page
+  "/verify-email",
   "/admin-login",
   "/onboarding",
   // admin hub
   "/admin",
-  // all admin sub-pages
+  // all admin sub-pages (existing)
   "/admin/product-manager",
   "/admin/homepage",
   "/admin/support",
@@ -105,6 +124,15 @@ const FULL_SCREEN_ROUTES = new Set([
   "/payout-requests",
   "/shop-applications",
   "/account-management",
+  // ── NEW: seller onboarding + dashboard ──────────────
+  "/store-onboarding",
+  "/store-survey",
+  "/subscription-success",
+  "/seller-dashboard",
+  // ── NEW: admin seller management ────────────────────
+  "/admin/seller-payouts",
+  "/admin/verification-requests",
+  "/admin/store-moderation",
 ]);
 
 /* ================= APP SHELL ================= */
@@ -162,7 +190,7 @@ function AppShell() {
           {/* ── AUTH ── */}
           <Route path="/login"         element={<Login />} />
           <Route path="/signup"        element={<Signup />} />
-          <Route path="/verify-email"  element={<VerifyEmail />} /> {/* ← NEW */}
+          <Route path="/verify-email"  element={<VerifyEmail />} />
           <Route path="/onboarding"    element={<Onboarding />} />
           <Route path="/admin-login"   element={<AdminLogin />} />
 
@@ -175,6 +203,56 @@ function AppShell() {
           <Route path="/account/contact"       element={<ContactUs />} />
           <Route path="/saved"                 element={<SavedItems />} />
           <Route path="/account/requests"      element={<UserRequests />} />
+
+          {/* ── INFO / LEGAL (existing) ── */}
+          <Route path="/about"            element={<About />} />
+          <Route path="/support"          element={<Support />} />
+          <Route path="/contact"          element={<Contact />} />
+          <Route path="/faq"              element={<FAQ />} />
+          <Route path="/shipping-returns" element={<ShippingReturns />} />
+          <Route path="/privacy-policy"   element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/refund-policy"    element={<RefundPolicy />} />
+          <Route path="/cookie-policy"    element={<CookiePolicy />} />
+
+          {/* ── NEW: Seller public pages (header + footer visible) ── */}
+          <Route path="/get-a-store"          element={<GetAStore />} />
+          <Route path="/store-plans"          element={<StorePlans />} />
+          <Route path="/seller-terms"         element={<SellerTerms />} />
+          <Route path="/seller-policy"        element={<SellerPolicy />} />
+          <Route path="/community-guidelines" element={<CommunityGuidelines />} />
+
+          {/* ── NEW: Seller onboarding (full-screen, logged-in users) ── */}
+          <Route path="/store-onboarding"
+            element={
+              <SellerRoute requireOnly="auth">
+                <StoreOnboarding />
+              </SellerRoute>
+            }
+          />
+          <Route path="/store-survey"
+            element={
+              <SellerRoute requireOnly="auth">
+                <StoreSurvey />
+              </SellerRoute>
+            }
+          />
+          <Route path="/subscription-success"
+            element={
+              <SellerRoute requireOnly="auth">
+                <SubscriptionSuccess />
+              </SellerRoute>
+            }
+          />
+
+          {/* ── NEW: Seller dashboard (full-screen, seller role required) ── */}
+          <Route path="/seller-dashboard"
+            element={
+              <SellerRoute>
+                <SellerDashboard />
+              </SellerRoute>
+            }
+          />
 
           {/* ── ADMIN HUB ── */}
           <Route
@@ -327,6 +405,38 @@ function AppShell() {
               <AdminRoute>
                 <RequireAdmin>
                   <AdminNotifications />
+                </RequireAdmin>
+              </AdminRoute>
+            }
+          />
+
+          {/* ── NEW: Admin seller management ── */}
+          <Route
+            path="/admin/seller-payouts"
+            element={
+              <AdminRoute>
+                <RequireAdmin>
+                  <SellerPayoutRequests />
+                </RequireAdmin>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/verification-requests"
+            element={
+              <AdminRoute>
+                <RequireAdmin>
+                  <VerificationRequests />
+                </RequireAdmin>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/store-moderation"
+            element={
+              <AdminRoute>
+                <RequireAdmin>
+                  <StoreModeration />
                 </RequireAdmin>
               </AdminRoute>
             }
