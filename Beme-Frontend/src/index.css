@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Exo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&display=swap");
 
 /* =========================
    THEME VARIABLES (GLOBAL)
@@ -35,15 +35,15 @@
   --btnText: #ffffff;
   --overlay: rgba(8, 8, 10, 0.6);
 
-  /* ── FONT: Exo ─────────────────────────────────────────────────
-     Technology · Futuristic · Clean · Variable weight
-     Used for both body and display — different weights create
-     the hierarchy without needing a second font family.
+  /* ── FONT: Nunito ──────────────────────────────────────────────
+     Closest free match to MongoDB's Euclid Circular A.
+     Rounded geometric sans-serif — professional, clean, modern.
+     body: 600 weight  |  headings: 800–900 weight
   ── */
-  --font-main:    "Exo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-display: "Exo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-main:    "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
-  /* Motion — snappier to match the raw aesthetic */
+  /* Motion */
   --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-soft: cubic-bezier(0.25, 0.9, 0.3, 1);
 
@@ -55,12 +55,11 @@
 
   --response-delay: 0ms;
 
-  /* No blur — brutalism is raw */
   --backdrop-blur: blur(0px);
   --backdrop-blur-light: blur(0px);
 }
 
-/* Dark Mode — inverted brutalism */
+/* Dark Mode */
 body.dark {
   --bg: #111111;
   --text: #FCFAF2;
@@ -111,7 +110,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-main);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -135,14 +134,14 @@ body.dark ::selection {
 }
 
 /* =========================
-   TYPOGRAPHY + DEFAULT ELEMENTS
+   TYPOGRAPHY
 ========================= */
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
   font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1.02;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
   margin: 0;
 }
 
@@ -236,7 +235,7 @@ input::placeholder, textarea::placeholder {
   font-weight: 500;
 }
 
-/* iOS Safari — prevent auto-zoom on input focus */
+/* iOS Safari — prevent auto-zoom */
 @supports (-webkit-touch-callout: none) {
   input, select, textarea {
     font-size: 16px !important;
@@ -372,9 +371,7 @@ input::placeholder, textarea::placeholder {
   animation: cartPopupIn 280ms var(--ease-premium) both;
 }
 
-body.dark .cart-popup {
-  border-color: var(--border);
-}
+body.dark .cart-popup { border-color: var(--border); }
 
 .cart-popup__close-wrap {
   display: flex;
@@ -400,19 +397,9 @@ body.dark .cart-popup {
   transition: transform var(--motion-fast), box-shadow var(--motion-fast);
 }
 
-.cart-popup__close:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: var(--shadow);
-}
-
-.cart-popup__close:active {
-  transform: translate(2px, 2px);
-  box-shadow: none;
-}
-
-body.dark .cart-popup__close {
-  border-color: var(--border);
-}
+.cart-popup__close:hover { transform: translate(-1px, -1px); box-shadow: var(--shadow); }
+.cart-popup__close:active { transform: translate(2px, 2px); box-shadow: none; }
+body.dark .cart-popup__close { border-color: var(--border); }
 
 .cart-popup__header {
   display: flex;
@@ -441,10 +428,7 @@ body.dark .cart-popup__close {
   padding: 6px;
 }
 
-.cart-popup__info {
-  flex: 1;
-  min-width: 0;
-}
+.cart-popup__info    { flex: 1; min-width: 0; }
 
 .cart-popup__label {
   display: block;
@@ -459,9 +443,9 @@ body.dark .cart-popup__close {
 .cart-popup__name {
   font-family: var(--font-display);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   margin: 0 0 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -474,7 +458,7 @@ body.dark .cart-popup__close {
   color: var(--grtheme);
   margin: 0;
   font-family: var(--font-display);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .cart-popup__divider {
@@ -483,9 +467,7 @@ body.dark .cart-popup__close {
   margin: 0 18px;
 }
 
-body.dark .cart-popup__divider {
-  background: var(--border);
-}
+body.dark .cart-popup__divider { background: var(--border); }
 
 .cart-popup__thanks {
   padding: 10px 18px;
@@ -514,48 +496,20 @@ body.dark .cart-popup__divider {
   text-transform: uppercase;
   border: var(--border-width) solid var(--border);
   box-shadow: var(--shadow-sm);
-  transition:
-    transform var(--motion-fast),
-    box-shadow var(--motion-fast);
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast);
 }
 
-.cart-popup__btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow);
-}
+.cart-popup__btn:hover  { transform: translate(-2px, -2px); box-shadow: var(--shadow); }
+.cart-popup__btn:active { transform: translate(2px, 2px);   box-shadow: none; }
 
-.cart-popup__btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: none;
-}
+.cart-popup__btn--ghost   { background: transparent; color: var(--text); }
+body.dark .cart-popup__btn--ghost { border-color: var(--border); color: var(--text); }
 
-.cart-popup__btn--ghost {
-  background: transparent;
-  color: var(--text);
-}
-
-body.dark .cart-popup__btn--ghost {
-  border-color: var(--border);
-  color: var(--text);
-}
-
-.cart-popup__btn--primary {
-  background: var(--btn);
-  color: var(--btnText);
-}
-
-body.dark .cart-popup__btn--primary {
-  background: var(--btn);
-  color: var(--btnText);
-}
+.cart-popup__btn--primary { background: var(--btn); color: var(--btnText); }
+body.dark .cart-popup__btn--primary { background: var(--btn); color: var(--btnText); }
 
 @media (min-width: 640px) {
-  .cart-popup {
-    left: auto;
-    right: 20px;
-    bottom: 24px;
-    width: 380px;
-  }
+  .cart-popup { left: auto; right: 20px; bottom: 24px; width: 380px; }
 }
 
 /* =========================
