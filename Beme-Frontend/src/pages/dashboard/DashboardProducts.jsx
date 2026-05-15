@@ -1,145 +1,41 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
 import { useAuth } from "../../context/AuthContext";
-import {
-  getSellerProducts, addSellerProduct, updateSellerProduct,
-  deleteSellerProduct, uploadProductImage,
-} from "../../services/storeService";
+import { getSellerProducts, deleteSellerProduct } from "../../services/storeService";
 
-function Icon({ d, size = 16, color = "currentColor" }) {
+function Icon({ d, size = 16 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      {d.split(" M").map((seg, i) => <path key={i} d={(i === 0 ? "" : "M") + seg} />)}
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {d.split(" M").map((seg, i) => <path key={i} d={(i === 0 ? "" : "M") + seg}/>)}
     </svg>
   );
 }
 
-const CATEGORIES = ["Fashion & Clothing", "Sneakers & Footwear", "Jewelry & Accessories", "Perfumes & Cosmetics", "Hair & Beauty", "Food & Bakery", "Phones & Electronics", "Home Products", "Creative Arts", "Digital Products", "Services", "Health & Fitness", "Handmade Goods", "Other"];
-const EMPTY_FORM = { name: "", description: "", price: "", comparePrice: "", stock: "", category: "", imageUrl: "", inStock: true, featured: false };
+const ICONS = {
+  plus:    "M12 5v14 M5 12h14",
+  search:  "M11 19a8 8 0 100-16 8 8 0 000 16z M21 21l-4.35-4.35",
+  edit:    "M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7 M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z",
+  trash:   "M3 6h18 M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2",
+  eye:     "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 12a3 3 0 100-6 3 3 0 000 6",
+  box:     "M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z",
+  filter:  "M22 3H2l8 9.46V19l4 2v-8.54L22 3",
+  upgrade: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+};
 
-function ProductModal({ product, onSave, onClose, saving }) {
-  const [form, setForm] = useState(product ? { ...EMPTY_FORM, ...product, price: product.price || "", stock: product.stock ?? "" } : { ...EMPTY_FORM });
-  const [uploading, setUploading] = useState(false);
-  const { user } = useAuth();
-  const { storeId } = useSellerAuth();
-
-  const upd = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
-
-  const handleImageUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const url = await uploadProductImage(user.uid, file);
-      setForm((f) => ({ ...f, imageUrl: url }));
-    } catch (err) { alert("Image upload failed. Try again."); }
-    finally { setUploading(false); }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!form.name.trim()) { alert("Product name is required."); return; }
-    if (!form.price || Number(form.price) <= 0) { alert("Please enter a valid price."); return; }
-    onSave({ ...form, price: Number(form.price), comparePrice: Number(form.comparePrice) || 0, stock: Number(form.stock) || null });
-  };
-
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ background: "var(--card,#fff)", borderRadius: 16, padding: 28, width: "100%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 17, fontWeight: 700, color: "#1A1D3B", letterSpacing: "-0.02em" }}>
-            {product ? "Edit Product" : "Add Product"}
-          </h3>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#8B8FA8", padding: 4 }}>
-            <Icon d="M18 6L6 18 M6 6l12 12" size={18} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          {/* Image */}
-          <div className="sd-form-group">
-            <label className="sd-label">Product Image</label>
-            {form.imageUrl
-              ? <div style={{ position: "relative", marginBottom: 8 }}>
-                  <img src={form.imageUrl} alt="product" style={{ width: "100%", height: 160, objectFit: "contain", borderRadius: 8, background: "#F8F8F8" }} />
-                  <button type="button" onClick={() => setForm((f) => ({ ...f, imageUrl: "" }))} style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.6)", border: "none", borderRadius: "50%", width: 28, height: 28, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
-                </div>
-              : <div className="sd-upload-zone" onClick={() => document.getElementById("prod-img").click()}>
-                  <Icon d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12" size={24} color="#8B8FA8" />
-                  <div style={{ marginTop: 8, fontSize: 13, color: "#8B8FA8" }}>{uploading ? "Uploading…" : "Click to upload image"}</div>
-                </div>
-            }
-            <input type="file" id="prod-img" accept="image/*" style={{ display: "none" }} onChange={handleImageUpload} />
-          </div>
-
-          <div className="sd-form-group">
-            <label className="sd-label">Product Name *</label>
-            <input className="sd-input" value={form.name} onChange={upd("name")} placeholder="e.g. Air Force 1 Sneakers" required />
-          </div>
-
-          <div className="sd-form-group">
-            <label className="sd-label">Description</label>
-            <textarea className="sd-textarea sd-input" value={form.description} onChange={upd("description")} placeholder="Describe your product…" rows={3} />
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div className="sd-form-group">
-              <label className="sd-label">Price (GHS) *</label>
-              <input className="sd-input" type="number" min="0" step="0.01" value={form.price} onChange={upd("price")} placeholder="0.00" required />
-            </div>
-            <div className="sd-form-group">
-              <label className="sd-label">Compare at Price</label>
-              <input className="sd-input" type="number" min="0" step="0.01" value={form.comparePrice} onChange={upd("comparePrice")} placeholder="0.00" />
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div className="sd-form-group">
-              <label className="sd-label">Stock Quantity</label>
-              <input className="sd-input" type="number" min="0" value={form.stock} onChange={upd("stock")} placeholder="Leave blank for unlimited" />
-            </div>
-            <div className="sd-form-group">
-              <label className="sd-label">Category</label>
-              <select className="sd-select sd-input" value={form.category} onChange={upd("category")}>
-                <option value="">Select category</option>
-                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 500, color: "#1A1D3B", cursor: "pointer" }}>
-              <input type="checkbox" checked={form.inStock} onChange={upd("inStock")} />
-              In Stock
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 500, color: "#1A1D3B", cursor: "pointer" }}>
-              <input type="checkbox" checked={form.featured} onChange={upd("featured")} />
-              Featured Product
-            </label>
-          </div>
-
-          <div style={{ display: "flex", gap: 10 }}>
-            <button type="button" className="sd-btn sd-btn-ghost" onClick={onClose} style={{ flex: 1 }}>Cancel</button>
-            <button type="submit" className="sd-btn sd-btn-primary" disabled={saving} style={{ flex: 2 }}>
-              {saving ? "Saving…" : product ? "Save Changes" : "Add Product"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
+const STATUS_FILTER_OPTIONS = ["All", "Active", "Draft", "Out of Stock"];
 
 export default function DashboardProducts() {
-  const { user }   = useAuth();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const { storeId, shop, subscriptionPlan, planLimits } = useSellerAuth();
 
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [modal, setModal]       = useState(null); // null | "add" | product object
-  const [saving, setSaving]     = useState(false);
-  const [deleting, setDeleting] = useState(null);
-  const [search, setSearch]     = useState("");
+  const [products,  setProducts]  = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [deleting,  setDeleting]  = useState(null);
+  const [search,    setSearch]    = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
 
   const load = useCallback(async () => {
     if (!user?.uid) return;
@@ -153,24 +49,8 @@ export default function DashboardProducts() {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleSave = async (formData) => {
-    if (!user?.uid || !storeId) return;
-    setSaving(true);
-    try {
-      if (modal && modal !== "add") {
-        await updateSellerProduct(modal.id, user.uid, formData);
-      } else {
-        await addSellerProduct(user.uid, storeId, shop?.shopName || "", subscriptionPlan, formData);
-      }
-      setModal(null);
-      await load();
-    } catch (err) {
-      alert(err.message || "Failed to save product.");
-    } finally { setSaving(false); }
-  };
-
-  const handleDelete = async (productId) => {
-    if (!confirm("Delete this product? This cannot be undone.")) return;
+  const handleDelete = async (productId, name) => {
+    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
     setDeleting(productId);
     try {
       await deleteSellerProduct(productId, user.uid);
@@ -179,127 +59,223 @@ export default function DashboardProducts() {
     finally { setDeleting(null); }
   };
 
-  const filtered = products.filter((p) =>
-    !search || p.name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleAdd = () => {
+    const max = planLimits?.maxProducts || 25;
+    if (max !== 99999 && products.length >= max) {
+      alert(`You've reached the ${products.length}-product limit on your ${subscriptionPlan} plan. Go to Subscription to upgrade.`);
+      return;
+    }
+    navigate("/seller-dashboard/products/new");
+  };
 
-  const atLimit  = products.length >= (planLimits?.maxProducts || 25);
-  const pct      = Math.min(100, Math.round((products.length / (planLimits?.maxProducts || 25)) * 100));
+  /* Filter */
+  const filtered = products.filter((p) => {
+    const matchSearch = !search || p.name?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === "All"
+      ? true
+      : statusFilter === "Active"     ? (p.status !== "draft" && p.inStock !== false)
+      : statusFilter === "Draft"      ? (p.status === "draft")
+      : statusFilter === "Out of Stock" ? (p.inStock === false)
+      : true;
+    return matchSearch && matchStatus;
+  });
+
+  const max  = planLimits?.maxProducts || 25;
+  const pct  = max === 99999 ? 0 : Math.min(100, Math.round((products.length / max) * 100));
+  const atLimit = max !== 99999 && products.length >= max;
+
+  /* Stats */
+  const activeCount = products.filter((p) => p.status !== "draft" && p.inStock !== false).length;
+  const draftCount  = products.filter((p) => p.status === "draft").length;
+  const oosCount    = products.filter((p) => p.inStock === false).length;
 
   return (
     <div>
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="sd-page-head">
         <div>
           <div className="sd-page-title">Products</div>
-          <div className="sd-page-sub">{products.length} / {planLimits?.maxProducts === 99999 ? "∞" : planLimits?.maxProducts} products used</div>
+          <div className="sd-page-sub">
+            {products.length} / {max === 99999 ? "∞" : max} products ·{" "}
+            {activeCount} active · {draftCount} draft
+          </div>
         </div>
-        <button
-          className="sd-btn sd-btn-primary"
-          onClick={() => atLimit ? alert(`You've reached the ${products.length}-product limit on your ${subscriptionPlan} plan. Upgrade to add more.`) : setModal("add")}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Add Product
+        <button className="sd-btn sd-btn-primary" onClick={handleAdd}>
+          <Icon d={ICONS.plus} size={14}/> Add Product
         </button>
       </div>
 
-      {/* Plan usage bar */}
-      {planLimits?.maxProducts !== 99999 && (
-        <div className="sd-panel" style={{ marginBottom: 14 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 12 }}>
-            <span style={{ color: "#8B8FA8" }}>Product Usage</span>
-            <span style={{ fontWeight: 700, color: pct >= 90 ? "#EF4444" : "#1A1D3B" }}>{products.length} / {planLimits?.maxProducts}</span>
+      {/* ── Plan usage bar ── */}
+      {max !== 99999 && (
+        <div className="sd-panel" style={{ marginBottom:14, padding:"14px 16px" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:7, fontSize:12 }}>
+            <span style={{ color:"#8B8FA8", fontWeight:600 }}>Product Usage — {subscriptionPlan?.charAt(0).toUpperCase()+subscriptionPlan?.slice(1)} Plan</span>
+            <span style={{ fontWeight:800, color: pct >= 90 ? "#EF4444" : "#1A1D3B" }}>
+              {products.length} / {max}
+            </span>
           </div>
           <div className="sd-progress-bar">
-            <div className={`sd-progress-fill ${pct >= 90 ? "danger" : pct >= 70 ? "warning" : ""}`} style={{ width: `${pct}%` }} />
+            <div className={`sd-progress-fill ${pct >= 90 ? "danger" : pct >= 70 ? "warning" : ""}`} style={{ width:`${pct}%` }}/>
           </div>
-          {atLimit && <div className="sd-info-panel warning" style={{ marginTop: 12, marginBottom: 0 }}><div className="sd-info-text">You've reached your product limit. <strong>Upgrade your plan</strong> to add more products.</div></div>}
+          {atLimit && (
+            <div style={{ marginTop:10, padding:"10px 14px", borderRadius:8, background:"rgba(239,68,68,0.07)", border:"1px solid rgba(239,68,68,0.2)", fontSize:12, fontWeight:600, color:"#DC2626", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <span>Product limit reached.</span>
+              <button className="sd-btn sd-btn-primary sd-btn-sm" onClick={() => navigate("/seller-dashboard?tab=subscription")}>
+                <Icon d={ICONS.upgrade} size={12}/> Upgrade
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Search */}
-      <div className="sd-panel" style={{ padding: "12px 16px", marginBottom: 14 }}>
-        <input className="sd-input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products…" style={{ border: "none", padding: 0, fontSize: 14, background: "transparent", outline: "none" }} />
+      {/* ── Stats tiles ── */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, marginBottom:14 }}>
+        {[
+          { label:"Active",       val: activeCount, color:"#16A34A" },
+          { label:"Draft",        val: draftCount,  color:"#9CA3AF" },
+          { label:"Out of Stock", val: oosCount,    color:"#EF4444" },
+        ].map((s) => (
+          <div key={s.label} className="sd-panel" style={{ padding:"12px 14px", cursor:"pointer" }}
+            onClick={() => setStatusFilter(s.label)}>
+            <div style={{ fontSize:22, fontWeight:900, color:s.color, letterSpacing:"-0.03em" }}>{s.val}</div>
+            <div style={{ fontSize:11, fontWeight:700, color:"#8B8FA8", marginTop:2 }}>{s.label}</div>
+          </div>
+        ))}
       </div>
 
-      {/* Products table */}
+      {/* ── Search + filter ── */}
+      <div className="sd-panel" style={{ padding:"10px 14px", marginBottom:10, display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8, flex:1, minWidth:160 }}>
+          <Icon d={ICONS.search} size={15} />
+          <input
+            value={search} onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search products…"
+            style={{ border:"none", background:"transparent", outline:"none", fontSize:14, fontWeight:500, color:"var(--text,#111)", width:"100%" }}/>
+        </div>
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+          {STATUS_FILTER_OPTIONS.map((opt) => (
+            <button key={opt} type="button"
+              onClick={() => setStatusFilter(opt)}
+              style={{ padding:"6px 12px", borderRadius:100, border:`1.5px solid ${statusFilter===opt?"#046EF2":"rgba(0,0,0,0.1)"}`, background: statusFilter===opt?"#046EF2":"transparent", color: statusFilter===opt?"#fff":"var(--text,#111)", fontSize:12, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>
+              {opt}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Product list ── */}
       <div className="sd-panel">
-        {loading
-          ? <div style={{ padding: 32 }}>
-              {[1,2,3].map((i) => <div key={i} className="sd-skeleton" style={{ height: 52, marginBottom: 10, borderRadius: 8 }} />)}
+        {loading ? (
+          <div style={{ padding:32 }}>
+            {[1,2,3].map((i) => (
+              <div key={i} className="sd-skeleton" style={{ height:64, marginBottom:10, borderRadius:10 }}/>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="sd-empty">
+            <div style={{ fontSize:40, marginBottom:12 }}>📦</div>
+            <div className="sd-empty-title">{search || statusFilter !== "All" ? "No products found" : "No products yet"}</div>
+            <div className="sd-empty-text">
+              {search
+                ? "Try a different search term."
+                : statusFilter !== "All"
+                  ? `No ${statusFilter.toLowerCase()} products.`
+                  : "Add your first product to start selling on Beme Market."}
             </div>
-          : filtered.length === 0
-            ? <div className="sd-empty">
-                <div className="sd-empty-icon">📦</div>
-                <div className="sd-empty-title">{search ? "No products found" : "No products yet"}</div>
-                <div className="sd-empty-text">{search ? "Try a different search term." : "Add your first product to start selling."}</div>
-                {!search && <button className="sd-btn sd-btn-primary" onClick={() => setModal("add")}>Add First Product</button>}
-              </div>
-            : (
-              <div className="sd-table-wrap">
-                <table className="sd-table">
-                  <thead>
-                    <tr>
-                      <th>Product</th>
-                      <th>Category</th>
-                      <th>Price</th>
-                      <th>Stock</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((p) => (
+            {!search && statusFilter === "All" && (
+              <button className="sd-btn sd-btn-primary" onClick={handleAdd}>
+                <Icon d={ICONS.plus} size={14}/> Add First Product
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Desktop table */}
+            <div className="sd-table-wrap" style={{ display:"block" }}>
+              <table className="sd-table" style={{ minWidth:600 }}>
+                <thead>
+                  <tr>
+                    <th style={{ width:48 }}/>
+                    <th>Product</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((p) => {
+                    const imgUrl = (Array.isArray(p.images) ? p.images[0] : null) || p.imageUrl || "";
+                    const isDraft = p.status === "draft";
+                    const isOos   = p.inStock === false;
+                    return (
                       <tr key={p.id}>
                         <td>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <div style={{ width: 40, height: 40, borderRadius: 8, background: "#F8F8F8", flexShrink: 0, overflow: "hidden" }}>
-                              {p.imageUrl
-                                ? <img src={p.imageUrl} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📦</div>
-                              }
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</div>
-                              {p.featured && <span className="sd-badge sd-badge-blue" style={{ fontSize: 10, padding: "1px 6px" }}>Featured</span>}
-                            </div>
+                          <div style={{ width:44, height:44, borderRadius:8, overflow:"hidden", background:"#F4F6F8", flexShrink:0 }}>
+                            {imgUrl
+                              ? <img src={imgUrl} alt={p.name} style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
+                              : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>📦</div>
+                            }
                           </div>
                         </td>
-                        <td style={{ color: "#8B8FA8", fontSize: 12 }}>{p.category || "—"}</td>
-                        <td style={{ fontWeight: 700 }}>GHS {Number(p.price || 0).toLocaleString()}</td>
-                        <td style={{ fontSize: 12 }}>{p.stock != null ? p.stock : "∞"}</td>
                         <td>
-                          <span className={`sd-badge ${p.inStock === false ? "sd-badge-red" : "sd-badge-green"}`}>
-                            {p.inStock === false ? "Out of Stock" : "In Stock"}
+                          <div style={{ fontWeight:700, fontSize:13, color:"var(--text,#111)", marginBottom:2 }}>{p.name}</div>
+                          <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
+                            {p.featured && <span className="sd-badge sd-badge-blue" style={{ fontSize:9, padding:"1px 6px" }}>Featured</span>}
+                            {p.subcategory && <span style={{ fontSize:10, color:"#9CA3AF" }}>{p.subcategory}</span>}
+                          </div>
+                        </td>
+                        <td style={{ color:"#8B8FA8", fontSize:12 }}>{p.category || "—"}</td>
+                        <td>
+                          <div style={{ fontWeight:800, fontSize:13 }}>GHS {Number(p.price||0).toLocaleString()}</div>
+                          {p.comparePrice > p.price && (
+                            <div style={{ fontSize:10, color:"#9CA3AF", textDecoration:"line-through" }}>
+                              GHS {Number(p.comparePrice).toLocaleString()}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ fontSize:12, color: p.stock === 0 ? "#EF4444" : "var(--text,#111)" }}>
+                          {p.stock != null ? p.stock : "∞"}
+                        </td>
+                        <td>
+                          <span className={`sd-badge ${isDraft ? "sd-badge-gray" : isOos ? "sd-badge-red" : "sd-badge-green"}`}>
+                            {isDraft ? "Draft" : isOos ? "Out of Stock" : "Active"}
                           </span>
                         </td>
                         <td>
-                          <div style={{ display: "flex", gap: 6 }}>
-                            <button className="sd-btn sd-btn-ghost sd-btn-sm" onClick={() => setModal(p)}>Edit</button>
-                            <button className="sd-btn sd-btn-danger sd-btn-sm" onClick={() => handleDelete(p.id)} disabled={deleting === p.id}>
-                              {deleting === p.id ? "…" : "Delete"}
+                          <div style={{ display:"flex", gap:6 }}>
+                            <button className="sd-btn sd-btn-ghost sd-btn-sm"
+                              onClick={() => navigate(`/seller-dashboard/products/${p.id}`)}>
+                              <Icon d={ICONS.edit} size={13}/> Edit
+                            </button>
+                            <button className="sd-btn sd-btn-danger sd-btn-sm"
+                              onClick={() => handleDelete(p.id, p.name)}
+                              disabled={deleting === p.id}>
+                              {deleting === p.id
+                                ? "…"
+                                : <Icon d={ICONS.trash} size={13}/>
+                              }
                             </button>
                           </div>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )
-        }
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Modal */}
-      {modal !== null && (
-        <ProductModal
-          product={modal === "add" ? null : modal}
-          onSave={handleSave}
-          onClose={() => setModal(null)}
-          saving={saving}
-        />
-      )}
+      <div style={{ marginTop:8, padding:"0 4px", fontSize:12, color:"#9CA3AF" }}>
+        Showing {filtered.length} of {products.length} products
+      </div>
+
+      <style>{`
+        .sd-badge-gray { background: rgba(156,163,175,0.15); color: #6B7280; }
+      `}</style>
     </div>
   );
 }
-

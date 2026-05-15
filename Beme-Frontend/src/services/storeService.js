@@ -2,24 +2,24 @@ import {
   doc, collection, getDocs, addDoc, updateDoc, deleteDoc,
   query, where, orderBy, limit, serverTimestamp, getDoc,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "../firebase";
-import { auth } from "../firebase";
+import { db } from "../firebase";
+import { uploadImageToCloudinary } from "../lib/cloudinary";
 
-// ─── PLAN LIMITS (server-side mirror — Cloud Function enforces these) ─────────
+// ─── PLAN LIMITS ─────────────────────────────────────────────
 const PLAN_LIMITS = {
-  basic:    { maxProducts: 25,   hasChat: false, hasCustomDomain: false, hasBranding: false },
-  standard: { maxProducts: 500,  hasChat: true,  hasCustomDomain: false, hasBranding: false },
+  basic:    { maxProducts: 25,    hasChat: false, hasCustomDomain: false, hasBranding: false },
+  starter:  { maxProducts: 25,    hasChat: false, hasCustomDomain: false, hasBranding: false },
+  standard: { maxProducts: 500,   hasChat: true,  hasCustomDomain: false, hasBranding: false },
   pro:      { maxProducts: 99999, hasChat: true,  hasCustomDomain: true,  hasBranding: true  },
 };
 
 export function getPlanLimits(planId) {
-  return PLAN_LIMITS[planId] || PLAN_LIMITS.basic;
+  return PLAN_LIMITS[String(planId || "").toLowerCase()] || PLAN_LIMITS.basic;
 }
 
-// ─── SHOP ────────────────────────────────────────────────────────────────────
-
+// ─── SHOP ────────────────────────────────────────────────────
 export async function getShop(shopId) {
+  if (!shopId) return null;
   const snap = await getDoc(doc(db, "shops", shopId));
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
@@ -31,8 +31,7 @@ export async function updateShop(shopId, updates) {
   });
 }
 
-// ─── PRODUCTS ────────────────────────────────────────────────────────────────
-
+// ─── PRODUCTS ────────────────────────────────────────────────
 export async function getSellerProducts(uid, shopId) {
   const snap = await getDocs(
     query(
@@ -44,27 +43,40 @@ export async function getSellerProducts(uid, shopId) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+export async function getProductById(productId) {
+  const snap = await getDoc(doc(db, "Products", productId));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+
 export async function addSellerProduct(uid, shopId, shopName, planId, data) {
-  // Client-side plan limit check (enforced by Cloud Function too)
   const existing = await getDocs(
     query(collection(db, "Products"), where("sellerId", "==", uid))
   );
   const limits = getPlanLimits(planId);
   if (existing.size >= limits.maxProducts) {
-    throw new Error(`Your ${planId} plan allows a maximum of ${limits.maxProducts} products. Please upgrade to add more.`);
+    throw new Error(
+      `Your ${planId} plan allows a maximum of ${limits.maxProducts} products. Please upgrade to add more.`
+    );
   }
+
+  // Ensure imageUrl is set from images array for backward compatibility
+  const images = Array.isArray(data.images) ? data.images : (data.imageUrl ? [data.imageUrl] : []);
+  const imageUrl = images[0] || data.imageUrl || "";
 
   return await addDoc(collection(db, "Products"), {
     ...data,
-    sellerId:  uid,
+    images,
+    imageUrl,
+    sellerId:   uid,
     shopId,
     shopName,
     sellerPlan: planId,
-    source:    "seller",
-    status:    "active",
-    inStock:   data.inStock !== false,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    ownerType:  "seller",
+    source:     "seller",
+    status:     data.status || "active",
+    inStock:    data.inStock !== false,
+    createdAt:  serverTimestamp(),
+    updatedAt:  serverTimestamp(),
   });
 }
 
@@ -73,8 +85,15 @@ export async function updateSellerProduct(productId, uid, updates) {
   if (!snap.exists() || snap.data().sellerId !== uid) {
     throw new Error("You do not have permission to edit this product.");
   }
+
+  // Keep imageUrl in sync with images array
+  const images = Array.isArray(updates.images) ? updates.images : undefined;
+  const imageUrl = images ? (images[0] || "") : updates.imageUrl;
+
   await updateDoc(doc(db, "Products", productId), {
     ...updates,
+    ...(images !== undefined && { images }),
+    ...(imageUrl !== undefined && { imageUrl }),
     updatedAt: serverTimestamp(),
   });
 }
@@ -87,26 +106,22 @@ export async function deleteSellerProduct(productId, uid) {
   await deleteDoc(doc(db, "Products", productId));
 }
 
-// ─── UPLOAD MEDIA ────────────────────────────────────────────────────────────
+// ─── CLOUDINARY IMAGE UPLOADS ────────────────────────────────
+// All media now goes through Cloudinary — no Firebase Storage.
 
-export async function uploadStoreImage(uid, file, type = "logo") {
-  const ext  = file.name.split(".").pop();
-  const path = `stores/${uid}/${type}_${Date.now()}.${ext}`;
-  const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
-  return await getDownloadURL(storageRef);
-}
-
+/** Upload a single product image. Returns the Cloudinary URL string. */
 export async function uploadProductImage(uid, file) {
-  const ext  = file.name.split(".").pop();
-  const path = `products/${uid}/${Date.now()}.${ext}`;
-  const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
-  return await getDownloadURL(storageRef);
+  const result = await uploadImageToCloudinary(file);
+  return result.url;
 }
 
-// ─── ORDERS (seller view) ───────────────────────────────────────────────────
+/** Upload a single store image (logo / banner). Returns the URL string. */
+export async function uploadStoreImage(uid, file, type = "logo") {
+  const result = await uploadImageToCloudinary(file);
+  return result.url;
+}
 
+// ─── ORDERS (seller view) ────────────────────────────────────
 export async function getSellerOrders(shopId, limitCount = 100) {
   try {
     const snap = await getDocs(
@@ -119,7 +134,7 @@ export async function getSellerOrders(shopId, limitCount = 100) {
     );
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   } catch {
-    // Fallback without orderBy if index not built
+    // Fallback without orderBy if composite index not built
     const snap = await getDocs(
       query(collection(db, "orders"), where("shops", "array-contains", shopId), limit(limitCount))
     );
@@ -127,15 +142,13 @@ export async function getSellerOrders(shopId, limitCount = 100) {
   }
 }
 
-// ─── STORE APPLICATION ──────────────────────────────────────────────────────
-
+// ─── STORE APPLICATION ───────────────────────────────────────
 export async function saveApplicationStep(uid, step, data) {
   const ref = doc(db, "storeApplications", uid);
   await updateDoc(ref, {
     [`step${step}`]: data,
     updatedAt: serverTimestamp(),
   }).catch(async () => {
-    // Document may not exist yet — create it
     const { setDoc } = await import("firebase/firestore");
     await setDoc(ref, {
       [`step${step}`]: data,
@@ -150,4 +163,3 @@ export async function getApplicationDraft(uid) {
   const snap = await getDoc(doc(db, "storeApplications", uid));
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
-
