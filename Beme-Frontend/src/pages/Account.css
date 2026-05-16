@@ -502,3 +502,75 @@ body.dark .acc-sheet__btn--cancel { background: rgba(255,255,255,0.08); color: #
 body.dark .acc-mobile-tabs   { background: #111; }
 body.dark .acc-mobile-tab    { background: #1A1A1A; border-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); }
 body.dark .acc-store-btn--ghost { background: rgba(4,110,242,0.15); }
+
+
+/* ─── Tab sections ─── */
+.acc-tab-section { display:flex; flex-direction:column; gap:12px; }
+
+.acc-empty-state {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:48px 24px; gap:12px;
+  background:var(--card,#fff); border-radius:16px; border:1px solid rgba(0,0,0,0.07);
+}
+.acc-empty-icon  { color:rgba(0,0,0,0.15); margin-bottom:4px; }
+.acc-empty-title { font-size:17px; font-weight:800; color:var(--text,#111); }
+.acc-empty-sub   { font-size:14px; color:var(--muted,#9CA3AF); line-height:1.5; max-width:260px; }
+
+.acc-primary-btn {
+  padding:12px 28px; border-radius:12px; border:none;
+  background:#046EF2; color:#fff; font-size:14px; font-weight:800;
+  cursor:pointer; font-family:inherit; margin-top:4px;
+  box-shadow:0 4px 14px rgba(4,110,242,0.3);
+}
+
+.acc-order-row--lg {
+  display:flex; align-items:center; gap:12;
+  background:var(--card,#fff); border-radius:12px;
+  border:1px solid rgba(0,0,0,0.07); padding:14px 16px;
+  gap:12px; width:100%; text-align:left; cursor:pointer;
+  transition:box-shadow 0.15s;
+}
+.acc-order-row--lg:hover { box-shadow:0 4px 16px rgba(0,0,0,0.08); }
+
+.acc-view-all-btn {
+  width:100%; padding:12px; border-radius:12px;
+  border:1.5px solid rgba(4,110,242,0.25); background:rgba(4,110,242,0.04);
+  color:#046EF2; font-size:14px; font-weight:700; cursor:pointer;
+  font-family:inherit; text-align:center;
+}
+
+/* ─── Settings rows ─── */
+.acc-settings-group {
+  background:var(--card,#fff); border-radius:16px;
+  border:1px solid rgba(0,0,0,0.07); overflow:hidden;
+}
+.acc-settings-group-title {
+  font-size:11px; font-weight:800; text-transform:uppercase;
+  letter-spacing:0.07em; color:var(--muted,#9CA3AF);
+  padding:14px 16px 8px;
+}
+.acc-settings-row {
+  display:flex; align-items:center; gap:12px;
+  width:100%; padding:13px 16px; border:none; background:transparent;
+  cursor:pointer; font-family:inherit; text-align:left;
+  border-top:1px solid rgba(0,0,0,0.05); transition:background 0.1s;
+}
+.acc-settings-row:first-of-type { border-top:none; }
+.acc-settings-row:hover { background:rgba(0,0,0,0.025); }
+.acc-settings-row--danger .acc-settings-row-label { color:#EF4444; }
+.acc-settings-row--danger .acc-settings-row-ico   { color:#EF4444; }
+.acc-settings-row-ico {
+  width:36px; height:36px; border-radius:9px; flex-shrink:0;
+  background:rgba(0,0,0,0.05); display:flex; align-items:center;
+  justify-content:center; color:var(--text,#333);
+}
+.acc-settings-row-info { flex:1; min-width:0; }
+.acc-settings-row-label { font-size:14px; font-weight:700; color:var(--text,#111); }
+.acc-settings-row-sub   { font-size:12px; color:var(--muted,#9CA3AF); margin-top:1px; }
+.acc-settings-row-arr   { color:var(--muted,#C4C9D4); flex-shrink:0; }
+
+.acc-badge-red {
+  min-width:20px; height:20px; border-radius:100px; background:#EF4444;
+  color:#fff; font-size:11px; font-weight:800; display:flex;
+  align-items:center; justify-content:center; padding:0 6px; flex-shrink:0;
+}
