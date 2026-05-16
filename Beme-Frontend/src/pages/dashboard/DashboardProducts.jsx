@@ -41,10 +41,13 @@ export default function DashboardProducts() {
     if (!user?.uid) return;
     setLoading(true);
     try {
-      const data = await getSellerProducts(user.uid, storeId);
+      // storeId may be null on Spark plan — getSellerProducts queries by sellerId, not shopId
+      const data = await getSellerProducts(user.uid, storeId || user.uid);
       setProducts(data);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+    } catch (err) {
+      console.error("[DashboardProducts] load error:", err);
+      setProducts([]);
+    } finally { setLoading(false); }
   }, [user?.uid, storeId]);
 
   useEffect(() => { load(); }, [load]);
