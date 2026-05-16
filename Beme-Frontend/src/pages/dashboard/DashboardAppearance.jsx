@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
+import { useAuth } from "../../context/AuthContext";
 import { uploadImageToCloudinary, validateImageFile } from "../../lib/cloudinary";
 
 function Ico({ d, size = 18, color = "currentColor" }) {
@@ -155,6 +156,7 @@ function Preview({ form }) {
 /* ═══ MAIN ═══ */
 export default function DashboardAppearance() {
   const { shop, storeId } = useSellerAuth();
+  const { user } = useAuth();
 
   const [form, setForm] = useState({
     shopName:"", description:"", bannerUrl:"", logoUrl:"",
@@ -182,11 +184,14 @@ export default function DashboardAppearance() {
   const upd = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
-    const sid = storeId || shop?.id;
-    if (!sid) { alert("Store not found."); return; }
+    // storeId is null when Cloud Functions haven't run (Spark plan) — fall back to user.uid
+    const sid = storeId || shop?.id || user?.uid;
+    if (!sid) { alert("Please log in again."); return; }
+    if (!form.shopName.trim()) { alert("Store name is required."); return; }
     setSaving(true);
     try {
-      await updateDoc(doc(db, "shops", sid), {
+      // setDoc with merge:true creates the document if it doesn't exist
+      await setDoc(doc(db, "shops", sid), {
         shopName:    form.shopName.trim(),
         description: form.description.trim(),
         bannerUrl:   form.bannerUrl,
@@ -195,8 +200,11 @@ export default function DashboardAppearance() {
         instagram:   form.instagram.trim(),
         tiktok:      form.tiktok.trim(),
         website:     form.website.trim(),
+        ownerId:     user?.uid || sid,
+        slug:        form.shopName.trim().toLowerCase().replace(/[^a-z0-9]/g,"-").replace(/-+/g,"-"),
+        status:      "active",
         updatedAt:   serverTimestamp(),
-      });
+      }, { merge: true });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
