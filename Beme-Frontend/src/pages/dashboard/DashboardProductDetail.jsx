@@ -45,8 +45,10 @@ const EMPTY_FORM = {
   category:     "",
   subcategory:  "",
   status:       "active",
-  inStock:      true,
-  featured:     false,
+  inStock:        true,
+  featured:       false,
+  trackInventory: true,   // false = "no inventory tracking" → may block payout
+  lowStockAlert:  "",     // notify when stock falls to this number
   customizations: [],   // [{ id, name, type, required, values: [{id, label, priceBump}] }]
 };
 
@@ -212,6 +214,8 @@ export default function DashboardProductDetail() {
             price:        p.price       != null ? String(p.price) : "",
             comparePrice: p.comparePrice!= null ? String(p.comparePrice) : "",
             stock:        p.stock       != null ? String(p.stock) : "",
+            trackInventory: p.trackInventory !== false,
+            lowStockAlert:  p.lowStockAlert != null ? String(p.lowStockAlert) : "",
             customizations: Array.isArray(p.customizations)
               ? p.customizations.map((g, gi) => ({
                   id: g.id || `g-${gi}`,
@@ -326,7 +330,9 @@ export default function DashboardProductDetail() {
         category:     form.category,
         subcategory:  form.subcategory,
         status:       form.status,
-        inStock:      form.inStock,
+        inStock:        form.inStock,
+        trackInventory: form.trackInventory,
+        lowStockAlert:  form.trackInventory && form.lowStockAlert !== "" ? Number(form.lowStockAlert) : null,
         featured:     form.featured,
       };
 
@@ -469,24 +475,67 @@ export default function DashboardProductDetail() {
             {/* Inventory */}
             <div style={{ background:"var(--card,#fff)", borderRadius:14, border:"1px solid rgba(0,0,0,0.08)", padding:"20px 20px 16px" }}>
               <div style={{ fontWeight:800, fontSize:15, color:"var(--text,#111)", marginBottom:14 }}>Inventory</div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16 }}>
-                <div className="sd-form-group" style={{ marginBottom:0 }}>
-                  <label className="sd-label">Stock Quantity</label>
-                  <input className="sd-input" type="number" min="0"
-                    value={form.stock} onChange={upd("stock")} placeholder="Leave blank for unlimited"/>
+
+              {/* Track inventory toggle */}
+              <Toggle
+                checked={form.trackInventory}
+                onChange={() => setForm(f => ({ ...f, trackInventory: !f.trackInventory }))}
+                label="Track inventory"
+                sub="Turn off only if you have unlimited or untracked stock"
+              />
+
+              {/* Payout warning when not tracking */}
+              {!form.trackInventory && (
+                <div style={{ margin:"12px 0", padding:"12px 14px", borderRadius:10,
+                  background:"rgba(239,68,68,0.06)", border:"1px solid rgba(239,68,68,0.2)" }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:"#EF4444", marginBottom:3 }}>
+                    ⚠ Payouts may be held
+                  </div>
+                  <div style={{ fontSize:12, color:"#6B7280", lineHeight:1.5 }}>
+                    Sellers with no inventory tracking may have payouts held until stock is confirmed with Beme Market support.
+                  </div>
                 </div>
+              )}
+
+              {/* Stock quantity — only shown when tracking */}
+              {form.trackInventory && (
+                <div style={{ marginTop:14, display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                  <div className="sd-form-group" style={{ marginBottom:0 }}>
+                    <label className="sd-label">Stock Quantity *</label>
+                    <input className="sd-input" type="number" min="0"
+                      value={form.stock} onChange={upd("stock")} placeholder="e.g. 12"/>
+                    <div style={{ fontSize:11, color:"#9CA3AF", marginTop:4 }}>
+                      How many units do you have available?
+                    </div>
+                  </div>
+                  <div className="sd-form-group" style={{ marginBottom:0 }}>
+                    <label className="sd-label">Low Stock Alert</label>
+                    <input className="sd-input" type="number" min="0"
+                      value={form.lowStockAlert}
+                      onChange={upd("lowStockAlert")} placeholder="e.g. 3"/>
+                    <div style={{ fontSize:11, color:"#9CA3AF", marginTop:4 }}>
+                      Alert when stock falls to this level
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SKU + In Stock row */}
+              <div style={{ marginTop:14, display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
                 <div className="sd-form-group" style={{ marginBottom:0 }}>
-                  <label className="sd-label">SKU (Stock Keeping Unit)</label>
+                  <label className="sd-label">SKU (optional)</label>
                   <input className="sd-input" type="text"
                     value={form.sku} onChange={upd("sku")} placeholder="e.g. BM-DR-001"/>
                 </div>
+                <div style={{ paddingTop:20 }}>
+                  <Toggle
+                    checked={form.inStock}
+                    onChange={() => setForm(f => ({ ...f, inStock: !f.inStock }))}
+                    label="In Stock"
+                    sub="Visible & buyable in marketplace"
+                  />
+                </div>
               </div>
-              <Toggle
-                checked={form.inStock}
-                onChange={() => setForm((f) => ({ ...f, inStock: !f.inStock }))}
-                label="In Stock"
-                sub="Customers can add this product to their cart"
-              />
             </div>
 
           </div>
