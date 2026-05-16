@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { collection, getDocs, limit, query } from "firebase/firestore";
+import MegaMenu from "./MegaMenu";
 import { db } from "../firebase";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
@@ -391,7 +392,10 @@ export default function Header({ onMenu, onCart }) {
   const { cartItems } = useCart();
 
   // ── CHANGED: added isSellerActive to destructure ──────────────
-  const { user, logout, isSellerActive } = useAuth();
+  const { user, logout, isSellerActive, isSeller } = useAuth();
+  // Also treat users who completed onboarding as sellers (pre-Cloud Functions)
+  const appliedUid = typeof window !== "undefined" ? localStorage.getItem("beme_seller_applied") : null;
+  const hasStore = isSellerActive || isSeller || (appliedUid && user && appliedUid === user.uid);
 
   const actionLockRef = useRef(false);
   const prefersDark   = usePrefersDark();
@@ -903,16 +907,16 @@ export default function Header({ onMenu, onCart }) {
               <IconChevronDown />
             </span>
           </button>
-          {catMenuOpen && renderCatMegaMenu()}
+          {catMenuOpen && <MegaMenu onClose={() => setCatMenuOpen(false)} />}
         </div>
 
         {/* ── CHANGED: /custom-store → /get-a-store, smart label for sellers ── */}
         <button
           type="button"
-          className={`hdr-nav-link ${location.pathname === (isSellerActive ? "/seller-dashboard" : "/get-a-store") ? "hdr-nav-link--active" : ""}`}
-          onClick={() => navigate(isSellerActive ? "/seller-dashboard" : "/get-a-store")}
+          className={`hdr-nav-link ${location.pathname === (hasStore ? "/seller-dashboard" : "/get-a-store") ? "hdr-nav-link--active" : ""}`}
+          onClick={() => navigate(hasStore ? "/seller-dashboard" : "/get-a-store")}
         >
-          {isSellerActive ? "My Dashboard" : "Get a store"}
+          {hasStore ? "My Dashboard" : "Get a store"}
         </button>
 
         <button
