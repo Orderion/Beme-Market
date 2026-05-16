@@ -47,7 +47,12 @@ const EMPTY_FORM = {
   status:       "active",
   inStock:      true,
   featured:     false,
+  customizations: [],   // [{ id, name, type, required, values: [{id, label, priceBump}] }]
 };
+
+/* ─── Customization helpers ─────────────────────────────────── */
+function makeOptVal()   { return { id: crypto.randomUUID(), label: "", priceBump: "" }; }
+function makeOptGroup() { return { id: crypto.randomUUID(), name: "", type: "buttons", required: true, values: [makeOptVal(), makeOptVal()] }; }
 
 /* ─── Image Upload Zone ─────────────────────────────────────── */
 function ImageGrid({ images, onAdd, onRemove, uploading }) {
@@ -207,6 +212,21 @@ export default function DashboardProductDetail() {
             price:        p.price       != null ? String(p.price) : "",
             comparePrice: p.comparePrice!= null ? String(p.comparePrice) : "",
             stock:        p.stock       != null ? String(p.stock) : "",
+            customizations: Array.isArray(p.customizations)
+              ? p.customizations.map((g, gi) => ({
+                  id: g.id || `g-${gi}`,
+                  name: String(g.name || ""),
+                  type: g.type === "select" ? "select" : "buttons",
+                  required: g.required !== false,
+                  values: Array.isArray(g.values)
+                    ? g.values.map((v, vi) => ({
+                        id: v.id || `v-${gi}-${vi}`,
+                        label: String(v.label || ""),
+                        priceBump: v.priceBump != null ? String(v.priceBump) : "",
+                      }))
+                    : [makeOptVal(), makeOptVal()],
+                }))
+              : [],
             sku:          p.sku         || "",
             category:     p.category    || "",
             subcategory:  p.subcategory || "",
@@ -287,6 +307,21 @@ export default function DashboardProductDetail() {
         price:        Number(form.price),
         comparePrice: form.comparePrice ? Number(form.comparePrice) : 0,
         stock:        form.stock !== "" ? Number(form.stock) : null,
+        customizations: form.customizations
+          .map(g => ({
+            id: g.id,
+            name: String(g.name).trim(),
+            type: g.type === "select" ? "select" : "buttons",
+            required: !!g.required,
+            values: (g.values || [])
+              .map(v => ({
+                id: v.id,
+                label: String(v.label).trim(),
+                priceBump: v.priceBump !== "" && !isNaN(Number(v.priceBump)) ? Number(v.priceBump) : 0,
+              }))
+              .filter(v => v.label),
+          }))
+          .filter(g => g.name && g.values.length > 0),
         sku:          form.sku.trim(),
         category:     form.category,
         subcategory:  form.subcategory,
@@ -513,6 +548,164 @@ export default function DashboardProductDetail() {
                 <div style={{ marginTop:10, fontSize:11, color:"#046EF2", fontWeight:600, display:"flex", alignItems:"center", gap:5 }}>
                   <Ico d={ICONS.check} size={12}/>
                   {form.category}{form.subcategory ? ` › ${form.subcategory}` : ""}
+                </div>
+              )}
+            </div>
+
+            {/* ── Product Options / Customizations ── */}
+            <div style={{ background:"var(--card,#fff)", borderRadius:14, border:"1px solid rgba(0,0,0,0.08)", padding:"20px 20px 16px" }}>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
+                <div>
+                  <div style={{ fontWeight:800, fontSize:15, color:"var(--text,#111)" }}>Product Options</div>
+                  <div style={{ fontSize:12, color:"var(--muted,#9CA3AF)", marginTop:2 }}>
+                    Add size, color, storage, or any variant customers choose at checkout
+                  </div>
+                </div>
+                <button type="button"
+                  onClick={() => setForm(f => ({ ...f, customizations: [...f.customizations, makeOptGroup()] }))}
+                  style={{ display:"flex", alignItems:"center", gap:5, padding:"7px 14px", borderRadius:9,
+                    border:"1.5px solid #046EF2", background:"rgba(4,110,242,0.06)",
+                    color:"#046EF2", fontSize:13, fontWeight:800, cursor:"pointer", fontFamily:"inherit",
+                    flexShrink:0 }}>
+                  + Add Option
+                </button>
+              </div>
+
+              {form.customizations.length === 0 ? (
+                <div style={{ textAlign:"center", padding:"22px 0", borderTop:"1px solid rgba(0,0,0,0.06)", marginTop:14 }}>
+                  <div style={{ fontSize:13, color:"var(--muted,#9CA3AF)", fontWeight:600, marginBottom:4 }}>No options yet</div>
+                  <div style={{ fontSize:12, color:"var(--muted,#9CA3AF)" }}>
+                    e.g. Size: S, M, L · Color: Red, Blue · Storage: 128GB (+GHS 200)
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display:"flex", flexDirection:"column", gap:14, marginTop:16 }}>
+                  {form.customizations.map((group, gi) => (
+                    <div key={group.id} style={{ border:"1px solid rgba(0,0,0,0.08)", borderRadius:10, padding:"14px 14px 10px" }}>
+                      {/* Group header */}
+                      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+                        <div style={{ flex:1 }}>
+                          <label className="sd-label" style={{ marginBottom:5 }}>Option Name</label>
+                          <input className="sd-input"
+                            value={group.name}
+                            onChange={e => setForm(f => ({
+                              ...f,
+                              customizations: f.customizations.map((g,i) => i===gi ? { ...g, name:e.target.value } : g)
+                            }))}
+                            placeholder="e.g. Size, Color, Storage"
+                          />
+                        </div>
+                        <div style={{ width:110, flexShrink:0 }}>
+                          <label className="sd-label" style={{ marginBottom:5 }}>Type</label>
+                          <select className="sd-input sd-select"
+                            value={group.type}
+                            onChange={e => setForm(f => ({
+                              ...f,
+                              customizations: f.customizations.map((g,i) => i===gi ? { ...g, type:e.target.value } : g)
+                            }))}>
+                            <option value="buttons">Buttons</option>
+                            <option value="select">Dropdown</option>
+                          </select>
+                        </div>
+                        <button type="button"
+                          onClick={() => setForm(f => ({ ...f, customizations: f.customizations.filter((_,i) => i!==gi) }))}
+                          style={{ width:32, height:32, borderRadius:8, border:"1px solid rgba(239,68,68,0.25)",
+                            background:"rgba(239,68,68,0.06)", cursor:"pointer", display:"flex",
+                            alignItems:"center", justifyContent:"center", flexShrink:0, marginTop:16 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round">
+                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                          </svg>
+                        </button>
+                      </div>
+
+                      {/* Option values */}
+                      <label className="sd-label" style={{ marginBottom:8 }}>Values</label>
+                      <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                        {group.values.map((val, vi) => (
+                          <div key={val.id} style={{ display:"flex", gap:8, alignItems:"center" }}>
+                            <input className="sd-input" style={{ flex:2 }}
+                              value={val.label}
+                              onChange={e => setForm(f => ({
+                                ...f,
+                                customizations: f.customizations.map((g,gi2) => gi2!==gi ? g : {
+                                  ...g,
+                                  values: g.values.map((v,vi2) => vi2===vi ? { ...v, label:e.target.value } : v)
+                                })
+                              }))}
+                              placeholder={gi===0 && vi===0 ? "e.g. Small" : gi===0 && vi===1 ? "e.g. Medium" : "Value"}
+                            />
+                            <div style={{ position:"relative", flex:1 }}>
+                              <span style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)",
+                                fontSize:12, fontWeight:700, color:"#9CA3AF", pointerEvents:"none" }}>
+                                ±GHS
+                              </span>
+                              <input className="sd-input" style={{ paddingLeft:46 }}
+                                value={val.priceBump}
+                                type="number"
+                                onChange={e => setForm(f => ({
+                                  ...f,
+                                  customizations: f.customizations.map((g,gi2) => gi2!==gi ? g : {
+                                    ...g,
+                                    values: g.values.map((v,vi2) => vi2===vi ? { ...v, priceBump:e.target.value } : v)
+                                  })
+                                }))}
+                                placeholder="0"
+                              />
+                            </div>
+                            <button type="button"
+                              disabled={group.values.length <= 1}
+                              onClick={() => setForm(f => ({
+                                ...f,
+                                customizations: f.customizations.map((g,gi2) => gi2!==gi ? g : {
+                                  ...g,
+                                  values: g.values.filter((_,vi2) => vi2!==vi)
+                                })
+                              }))}
+                              style={{ width:28, height:28, borderRadius:7, border:"1px solid rgba(0,0,0,0.1)",
+                                background:"transparent", cursor: group.values.length<=1 ? "not-allowed" : "pointer",
+                                display:"flex", alignItems:"center", justifyContent:"center",
+                                opacity: group.values.length<=1 ? 0.3 : 1, flexShrink:0 }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                <path d="M18 6L6 18M6 6l12 12"/>
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Add value */}
+                      <button type="button"
+                        onClick={() => setForm(f => ({
+                          ...f,
+                          customizations: f.customizations.map((g,gi2) => gi2!==gi ? g : {
+                            ...g, values: [...g.values, makeOptVal()]
+                          })
+                        }))}
+                        style={{ marginTop:10, display:"flex", alignItems:"center", gap:5,
+                          fontSize:12, fontWeight:700, color:"#046EF2", background:"none",
+                          border:"none", cursor:"pointer", padding:"4px 0", fontFamily:"inherit" }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                        Add value
+                      </button>
+
+                      {/* Required toggle */}
+                      <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:12, paddingTop:10, borderTop:"1px solid rgba(0,0,0,0.05)" }}>
+                        <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer" }}>
+                          <input type="checkbox" checked={group.required}
+                            onChange={e => setForm(f => ({
+                              ...f,
+                              customizations: f.customizations.map((g,gi2) => gi2!==gi ? g : { ...g, required:e.target.checked })
+                            }))}
+                            style={{ accentColor:"#046EF2", width:14, height:14 }}/>
+                          <span style={{ fontSize:12, fontWeight:700, color:"var(--muted,#6B7280)" }}>
+                            Required — customer must choose before checkout
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
