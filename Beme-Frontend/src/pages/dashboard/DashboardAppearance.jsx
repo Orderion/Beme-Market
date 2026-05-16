@@ -155,7 +155,7 @@ function Preview({ form }) {
 
 /* ═══ MAIN ═══ */
 export default function DashboardAppearance() {
-  const { shop, storeId } = useSellerAuth();
+  const { shop, storeId, subscriptionPlan } = useSellerAuth();
   const { user } = useAuth();
 
   const [form, setForm] = useState({
