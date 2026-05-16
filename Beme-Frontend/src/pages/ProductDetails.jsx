@@ -275,14 +275,30 @@ function SellerInfoPanel({ shopId, sellerId }) {
 
   if (!shopId && !sellerId) return null;
   if (panelLoading) return <div style={{ height:6, background:"rgba(0,0,0,0.04)", borderRadius:3, margin:"20px 16px" }}/>;
-  if (!shop) return null;
 
-  const perf = shop.performance || {};
+  // If no shop doc exists (Cloud Functions never ran), build a fallback from what we have
+  // so the panel still renders with basic info
+  const effectiveShop = shop || (sellerId ? {
+    id:          shopId || sellerId,
+    shopName:    "Seller Store",
+    slug:        shopId || sellerId,
+    logoUrl:     "",
+    verified:    false,
+    sellerScore: 0,
+    performance: {},
+    followersCount: 0,
+    ownerId:     sellerId,
+  } : null);
+
+  if (!effectiveShop) return null;
+  const shop2 = effectiveShop;  // alias so the rest of the code below is unchanged
+
+  const perf = shop2.performance || {};
   const metrics = [
     { label:"Shipping speed",   value: perf.shippingSpeed   || "Good" },
     { label:"Quality Score",    value: perf.qualityScore    || "Good" },
     { label:"Customer Rating",  value: perf.customerRating  || "Good" },
-    ...(shop.successfulSales ? [{ label:"Successful Sales", value:`${Number(shop.successfulSales).toLocaleString()}+` }] : []),
+    ...(shop2.successfulSales ? [{ label:"Successful Sales", value:`${Number(shop2.successfulSales).toLocaleString()}+` }] : []),
   ];
   const metricColor = (v) => v === "Excellent" ? "#16A34A" : v === "Good" ? "#2563EB" : v === "Average" ? "#D97706" : "#6B7280";
 
@@ -292,7 +308,7 @@ function SellerInfoPanel({ shopId, sellerId }) {
       <div className="pd-seller-panel__head">
         <span className="pd-seller-panel__title">SELLER INFORMATION</span>
         <button className="pd-seller-panel__link"
-          onClick={() => navigate(`/store/${shop.slug || shop.id}`)}>
+          onClick={() => navigate(`/store/${shop2.slug || shop2.id}`)}>
           See Store →
         </button>
       </div>
@@ -300,18 +316,18 @@ function SellerInfoPanel({ shopId, sellerId }) {
       {/* Identity row */}
       <div className="pd-seller-identity">
         <div className="pd-seller-avatar">
-          {shop.logoUrl
-            ? <img src={shop.logoUrl} alt={shop.shopName} style={{ width:"100%", height:"100%", objectFit:"cover", borderRadius:"50%" }}/>
-            : <span style={{ fontSize:18, fontWeight:900, color:"#046EF2" }}>{(shop.shopName || "S").charAt(0).toUpperCase()}</span>
+          {shop2.logoUrl
+            ? <img src={shop2.logoUrl} alt={shop2.shopName} style={{ width:"100%", height:"100%", objectFit:"cover", borderRadius:"50%" }}/>
+            : <span style={{ fontSize:18, fontWeight:900, color:"#046EF2" }}>{(shop2.shopName || "S").charAt(0).toUpperCase()}</span>
           }
         </div>
         <div className="pd-seller-identity__info">
           <div className="pd-seller-identity__name">
-            {shop.shopName}
-            {shop.verified && <span style={{ marginLeft:5, display:"inline-flex", verticalAlign:"middle" }}><VerifiedIcon/></span>}
+            {shop2.shopName}
+            {shop2.verified && <span style={{ marginLeft:5, display:"inline-flex", verticalAlign:"middle" }}><VerifiedIcon/></span>}
           </div>
-          {shop.sellerScore > 0 && (
-            <div className="pd-seller-identity__score">{shop.sellerScore}% Seller Score</div>
+          {shop2.sellerScore > 0 && (
+            <div className="pd-seller-identity__score">{shop2.sellerScore}% Seller Score</div>
           )}
           <div className="pd-seller-identity__followers">{followerCount.toLocaleString()} Followers</div>
         </div>
@@ -339,11 +355,11 @@ function SellerInfoPanel({ shopId, sellerId }) {
       {/* Action buttons */}
       <div className="pd-seller-actions">
         <button className="pd-seller-action-btn pd-seller-action-btn--outline"
-          onClick={() => navigate(`/store/${shop.slug || shop.id}`)}>
+          onClick={() => navigate(`/store/${shop2.slug || shop2.id}`)}>
           <StoreIcon/> Visit Store
         </button>
         <button className="pd-seller-action-btn pd-seller-action-btn--primary"
-          onClick={() => navigate(`/messages?seller=${sellerId || shop.ownerId}`)}>
+          onClick={() => navigate(`/messages?seller=${sellerId || shop2.ownerId}`)}>
           <ChatIcon/> Chat Seller
         </button>
       </div>
@@ -351,7 +367,7 @@ function SellerInfoPanel({ shopId, sellerId }) {
       {/* More from this store */}
       {moreProducts.length > 1 && (
         <div className="pd-seller-more">
-          <div className="pd-seller-more__title">More from {shop.shopName}</div>
+          <div className="pd-seller-more__title">More from {shop2.shopName}</div>
           <div className="pd-seller-more__grid">
             {moreProducts.slice(0, 4).map((p) => {
               const img = (Array.isArray(p.images) ? p.images[0] : null) || p.imageUrl || "";
