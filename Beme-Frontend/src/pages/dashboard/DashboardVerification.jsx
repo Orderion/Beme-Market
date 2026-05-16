@@ -1,205 +1,314 @@
 import { useState, useEffect } from "react";
-import { collection, addDoc, getDocs, query, where, orderBy, serverTimestamp } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "../../firebase";
+import { doc, addDoc, collection, serverTimestamp, getDocs, query, where, orderBy, limit } from "firebase/firestore";
+import { db } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
 
-const BADGE_INFO = {
-  none:     { label: "Unverified", color: "#8B8FA8", bg: "rgba(107,114,128,0.1)", icon: "🔓" },
-  verified: { label: "Verified",   color: "#22C55E", bg: "rgba(34,197,94,0.1)",   icon: "✓" },
-  pro:      { label: "Pro Seller", color: "#7C3AED", bg: "rgba(124,58,237,0.1)",  icon: "⭐" },
+/* ─── SVG icons ─── */
+function Ico({ d, size=20, color="currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {d.split("|").map((seg, i) => <path key={i} d={seg}/>)}
+    </svg>
+  );
+}
+const IC = {
+  shield:   "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+  shieldOk: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z|M9 12l2 2 4-4",
+  lock:     "M19 11H5a2 2 0 00-2 2v7a2 2 0 002 2h14a2 2 0 002-2v-7a2 2 0 00-2-2z|M7 11V7a5 5 0 0110 0v4",
+  star:     "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+  trend:    "M23 6L13.5 15.5 8.5 10.5 1 18|M17 6h6v6",
+  dollar:   "M12 1v22|M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
+  user:     "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2|M12 11a4 4 0 100-8 4 4 0 000 8z",
+  file:     "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z|M14 2v6h6|M16 13H8|M16 17H8|M10 9H8",
+  check:    "M20 6L9 17l-5-5",
+  clock:    "M12 22a10 10 0 100-20 10 10 0 000 20z|M12 6v6l4 2",
+  info:     "M12 22a10 10 0 100-20 10 10 0 000 20z|M12 16v-4|M12 8h.01",
+  send:     "M22 2L11 13|M22 2L15 22l-4-9-9-4 20-7z",
 };
 
-export default function DashboardVerification() {
-  const { user }  = useAuth();
-  const { storeId, shop } = useSellerAuth();
+const BENEFITS = [
+  {
+    icon:  IC.shieldOk,
+    color: "#046EF2",
+    title: "Build Trust",
+    desc:  "Verified badge appears on your store page and all your product listings.",
+  },
+  {
+    icon:  IC.trend,
+    color: "#22C55E",
+    title: "More Sales",
+    desc:  "Verified sellers rank higher in search results and get featured more often.",
+  },
+  {
+    icon:  IC.dollar,
+    color: "#F59E0B",
+    title: "Higher Limits",
+    desc:  "Access higher weekly withdrawal limits and priority payout processing.",
+  },
+];
 
-  const [existing, setExisting]       = useState(null);
-  const [files, setFiles]             = useState([]);
-  const [uploading, setUploading]     = useState(false);
-  const [submitting, setSubmitting]   = useState(false);
-  const [agreed, setAgreed]           = useState(false);
-  const [loading, setLoading]         = useState(true);
+const DOCS_NEEDED = [
+  { icon: IC.user,  label:"Government-issued ID",  desc:"Ghana Card, Passport, or Driver's Licence"  },
+  { icon: IC.file,  label:"Business registration",  desc:"Optional but speeds up verification"         },
+  { icon: IC.file,  label:"Proof of address",        desc:"Utility bill or bank statement (3 months)"  },
+];
+
+export default function DashboardVerification() {
+  const { user } = useAuth();
+  const { shop } = useSellerAuth();
+
+  const [request, setRequest] = useState(null);   // existing request if any
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [message, setMessage] = useState("");
+  const [sent,    setSent]    = useState(false);
+
+  const isVerified = !!(shop?.verified || shop?.verifiedBadge);
 
   useEffect(() => {
-    if (!user?.uid) return;
-    getDocs(query(collection(db, "verificationRequests"), where("sellerId", "==", user.uid), orderBy("createdAt", "desc")))
-      .then((snap) => {
-        if (!snap.empty) setExisting({ id: snap.docs[0].id, ...snap.docs[0].data() });
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    if (!user?.uid) { setLoading(false); return; }
+    getDocs(query(
+      collection(db, "verificationRequests"),
+      where("sellerId", "==", user.uid),
+      orderBy("createdAt", "desc"),
+      limit(1),
+    )).then(snap => {
+      if (!snap.empty) setRequest({ id:snap.docs[0].id, ...snap.docs[0].data() });
+    }).catch(() => {})
+    .finally(() => setLoading(false));
   }, [user?.uid]);
 
-  const badge = BADGE_INFO[shop?.verifiedBadge || "none"];
-
-  const handleFileChange = (e) => {
-    const selected = Array.from(e.target.files || []);
-    setFiles((prev) => [...prev, ...selected].slice(0, 5));
-  };
-
   const handleSubmit = async () => {
-    if (!agreed) { alert("Please agree to the verification terms."); return; }
-    if (files.length === 0) { alert("Please upload at least one document."); return; }
-    if (!storeId) return;
-
-    setSubmitting(true);
+    if (!user?.uid) return;
+    setSending(true);
     try {
-      // Upload all docs to storage
-      const uploadedUrls = [];
-      for (const file of files) {
-        setUploading(true);
-        const fileRef = ref(storage, `verification/${user.uid}/${Date.now()}_${file.name}`);
-        await uploadBytes(fileRef, file);
-        const url = await getDownloadURL(fileRef);
-        uploadedUrls.push(url);
-      }
-      setUploading(false);
-
-      // Create verification request
-      const ref2 = await addDoc(collection(db, "verificationRequests"), {
-        shopId: storeId,
-        sellerId: user.uid,
-        shopName: shop?.shopName || "",
-        businessType: shop?.category || "",
-        documents: uploadedUrls,
-        status: "pending",
-        adminNote: null,
-        reviewedBy: null,
-        reviewedAt: null,
+      await addDoc(collection(db, "verificationRequests"), {
+        sellerId:  user.uid,
+        shopId:    shop?.id || null,
+        shopName:  shop?.shopName || "",
+        message:   message.trim(),
+        status:    "pending",
         createdAt: serverTimestamp(),
       });
-      setExisting({ id: ref2.id, status: "pending", documents: uploadedUrls });
-      setFiles([]);
-    } catch (err) {
-      console.error(err);
-      alert("Submission failed. Please try again.");
+      setSent(true);
+      setMessage("");
+      setRequest({ status:"pending" });
+    } catch (e) {
+      alert("Failed to submit. Please try again.");
+      console.error(e);
     } finally {
-      setSubmitting(false);
+      setSending(false);
     }
   };
 
-  if (loading) return <div style={{ padding: 40, textAlign: "center", color: "#8B8FA8" }}>Loading…</div>;
+  /* ── Status badge ── */
+  const StatusBadge = () => {
+    if (isVerified) return (
+      <div style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 16px", borderRadius:100,
+        background:"rgba(34,197,94,0.1)", border:"1px solid rgba(34,197,94,0.25)" }}>
+        <Ico d={IC.shieldOk} size={16} color="#22C55E"/>
+        <span style={{ fontSize:13, fontWeight:800, color:"#22C55E" }}>Verified Store</span>
+      </div>
+    );
+    if (request?.status === "pending") return (
+      <div style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 16px", borderRadius:100,
+        background:"rgba(245,158,11,0.1)", border:"1px solid rgba(245,158,11,0.25)" }}>
+        <Ico d={IC.clock} size={16} color="#F59E0B"/>
+        <span style={{ fontSize:13, fontWeight:800, color:"#F59E0B" }}>Under Review</span>
+      </div>
+    );
+    return (
+      <div style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 16px", borderRadius:100,
+        background:"rgba(0,0,0,0.05)", border:"1px solid rgba(0,0,0,0.1)" }}>
+        <Ico d={IC.lock} size={16} color="#9CA3AF"/>
+        <span style={{ fontSize:13, fontWeight:800, color:"var(--muted,#9CA3AF)" }}>Unverified</span>
+      </div>
+    );
+  };
 
   return (
-    <div>
-      <div className="sd-page-head">
-        <div className="sd-page-title">Store Verification</div>
-        <div className="sd-page-sub">Earn a verified badge and build customer trust</div>
-      </div>
+    <div style={{ fontFamily:"var(--font-main,'Nunito',sans-serif)" }}>
 
-      {/* Current badge */}
-      <div className="sd-panel" style={{ marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ width: 56, height: 56, borderRadius: "50%", background: badge.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
-            {badge.icon}
+      {/* Page header */}
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:24 }}>
+        <div>
+          <div style={{ fontSize:22, fontWeight:900, color:"var(--text,#111)", letterSpacing:"-0.03em", lineHeight:1.1 }}>
+            Store Verification
           </div>
-          <div>
-            <div style={{ fontSize: 11, color: "#8B8FA8", marginBottom: 4 }}>Current Badge</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: badge.color, fontFamily: "'Space Grotesk', sans-serif" }}>{badge.label}</div>
-            {shop?.verifiedBadge === "none" && <div style={{ fontSize: 12, color: "#8B8FA8", marginTop: 2 }}>Submit your documents to get verified.</div>}
+          <div style={{ fontSize:13, color:"var(--muted,#9CA3AF)", fontWeight:500, marginTop:3 }}>
+            Earn a verified badge and build customer trust
           </div>
         </div>
+        {!loading && <StatusBadge/>}
       </div>
 
+      {/* Verified hero */}
+      {isVerified && (
+        <div style={{ background:"linear-gradient(135deg,#046EF2,#22C55E)", borderRadius:18, padding:"28px 24px",
+          marginBottom:20, display:"flex", alignItems:"center", gap:16 }}>
+          <div style={{ width:56, height:56, borderRadius:16, background:"rgba(255,255,255,0.2)",
+            display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+            <Ico d={IC.shieldOk} size={28} color="#fff"/>
+          </div>
+          <div>
+            <div style={{ fontSize:18, fontWeight:900, color:"#fff", letterSpacing:"-0.02em" }}>
+              {shop?.shopName || "Your store"} is Verified ✓
+            </div>
+            <div style={{ fontSize:13, color:"rgba(255,255,255,0.8)", marginTop:3 }}>
+              Your verified badge is visible on your store and all products.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Current badge card */}
+      {!isVerified && (
+        <div style={{ background:"var(--card,#fff)", borderRadius:16,
+          border:"1px solid rgba(0,0,0,0.07)", padding:"20px", marginBottom:16,
+          display:"flex", alignItems:"center", gap:14 }}>
+          <div style={{ width:52, height:52, borderRadius:14, background:"rgba(0,0,0,0.05)",
+            display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+            <Ico d={IC.lock} size={24} color="#9CA3AF"/>
+          </div>
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.06em", color:"var(--muted,#9CA3AF)" }}>
+              Current Status
+            </div>
+            <div style={{ fontSize:18, fontWeight:900, color:"var(--text,#111)", letterSpacing:"-0.02em", marginTop:3 }}>
+              {request?.status === "pending" ? "Under Review" : "Unverified"}
+            </div>
+          </div>
+          {request?.status === "pending" && (
+            <div style={{ marginLeft:"auto", padding:"6px 12px", borderRadius:100, fontSize:12, fontWeight:700,
+              background:"rgba(245,158,11,0.1)", color:"#F59E0B", border:"1px solid rgba(245,158,11,0.2)" }}>
+              Pending
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Benefits */}
-      <div className="sd-panel" style={{ marginBottom: 14 }}>
-        <div className="sd-panel-title" style={{ marginBottom: 14 }}>Why Get Verified?</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-          {[
-            { icon: "🛡️", title: "Build Trust",      desc: "Verified badge appears on your store and all products." },
-            { icon: "📈", title: "More Sales",        desc: "Verified sellers rank higher in search results." },
-            { icon: "💰", title: "Higher Limits",     desc: "Access higher withdrawal limits per week." },
-            { icon: "🎯", title: "Boost Eligibility", desc: "Only verified sellers can use premium boosts." },
-          ].map((b) => (
-            <div key={b.title} style={{ padding: 14, borderRadius: 10, background: "rgba(4,110,242,0.05)", border: "1px solid rgba(4,110,242,0.1)" }}>
-              <div style={{ fontSize: 20, marginBottom: 8 }}>{b.icon}</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1D3B", marginBottom: 4 }}>{b.title}</div>
-              <div style={{ fontSize: 12, color: "#8B8FA8", lineHeight: 1.5 }}>{b.desc}</div>
+      <div style={{ background:"var(--card,#fff)", borderRadius:16,
+        border:"1px solid rgba(0,0,0,0.07)", padding:"20px", marginBottom:16 }}>
+        <div style={{ fontSize:15, fontWeight:800, color:"var(--text,#111)", marginBottom:16 }}>
+          Why Get Verified?
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+          {BENEFITS.map(b => (
+            <div key={b.title} style={{ display:"flex", alignItems:"flex-start", gap:12,
+              padding:"12px 14px", borderRadius:12, background:"var(--bg,#F7F8FA)",
+              border:"1px solid rgba(0,0,0,0.05)" }}>
+              <div style={{ width:38, height:38, borderRadius:10, flexShrink:0,
+                background:`${b.color}12`, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <Ico d={b.icon} size={18} color={b.color}/>
+              </div>
+              <div>
+                <div style={{ fontSize:14, fontWeight:800, color:"var(--text,#111)", marginBottom:3 }}>{b.title}</div>
+                <div style={{ fontSize:12, color:"var(--muted,#6B7280)", lineHeight:1.5 }}>{b.desc}</div>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Application */}
-      {existing ? (
-        <div className="sd-panel">
-          <div className="sd-panel-title" style={{ marginBottom: 14 }}>Application Status</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span className={`sd-badge ${existing.status === "approved" ? "sd-badge-green" : existing.status === "rejected" ? "sd-badge-red" : "sd-badge-yellow"}`}>
-              {existing.status === "pending" ? "Under Review" : existing.status === "approved" ? "Approved" : "Rejected"}
-            </span>
-            <span style={{ fontSize: 12, color: "#8B8FA8" }}>
-              {existing.status === "pending" && "Your application is being reviewed. This usually takes 1–3 business days."}
-              {existing.status === "approved" && "Congratulations! Your store is now verified."}
-              {existing.status === "rejected" && `Reason: ${existing.adminNote || "Please resubmit with clearer documents."}`}
-            </span>
+      {/* What you need */}
+      {!isVerified && (
+        <div style={{ background:"var(--card,#fff)", borderRadius:16,
+          border:"1px solid rgba(0,0,0,0.07)", padding:"20px", marginBottom:16 }}>
+          <div style={{ fontSize:15, fontWeight:800, color:"var(--text,#111)", marginBottom:16 }}>
+            What You'll Need
           </div>
-          {existing.documents?.length > 0 && (
-            <div>
-              <div style={{ fontSize: 12, color: "#8B8FA8", marginBottom: 8 }}>Submitted Documents</div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {existing.documents.map((url, i) => (
-                  <a key={i} href={url} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 12px", borderRadius: 8, background: "rgba(0,0,0,0.05)", fontSize: 12, color: "#046EF2", fontWeight: 600 }}>
-                    📄 Document {i + 1} ↗
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-          {existing.status === "rejected" && (
-            <button className="sd-btn sd-btn-primary" style={{ marginTop: 16 }} onClick={() => setExisting(null)}>
-              Resubmit Application
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="sd-panel">
-          <div className="sd-panel-title" style={{ marginBottom: 6 }}>Apply for Verification</div>
-          <div style={{ fontSize: 13, color: "#8B8FA8", marginBottom: 20, lineHeight: 1.6 }}>
-            Upload any 2 of the following: Ghana Card / Passport / Driver's License, Business Registration Certificate, Utility Bill (not older than 3 months), Bank Statement.
-          </div>
-
-          {/* Document upload */}
-          <div className="sd-form-group">
-            <label className="sd-label">Upload Documents (max 5 files)</label>
-            <div className="sd-upload-zone" onClick={() => document.getElementById("verif-docs").click()}>
-              <div style={{ fontSize: 28, marginBottom: 8 }}>📎</div>
-              <div style={{ fontSize: 13, color: "#8B8FA8", marginBottom: 4 }}>Click to upload documents</div>
-              <div style={{ fontSize: 11, color: "#8B8FA8" }}>PNG, JPG, PDF — max 5MB each</div>
-            </div>
-            <input type="file" id="verif-docs" multiple accept="image/*,.pdf" style={{ display: "none" }} onChange={handleFileChange} />
-            {files.length > 0 && (
-              <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {files.map((f, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", borderRadius: 8, background: "rgba(4,110,242,0.08)", fontSize: 12, color: "#046EF2" }}>
-                    📄 {f.name}
-                    <button onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))} style={{ background: "none", border: "none", cursor: "pointer", color: "#EF4444", fontWeight: 700, fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {DOCS_NEEDED.map(doc => (
+              <div key={doc.label} style={{ display:"flex", alignItems:"center", gap:12 }}>
+                <div style={{ width:34, height:34, borderRadius:9, background:"rgba(4,110,242,0.08)",
+                  display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, color:"#046EF2" }}>
+                  <Ico d={doc.icon} size={16} color="#046EF2"/>
+                </div>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:700, color:"var(--text,#111)" }}>{doc.label}</div>
+                  <div style={{ fontSize:11, color:"var(--muted,#9CA3AF)" }}>{doc.desc}</div>
+                </div>
+                <div style={{ marginLeft:"auto" }}>
+                  <div style={{ width:18, height:18, borderRadius:"50%", border:"1.5px solid rgba(0,0,0,0.12)",
+                    display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    <div style={{ width:8, height:8, borderRadius:"50%", background:"rgba(0,0,0,0.12)" }}/>
                   </div>
-                ))}
+                </div>
               </div>
-            )}
+            ))}
           </div>
+        </div>
+      )}
 
-          {/* Agreement */}
-          <div style={{ padding: "14px 16px", background: "rgba(0,0,0,0.03)", borderRadius: 10, marginBottom: 16, fontSize: 13, color: "#6B7280", lineHeight: 1.6 }}>
-            <strong style={{ color: "#1A1D3B" }}>Verification Agreement</strong>
-            <br />
-            By submitting, I confirm that all documents provided are genuine and belong to me or my business. I understand that submitting false or forged documents may result in immediate account termination and legal action. Beme Market reserves the right to reject any application without explanation.
+      {/* Request form */}
+      {!isVerified && !request && (
+        <div style={{ background:"var(--card,#fff)", borderRadius:16,
+          border:"1px solid rgba(0,0,0,0.07)", padding:"20px", marginBottom:16 }}>
+          <div style={{ fontSize:15, fontWeight:800, color:"var(--text,#111)", marginBottom:4 }}>
+            Request Verification
           </div>
-
-          <label style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 20, cursor: "pointer" }}>
-            <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 2 }} />
-            <span style={{ fontSize: 13, color: "#1A1D3B" }}>I agree to the verification terms and confirm all documents are authentic.</span>
-          </label>
-
-          <button className="sd-btn sd-btn-primary" onClick={handleSubmit} disabled={submitting || uploading || files.length === 0 || !agreed} style={{ minWidth: 200 }}>
-            {uploading ? "Uploading…" : submitting ? "Submitting…" : "Submit for Verification"}
+          <div style={{ fontSize:13, color:"var(--muted,#9CA3AF)", marginBottom:16 }}>
+            Our team will review your store and documents within 2–3 business days.
+          </div>
+          <div style={{ marginBottom:12 }}>
+            <label style={{ fontSize:13, fontWeight:700, color:"var(--text,#111)", display:"block", marginBottom:8 }}>
+              Note for our team (optional)
+            </label>
+            <textarea value={message} onChange={e=>setMessage(e.target.value)}
+              placeholder="Tell us about your store, experience, or anything that helps verify you…"
+              rows={3} maxLength={500}
+              style={{ width:"100%", padding:"12px 14px", border:"1.5px solid rgba(0,0,0,0.1)",
+                borderRadius:10, background:"var(--bg,#F7F8FA)", color:"var(--text,#111)",
+                fontSize:14, fontWeight:500, outline:"none", resize:"vertical",
+                fontFamily:"inherit", boxSizing:"border-box", lineHeight:1.6 }}
+              onFocus={e=>e.target.style.borderColor="#046EF2"}
+              onBlur={e=>e.target.style.borderColor="rgba(0,0,0,0.1)"}/>
+          </div>
+          <button type="button" onClick={handleSubmit} disabled={sending}
+            style={{ width:"100%", height:50, borderRadius:12, border:"none",
+              background:"#046EF2", color:"#fff", fontSize:14, fontWeight:800,
+              cursor:sending?"wait":"pointer", opacity:sending?0.7:1,
+              fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+              boxShadow:"0 4px 14px rgba(4,110,242,0.3)", transition:"opacity 0.15s" }}>
+            <Ico d={IC.send} size={16} color="#fff"/>
+            {sending ? "Submitting…" : "Submit Verification Request"}
           </button>
+        </div>
+      )}
+
+      {/* Pending state */}
+      {!isVerified && request?.status === "pending" && (
+        <div style={{ background:"rgba(245,158,11,0.05)", borderRadius:16,
+          border:"1px solid rgba(245,158,11,0.2)", padding:"20px" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
+            <div style={{ width:40, height:40, borderRadius:10, background:"rgba(245,158,11,0.15)",
+              display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              <Ico d={IC.clock} size={20} color="#F59E0B"/>
+            </div>
+            <div>
+              <div style={{ fontSize:15, fontWeight:800, color:"#F59E0B" }}>Review in Progress</div>
+              <div style={{ fontSize:12, color:"var(--muted,#6B7280)" }}>2–3 business days</div>
+            </div>
+          </div>
+          <div style={{ fontSize:13, color:"var(--muted,#6B7280)", lineHeight:1.6 }}>
+            Your verification request has been submitted. Our team is reviewing your store.
+            We'll notify you once it's complete. If you have questions, contact{" "}
+            <a href="/support" style={{ color:"#046EF2", fontWeight:700 }}>support</a>.
+          </div>
+        </div>
+      )}
+
+      {sent && (
+        <div style={{ marginTop:12, padding:"12px 16px", borderRadius:10,
+          background:"rgba(34,197,94,0.08)", border:"1px solid rgba(34,197,94,0.2)",
+          fontSize:13, fontWeight:700, color:"#22C55E", display:"flex", alignItems:"center", gap:8 }}>
+          <Ico d={IC.check} size={16} color="#22C55E"/>
+          Request submitted successfully! We'll be in touch soon.
         </div>
       )}
     </div>
   );
 }
-
