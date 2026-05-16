@@ -380,9 +380,9 @@ export default function Account() {
           {/* Main nav */}
           <div className="acc-sidebar-section">
             <NavLink icon={ICONS.account}  label="My Account"       onClick={()=>setActiveTab("overview")}  active={activeTab==="overview"}/>
-            <NavLink icon={ICONS.orders}   label="My Orders"        onClick={()=>navigate("/orders")}/>
+            <NavLink icon={ICONS.orders}   label="My Orders"        onClick={()=>setActiveTab("orders")}  active={activeTab==="orders"}/>
             <NavLink icon={ICONS.inbox}    label="Messages"         onClick={()=>navigate("/messages")}/>
-            <NavLink icon={ICONS.saved}    label="Saved Items"      onClick={()=>navigate("/saved")}       badge={savedCount}/>
+            <NavLink icon={ICONS.saved}    label="Saved Items"      onClick={()=>setActiveTab("saved")}   active={activeTab==="saved"} badge={savedCount}/>
             <NavLink icon={ICONS.requests} label="Product Requests" onClick={()=>navigate("/account/requests")}/>
             <NavLink icon={ICONS.notif}    label="Notifications"    onClick={()=>navigate("/account/notifications")} badge={unreadCount} badgeRed/>
           </div>
@@ -420,8 +420,212 @@ export default function Account() {
             MAIN CONTENT
         ════════════════════════════════════ */}
         <main className="acc-main">
-          <h2 className="acc-main-title">Account Overview</h2>
+          <h2 className="acc-main-title">
+            {activeTab === "overview"  && "Account Overview"}
+            {activeTab === "orders"    && "My Orders"}
+            {activeTab === "saved"     && "Saved Items"}
+            {activeTab === "settings"  && "Settings"}
+            {activeTab === "store"     && "My Store"}
+          </h2>
 
+          {/* ── ORDERS tab ── */}
+          {activeTab === "orders" && (
+            <div className="acc-tab-section">
+              {recentOrders.length === 0 ? (
+                <div className="acc-empty-state">
+                  <div className="acc-empty-icon">
+                    <Ico d={ICONS.orders} size={40}/>
+                  </div>
+                  <div className="acc-empty-title">No orders yet</div>
+                  <div className="acc-empty-sub">When you place an order, it will appear here.</div>
+                  <button className="acc-primary-btn" onClick={()=>navigate("/")}>
+                    Start Shopping
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {recentOrders.map(order => {
+                    const s = order.status || "pending";
+                    const sc = ORDER_STATUS_COLORS[s] || ORDER_STATUS_COLORS.pending;
+                    return (
+                      <div key={order.id} className="acc-order-row acc-order-row--lg"
+                        onClick={()=>navigate(`/orders/${order.id}`)}
+                        style={{ cursor:"pointer" }}>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div className="acc-order-id">Order #{order.id?.slice(0,8).toUpperCase()}</div>
+                          <div className="acc-order-meta">
+                            GHS {Number(order.pricing?.total||0).toFixed(2)} ·{" "}
+                            {order.createdAt?.toDate?.()?.toLocaleDateString("en-GH",{day:"numeric",month:"short",year:"numeric"})||""}
+                          </div>
+                          {order.items?.length > 0 && (
+                            <div style={{ fontSize:12, color:"var(--muted,#9CA3AF)", marginTop:2 }}>
+                              {order.items.length} item{order.items.length !== 1 ? "s" : ""}
+                            </div>
+                          )}
+                        </div>
+                        <span className="acc-order-status-badge" style={{ background:sc.bg, color:sc.text }}>
+                          {s.charAt(0).toUpperCase()+s.slice(1)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  <button className="acc-view-all-btn" onClick={()=>navigate("/orders")}>
+                    View all orders →
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ── SAVED tab ── */}
+          {activeTab === "saved" && (
+            <div className="acc-tab-section">
+              <div className="acc-empty-state">
+                <div className="acc-empty-icon">
+                  <Ico d={ICONS.saved} size={40}/>
+                </div>
+                <div className="acc-empty-title">
+                  {savedCount > 0 ? `${savedCount} saved item${savedCount !== 1 ? "s" : ""}` : "No saved items yet"}
+                </div>
+                <div className="acc-empty-sub">
+                  {savedCount > 0
+                    ? "Tap below to view your saved products."
+                    : "Tap the heart on any product to save it here for later."}
+                </div>
+                <button className="acc-primary-btn" onClick={()=>navigate("/saved")}>
+                  {savedCount > 0 ? "View Saved Items" : "Browse the Shop"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── SETTINGS tab ── */}
+          {activeTab === "settings" && (
+            <div className="acc-tab-section">
+              {/* Account */}
+              <div className="acc-settings-group">
+                <div className="acc-settings-group-title">Account</div>
+                {[
+                  { icon:ICONS.account,  label:"Manage Account",      sub:"Update name, email, password",  path:"/account/manage"        },
+                  { icon:ICONS.address,  label:"Delivery Addresses",   sub:"Add or edit saved addresses",   path:"/account/addresses"     },
+                  { icon:ICONS.payment,  label:"Payment Methods",      sub:"Cards and mobile money",        path:"/account/payments"      },
+                  { icon:ICONS.notif,    label:"Notifications",        sub:unreadCount > 0 ? `${unreadCount} unread` : "Manage alerts",  path:"/account/notifications", badge:unreadCount },
+                ].map(item => (
+                  <button key={item.path} className="acc-settings-row" onClick={()=>navigate(item.path)}>
+                    <div className="acc-settings-row-ico"><Ico d={item.icon} size={18}/></div>
+                    <div className="acc-settings-row-info">
+                      <div className="acc-settings-row-label">{item.label}</div>
+                      <div className="acc-settings-row-sub">{item.sub}</div>
+                    </div>
+                    {item.badge > 0 && <span className="acc-badge-red">{item.badge}</span>}
+                    <Ico d="M9 18l6-6-6-6" size={16} className="acc-settings-row-arr"/>
+                  </button>
+                ))}
+              </div>
+
+              {/* Shopping */}
+              <div className="acc-settings-group">
+                <div className="acc-settings-group-title">Shopping</div>
+                {[
+                  { icon:ICONS.requests, label:"Product Requests",   sub:"Track items you've requested",  path:"/account/requests"  },
+                  { icon:ICONS.saved,    label:"Saved Items",        sub:`${savedCount} item${savedCount!==1?"s":""}`,              path:"/saved"             },
+                  { icon:ICONS.inbox,    label:"Messages",           sub:"Chat with sellers",             path:"/messages"          },
+                ].map(item => (
+                  <button key={item.path} className="acc-settings-row" onClick={()=>navigate(item.path)}>
+                    <div className="acc-settings-row-ico"><Ico d={item.icon} size={18}/></div>
+                    <div className="acc-settings-row-info">
+                      <div className="acc-settings-row-label">{item.label}</div>
+                      <div className="acc-settings-row-sub">{item.sub}</div>
+                    </div>
+                    <Ico d="M9 18l6-6-6-6" size={16} className="acc-settings-row-arr"/>
+                  </button>
+                ))}
+              </div>
+
+              {/* Selling */}
+              <div className="acc-settings-group">
+                <div className="acc-settings-group-title">Selling</div>
+                {hasStore ? [
+                  { icon:ICONS.store, label:"Seller Dashboard",  sub:"Manage your store",           path:"/seller-dashboard"               },
+                  { icon:ICONS.chart, label:"Store Analytics",   sub:"Sales and performance",       path:"/seller-dashboard?tab=analytics" },
+                ] : [
+                  { icon:ICONS.store, label:"Open a Free Store", sub:"Start selling on Beme Market", path:"/get-a-store" },
+                ].map(item => (
+                  <button key={item.path} className="acc-settings-row" onClick={()=>navigate(item.path)}>
+                    <div className="acc-settings-row-ico"><Ico d={item.icon} size={18}/></div>
+                    <div className="acc-settings-row-info">
+                      <div className="acc-settings-row-label">{item.label}</div>
+                      <div className="acc-settings-row-sub">{item.sub}</div>
+                    </div>
+                    <Ico d="M9 18l6-6-6-6" size={16} className="acc-settings-row-arr"/>
+                  </button>
+                ))}
+              </div>
+
+              {/* Help */}
+              <div className="acc-settings-group">
+                <div className="acc-settings-group-title">Support</div>
+                {[
+                  { icon:ICONS.help,   label:"Help & Support",  sub:"FAQs and guides",      path:"/account/help"    },
+                  { icon:ICONS.inbox,  label:"Contact Us",      sub:"Reach our support team", path:"/account/contact" },
+                ].map(item => (
+                  <button key={item.path} className="acc-settings-row" onClick={()=>navigate(item.path)}>
+                    <div className="acc-settings-row-ico"><Ico d={item.icon} size={18}/></div>
+                    <div className="acc-settings-row-info">
+                      <div className="acc-settings-row-label">{item.label}</div>
+                      <div className="acc-settings-row-sub">{item.sub}</div>
+                    </div>
+                    <Ico d="M9 18l6-6-6-6" size={16} className="acc-settings-row-arr"/>
+                  </button>
+                ))}
+              </div>
+
+              {/* Log out */}
+              <button className="acc-settings-row acc-settings-row--danger" onClick={()=>setShowLogout(true)}>
+                <div className="acc-settings-row-ico"><Ico d={ICONS.logout} size={18}/></div>
+                <div className="acc-settings-row-info">
+                  <div className="acc-settings-row-label">Log Out</div>
+                  <div className="acc-settings-row-sub">{user.email}</div>
+                </div>
+              </button>
+            </div>
+          )}
+
+          {/* ── MY STORE tab ── */}
+          {activeTab === "store" && hasStore && (
+            <div className="acc-tab-section">
+              <div className="acc-overview-grid">
+                <OverviewCard title="My Store"
+                  actionLabel="Dashboard →" onAction={()=>navigate("/seller-dashboard")}>
+                  <div className="acc-store-header">
+                    <div>
+                      <div className="acc-store-name">{shop?.shopName||"My Store"}</div>
+                      <div className="acc-store-status">
+                        <div className="acc-store-status-dot" style={{ background: shop?.status==="active"?"#22C55E":"#F59E0B" }}/>
+                        {shop?.status==="active"?"Store is live":"Pending activation"}
+                      </div>
+                    </div>
+                    <span className="acc-plan-badge" style={{ background:planColors.bg, color:planColors.text }}>
+                      {plan.charAt(0).toUpperCase()+plan.slice(1)}
+                    </span>
+                  </div>
+                  <div className="acc-store-btns">
+                    <button className="acc-store-btn acc-store-btn--primary" onClick={()=>navigate("/seller-dashboard")}>
+                      <Ico d={ICONS.chart} size={15}/> Dashboard
+                    </button>
+                    {shop?.slug && (
+                      <button className="acc-store-btn acc-store-btn--ghost" onClick={()=>navigate(`/store/${shop.slug}`)}>
+                        <Ico d={ICONS.external} size={14}/> View Store
+                      </button>
+                    )}
+                  </div>
+                </OverviewCard>
+              </div>
+            </div>
+          )}
+
+          {/* ── OVERVIEW tab ── */}
+          {activeTab === "overview" && (
           <div className="acc-overview-grid">
 
             {/* ── 1. Account Details ── */}
@@ -588,7 +792,9 @@ export default function Account() {
               )}
             </OverviewCard>
 
-          </div>{/* /overview-grid */}
+          </div>
+          )}{/* /overview tab */}
+
         </main>
       </div>{/* /layout */}
 
