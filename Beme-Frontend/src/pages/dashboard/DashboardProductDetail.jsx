@@ -268,7 +268,13 @@ export default function DashboardProductDetail() {
   /* Save */
   const handleSave = async () => {
     if (!validate()) return;
-    if (!user?.uid || !storeId) { setError("Session error. Please refresh."); return; }
+    if (!user?.uid) { setError("You must be logged in to save a product."); return; }
+
+    // storeId may be null when Cloud Functions haven't run yet (Spark plan).
+    // Fall back to user.uid as the shop identifier.
+    const effectiveStoreId  = storeId  || user.uid;
+    const effectiveShopName = shop?.shopName || "";
+    const effectivePlan     = subscriptionPlan || "basic";
 
     setSaving(true);
     setError("");
@@ -290,7 +296,7 @@ export default function DashboardProductDetail() {
       };
 
       if (isNew) {
-        await addSellerProduct(user.uid, storeId, shop?.shopName || "", subscriptionPlan, payload);
+        await addSellerProduct(user.uid, effectiveStoreId, effectiveShopName, effectivePlan, payload);
       } else {
         await updateSellerProduct(productId, user.uid, payload);
       }
