@@ -1,283 +1,469 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../../firebase";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
 import { useAuth } from "../../context/AuthContext";
 import { getSellerProducts, deleteSellerProduct } from "../../services/storeService";
 
-function Icon({ d, size = 16 }) {
+function Ico({ d, size = 16, color = "currentColor" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      {d.split(" M").map((seg, i) => <path key={i} d={(i === 0 ? "" : "M") + seg}/>)}
+      stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {d.split("|").map((seg, i) => <path key={i} d={seg} />)}
     </svg>
   );
 }
-
-const ICONS = {
-  plus:    "M12 5v14 M5 12h14",
-  search:  "M11 19a8 8 0 100-16 8 8 0 000 16z M21 21l-4.35-4.35",
-  edit:    "M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7 M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z",
-  trash:   "M3 6h18 M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2",
-  eye:     "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 12a3 3 0 100-6 3 3 0 000 6",
-  box:     "M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z",
-  filter:  "M22 3H2l8 9.46V19l4 2v-8.54L22 3",
-  upgrade: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+const IC = {
+  plus:   "M12 5v14|M5 12h14",
+  search: "M11 19a8 8 0 100-16 8 8 0 000 16z|M21 21l-4.35-4.35",
+  edit:   "M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7|M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z",
+  trash:  "M3 6h18|M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2",
+  eye:    "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z|M12 12a3 3 0 100-6 3 3 0 000 6",
+  eyeoff: "M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94|M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19|M1 1l22 22",
+  box:    "M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z",
+  check:  "M20 6L9 17l-5-5",
+  img:    "M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14l4-4 3 3 3-3 4 4z",
+  tag:    "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z|M7 7h.01",
+  more:   "M12 5h.01|M12 12h.01|M12 19h.01",
 };
 
-const STATUS_FILTER_OPTIONS = ["All", "Active", "Draft", "Out of Stock"];
+const STATUS_OPTS = ["All", "Active", "Draft", "Out of Stock"];
+const STATUS_COLOR = { active:"#22C55E", draft:"#9CA3AF", "out of stock":"#EF4444" };
+const STATUS_BG    = { active:"rgba(34,197,94,0.1)", draft:"rgba(0,0,0,0.06)", "out of stock":"rgba(239,68,68,0.1)" };
 
+function fmtMoney(n) {
+  return `GHS ${Number(n||0).toLocaleString("en-GH",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+}
+
+/* ─── Confirm modal ─── */
+function Confirm({ name, onConfirm, onCancel }) {
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:1000,
+      display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+      <div style={{ background:"var(--card,#fff)", borderRadius:18, padding:"28px 24px",
+        maxWidth:340, width:"100%", boxShadow:"0 20px 60px rgba(0,0,0,0.25)" }}>
+        <div style={{ width:48, height:48, borderRadius:12, background:"rgba(239,68,68,0.1)",
+          display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 14px" }}>
+          <Ico d={IC.trash} size={22} color="#EF4444"/>
+        </div>
+        <div style={{ fontSize:17, fontWeight:900, color:"var(--text,#111)", textAlign:"center", marginBottom:8 }}>
+          Delete Product?
+        </div>
+        <div style={{ fontSize:13, color:"var(--muted,#6B7280)", textAlign:"center", lineHeight:1.5, marginBottom:22 }}>
+          "<strong>{name}</strong>" will be permanently removed. This cannot be undone.
+        </div>
+        <div style={{ display:"flex", gap:10 }}>
+          <button type="button" onClick={onCancel}
+            style={{ flex:1, height:44, borderRadius:10, border:"1.5px solid rgba(0,0,0,0.1)",
+              background:"transparent", color:"var(--text,#333)", fontSize:14, fontWeight:700,
+              cursor:"pointer", fontFamily:"inherit" }}>
+            Cancel
+          </button>
+          <button type="button" onClick={onConfirm}
+            style={{ flex:1, height:44, borderRadius:10, border:"none",
+              background:"#EF4444", color:"#fff", fontSize:14, fontWeight:800,
+              cursor:"pointer", fontFamily:"inherit" }}>
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Product row card (Jumia-style) ─── */
+function ProductRow({ product, onEdit, onDelete, onToggleStatus, onView, deleting }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [toggling, setToggling] = useState(false);
+
+  const img    = (Array.isArray(product.images) ? product.images[0] : null) || product.imageUrl || "";
+  const status = product.status === "active" ? "active" : product.inStock === false ? "out of stock" : "draft";
+  const sColor = STATUS_COLOR[status] || "#9CA3AF";
+  const sBg    = STATUS_BG[status]    || "rgba(0,0,0,0.06)";
+
+  const handleToggle = async () => {
+    setToggling(true);
+    await onToggleStatus(product);
+    setToggling(false);
+  };
+
+  return (
+    <div style={{
+      background: "var(--card,#fff)", borderRadius: 14,
+      border: "1px solid rgba(0,0,0,0.07)", overflow: "hidden",
+      display: "flex", alignItems: "stretch",
+      boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+      transition: "box-shadow 0.15s",
+    }}>
+      {/* Image thumbnail */}
+      <div style={{ width: 90, flexShrink: 0, background: "var(--bg,#F7F8FA)",
+        position: "relative", overflow: "hidden", cursor: "pointer" }}
+        onClick={() => onView(product)}>
+        {img
+          ? <img src={img} alt={product.name}
+              style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }}/>
+          : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center",
+              justifyContent:"center", minHeight:80 }}>
+              <Ico d={IC.img} size={26} color="rgba(0,0,0,0.15)"/>
+            </div>
+        }
+        {/* Status overlay dot */}
+        <div style={{ position:"absolute", top:6, left:6, width:8, height:8,
+          borderRadius:"50%", background:sColor,
+          boxShadow:`0 0 0 2px rgba(255,255,255,0.8)` }}/>
+      </div>
+
+      {/* Info */}
+      <div style={{ flex:1, padding:"12px 14px", minWidth:0, display:"flex", flexDirection:"column", gap:4 }}>
+        {/* Name */}
+        <div style={{ fontSize:14, fontWeight:800, color:"var(--text,#111)",
+          whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", lineHeight:1.2 }}>
+          {product.name}
+        </div>
+
+        {/* Category tag */}
+        {product.category && (
+          <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+            <Ico d={IC.tag} size={11} color="#9CA3AF"/>
+            <span style={{ fontSize:11, color:"var(--muted,#9CA3AF)", fontWeight:500 }}>
+              {product.category}
+            </span>
+          </div>
+        )}
+
+        {/* Price row */}
+        <div style={{ display:"flex", alignItems:"baseline", gap:7, marginTop:2 }}>
+          <span style={{ fontSize:15, fontWeight:900, color:"var(--text,#111)", letterSpacing:"-0.02em" }}>
+            {fmtMoney(product.price)}
+          </span>
+          {product.comparePrice > product.price && (
+            <span style={{ fontSize:11, color:"var(--muted,#9CA3AF)", textDecoration:"line-through", fontWeight:500 }}>
+              {fmtMoney(product.comparePrice)}
+            </span>
+          )}
+        </div>
+
+        {/* Status + stock */}
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:2, flexWrap:"wrap" }}>
+          <span style={{ fontSize:11, fontWeight:800, padding:"3px 10px", borderRadius:100,
+            background:sBg, color:sColor, textTransform:"capitalize" }}>
+            {status === "out of stock" ? "Out of Stock" : status.charAt(0).toUpperCase() + status.slice(1)}
+          </span>
+          {product.stock !== null && product.stock !== undefined && (
+            <span style={{ fontSize:11, color:"var(--muted,#9CA3AF)", fontWeight:600 }}>
+              {product.stock} in stock
+            </span>
+          )}
+          {product.featured && (
+            <span style={{ fontSize:11, fontWeight:800, padding:"3px 9px", borderRadius:100,
+              background:"rgba(245,158,11,0.1)", color:"#D97706" }}>
+              Featured
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Action column */}
+      <div style={{ display:"flex", flexDirection:"column", justifyContent:"space-between",
+        padding:"10px 12px 10px 0", gap:6, flexShrink:0 }}>
+
+        {/* Edit */}
+        <button type="button" onClick={() => onEdit(product)}
+          title="Edit product"
+          style={{ width:34, height:34, borderRadius:9, border:"1.5px solid rgba(0,0,0,0.1)",
+            background:"var(--card,#fff)", cursor:"pointer", display:"flex",
+            alignItems:"center", justifyContent:"center", color:"#046EF2" }}>
+          <Ico d={IC.edit} size={14} color="#046EF2"/>
+        </button>
+
+        {/* Toggle active/draft */}
+        <button type="button" onClick={handleToggle} disabled={toggling}
+          title={product.status === "active" ? "Set to Draft" : "Set to Active"}
+          style={{ width:34, height:34, borderRadius:9,
+            border:`1.5px solid ${product.status === "active" ? "rgba(34,197,94,0.3)" : "rgba(0,0,0,0.1)"}`,
+            background: product.status === "active" ? "rgba(34,197,94,0.08)" : "var(--card,#fff)",
+            cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
+            opacity: toggling ? 0.5 : 1, transition:"all 0.15s" }}>
+          <Ico d={product.status === "active" ? IC.eye : IC.eyeoff} size={14}
+            color={product.status === "active" ? "#22C55E" : "#9CA3AF"}/>
+        </button>
+
+        {/* View on marketplace */}
+        <button type="button" onClick={() => onView(product)}
+          title="View on marketplace"
+          style={{ width:34, height:34, borderRadius:9, border:"1.5px solid rgba(0,0,0,0.1)",
+            background:"var(--card,#fff)", cursor:"pointer", display:"flex",
+            alignItems:"center", justifyContent:"center", color:"#9CA3AF" }}>
+          <Ico d={IC.box} size={14} color="#9CA3AF"/>
+        </button>
+
+        {/* Delete */}
+        <button type="button" onClick={() => onDelete(product)}
+          title="Delete product"
+          disabled={deleting === product.id}
+          style={{ width:34, height:34, borderRadius:9, border:"1.5px solid rgba(239,68,68,0.2)",
+            background:"rgba(239,68,68,0.05)", cursor:"pointer", display:"flex",
+            alignItems:"center", justifyContent:"center",
+            opacity: deleting === product.id ? 0.5 : 1 }}>
+          <Ico d={IC.trash} size={14} color="#EF4444"/>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ═══ MAIN ═══ */
 export default function DashboardProducts() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { storeId, shop, subscriptionPlan, planLimits } = useSellerAuth();
 
-  const [products,  setProducts]  = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [deleting,  setDeleting]  = useState(null);
-  const [search,    setSearch]    = useState("");
+  const [products,     setProducts]     = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [deleting,     setDeleting]     = useState(null);
+  const [confirmProd,  setConfirmProd]  = useState(null); // product awaiting delete confirm
+  const [search,       setSearch]       = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
   const load = useCallback(async () => {
     if (!user?.uid) return;
     setLoading(true);
     try {
-      // storeId may be null on Spark plan — getSellerProducts queries by sellerId, not shopId
       const data = await getSellerProducts(user.uid, storeId || user.uid);
       setProducts(data);
     } catch (err) {
-      console.error("[DashboardProducts] load error:", err);
+      console.error("[DashboardProducts] load:", err);
       setProducts([]);
     } finally { setLoading(false); }
   }, [user?.uid, storeId]);
 
   useEffect(() => { load(); }, [load]);
 
-  const handleDelete = async (productId, name) => {
-    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
-    setDeleting(productId);
+  const handleEdit   = (p) => navigate(`/seller-dashboard/products/${p.id}`);
+  const handleView   = (p) => navigate(`/product/${p.id}`);
+
+  const handleDelete = (p) => setConfirmProd(p);
+
+  const confirmDelete = async () => {
+    if (!confirmProd) return;
+    setDeleting(confirmProd.id);
+    setConfirmProd(null);
     try {
-      await deleteSellerProduct(productId, user.uid);
-      setProducts((p) => p.filter((x) => x.id !== productId));
-    } catch (err) { alert(err.message); }
+      await deleteSellerProduct(confirmProd.id, user.uid);
+      setProducts(ps => ps.filter(p => p.id !== confirmProd.id));
+    } catch (e) { alert(e.message || "Delete failed."); }
     finally { setDeleting(null); }
   };
 
-  const handleAdd = () => {
-    const max = planLimits?.maxProducts || 25;
-    if (max !== 99999 && products.length >= max) {
-      alert(`You've reached the ${products.length}-product limit on your ${subscriptionPlan} plan. Go to Subscription to upgrade.`);
-      return;
-    }
-    navigate("/seller-dashboard/products/new");
+  const handleToggleStatus = async (product) => {
+    const newStatus = product.status === "active" ? "draft" : "active";
+    try {
+      await updateDoc(doc(db, "Products", product.id), {
+        status:    newStatus,
+        inStock:   newStatus === "active",
+        updatedAt: serverTimestamp(),
+      });
+      setProducts(ps => ps.map(p => p.id === product.id ? { ...p, status:newStatus, inStock:newStatus==="active" } : p));
+    } catch (e) { alert("Failed to update status."); console.error(e); }
   };
 
-  /* Filter */
-  const filtered = products.filter((p) => {
-    const matchSearch = !search || p.name?.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === "All"
-      ? true
-      : statusFilter === "Active"     ? (p.status !== "draft" && p.inStock !== false)
-      : statusFilter === "Draft"      ? (p.status === "draft")
-      : statusFilter === "Out of Stock" ? (p.inStock === false)
-      : true;
+  /* Filtered list */
+  const filtered = products.filter(p => {
+    const matchSearch = !search.trim() || p.name?.toLowerCase().includes(search.toLowerCase());
+    const st = p.status === "active" ? "Active" : p.inStock === false ? "Out of Stock" : "Draft";
+    const matchStatus = statusFilter === "All" || st === statusFilter;
     return matchSearch && matchStatus;
   });
 
-  const max  = planLimits?.maxProducts || 25;
-  const pct  = max === 99999 ? 0 : Math.min(100, Math.round((products.length / max) * 100));
-  const atLimit = max !== 99999 && products.length >= max;
-
-  /* Stats */
-  const activeCount = products.filter((p) => p.status !== "draft" && p.inStock !== false).length;
-  const draftCount  = products.filter((p) => p.status === "draft").length;
-  const oosCount    = products.filter((p) => p.inStock === false).length;
+  const active   = products.filter(p => p.status === "active").length;
+  const draft    = products.filter(p => p.status === "draft").length;
+  const outOfStock = products.filter(p => p.inStock === false || p.stock === 0).length;
+  const maxProds = planLimits?.maxProducts || 25;
+  const usedPct  = Math.min((products.length / maxProds) * 100, 100);
+  const atLimit  = products.length >= maxProds;
+  const planName = (subscriptionPlan || "basic").charAt(0).toUpperCase() + (subscriptionPlan||"basic").slice(1);
 
   return (
-    <div>
-      {/* ── Header ── */}
-      <div className="sd-page-head">
+    <div style={{ fontFamily:"var(--font-main,'Nunito',sans-serif)" }}>
+
+      {/* Page header */}
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:20 }}>
         <div>
-          <div className="sd-page-title">Products</div>
-          <div className="sd-page-sub">
-            {products.length} / {max === 99999 ? "∞" : max} products ·{" "}
-            {activeCount} active · {draftCount} draft
+          <div style={{ fontSize:22, fontWeight:900, color:"var(--text,#111)", letterSpacing:"-0.03em" }}>Products</div>
+          <div style={{ fontSize:13, color:"var(--muted,#9CA3AF)", fontWeight:500, marginTop:3 }}>
+            {products.length} / {maxProds} products · {active} active · {draft} draft
           </div>
         </div>
-        <button className="sd-btn sd-btn-primary" onClick={handleAdd}>
-          <Icon d={ICONS.plus} size={14}/> Add Product
+        <button type="button"
+          onClick={() => atLimit ? navigate("/seller-dashboard?tab=subscription") : navigate("/seller-dashboard/products/new")}
+          style={{ display:"flex", alignItems:"center", gap:7, padding:"10px 20px",
+            borderRadius:12, border:"none",
+            background: atLimit ? "#F59E0B" : "#046EF2",
+            color:"#fff", fontSize:14, fontWeight:800, cursor:"pointer",
+            fontFamily:"inherit", boxShadow:"0 4px 14px rgba(4,110,242,0.3)" }}>
+          <Ico d={atLimit ? "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" : IC.plus} size={15} color="#fff"/>
+          {atLimit ? "Upgrade Plan" : "+ Add Product"}
         </button>
       </div>
 
-      {/* ── Plan usage bar ── */}
-      {max !== 99999 && (
-        <div className="sd-panel" style={{ marginBottom:14, padding:"14px 16px" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:7, fontSize:12 }}>
-            <span style={{ color:"#8B8FA8", fontWeight:600 }}>Product Usage — {subscriptionPlan?.charAt(0).toUpperCase()+subscriptionPlan?.slice(1)} Plan</span>
-            <span style={{ fontWeight:800, color: pct >= 90 ? "#EF4444" : "#1A1D3B" }}>
-              {products.length} / {max}
-            </span>
-          </div>
-          <div className="sd-progress-bar">
-            <div className={`sd-progress-fill ${pct >= 90 ? "danger" : pct >= 70 ? "warning" : ""}`} style={{ width:`${pct}%` }}/>
-          </div>
-          {atLimit && (
-            <div style={{ marginTop:10, padding:"10px 14px", borderRadius:8, background:"rgba(239,68,68,0.07)", border:"1px solid rgba(239,68,68,0.2)", fontSize:12, fontWeight:600, color:"#DC2626", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-              <span>Product limit reached.</span>
-              <button className="sd-btn sd-btn-primary sd-btn-sm" onClick={() => navigate("/seller-dashboard?tab=subscription")}>
-                <Icon d={ICONS.upgrade} size={12}/> Upgrade
-              </button>
-            </div>
-          )}
+      {/* Plan usage bar */}
+      <div style={{ background:"var(--card,#fff)", borderRadius:14, border:"1px solid rgba(0,0,0,0.07)",
+        padding:"14px 18px", marginBottom:12 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+          <span style={{ fontSize:13, fontWeight:700, color:"var(--muted,#6B7280)" }}>
+            Product Usage — {planName} Plan
+          </span>
+          <span style={{ fontSize:13, fontWeight:900, color: atLimit ? "#EF4444" : "#046EF2" }}>
+            {products.length} / {maxProds}
+          </span>
         </div>
-      )}
+        <div style={{ height:5, background:"rgba(0,0,0,0.07)", borderRadius:3, overflow:"hidden" }}>
+          <div style={{ height:"100%", width:`${usedPct}%`,
+            background: atLimit ? "#EF4444" : usedPct > 80 ? "#F59E0B" : "#046EF2",
+            borderRadius:3, transition:"width 0.5s ease" }}/>
+        </div>
+        {atLimit && (
+          <div style={{ fontSize:12, color:"#EF4444", fontWeight:700, marginTop:6 }}>
+            Product limit reached. <button type="button"
+              onClick={() => navigate("/seller-dashboard?tab=subscription")}
+              style={{ background:"none", border:"none", cursor:"pointer", color:"#046EF2",
+                fontWeight:800, fontSize:12, fontFamily:"inherit", padding:0 }}>
+              Upgrade your plan →
+            </button>
+          </div>
+        )}
+      </div>
 
-      {/* ── Stats tiles ── */}
+      {/* Stat tiles */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, marginBottom:14 }}>
         {[
-          { label:"Active",       val: activeCount, color:"#16A34A" },
-          { label:"Draft",        val: draftCount,  color:"#9CA3AF" },
-          { label:"Out of Stock", val: oosCount,    color:"#EF4444" },
-        ].map((s) => (
-          <div key={s.label} className="sd-panel" style={{ padding:"12px 14px", cursor:"pointer" }}
-            onClick={() => setStatusFilter(s.label)}>
-            <div style={{ fontSize:22, fontWeight:900, color:s.color, letterSpacing:"-0.03em" }}>{s.val}</div>
-            <div style={{ fontSize:11, fontWeight:700, color:"#8B8FA8", marginTop:2 }}>{s.label}</div>
+          { label:"Active",       val:active,     color:"#22C55E" },
+          { label:"Draft",        val:draft,       color:"#9CA3AF" },
+          { label:"Out of Stock", val:outOfStock,  color:"#EF4444" },
+        ].map(s => (
+          <div key={s.label} style={{ background:"var(--card,#fff)", borderRadius:12,
+            border:"1px solid rgba(0,0,0,0.07)", padding:"14px 12px", textAlign:"center" }}>
+            <div style={{ fontSize:26, fontWeight:900, color:s.color, letterSpacing:"-0.03em", lineHeight:1 }}>
+              {s.val}
+            </div>
+            <div style={{ fontSize:11, color:"var(--muted,#9CA3AF)", fontWeight:600, marginTop:4 }}>{s.label}</div>
           </div>
         ))}
       </div>
 
-      {/* ── Search + filter ── */}
-      <div className="sd-panel" style={{ padding:"10px 14px", marginBottom:10, display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:8, flex:1, minWidth:160 }}>
-          <Icon d={ICONS.search} size={15} />
-          <input
-            value={search} onChange={(e) => setSearch(e.target.value)}
+      {/* Search + filter */}
+      <div style={{ background:"var(--card,#fff)", borderRadius:14, border:"1px solid rgba(0,0,0,0.07)",
+        padding:"12px 14px", marginBottom:14 }}>
+        {/* Search */}
+        <div style={{ position:"relative", marginBottom:10 }}>
+          <div style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:"#9CA3AF", pointerEvents:"none" }}>
+            <Ico d={IC.search} size={15}/>
+          </div>
+          <input value={search} onChange={e=>setSearch(e.target.value)}
             placeholder="Search products…"
-            style={{ border:"none", background:"transparent", outline:"none", fontSize:14, fontWeight:500, color:"var(--text,#111)", width:"100%" }}/>
+            style={{ width:"100%", height:40, paddingLeft:38, paddingRight:14,
+              border:"1.5px solid rgba(0,0,0,0.08)", borderRadius:10,
+              background:"var(--bg,#F7F8FA)", color:"var(--text,#111)",
+              fontSize:14, fontWeight:500, outline:"none", fontFamily:"inherit",
+              boxSizing:"border-box" }}/>
         </div>
+
+        {/* Status filter pills */}
         <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-          {STATUS_FILTER_OPTIONS.map((opt) => (
-            <button key={opt} type="button"
-              onClick={() => setStatusFilter(opt)}
-              style={{ padding:"6px 12px", borderRadius:100, border:`1.5px solid ${statusFilter===opt?"#046EF2":"rgba(0,0,0,0.1)"}`, background: statusFilter===opt?"#046EF2":"transparent", color: statusFilter===opt?"#fff":"var(--text,#111)", fontSize:12, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>
+          {STATUS_OPTS.map(opt => (
+            <button key={opt} type="button" onClick={() => setStatusFilter(opt)}
+              style={{ padding:"6px 14px", borderRadius:100, border:"1.5px solid",
+                borderColor: statusFilter===opt ? "#046EF2" : "rgba(0,0,0,0.1)",
+                background: statusFilter===opt ? "#046EF2" : "transparent",
+                color: statusFilter===opt ? "#fff" : "var(--text,#333)",
+                fontSize:12, fontWeight:700, cursor:"pointer",
+                fontFamily:"inherit", transition:"all 0.15s" }}>
               {opt}
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── Product list ── */}
-      <div className="sd-panel">
-        {loading ? (
-          <div style={{ padding:32 }}>
-            {[1,2,3].map((i) => (
-              <div key={i} className="sd-skeleton" style={{ height:64, marginBottom:10, borderRadius:10 }}/>
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="sd-empty">
-            <div style={{ fontSize:40, marginBottom:12 }}>📦</div>
-            <div className="sd-empty-title">{search || statusFilter !== "All" ? "No products found" : "No products yet"}</div>
-            <div className="sd-empty-text">
-              {search
-                ? "Try a different search term."
-                : statusFilter !== "All"
-                  ? `No ${statusFilter.toLowerCase()} products.`
-                  : "Add your first product to start selling on Beme Market."}
+      {/* Controls legend */}
+      {products.length > 0 && (
+        <div style={{ display:"flex", gap:16, marginBottom:10, paddingLeft:2 }}>
+          {[
+            { icon:IC.edit,   color:"#046EF2", label:"Edit" },
+            { icon:IC.eye,    color:"#22C55E", label:"Toggle Active/Draft" },
+            { icon:IC.box,    color:"#9CA3AF", label:"View on Marketplace" },
+            { icon:IC.trash,  color:"#EF4444", label:"Delete" },
+          ].map(l => (
+            <div key={l.label} style={{ display:"flex", alignItems:"center", gap:5 }}>
+              <Ico d={l.icon} size={12} color={l.color}/>
+              <span style={{ fontSize:11, color:"var(--muted,#9CA3AF)", fontWeight:600 }}>{l.label}</span>
             </div>
-            {!search && statusFilter === "All" && (
-              <button className="sd-btn sd-btn-primary" onClick={handleAdd}>
-                <Icon d={ICONS.plus} size={14}/> Add First Product
-              </button>
-            )}
-          </div>
-        ) : (
-          <>
-            {/* Desktop table */}
-            <div className="sd-table-wrap" style={{ display:"block" }}>
-              <table className="sd-table" style={{ minWidth:600 }}>
-                <thead>
-                  <tr>
-                    <th style={{ width:48 }}/>
-                    <th>Product</th>
-                    <th>Category</th>
-                    <th>Price</th>
-                    <th>Stock</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((p) => {
-                    const imgUrl = (Array.isArray(p.images) ? p.images[0] : null) || p.imageUrl || "";
-                    const isDraft = p.status === "draft";
-                    const isOos   = p.inStock === false;
-                    return (
-                      <tr key={p.id}>
-                        <td>
-                          <div style={{ width:44, height:44, borderRadius:8, overflow:"hidden", background:"#F4F6F8", flexShrink:0 }}>
-                            {imgUrl
-                              ? <img src={imgUrl} alt={p.name} style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
-                              : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>📦</div>
-                            }
-                          </div>
-                        </td>
-                        <td>
-                          <div style={{ fontWeight:700, fontSize:13, color:"var(--text,#111)", marginBottom:2 }}>{p.name}</div>
-                          <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
-                            {p.featured && <span className="sd-badge sd-badge-blue" style={{ fontSize:9, padding:"1px 6px" }}>Featured</span>}
-                            {p.subcategory && <span style={{ fontSize:10, color:"#9CA3AF" }}>{p.subcategory}</span>}
-                          </div>
-                        </td>
-                        <td style={{ color:"#8B8FA8", fontSize:12 }}>{p.category || "—"}</td>
-                        <td>
-                          <div style={{ fontWeight:800, fontSize:13 }}>GHS {Number(p.price||0).toLocaleString()}</div>
-                          {p.comparePrice > p.price && (
-                            <div style={{ fontSize:10, color:"#9CA3AF", textDecoration:"line-through" }}>
-                              GHS {Number(p.comparePrice).toLocaleString()}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ fontSize:12, color: p.stock === 0 ? "#EF4444" : "var(--text,#111)" }}>
-                          {p.stock != null ? p.stock : "∞"}
-                        </td>
-                        <td>
-                          <span className={`sd-badge ${isDraft ? "sd-badge-gray" : isOos ? "sd-badge-red" : "sd-badge-green"}`}>
-                            {isDraft ? "Draft" : isOos ? "Out of Stock" : "Active"}
-                          </span>
-                        </td>
-                        <td>
-                          <div style={{ display:"flex", gap:6 }}>
-                            <button className="sd-btn sd-btn-ghost sd-btn-sm"
-                              onClick={() => navigate(`/seller-dashboard/products/${p.id}`)}>
-                              <Icon d={ICONS.edit} size={13}/> Edit
-                            </button>
-                            <button className="sd-btn sd-btn-danger sd-btn-sm"
-                              onClick={() => handleDelete(p.id, p.name)}
-                              disabled={deleting === p.id}>
-                              {deleting === p.id
-                                ? "…"
-                                : <Icon d={ICONS.trash} size={13}/>
-                              }
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
-      <div style={{ marginTop:8, padding:"0 4px", fontSize:12, color:"#9CA3AF" }}>
-        Showing {filtered.length} of {products.length} products
-      </div>
+      {/* Product list */}
+      {loading
+        ? [1,2,3].map(i => (
+            <div key={i} style={{ background:"var(--card,#fff)", borderRadius:14,
+              border:"1px solid rgba(0,0,0,0.07)", height:90,
+              marginBottom:8, overflow:"hidden", display:"flex" }}>
+              <div style={{ width:90, background:"rgba(0,0,0,0.06)", animation:"dpPulse 1.4s ease infinite" }}/>
+              <div style={{ flex:1, padding:"14px 16px" }}>
+                <div style={{ height:13, width:"60%", background:"rgba(0,0,0,0.07)", borderRadius:4, marginBottom:8 }}/>
+                <div style={{ height:11, width:"35%", background:"rgba(0,0,0,0.05)", borderRadius:4 }}/>
+              </div>
+            </div>
+          ))
+        : filtered.length === 0
+          ? (
+            <div style={{ background:"var(--card,#fff)", borderRadius:16,
+              border:"1px solid rgba(0,0,0,0.07)", padding:"50px 20px", textAlign:"center" }}>
+              <div style={{ marginBottom:14 }}><Ico d={IC.box} size={44} color="rgba(0,0,0,0.12)"/></div>
+              <div style={{ fontSize:16, fontWeight:800, color:"var(--text,#111)", marginBottom:6 }}>
+                {products.length === 0 ? "No products yet" : "No products match your search"}
+              </div>
+              <div style={{ fontSize:13, color:"var(--muted,#9CA3AF)", marginBottom:22, lineHeight:1.5 }}>
+                {products.length === 0
+                  ? "Add your first product to start selling on Beme Market."
+                  : "Try a different search or filter."}
+              </div>
+              {products.length === 0 && (
+                <button type="button"
+                  onClick={() => navigate("/seller-dashboard/products/new")}
+                  style={{ padding:"12px 28px", borderRadius:12, border:"none",
+                    background:"#046EF2", color:"#fff", fontSize:14, fontWeight:800,
+                    cursor:"pointer", fontFamily:"inherit",
+                    boxShadow:"0 4px 14px rgba(4,110,242,0.3)" }}>
+                  + Add First Product
+                </button>
+              )}
+            </div>
+          )
+          : (
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              {filtered.map(p => (
+                <ProductRow key={p.id} product={p}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onToggleStatus={handleToggleStatus}
+                  onView={handleView}
+                  deleting={deleting}/>
+              ))}
+            </div>
+          )
+      }
+
+      {/* Delete confirm modal */}
+      {confirmProd && (
+        <Confirm
+          name={confirmProd.name}
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmProd(null)}/>
+      )}
 
       <style>{`
-        .sd-badge-gray { background: rgba(156,163,175,0.15); color: #6B7280; }
+        @keyframes dpPulse { 0%,100%{opacity:.45} 50%{opacity:.85} }
       `}</style>
     </div>
   );
