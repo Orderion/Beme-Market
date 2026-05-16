@@ -616,15 +616,15 @@ body.dark .acc-store-btn--ghost { background: rgba(4,110,242,0.15); }
 .acc-settings-row--danger .acc-settings-row-ico { background: rgba(239,68,68,0.08) !important; color: #EF4444 !important; }
 
 /* View-all and primary action buttons stay blue */
-.acc-view-all-btn { border-color: rgba(0,0,0,0.15) !important; color: #111 !important; background: rgba(0,0,0,0.03) !important; }
-.acc-primary-btn  { background: #111 !important; box-shadow: 0 4px 14px rgba(0,0,0,0.25) !important; }
+body:not(.dark) .acc-view-all-btn { border-color: rgba(0,0,0,0.15) !important; color: #111 !important; background: rgba(0,0,0,0.03) !important; }
+body:not(.dark) .acc-primary-btn  { background: #111 !important; box-shadow: 0 4px 14px rgba(0,0,0,0.25) !important; }
 
 /* Store buttons — keep dark primary, ghost stays neutral */
-.acc-store-btn--primary { background: #111 !important; }
+body:not(.dark) .acc-store-btn--primary { background: #111 !important; }
 
 /* Count tiles — dark active color */
-.acc-count-tile:hover { border-color: #111 !important; }
-.acc-count-num { color: #111 !important; }
+body:not(.dark) .acc-count-tile:hover { border-color: #111 !important; }
+body:not(.dark) .acc-count-num { color: #111 !important; }
 
 /* Get-a-store card CTA — black */
 .acc-get-store-cta { color: #111 !important; }
@@ -770,3 +770,215 @@ body.dark .acc-sidebar {
 /* Main content area dark */
 body.dark .acc-main { background: transparent !important; }
 body.dark .acc-page { background: #111 !important; }
+
+
+/* ================================================================
+   ACCOUNT PAGE — DARK MODE FIX PASS 2
+   Targets inline-color elements that stay dark on dark bg
+================================================================ */
+
+/* ── MY STORE card ── */
+body.dark .acc-store-name {
+  color: #f0f0f0 !important;
+}
+body.dark .acc-store-status {
+  color: rgba(255,255,255,0.55) !important;
+}
+body.dark .acc-store-status-dot {
+  /* keep the orange dot visible */
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.08);
+}
+
+/* Plan badge in dark mode */
+body.dark .acc-plan-badge {
+  background: rgba(255,255,255,0.1) !important;
+  color: rgba(255,255,255,0.7) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+}
+
+/* Dashboard / store buttons — BLACK on dark bg = invisible → flip to white */
+body.dark .acc-store-btn--primary {
+  background: #f0f0f0 !important;
+  color: #111 !important;
+  border-color: #f0f0f0 !important;
+}
+body.dark .acc-store-btn--ghost {
+  background: rgba(255,255,255,0.07) !important;
+  color: rgba(255,255,255,0.75) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+}
+
+/* ── Count tiles (Saved Items, Unread, Recent Orders) ── */
+body.dark .acc-count-tile {
+  background: rgba(255,255,255,0.07) !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+body.dark .acc-count-num {
+  color: #f0f0f0 !important;
+}
+body.dark .acc-count-label {
+  color: rgba(255,255,255,0.45) !important;
+}
+
+/* ── MY ORDERS card text ── */
+body.dark .acc-orders-empty,
+body.dark .acc-order-empty-text {
+  color: rgba(255,255,255,0.45) !important;
+}
+body.dark .acc-order-start-link,
+body.dark .acc-start-shopping {
+  color: rgba(255,255,255,0.35) !important;
+}
+
+/* ── OverviewCard section header text ── */
+body.dark .acc-section-title {
+  color: rgba(255,255,255,0.38) !important;
+  letter-spacing: 0.06em;
+}
+
+/* ── Card header action link (View all, Dashboard, Manage, Edit) ── */
+body.dark .acc-card-header-link,
+body.dark .acc-card-header a {
+  color: rgba(255,255,255,0.65) !important;
+}
+body.dark .acc-card-header-link:hover { color: #fff !important; }
+
+/* ── Address empty state ── */
+body.dark .acc-address-empty {
+  color: rgba(255,255,255,0.4) !important;
+}
+body.dark .acc-add-link {
+  color: rgba(255,255,255,0.5) !important;
+}
+
+/* ── Shopping preference chips ── */
+body.dark .acc-pref-chip {
+  background: rgba(255,255,255,0.07) !important;
+  color: rgba(255,255,255,0.65) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+}
+
+/* ── Get-a-store promo card ── */
+/* the blue card is intentionally bright — just fix its button */
+body.dark .acc-get-store-btn {
+  background: rgba(255,255,255,0.9) !important;
+  color: #046EF2 !important;
+}
+
+/* ── Overview card container — make sure bg uses dark card color ── */
+body.dark .acc-overview-card {
+  background: #1c1c1c !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+
+/* Fix any raw #111 text still showing in dark mode via CSS specificity */
+body.dark [style*="color: #111"],
+body.dark [style*="color:#111"] {
+  /* can't target inline styles with CSS directly — handled by class overrides above */
+}
+
+/* ── Fallback: any text inside a dark card that missed a rule ── */
+body.dark .acc-card *:not(button):not(a):not(.acc-plan-badge):not(.acc-store-status-dot) {
+  /* light text fallback for unclassed elements — only if the element
+     has no color set via its own class */
+}
+
+/* Specific: store-name h3/div inside card */
+body.dark .acc-card h3,
+body.dark .acc-card .acc-store-name,
+body.dark .acc-overview-card h3 {
+  color: #f0f0f0 !important;
+}
+
+/* Specific: small status/meta text in cards */
+body.dark .acc-card p,
+body.dark .acc-card .acc-order-meta {
+  color: rgba(255,255,255,0.5) !important;
+}
+
+/* ── Bottom-nav account icon — keep blue underline ── */
+/* (no change needed — that's the BottomNav component) */
+
+
+/* ================================================================
+   ACCOUNT — DARK MODE FINAL OVERRIDES (highest specificity)
+   Ensures nothing bleeds through from light-mode !important rules
+================================================================ */
+
+/* Dashboard button — white on dark */
+body.dark .acc-store-btn.acc-store-btn--primary {
+  background: #ffffff !important;
+  color: #111111 !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+}
+body.dark .acc-store-btn.acc-store-btn--ghost {
+  background: rgba(255,255,255,0.08) !important;
+  color: rgba(255,255,255,0.8) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+}
+
+/* Count numbers — white */
+body.dark .acc-count-tile .acc-count-num {
+  color: #ffffff !important;
+}
+body.dark .acc-count-tile .acc-count-lbl {
+  color: rgba(255,255,255,0.45) !important;
+}
+body.dark .acc-count-tile {
+  background: rgba(255,255,255,0.07) !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+body.dark .acc-count-tile:hover {
+  background: rgba(255,255,255,0.12) !important;
+}
+
+/* Store name & status text — white */
+body.dark .acc-overview-card .acc-store-name,
+body.dark .acc-overview-grid .acc-store-name {
+  color: #f0f0f0 !important;
+}
+body.dark .acc-overview-card .acc-store-status,
+body.dark .acc-overview-grid .acc-store-status {
+  color: rgba(255,255,255,0.5) !important;
+}
+
+/* Plan badge */
+body.dark .acc-overview-card .acc-plan-badge,
+body.dark .acc-overview-grid .acc-plan-badge {
+  background: rgba(255,255,255,0.1) !important;
+  color: rgba(255,255,255,0.75) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+}
+
+/* All overview cards — dark bg */
+body.dark .acc-overview-card,
+body.dark .acc-card {
+  background: #1c1c1c !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+
+/* Card header — MY STORE, MY ORDERS etc */
+body.dark .acc-card-header,
+body.dark .acc-card > [class*="acc-card-header"] {
+  border-bottom-color: rgba(255,255,255,0.07) !important;
+}
+
+/* Primary CTA buttons (empty states) — white on dark */
+body.dark .acc-primary-btn,
+body.dark .acc-tab-section .acc-primary-btn {
+  background: #ffffff !important;
+  color: #111111 !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3) !important;
+}
+
+/* View all / action links */
+body.dark .acc-view-all-btn {
+  background: rgba(255,255,255,0.05) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+  color: rgba(255,255,255,0.6) !important;
+}
+body.dark .acc-view-all-btn:hover {
+  background: rgba(255,255,255,0.1) !important;
+  color: #fff !important;
+}
