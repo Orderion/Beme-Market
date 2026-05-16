@@ -5,16 +5,34 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 const BASE = String(import.meta.env.VITE_BACKEND_URL || "").trim().replace(/\/+$/, "");
 
 // Plan pricing in GHS
+// Updated 4-tier structure — no unlimited plan
 export const PLAN_PRICES = {
   basic:    0,
-  standard: 99,
+  starter:  49,
+  growth:   99,
   pro:      249,
 };
 
 export const PLAN_NAMES = {
-  basic:    "Basic",
-  standard: "Standard",
-  pro:      "Pro",
+  basic:   "Basic",
+  starter: "Starter",
+  growth:  "Growth",
+  pro:     "Pro",
+};
+
+export const PLAN_PRODUCT_LIMITS = {
+  basic:   5,
+  starter: 10,
+  growth:  25,
+  pro:     500,
+};
+
+// Basic plan restrictions
+export const PLAN_RESTRICTIONS = {
+  basic:   { hasSocialLinks: false, hasChat: false },
+  starter: { hasSocialLinks: true,  hasChat: true  },
+  growth:  { hasSocialLinks: true,  hasChat: true  },
+  pro:     { hasSocialLinks: true,  hasChat: true  },
 };
 
 /**
@@ -106,4 +124,3 @@ export async function getTransactionHistory(uid) {
 export function redirectToPaystack(authorizationUrl) {
   window.location.assign(authorizationUrl);
 }
-
