@@ -33,14 +33,26 @@ export async function updateShop(shopId, updates) {
 
 // ─── PRODUCTS ────────────────────────────────────────────────
 export async function getSellerProducts(uid, shopId) {
-  const snap = await getDocs(
-    query(
-      collection(db, "Products"),
-      where("sellerId", "==", uid),
-      orderBy("createdAt", "desc")
-    )
-  );
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  try {
+    // Preferred: with orderBy (requires composite index in Firestore console)
+    const snap = await getDocs(
+      query(
+        collection(db, "Products"),
+        where("sellerId", "==", uid),
+        orderBy("createdAt", "desc")
+      )
+    );
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch {
+    // Fallback: no orderBy (works without a composite index)
+    // Sorts client-side instead — safe for up to ~500 products
+    const snap = await getDocs(
+      query(collection(db, "Products"), where("sellerId", "==", uid))
+    );
+    return snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+  }
 }
 
 export async function getProductById(productId) {
