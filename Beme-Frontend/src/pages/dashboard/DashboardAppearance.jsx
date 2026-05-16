@@ -280,14 +280,49 @@ export default function DashboardAppearance() {
             </div>
           </div>
 
-          {/* Social */}
-          <div style={{ background: "var(--card,#fff)", borderRadius: 16, border: "1px solid rgba(0,0,0,0.07)", padding: "20px" }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text,#111)", marginBottom: 4 }}>Social Links</div>
-            <p style={{ fontSize: 13, color: "var(--muted,#9CA3AF)", marginBottom: 18, marginTop: 4 }}>These appear as buttons on your store page so customers can contact you.</p>
-            <Field label="WhatsApp Business Number" icon={IC.phone} type="tel" value={form.whatsapp} onChange={e=>upd("whatsapp",e.target.value)} placeholder="+233 XX XXX XXXX" hint="Customers tap to message you directly"/>
-            <Field label="Instagram" icon={IC.ig} value={form.instagram} onChange={e=>upd("instagram",e.target.value)} placeholder="@yourstorename"/>
-            <Field label="TikTok" icon={IC.tt} value={form.tiktok} onChange={e=>upd("tiktok",e.target.value)} placeholder="@yourstorename"/>
-            <Field label="Website" icon={IC.link} type="url" value={form.website} onChange={e=>upd("website",e.target.value)} placeholder="https://yourwebsite.com"/>
+          {/* Social - locked for basic plan */}
+          <div style={{ background:"var(--card,#fff)", borderRadius:16, border:"1px solid rgba(0,0,0,0.07)", padding:"20px" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:4 }}>
+              <div style={{ fontSize:15, fontWeight:800, color:"var(--text,#111)" }}>Social Links & Contacts</div>
+              {(!subscriptionPlan || subscriptionPlan === "basic") && (
+                <span style={{ fontSize:11, fontWeight:800, padding:"3px 9px", borderRadius:100,
+                  background:"rgba(239,68,68,0.1)", color:"#EF4444", border:"1px solid rgba(239,68,68,0.2)" }}>
+                  Starter+ only
+                </span>
+              )}
+            </div>
+            {(!subscriptionPlan || subscriptionPlan === "basic") ? (
+              <div style={{ marginTop:14, padding:"20px 18px", borderRadius:12,
+                background:"rgba(0,0,0,0.03)", border:"2px dashed rgba(0,0,0,0.1)", textAlign:"center" }}>
+                <div style={{ width:44, height:44, borderRadius:12, background:"rgba(0,0,0,0.06)",
+                  display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 12px" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.8" strokeLinecap="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                  </svg>
+                </div>
+                <div style={{ fontSize:14, fontWeight:800, color:"var(--text,#111)", marginBottom:6 }}>
+                  Social links locked on Basic plan
+                </div>
+                <div style={{ fontSize:13, color:"var(--muted,#6B7280)", marginBottom:16, lineHeight:1.5 }}>
+                  Upgrade to Starter (GHS 49/mo) to add WhatsApp, Instagram, TikTok and your website so customers can reach you directly.
+                </div>
+                <a href="/store-plans" style={{ display:"inline-flex", alignItems:"center", gap:6,
+                  padding:"10px 20px", borderRadius:10, background:"#111", color:"#fff",
+                  fontSize:13, fontWeight:800, textDecoration:"none" }}>
+                  View Plans and Upgrade
+                </a>
+              </div>
+            ) : (
+              <>
+                <p style={{ fontSize:13, color:"var(--muted,#9CA3AF)", marginBottom:18, marginTop:4 }}>
+                  These appear as contact buttons on your store page.
+                </p>
+                <Field label="WhatsApp Business Number" icon={IC.phone} type="tel" value={form.whatsapp} onChange={e=>upd("whatsapp",e.target.value)} placeholder="+233 XX XXX XXXX" hint="Customers tap to message you directly"/>
+                <Field label="Instagram" icon={IC.ig} value={form.instagram} onChange={e=>upd("instagram",e.target.value)} placeholder="@yourstorename"/>
+                <Field label="TikTok" icon={IC.tt} value={form.tiktok} onChange={e=>upd("tiktok",e.target.value)} placeholder="@yourstorename"/>
+                <Field label="Website" icon={IC.link} type="url" value={form.website} onChange={e=>upd("website",e.target.value)} placeholder="https://yourwebsite.com"/>
+              </>
+            )}
           </div>
         </div>
 
