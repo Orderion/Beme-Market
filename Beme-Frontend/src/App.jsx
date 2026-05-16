@@ -80,6 +80,9 @@ import SellerDashboard from "./pages/SellerDashboard";
 /* ── NEW: Seller product detail page ── */
 import DashboardProductDetail from "./pages/dashboard/DashboardProductDetail";
 
+/* NEW: Public seller storefront */
+import StoreFront from "./pages/StoreFront";
+
 /* ADMIN SELLER MANAGEMENT */
 import SellerPayoutRequests from "./pages/admin/PayoutRequests";
 import VerificationRequests from "./pages/admin/VerificationRequests";
@@ -212,6 +215,9 @@ function AppShell() {
           <Route path="/seller-terms"         element={<SellerTerms/>}/>
           <Route path="/seller-policy"        element={<SellerPolicy/>}/>
           <Route path="/community-guidelines" element={<CommunityGuidelines/>}/>
+
+          {/* ── Public seller storefront ── */}
+          <Route path="/store/:storeSlug" element={<StoreFront/>}/>
 
           {/* SELLER ONBOARDING */}
           <Route path="/store-onboarding" element={<SellerRoute requireOnly="auth"><StoreOnboarding/></SellerRoute>}/>
