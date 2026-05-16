@@ -143,6 +143,9 @@ function AppShell() {
   const [routeLoading, setRouteLoading] = useState(false);
 
   const shouldHideHeader = isFullScreen(location.pathname);
+  const shouldHideFooter = shouldHideHeader ||
+    location.pathname.startsWith("/account") ||
+    location.pathname === "/account";
 
   useEffect(() => {
     setRouteLoading(true);
@@ -269,7 +272,7 @@ function AppShell() {
         </Routes>
       </main>
 
-      {!shouldHideHeader && <Footer/>}
+      {!shouldHideFooter && <Footer/>}
       {!shouldHideHeader && <BottomNav/>}
     </>
   );
