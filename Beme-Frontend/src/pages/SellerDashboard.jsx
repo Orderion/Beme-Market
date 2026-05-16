@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import { useSellerAuth } from "../hooks/useSellerAuth";
 import { useChat } from "../hooks/useChat";
@@ -143,11 +145,12 @@ function Sidebar({ activeTab, onNav, shop, plan, chatUnread, onClose, isMobile }
 export default function SellerDashboard() {
   const navigate    = useNavigate();
   const [params, setParams] = useSearchParams();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, role, profile } = useAuth();
   const { isSeller, isSellerActive, shop, subscriptionPlan, loading: sellerLoading } = useSellerAuth();
   const { totalUnread } = useChat();
 
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileOpen,   setMobileOpen]   = useState(false);
+  const [accessGranted, setAccessGranted] = useState(false); // firestore fallback check
 
   const activeTab = params.get("tab") || "home";
 
@@ -156,13 +159,48 @@ export default function SellerDashboard() {
     window.scrollTo({ top: 0 });
   }, [setParams]);
 
-  // Auth guards
+  // ── Auth guard ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (authLoading || sellerLoading) return;
-    if (!user) { navigate("/login", { replace: true }); return; }
-    if (!isSeller) { navigate("/get-a-store", { replace: true }); return; }
-    if (!isSellerActive) { navigate("/subscription-success?status=pending", { replace: true }); return; }
-  }, [user, isSeller, isSellerActive, authLoading, sellerLoading, navigate]);
+
+    // 1. Not logged in → send to login
+    if (!user) {
+      navigate("/login?redirect=/seller-dashboard", { replace: true });
+      return;
+    }
+
+    // 2. Fast-pass checks (synchronous)
+    const appliedUid  = localStorage.getItem("beme_seller_applied");
+    const justApplied = appliedUid && appliedUid === user.uid;
+    const isAdminUser = role === "super_admin" || role === "admin";
+    const hasStoreId  = !!(profile?.storeId);
+    const hasSellerStatus = !!(profile?.sellerStatus && profile.sellerStatus !== "none");
+
+    if (isSeller || justApplied || isAdminUser || hasStoreId || hasSellerStatus) {
+      setAccessGranted(true);
+      return;
+    }
+
+    // 3. Last-resort: check Firestore storeApplications doc
+    //    If user went through onboarding but localStorage was cleared,
+    //    this lets them back in and re-sets the flag.
+    getDoc(doc(db, "storeApplications", user.uid))
+      .then((snap) => {
+        if (snap.exists()) {
+          // They started onboarding — grant access and restore flag
+          localStorage.setItem("beme_seller_applied", user.uid);
+          setAccessGranted(true);
+        } else {
+          // Truly never started onboarding
+          navigate("/get-a-store", { replace: true });
+        }
+      })
+      .catch(() => {
+        // On error, don't lock them out — let them in with limited state
+        setAccessGranted(true);
+      });
+
+  }, [user, isSeller, role, profile, authLoading, sellerLoading, navigate]);
 
   if (authLoading || sellerLoading) {
     return (
@@ -172,7 +210,22 @@ export default function SellerDashboard() {
     );
   }
 
-  if (!user || !isSeller || !isSellerActive) return null;
+  // Still running the storeApplications check — show loader
+  const appliedUid  = localStorage.getItem("beme_seller_applied");
+  const justApplied = appliedUid && user && appliedUid === user.uid;
+  const isAdminUser = role === "super_admin" || role === "admin";
+  const hasStoreId  = !!(profile?.storeId);
+  const hasSellerStatus = !!(profile?.sellerStatus && profile.sellerStatus !== "none");
+  const hasImmediateAccess = isSeller || justApplied || isAdminUser || hasStoreId || hasSellerStatus;
+
+  if (!user) return null;
+  if (!hasImmediateAccess && !accessGranted) {
+    return (
+      <div className="sd-root" style={{ alignItems: "center", justifyContent: "center" }}>
+        <div style={{ fontSize: 14, color: "#8B8FA8" }}>Checking access…</div>
+      </div>
+    );
+  }
 
   const TAB_TITLES = {
     home: "Analytics", products: "Products", orders: "Orders",
@@ -248,4 +301,3 @@ export default function SellerDashboard() {
     </div>
   );
 }
-
