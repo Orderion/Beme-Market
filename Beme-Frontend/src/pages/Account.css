@@ -574,3 +574,58 @@ body.dark .acc-store-btn--ghost { background: rgba(4,110,242,0.15); }
   color:#fff; font-size:11px; font-weight:800; display:flex;
   align-items:center; justify-content:center; padding:0 6px; flex-shrink:0;
 }
+
+
+/* ── Account page: forms/tabs use black, buttons stay blue ── */
+.acc-mobile-tab--active {
+  color: #111 !important;
+  border-bottom-color: #111 !important;
+}
+.acc-mobile-tab--active svg { stroke: #111 !important; }
+
+.acc-nav-link--active {
+  background: rgba(0,0,0,0.06) !important;
+  color: #111 !important;
+}
+.acc-nav-link--active svg { stroke: #111 !important; }
+
+.acc-card-header-link {
+  color: #111 !important;
+  font-weight: 700;
+}
+.acc-card-header-link:hover { color: #111; text-decoration: underline; }
+
+.acc-add-link { color: #111 !important; }
+.acc-add-link:hover { color: #111; }
+
+.acc-details-pill {
+  background: rgba(0,0,0,0.06) !important;
+  color: #333 !important;
+  border-color: rgba(0,0,0,0.1) !important;
+}
+
+.acc-pref-chip {
+  background: rgba(0,0,0,0.06) !important;
+  color: #333 !important;
+  border-color: rgba(0,0,0,0.1) !important;
+}
+
+/* Settings rows — icon bg dark not blue */
+.acc-settings-row-ico { background: rgba(0,0,0,0.06) !important; color: #333 !important; }
+.acc-settings-row-arr { color: #C4C9D4 !important; }
+.acc-settings-row--danger .acc-settings-row-ico { background: rgba(239,68,68,0.08) !important; color: #EF4444 !important; }
+
+/* View-all and primary action buttons stay blue */
+.acc-view-all-btn { border-color: rgba(0,0,0,0.15) !important; color: #111 !important; background: rgba(0,0,0,0.03) !important; }
+.acc-primary-btn  { background: #111 !important; box-shadow: 0 4px 14px rgba(0,0,0,0.25) !important; }
+
+/* Store buttons — keep dark primary, ghost stays neutral */
+.acc-store-btn--primary { background: #111 !important; }
+
+/* Count tiles — dark active color */
+.acc-count-tile:hover { border-color: #111 !important; }
+.acc-count-num { color: #111 !important; }
+
+/* Get-a-store card CTA — black */
+.acc-get-store-cta { color: #111 !important; }
+.acc-get-store-title { color: #111 !important; }
