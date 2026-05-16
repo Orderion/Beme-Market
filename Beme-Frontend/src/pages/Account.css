@@ -629,3 +629,144 @@ body.dark .acc-store-btn--ghost { background: rgba(4,110,242,0.15); }
 /* Get-a-store card CTA — black */
 .acc-get-store-cta { color: #111 !important; }
 .acc-get-store-title { color: #111 !important; }
+
+
+/* ================================================================
+   ACCOUNT PAGE — DARK MODE FIXES + BLACK ACTIVE ELEMENTS
+================================================================ */
+
+/* Active mobile tab — BLACK not blue */
+.acc-mobile-tab--active {
+  color: #111 !important;
+  background: rgba(0,0,0,0.07) !important;
+  border-color: #111 !important;
+}
+body.dark .acc-mobile-tab--active {
+  color: #f0f0f0 !important;
+  background: rgba(255,255,255,0.1) !important;
+  border-color: #f0f0f0 !important;
+}
+
+/* Sidebar nav active link — black */
+.acc-nav-link--active {
+  background: rgba(0,0,0,0.06) !important;
+  color: #111 !important;
+}
+.acc-nav-link--active svg { stroke: #111 !important; }
+body.dark .acc-nav-link--active {
+  background: rgba(255,255,255,0.09) !important;
+  color: #f0f0f0 !important;
+}
+body.dark .acc-nav-link--active svg { stroke: #f0f0f0 !important; }
+
+/* Account header banner — readable in dark mode */
+.acc-hero-banner {
+  background: var(--grtheme, #046EF2) !important;
+}
+body.dark .acc-hero-banner { background: #1a1a2e !important; }
+
+/* Edit button in header — dark mode visible */
+body.dark .acc-hero-edit-btn {
+  background: rgba(255,255,255,0.15) !important;
+  color: #fff !important;
+  border-color: rgba(255,255,255,0.2) !important;
+}
+
+/* Mobile tabs wrapper — dark mode */
+body.dark .acc-tabs-bar {
+  background: #1a1a1a !important;
+  border-bottom-color: rgba(255,255,255,0.08) !important;
+}
+body.dark .acc-mobile-tab {
+  color: rgba(255,255,255,0.5) !important;
+  border-color: transparent !important;
+}
+
+/* Card in dark mode — proper bg */
+body.dark .acc-card {
+  background: #1a1a1a !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+body.dark .acc-card-header {
+  background: transparent !important;
+  border-bottom-color: rgba(255,255,255,0.07) !important;
+  color: rgba(255,255,255,0.4) !important;
+}
+body.dark .acc-card-header-link { color: #f0f0f0 !important; }
+
+/* Details name/email in dark mode */
+body.dark .acc-details-name  { color: #f0f0f0 !important; }
+body.dark .acc-details-email { color: rgba(255,255,255,0.5) !important; }
+body.dark .acc-details-pill {
+  background: rgba(255,255,255,0.08) !important;
+  color: rgba(255,255,255,0.7) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+}
+
+/* Count tiles in dark mode */
+body.dark .acc-count-tile {
+  background: rgba(255,255,255,0.05) !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+body.dark .acc-count-num  { color: #f0f0f0 !important; }
+body.dark .acc-count-label { color: rgba(255,255,255,0.4) !important; }
+
+/* Overview grid section titles */
+body.dark .acc-section-title { color: rgba(255,255,255,0.35) !important; }
+
+/* Address / empty state text */
+body.dark .acc-address-label { color: rgba(255,255,255,0.4) !important; }
+body.dark .acc-empty-sub { color: rgba(255,255,255,0.4) !important; }
+
+/* Settings rows — dark mode */
+body.dark .acc-settings-group {
+  background: #1a1a1a !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+body.dark .acc-settings-group-title { color: rgba(255,255,255,0.35) !important; }
+body.dark .acc-settings-row { border-top-color: rgba(255,255,255,0.06) !important; }
+body.dark .acc-settings-row:hover { background: rgba(255,255,255,0.04) !important; }
+body.dark .acc-settings-row-label { color: #f0f0f0 !important; }
+body.dark .acc-settings-row-sub   { color: rgba(255,255,255,0.4) !important; }
+body.dark .acc-settings-row-ico {
+  background: rgba(255,255,255,0.07) !important;
+  color: rgba(255,255,255,0.7) !important;
+}
+body.dark .acc-settings-row-arr { color: rgba(255,255,255,0.2) !important; }
+body.dark .acc-settings-row--danger .acc-settings-row-ico {
+  background: rgba(239,68,68,0.15) !important;
+}
+
+/* Main content title */
+body.dark .acc-main-title { color: #f0f0f0 !important; }
+
+/* Primary button dark */
+body.dark .acc-primary-btn {
+  background: #f0f0f0 !important;
+  color: #111 !important;
+}
+
+/* Order row */
+body.dark .acc-order-row--lg {
+  background: #1a1a1a !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+body.dark .acc-order-id   { color: #f0f0f0 !important; }
+body.dark .acc-order-meta { color: rgba(255,255,255,0.4) !important; }
+
+/* View-all button dark */
+body.dark .acc-view-all-btn {
+  border-color: rgba(255,255,255,0.12) !important;
+  color: rgba(255,255,255,0.7) !important;
+  background: rgba(255,255,255,0.03) !important;
+}
+
+/* Sidebar wrapper dark */
+body.dark .acc-sidebar {
+  background: #1a1a1a !important;
+  border-right-color: rgba(255,255,255,0.07) !important;
+}
+
+/* Main content area dark */
+body.dark .acc-main { background: transparent !important; }
+body.dark .acc-page { background: #111 !important; }
