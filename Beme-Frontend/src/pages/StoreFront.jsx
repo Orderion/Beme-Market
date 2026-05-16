@@ -240,26 +240,39 @@ export default function StoreFront() {
     run();
   }, [shop?.id, shop?.ownerId]);
 
-  /* Follow / unfollow */
+  /* Follow / unfollow — optimistic UI + server sync + prevent negative */
   const handleFollow = async () => {
     if (!currentUser) { navigate("/login"); return; }
     if (!shop?.id) return;
     setFwLoading(true);
+
+    const wasFollowing = following;
+    setFollowing(!wasFollowing);
+    setFollCount(c => wasFollowing ? Math.max(0, c - 1) : c + 1);
+
     try {
       const ref = doc(db, "shops", shop.id, "followers", currentUser.uid);
-      if (following) {
+      if (wasFollowing) {
         await deleteDoc(ref);
         await updateDoc(doc(db, "shops", shop.id), { followersCount: increment(-1) });
-        setFollowing(false);
-        setFollCount(c => Math.max(0, c - 1));
       } else {
         await setDoc(ref, { uid: currentUser.uid, createdAt: serverTimestamp() });
         await updateDoc(doc(db, "shops", shop.id), { followersCount: increment(1) });
-        setFollowing(true);
-        setFollCount(c => c + 1);
       }
-    } catch (e) { console.error(e); }
-    finally { setFwLoading(false); }
+      // Read authoritative count back from Firestore to prevent drift
+      const snap = await getDoc(doc(db, "shops", shop.id));
+      if (snap.exists()) {
+        const real = snap.data().followersCount;
+        setFollCount(Math.max(0, typeof real === "number" ? real : 0));
+      }
+    } catch (e) {
+      console.error(e);
+      // Revert on error
+      setFollowing(wasFollowing);
+      setFollCount(c => wasFollowing ? c + 1 : Math.max(0, c - 1));
+    } finally {
+      setFwLoading(false);
+    }
   };
 
   /* ── Render: loading ── */
