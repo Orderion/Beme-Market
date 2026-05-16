@@ -256,21 +256,35 @@ function SellerInfoPanel({ shopId, sellerId }) {
     if (!currentUser) { navigate("/login"); return; }
     if (!shopId) return;
     setFollowLoading(true);
+
+    // Optimistic update immediately so UI feels instant
+    const wasFollowing = following;
+    setFollowing(!wasFollowing);
+    setFollowerCount(c => wasFollowing ? Math.max(0, c - 1) : c + 1);
+
     try {
       const followRef = doc(db, "shops", shopId, "followers", currentUser.uid);
-      if (following) {
+      if (wasFollowing) {
         await deleteDoc(followRef);
         await updateDoc(doc(db, "shops", shopId), { followersCount: increment(-1) });
-        setFollowing(false);
-        setFollowerCount((c) => Math.max(0, c - 1));
       } else {
         await setDoc(followRef, { uid: currentUser.uid, createdAt: serverTimestamp() });
         await updateDoc(doc(db, "shops", shopId), { followersCount: increment(1) });
-        setFollowing(true);
-        setFollowerCount((c) => c + 1);
       }
-    } catch (e) { console.error("[SellerPanel] follow:", e); }
-    finally { setFollowLoading(false); }
+      // Sync with authoritative server count (prevents drift / negative values)
+      const snap = await getDoc(doc(db, "shops", shopId));
+      if (snap.exists()) {
+        const real = snap.data().followersCount;
+        setFollowerCount(Math.max(0, typeof real === "number" ? real : 0));
+      }
+    } catch (e) {
+      console.error("[SellerPanel] follow:", e);
+      // Revert optimistic update on error
+      setFollowing(wasFollowing);
+      setFollowerCount(c => wasFollowing ? c + 1 : Math.max(0, c - 1));
+    } finally {
+      setFollowLoading(false);
+    }
   };
 
   if (!shopId && !sellerId) return null;
