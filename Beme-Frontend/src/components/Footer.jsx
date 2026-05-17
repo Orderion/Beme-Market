@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import "./Footer.css";
 
@@ -9,6 +10,20 @@ function BemeLogo() {
       aria-hidden="true">
       <path d="M12 3 4 7v5c0 4.8 3.2 7.8 8 9 4.8-1.2 8-4.2 8-9V7l-8-4Z"/>
       <path d="M9.2 12.2 11 14l3.8-3.8"/>
+    </svg>
+  );
+}
+
+/* ── Chevron icon ── */
+function ChevronIcon({ up }) {
+  return (
+    <svg
+      width="16" height="16" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+      className={`ft-tab-chevron${up ? " ft-tab-chevron--up" : ""}`}
+      aria-hidden="true"
+    >
+      <polyline points="6 9 12 15 18 9"/>
     </svg>
   );
 }
@@ -82,118 +97,141 @@ const PAYMENT_BADGES = ["VISA", "Mastercard", "Paystack", "MTN MoMo", "Telecel C
 
 export default function Footer() {
   const year = new Date().getFullYear();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <footer className="ft">
 
-      {/* ── Newsletter bar ── */}
-      <div className="ft-newsletter">
-        <div className="ft-newsletter-inner">
-          <div className="ft-newsletter-text">
-            <span className="ft-newsletter-eyebrow">Stay in the loop</span>
-            <p className="ft-newsletter-headline">Get deals, drops &amp; updates</p>
-          </div>
-          <form className="ft-newsletter-form" onSubmit={e => e.preventDefault()}>
-            <input
-              type="email"
-              placeholder="your@email.com"
-              className="ft-newsletter-input"
-              aria-label="Email for newsletter"
-            />
-            <button type="submit" className="ft-newsletter-btn">Subscribe</button>
-          </form>
+      {/* ── Mobile-only collapsed tab ── */}
+      <button
+        className="ft-mobile-tab"
+        onClick={() => setMobileOpen(prev => !prev)}
+        aria-expanded={mobileOpen}
+        aria-controls="ft-drawer"
+      >
+        <div className="ft-mobile-tab-brand">
+          <span className="ft-mobile-tab-icon"><BemeLogo /></span>
+          <span className="ft-mobile-tab-label">Beme Market</span>
         </div>
-      </div>
+        <div className="ft-mobile-tab-right">
+          <span className="ft-mobile-tab-hint">
+            {mobileOpen ? "Close footer" : "Info & links"}
+          </span>
+          <ChevronIcon up={mobileOpen} />
+        </div>
+      </button>
 
-      {/* ── Main body ── */}
-      <div className="ft-inner">
+      {/* ── Drawer: hidden on mobile until opened, always visible on desktop ── */}
+      <div
+        id="ft-drawer"
+        className={`ft-drawer${mobileOpen ? " ft-drawer--open" : ""}`}
+      >
 
-        {/* Brand column */}
-        <div className="ft-brand">
-
-          {/* Logo + wordmark — like Jumia */}
-          <div className="ft-logo-row">
-            <div className="ft-logo-icon">
-              <BemeLogo/>
+        {/* ── Newsletter bar ── */}
+        <div className="ft-newsletter">
+          <div className="ft-newsletter-inner">
+            <div className="ft-newsletter-text">
+              <span className="ft-newsletter-eyebrow">Stay in the loop</span>
+              <p className="ft-newsletter-headline">Get deals, drops &amp; updates</p>
             </div>
-            <span className="ft-logo-text">Beme Market</span>
+            <form className="ft-newsletter-form" onSubmit={e => e.preventDefault()}>
+              <input
+                type="email"
+                placeholder="your@email.com"
+                className="ft-newsletter-input"
+                aria-label="Email for newsletter"
+              />
+              <button type="submit" className="ft-newsletter-btn">Subscribe</button>
+            </form>
           </div>
+        </div>
 
-          <p className="ft-tagline">
-            Ghana's go-to shop for fashion, beauty, tech, and handmade products — delivered to your door.
-          </p>
+        {/* ── Main body ── */}
+        <div className="ft-inner">
 
-          {/* Social icons */}
-          <div className="ft-social">
-            <span className="ft-social-label">Follow us</span>
-            <div className="ft-social-row">
-              {SOCIAL_LINKS.map(({ label, href, icon }) => (
-                <a key={label} href={href} target="_blank" rel="noopener noreferrer"
-                  className="ft-social-btn" aria-label={label} title={label}>
-                  {icon}
-                </a>
-              ))}
+          {/* Brand column */}
+          <div className="ft-brand">
+            <div className="ft-logo-row">
+              <div className="ft-logo-icon"><BemeLogo /></div>
+              <span className="ft-logo-text">Beme Market</span>
+            </div>
+
+            <p className="ft-tagline">
+              Ghana's go-to shop for fashion, beauty, tech, and handmade products — delivered to your door.
+            </p>
+
+            <div className="ft-social">
+              <span className="ft-social-label">Follow us</span>
+              <div className="ft-social-row">
+                {SOCIAL_LINKS.map(({ label, href, icon }) => (
+                  <a key={label} href={href} target="_blank" rel="noopener noreferrer"
+                    className="ft-social-btn" aria-label={label} title={label}>
+                    {icon}
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            <div className="ft-ghana-badge">
+              <span>🇬🇭</span>
+              <span>Made for Ghana</span>
             </div>
           </div>
 
-          <div className="ft-ghana-badge">
-            <span>🇬🇭</span>
-            <span>Made for Ghana</span>
+          {/* Links grid */}
+          <div className="ft-grid">
+            <div className="ft-col">
+              <h4 className="ft-col-head">Shop</h4>
+              <Link to="/shop">All Products</Link>
+              <Link to="/shop?shop=fashion">Fashion</Link>
+              <Link to="/shop?shop=tech">Tech</Link>
+              <Link to="/shop?shop=kente">Kente &amp; Culture</Link>
+              <Link to="/faq">FAQ</Link>
+              <Link to="/shipping&returns">Shipping &amp; Returns</Link>
+            </div>
+            <div className="ft-col">
+              <h4 className="ft-col-head">Account</h4>
+              <Link to="/login">Log In</Link>
+              <Link to="/signup">Sign Up</Link>
+              <Link to="/orders">My Orders</Link>
+              <Link to="/requests">Product Requests</Link>
+              <Link to="/contact">Contact Support</Link>
+            </div>
+            <div className="ft-col">
+              <h4 className="ft-col-head">Company</h4>
+              <Link to="/about">About Us</Link>
+              <Link to="/contact">Contact</Link>
+              <Link to="/support">Help Centre</Link>
+              <Link to="/privacy-policy">Privacy Policy</Link>
+              <Link to="/terms-of-service">Terms of Service</Link>
+              <Link to="/refund-policy">Refund Policy</Link>
+            </div>
           </div>
         </div>
 
-        {/* Links grid */}
-        <div className="ft-grid">
-          <div className="ft-col">
-            <h4 className="ft-col-head">Shop</h4>
-            <Link to="/shop">All Products</Link>
-            <Link to="/shop?shop=fashion">Fashion</Link>
-            <Link to="/shop?shop=tech">Tech</Link>
-            <Link to="/shop?shop=kente">Kente &amp; Culture</Link>
-            <Link to="/faq">FAQ</Link>
-            <Link to="/shipping&returns">Shipping &amp; Returns</Link>
-          </div>
-          <div className="ft-col">
-            <h4 className="ft-col-head">Account</h4>
-            <Link to="/login">Log In</Link>
-            <Link to="/signup">Sign Up</Link>
-            <Link to="/orders">My Orders</Link>
-            <Link to="/requests">Product Requests</Link>
-            <Link to="/contact">Contact Support</Link>
-          </div>
-          <div className="ft-col">
-            <h4 className="ft-col-head">Company</h4>
-            <Link to="/about">About Us</Link>
-            <Link to="/contact">Contact</Link>
-            <Link to="/support">Help Centre</Link>
-            <Link to="/privacy-policy">Privacy Policy</Link>
-            <Link to="/terms-of-service">Terms of Service</Link>
-            <Link to="/refund-policy">Refund Policy</Link>
+        {/* ── Payment badges ── */}
+        <div className="ft-payments">
+          <span className="ft-payments-label">We accept</span>
+          <div className="ft-payments-row">
+            {PAYMENT_BADGES.map(b => (
+              <span key={b} className="ft-payment-badge">{b}</span>
+            ))}
           </div>
         </div>
-      </div>
 
-      {/* ── Payment badges ── */}
-      <div className="ft-payments">
-        <span className="ft-payments-label">We accept</span>
-        <div className="ft-payments-row">
-          {PAYMENT_BADGES.map(b => (
-            <span key={b} className="ft-payment-badge">{b}</span>
-          ))}
+        {/* ── Bottom bar ── */}
+        <div className="ft-bottom">
+          <p className="ft-copy">© {year} Beme Market. All rights reserved.</p>
+          <div className="ft-bottom-links">
+            <Link to="/cookie-policy">Cookies</Link>
+            <span aria-hidden="true">·</span>
+            <Link to="/sitemap">Sitemap</Link>
+            <span aria-hidden="true">·</span>
+            <Link to="/accessibility">Accessibility</Link>
+          </div>
         </div>
-      </div>
 
-      {/* ── Bottom bar ── */}
-      <div className="ft-bottom">
-        <p className="ft-copy">© {year} Beme Market. All rights reserved.</p>
-        <div className="ft-bottom-links">
-          <Link to="/cookie-policy">Cookies</Link>
-          <span aria-hidden="true">·</span>
-          <Link to="/sitemap">Sitemap</Link>
-          <span aria-hidden="true">·</span>
-          <Link to="/accessibility">Accessibility</Link>
-        </div>
-      </div>
+      </div>{/* end ft-drawer */}
     </footer>
   );
 }
