@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useSellerAuth } from "../hooks/useSellerAuth";
+import { SELLER_APPLIED_KEY } from "../components/SellerRoute";
 import "./GetAStore.css";
 
 /* ─── Pricing ─────────────────────────────────────────────── */
@@ -318,8 +320,54 @@ function CrossIcon() {
 export default function GetAStore() {
   const navigate = useNavigate();
   const { user, isSellerActive } = useAuth();
+  const { shop, isSeller } = useSellerAuth();
   const [billing, setBilling] = useState("monthly");
   const prices = billing === "yearly" ? YEARLY : MONTHLY;
+
+  // One store per account — block access if user already has one
+  const appliedUid = typeof window !== "undefined" ? localStorage.getItem("beme_seller_applied") : null;
+  const hasStore = !!(shop?.id || isSeller || isSellerActive || (appliedUid && user && appliedUid === user?.uid));
+
+  if (user && hasStore) {
+    return (
+      <div style={{ minHeight: "70vh", display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center", padding: 32,
+        fontFamily: "var(--font-main,'Nunito',sans-serif)", textAlign: "center" }}>
+        <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(4,110,242,0.1)",
+          display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#046EF2" strokeWidth="1.8" strokeLinecap="round">
+            <path d="M3 9h18v10a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+            <path d="M3 9l2.45-4.9A2 2 0 017.24 3h9.52a2 2 0 011.8 1.1L21 9"/>
+          </svg>
+        </div>
+        <h2 style={{ fontSize: 22, fontWeight: 900, color: "var(--text,#111)", marginBottom: 10, letterSpacing: "-0.02em" }}>
+          You already have a store
+        </h2>
+        <p style={{ fontSize: 15, color: "var(--muted,#6B7280)", maxWidth: 340, lineHeight: 1.6, marginBottom: 8 }}>
+          Each Beme Market account is eligible for <strong>one store only</strong>, regardless of your subscription tier.
+        </p>
+        <p style={{ fontSize: 13, color: "var(--muted,#9CA3AF)", maxWidth: 320, lineHeight: 1.5, marginBottom: 28 }}>
+          To manage your store, add products, change your plan or view your storefront — go to your Seller Dashboard.
+        </p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+          <button type="button" onClick={() => navigate("/seller-dashboard")}
+            style={{ padding: "12px 28px", borderRadius: 12, border: "none",
+              background: "#046EF2", color: "#fff", fontSize: 15, fontWeight: 800,
+              cursor: "pointer", fontFamily: "inherit",
+              boxShadow: "0 4px 14px rgba(4,110,242,0.3)" }}>
+            Go to Dashboard
+          </button>
+          <button type="button" onClick={() => navigate("/")}
+            style={{ padding: "12px 28px", borderRadius: 12,
+              border: "1.5px solid rgba(0,0,0,0.1)", background: "transparent",
+              color: "var(--text,#333)", fontSize: 15, fontWeight: 700,
+              cursor: "pointer", fontFamily: "inherit" }}>
+            Back to Shop
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const goStart = (planId) => {
     if (isSellerActive) { navigate("/seller-dashboard"); return; }
