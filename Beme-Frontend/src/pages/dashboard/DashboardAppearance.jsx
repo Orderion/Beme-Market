@@ -161,6 +161,7 @@ export default function DashboardAppearance() {
   const [form, setForm] = useState({
     shopName:"", description:"", bannerUrl:"", logoUrl:"",
     whatsapp:"", instagram:"", tiktok:"", website:"",
+    chatPreference: "whatsapp", // "whatsapp" | "beme" | "website"
   });
   const [saving,   setSaving]   = useState(false);
   const [saved,    setSaved]    = useState(false);
@@ -194,14 +195,15 @@ export default function DashboardAppearance() {
   useEffect(() => {
     if (!shop) return;
     setForm({
-      shopName:    shop.shopName    || "",
-      description: shop.description || "",
-      bannerUrl:   shop.bannerUrl   || "",
-      logoUrl:     shop.logoUrl     || "",
-      whatsapp:    shop.whatsapp    || "",
-      instagram:   shop.instagram   || "",
-      tiktok:      shop.tiktok      || "",
-      website:     shop.website     || "",
+      shopName:       shop.shopName       || "",
+      description:    shop.description    || "",
+      bannerUrl:      shop.bannerUrl      || "",
+      logoUrl:        shop.logoUrl        || "",
+      whatsapp:       shop.whatsapp       || "",
+      instagram:      shop.instagram      || "",
+      tiktok:         shop.tiktok         || "",
+      website:        shop.website        || "",
+      chatPreference: shop.chatPreference || "whatsapp",
     });
   }, [shop?.id]);
 
@@ -216,14 +218,15 @@ export default function DashboardAppearance() {
     try {
       // setDoc with merge:true creates the document if it doesn't exist
       await setDoc(doc(db, "shops", sid), {
-        shopName:    form.shopName.trim(),
-        description: form.description.trim(),
-        bannerUrl:   form.bannerUrl,
-        logoUrl:     form.logoUrl,
-        whatsapp:    form.whatsapp.trim(),
-        instagram:   form.instagram.trim(),
-        tiktok:      form.tiktok.trim(),
-        website:     form.website.trim(),
+        shopName:       form.shopName.trim(),
+        description:    form.description.trim(),
+        bannerUrl:      form.bannerUrl,
+        logoUrl:        form.logoUrl,
+        whatsapp:       form.whatsapp.trim(),
+        instagram:      form.instagram.trim(),
+        tiktok:         form.tiktok.trim(),
+        website:        form.website.trim(),
+        chatPreference: form.chatPreference || "whatsapp",
         ownerId:     user?.uid || sid,
         slug:        form.shopName.trim().toLowerCase().replace(/[^a-z0-9]/g,"-").replace(/-+/g,"-"),
         status:      "active",
@@ -339,6 +342,50 @@ export default function DashboardAppearance() {
               <span style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.4 }}>
                 Every account is eligible for <strong>one store only</strong>, regardless of subscription tier.
               </span>
+            </div>
+          </div>
+
+          {/* Chat Preference — how customers contact you */}
+          <div style={{ background:"var(--card,#fff)", borderRadius:16, border:"1px solid rgba(0,0,0,0.07)", padding:"20px" }}>
+            <div style={{ fontSize:15, fontWeight:800, color:"var(--text,#111)", marginBottom:4 }}>Chat Preference</div>
+            <p style={{ fontSize:13, color:"var(--muted,#9CA3AF)", marginBottom:14, marginTop:4 }}>
+              Choose how customers reach you when they tap the Chat button on your store page.
+            </p>
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+              {[
+                { id:"whatsapp", label:"WhatsApp", sub:"Opens WhatsApp with your business number", icon:"M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" },
+                { id:"beme",     label:"Beme Market Chat", sub:"Uses Beme Market built-in messaging", icon:"M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" },
+                { id:"website",  label:"Website / Other Link", sub:"Redirects to your website link", icon:"M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71|M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" },
+              ].map(opt => (
+                <button key={opt.id} type="button"
+                  onClick={() => upd("chatPreference", opt.id)}
+                  style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px",
+                    borderRadius:10, border:`1.5px solid ${form.chatPreference===opt.id?"#046EF2":"rgba(0,0,0,0.09)"}`,
+                    background: form.chatPreference===opt.id ? "rgba(4,110,242,0.05)" : "var(--bg,#F7F8FA)",
+                    cursor:"pointer", textAlign:"left", fontFamily:"inherit" }}>
+                  <div style={{ width:36, height:36, borderRadius:9, flexShrink:0,
+                    background: form.chatPreference===opt.id ? "rgba(4,110,242,0.12)" : "rgba(0,0,0,0.06)",
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    color: form.chatPreference===opt.id ? "#046EF2" : "#9CA3AF" }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                      {opt.icon.split("|").map((d,i) => <path key={i} d={d}/>)}
+                    </svg>
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:14, fontWeight:700, color:"var(--text,#111)" }}>{opt.label}</div>
+                    <div style={{ fontSize:12, color:"var(--muted,#9CA3AF)", marginTop:2 }}>{opt.sub}</div>
+                  </div>
+                  <div style={{ width:18, height:18, borderRadius:"50%", flexShrink:0,
+                    border:`2px solid ${form.chatPreference===opt.id?"#046EF2":"rgba(0,0,0,0.15)"}`,
+                    background: form.chatPreference===opt.id ? "#046EF2" : "transparent",
+                    display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    {form.chatPreference===opt.id && (
+                      <div style={{ width:6, height:6, borderRadius:"50%", background:"#fff" }}/>
+                    )}
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
 
