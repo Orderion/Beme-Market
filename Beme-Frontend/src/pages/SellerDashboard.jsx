@@ -119,7 +119,12 @@ function Sidebar({ activeTab, onNav, shop, plan, chatUnread, onClose, isMobile }
         ))}
 
         <div className="sd-nav-divider" />
-        <button className="sd-nav-btn" onClick={() => navigate("/")}>
+        <button className="sd-nav-btn" onClick={() => {
+          const slug = shop?.slug
+            || (shop?.shopName || "").toLowerCase().replace(/[^a-z0-9]/g,"-").replace(/-+/g,"-")
+            || "my-store";
+          navigate(`/store/${slug}`);
+        }}>
           <span className="sd-nav-icon"><Icon path={ICONS.external} size={16} /></span>
           <span className="sd-nav-label">View Store</span>
         </button>
