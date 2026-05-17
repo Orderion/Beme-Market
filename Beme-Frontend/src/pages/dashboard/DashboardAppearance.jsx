@@ -273,9 +273,29 @@ export default function DashboardAppearance() {
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text,#111)", marginBottom: 18 }}>Store Information</div>
             <Field label="Store Name" value={form.shopName} onChange={e=>upd("shopName",e.target.value)} placeholder="e.g. Kente Kicks GH" hint="This is your store title that customers see."/>
             <Field label="Store Description" value={form.description} onChange={e=>upd("description",e.target.value)} placeholder="Tell customers what makes your store special…" multiline hint="Shown on your store's About tab."/>
-            <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(4,110,242,0.05)", border: "1px solid rgba(4,110,242,0.15)" }}>
-              <p style={{ fontSize: 12, fontWeight: 600, color: "#046EF2", margin: 0 }}>
-                Your store: <strong>bememarket.store{storeUrl}</strong>
+            <div style={{ padding: "12px 14px", borderRadius: 10, background: "rgba(4,110,242,0.05)", border: "1px solid rgba(4,110,242,0.15)" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#9CA3AF", marginBottom: 5 }}>
+                Your store link — share this with customers
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: "#046EF2", wordBreak: "break-all" }}>
+                  bememarket.store{storeUrl}
+                </span>
+                <button type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`https://bememarket.store${storeUrl}`);
+                    const btn = document.getElementById("copy-store-url-btn");
+                    if (btn) { btn.textContent = "Copied!"; setTimeout(() => { btn.textContent = "Copy"; }, 2000); }
+                  }}
+                  id="copy-store-url-btn"
+                  style={{ padding: "6px 12px", borderRadius: 7, border: "1.5px solid rgba(4,110,242,0.3)",
+                    background: "#046EF2", color: "#fff", fontSize: 12, fontWeight: 800,
+                    cursor: "pointer", fontFamily: "inherit", flexShrink: 0, whiteSpace: "nowrap" }}>
+                  Copy
+                </button>
+              </div>
+              <p style={{ fontSize: 11, color: "#9CA3AF", margin: "6px 0 0", lineHeight: 1.5 }}>
+                Share on WhatsApp, Instagram bio, or TikTok profile so customers can find and follow your store.
               </p>
             </div>
           </div>
