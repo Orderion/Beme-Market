@@ -279,7 +279,11 @@ export default function DashboardProducts() {
   const active   = products.filter(p => p.status === "active").length;
   const draft    = products.filter(p => p.status === "draft").length;
   const outOfStock = products.filter(p => p.inStock === false || p.stock === 0).length;
-  const maxProds = planLimits?.maxProducts || 25;
+  // Import plan limits directly as safety net in case planLimits hasn't loaded
+  const FALLBACK_LIMITS = { basic:5, free:5, starter:10, growth:25, standard:25, pro:500 };
+  const maxProds = planLimits?.maxProducts
+    || FALLBACK_LIMITS[(subscriptionPlan||"basic").toLowerCase()]
+    || 5;
   const usedPct  = Math.min((products.length / maxProds) * 100, 100);
   const atLimit  = products.length >= maxProds;
   const planName = (subscriptionPlan || "basic").charAt(0).toUpperCase() + (subscriptionPlan||"basic").slice(1);
