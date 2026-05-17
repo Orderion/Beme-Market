@@ -4,83 +4,118 @@ import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 
 /**
- * useSellerAuth — subscribes to the seller's user document in real-time.
- * Provides isSeller, sellerStatus, storeId, plan info.
- * The seller role and sellerStatus are ONLY set by Cloud Functions
- * after successful Paystack payment verification.
+ * useSellerAuth — Spark plan safe.
+ * Cloud Functions never run on free plan so:
+ *   - users/{uid}.storeId is never set by CF
+ *   - shops/{id} is never created by CF
+ *
+ * Fallback chain:
+ *   1. shops/{storeId} if storeId is in user doc (CF path)
+ *   2. shops/{user.uid} — created by DashboardAppearance on first Save
+ *   3. storeApplications/{uid} for plan + name data (onboarding path)
  */
 export function useSellerAuth() {
   const { user, role } = useAuth();
   const [sellerData, setSellerData] = useState(null);
-  const [shop, setShop] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [shop,       setShop]       = useState(null);
+  const [appData,    setAppData]    = useState(null);
+  const [loading,    setLoading]    = useState(true);
 
   const isSeller = role === "seller";
 
-  // Subscribe to user doc for real-time seller status
+  /* 1. users/{uid} */
   useEffect(() => {
-    if (!user?.uid) {
-      setSellerData(null);
-      setLoading(false);
-      return;
-    }
+    if (!user?.uid) { setSellerData(null); setLoading(false); return; }
     const unsub = onSnapshot(
       doc(db, "users", user.uid),
-      (snap) => {
-        setSellerData(snap.exists() ? snap.data() : null);
-        setLoading(false);
-      },
-      (err) => {
-        console.error("[useSellerAuth] user doc error:", err);
-        setLoading(false);
-      }
+      (snap) => { setSellerData(snap.exists() ? snap.data() : null); setLoading(false); },
+      (err)  => { console.error("[useSellerAuth] user doc:", err); setLoading(false); }
     );
     return () => unsub();
   }, [user?.uid]);
 
-  // Subscribe to shop doc if seller has a storeId
+  /* 2a. shops/{storeId} — CF path */
   useEffect(() => {
-    const storeId = sellerData?.storeId;
-    if (!storeId) { setShop(null); return; }
+    const sid = sellerData?.storeId;
+    if (!sid) return;
     const unsub = onSnapshot(
-      doc(db, "shops", storeId),
+      doc(db, "shops", sid),
       (snap) => setShop(snap.exists() ? { id: snap.id, ...snap.data() } : null),
-      (err) => console.error("[useSellerAuth] shop doc error:", err)
+      (err)  => console.error("[useSellerAuth] shop by storeId:", err)
     );
     return () => unsub();
   }, [sellerData?.storeId]);
 
-  const sellerStatus     = sellerData?.sellerStatus     || "none";
-  const storeId          = sellerData?.storeId          || null;
-  const subscriptionPlan = sellerData?.subscriptionPlan || "basic";
+  /* 2b. shops/{user.uid} — Spark plan fallback (created by DashboardAppearance.handleSave) */
+  useEffect(() => {
+    if (!user?.uid || sellerData?.storeId) return;
+    const unsub = onSnapshot(
+      doc(db, "shops", user.uid),
+      (snap) => { if (snap.exists()) setShop({ id: snap.id, ...snap.data() }); },
+      (err)  => console.error("[useSellerAuth] shop by uid:", err)
+    );
+    return () => unsub();
+  }, [user?.uid, sellerData?.storeId]);
+
+  /* 3. storeApplications/{uid} — plan + name data from onboarding */
+  useEffect(() => {
+    if (!user?.uid) return;
+    const unsub = onSnapshot(
+      doc(db, "storeApplications", user.uid),
+      (snap) => setAppData(snap.exists() ? snap.data() : null),
+      (err)  => console.error("[useSellerAuth] storeApplications:", err)
+    );
+    return () => unsub();
+  }, [user?.uid]);
+
+  /* Derived */
+  const sellerStatus = sellerData?.sellerStatus || (appData ? "active" : "none");
+  const storeId      = sellerData?.storeId || null;
+
+  const subscriptionPlan = (
+    sellerData?.subscriptionPlan ||
+    appData?.planId              ||
+    shop?.planId                 ||
+    "basic"
+  ).toLowerCase();
+
   const subscriptionStatus = sellerData?.subscriptionStatus || null;
 
-  const isSellerActive  = isSeller && sellerStatus === "active";
-  const isSellerGrace   = isSeller && sellerStatus === "grace";
-  const isSellerPending = isSeller && sellerStatus === "pending";
+  const hasApplication = !!appData;
+  const hasShop        = !!shop;
 
-  // Plan limits lookup
+  const isSellerActive  = isSeller || hasApplication || hasShop;
+  const isSellerGrace   = isSeller && sellerStatus === "grace";
+  const isSellerPending = !hasApplication && !hasShop && !isSeller;
+
+  /* Plan limits — 4-tier, no unlimited */
   const PLAN_LIMITS = {
-    basic:    { maxProducts: 25,   hasChat: false, hasAI: false, hasBoosts: false, boostsPerMonth: 0  },
-    standard: { maxProducts: 500,  hasChat: true,  hasAI: false, hasBoosts: true,  boostsPerMonth: 5  },
-    pro:      { maxProducts: 99999, hasChat: true,  hasAI: true,  hasBoosts: true,  boostsPerMonth: 20 },
+    basic:    { maxProducts: 5,   hasSocialLinks: false, hasChat: false, hasAI: false, hasBoosts: false, boostsPerMonth: 0  },
+    starter:  { maxProducts: 10,  hasSocialLinks: true,  hasChat: true,  hasAI: false, hasBoosts: false, boostsPerMonth: 0  },
+    growth:   { maxProducts: 25,  hasSocialLinks: true,  hasChat: true,  hasAI: false, hasBoosts: true,  boostsPerMonth: 5  },
+    standard: { maxProducts: 25,  hasSocialLinks: true,  hasChat: true,  hasAI: false, hasBoosts: true,  boostsPerMonth: 5  },
+    pro:      { maxProducts: 500, hasSocialLinks: true,  hasChat: true,  hasAI: true,  hasBoosts: true,  boostsPerMonth: 20 },
+    free:     { maxProducts: 5,   hasSocialLinks: false, hasChat: false, hasAI: false, hasBoosts: false, boostsPerMonth: 0  },
   };
 
   const planLimits = PLAN_LIMITS[subscriptionPlan] || PLAN_LIMITS.basic;
 
+  // Effective storeId — always user.uid as last resort for URL building
+  const effectiveStoreId = sellerData?.storeId || shop?.id || (hasApplication ? user?.uid : null);
+
   return {
-    isSeller,
+    isSeller: isSeller || hasApplication || hasShop,
     isSellerActive,
     isSellerGrace,
     isSellerPending,
     sellerStatus,
-    storeId,
+    storeId:  effectiveStoreId,
     shop,
     subscriptionPlan,
     subscriptionStatus,
     planLimits,
     sellerData,
+    appData,
     loading,
   };
 }
-
