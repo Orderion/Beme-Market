@@ -528,3 +528,106 @@ body.dark .sd-info-text { color: #E8E8FF; }
   .sd-chat-list { display: none; }
 }
 
+
+/* ================================================================
+   DASHBOARD DARK MODE — Additional fixes for Subscription + pages
+   with inline #111 and rgba(0,0,0,...) that don't adapt
+================================================================ */
+
+/* Subscription page — inline colors use var() — these back them up */
+body.dark .sd-root [style*="color: #111"],
+body.dark .sd-root [style*="color:#111"] {
+  /* Handled by specific overrides below */
+}
+
+/* Page title / section headings inside dashboard content */
+body.dark .sd-page-title,
+body.dark .sd-page-head h1,
+body.dark .sd-page-head > div:first-child {
+  color: #E8E8FF !important;
+}
+
+/* InfoRow labels and values in subscription */
+body.dark .sd-root span[style*="color: #6B7280"],
+body.dark .sd-root span[style*="color:#6B7280"] {
+  color: rgba(255,255,255,0.45) !important;
+}
+body.dark .sd-root span[style*="color: #111"],
+body.dark .sd-root div[style*="color: #111"] {
+  color: #E8E8FF !important;
+}
+
+/* Plan card backgrounds in subscription */
+body.dark .sd-root div[style*="background: #fff"],
+body.dark .sd-root div[style*="background:#fff"] {
+  background: #1A1A2E !important;
+}
+body.dark .sd-root div[style*="background: white"] {
+  background: #1A1A2E !important;
+}
+
+/* Billing toggle in subscription */
+body.dark .sd-root div[style*="background: rgba(0,0,0,0.05)"] {
+  background: rgba(255,255,255,0.06) !important;
+}
+body.dark .sd-root button[style*="background: #fff"] {
+  background: #1A1A2E !important;
+  color: #E8E8FF !important;
+}
+body.dark .sd-root button[style*="background: transparent"][style*="color: #9CA3AF"] {
+  color: rgba(255,255,255,0.3) !important;
+}
+
+/* Feature list text in plan cards */
+body.dark .sd-root li[style*="color: #374151"] {
+  color: rgba(255,255,255,0.55) !important;
+}
+
+/* Border lines */
+body.dark .sd-root div[style*="borderBottom: 1px solid rgba(0,0,0,0.06)"] {
+  border-bottom-color: rgba(255,255,255,0.07) !important;
+}
+
+/* "Compare Plans" label */
+body.dark .sd-root div[style*="fontSize: 16"][style*="fontWeight: 800"] {
+  color: #E8E8FF !important;
+}
+
+/* Upgrade banner in subscription */
+body.dark .sd-root div[style*="background: rgba(4,110,242,0.06)"] {
+  background: rgba(4,110,242,0.12) !important;
+  border-color: rgba(4,110,242,0.25) !important;
+}
+
+/* Note card at bottom */
+body.dark .sd-root div[style*="background: var(--bg"] {
+  background: rgba(255,255,255,0.04) !important;
+}
+
+/* Nav button active state — ensure readable in dark */
+body.dark .sd-nav-btn.active,
+body.dark .sd-nav-btn--active {
+  color: #6ba7ff !important;
+  background: rgba(4,110,242,0.15) !important;
+}
+body.dark .sd-nav-btn:hover {
+  background: rgba(255,255,255,0.04) !important;
+  color: #E8E8FF !important;
+}
+
+/* TopBar date text */
+body.dark .sd-topbar-date { color: rgba(255,255,255,0.4) !important; }
+
+/* Stat card label text */
+body.dark .sd-stat-label  { color: rgba(255,255,255,0.4) !important; }
+body.dark .sd-stat-change { color: rgba(255,255,255,0.35) !important; }
+
+/* Support card in sidebar */
+body.dark .sd-support {
+  background: rgba(255,255,255,0.04) !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+body.dark .sd-support-text { color: rgba(255,255,255,0.4) !important; }
+
+/* Main content area bg */
+body.dark .sd-content { background: transparent !important; }
