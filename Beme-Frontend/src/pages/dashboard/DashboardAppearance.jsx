@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
 import { useAuth } from "../../context/AuthContext";
@@ -167,6 +167,30 @@ export default function DashboardAppearance() {
   const [upBanner, setUpBanner] = useState(false);
   const [upLogo,   setUpLogo]   = useState(false);
 
+  /* Auto-create shop document if it doesn't exist yet (Spark plan — CF never ran) */
+  useEffect(() => {
+    const sid = storeId || user?.uid;
+    if (!sid || shop) return; // Already loaded or not ready
+    const autoCreate = async () => {
+      const ref = doc(db, "shops", sid);
+      const snap = await getDoc(ref);
+      if (snap.exists()) return; // Already exists
+      // Create a starter shop doc so /store/${sid} resolves
+      const rawName = user?.displayName || "My Store";
+      const slug = sid; // Use uid as slug so URL is always /store/${uid}
+      await setDoc(ref, {
+        ownerId:     sid,
+        shopName:    rawName,
+        slug,
+        status:      "active",
+        planId:      "basic",
+        createdAt:   serverTimestamp(),
+        updatedAt:   serverTimestamp(),
+      }, { merge: true });
+    };
+    autoCreate().catch(e => console.error("[DashboardAppearance] auto-create:", e));
+  }, [storeId, user?.uid, shop]);
+
   useEffect(() => {
     if (!shop) return;
     setForm({
@@ -215,9 +239,15 @@ export default function DashboardAppearance() {
     }
   };
 
-  const storeSlug = (shop?.slug || form.shopName || "your-store")
-    .toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
-  const storeUrl  = `/store/${storeSlug}`;
+  // Build a reliable store URL — shop doc ID = storeId or user.uid (set at creation)
+  // slug field is set on first save; fall back to doc ID which StoreFront.jsx can resolve
+  const effectiveId = storeId || shop?.id || user?.uid || "my-store";
+  const storeSlug = shop?.slug
+    || (form.shopName?.trim()
+        ? form.shopName.trim().toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-")
+        : null)
+    || effectiveId;
+  const storeUrl = `/store/${storeSlug}`;
 
   return (
     <div style={{ fontFamily: "var(--font-main,'Nunito',sans-serif)" }}>
@@ -297,6 +327,18 @@ export default function DashboardAppearance() {
               <p style={{ fontSize: 11, color: "#9CA3AF", margin: "6px 0 0", lineHeight: 1.5 }}>
                 Share on WhatsApp, Instagram bio, or TikTok profile so customers can find and follow your store.
               </p>
+            </div>
+            {/* One store per account notice */}
+            <div style={{ marginTop: 10, padding: "10px 14px", borderRadius: 10,
+              background: "rgba(0,0,0,0.03)", border: "1px solid rgba(0,0,0,0.07)",
+              display: "flex", alignItems: "center", gap: 8 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.4 }}>
+                Every account is eligible for <strong>one store only</strong>, regardless of subscription tier.
+              </span>
             </div>
           </div>
 
