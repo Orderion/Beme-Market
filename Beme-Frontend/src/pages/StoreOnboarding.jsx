@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useSellerAuth } from "../hooks/useSellerAuth";
 import { saveApplicationStep } from "../services/storeService";
 
 const CAT_PATHS = {
@@ -50,8 +51,17 @@ function CatSvg({ id, size=22, color="#9CA3AF" }) {
 export default function StoreOnboarding() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { shop, isSeller } = useSellerAuth();
   const [selected, setSelected] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  // Block if already has store
+  const appliedUid = typeof window !== "undefined" ? localStorage.getItem("beme_seller_applied") : null;
+  const hasStore = !!(shop?.id || isSeller || (appliedUid && user && appliedUid === user?.uid));
+  if (user && hasStore) {
+    navigate("/get-a-store", { replace: true });
+    return null;
+  }
 
   const handleContinue = async () => {
     if (!selected) { alert("Please choose a category."); return; }
