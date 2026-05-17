@@ -311,12 +311,32 @@ export default function StoreFront() {
 
   const perf = shop.performance || {};
   const hasPerf = perf.shippingSpeed || perf.qualityScore || perf.customerRating;
-  const socialLinks = [
+
+  // Prevent self-follow — owner cannot follow their own store
+  const isOwnStore = !!(currentUser?.uid && shop?.ownerId && currentUser.uid === shop.ownerId);
+
+  // Social links only for Starter+ plans — not basic/free
+  const basicPlan = !shop.planId || shop.planId === "basic" || shop.planId === "free";
+  const canShowSocialLinks = !basicPlan;
+
+  // Chat handler — uses seller's preferred chat method
+  const handleChat = () => {
+    const pref = shop.chatPreference || (shop.whatsapp ? "whatsapp" : "beme");
+    if (pref === "whatsapp" && shop.whatsapp) {
+      window.open(`https://wa.me/${shop.whatsapp.replace(/\D/g,"")}`, "_blank");
+    } else if (pref === "website" && shop.website) {
+      window.open(shop.website, "_blank");
+    } else {
+      navigate(`/messages?shop=${shop.id}`);
+    }
+  };
+
+  const socialLinks = canShowSocialLinks ? [
     shop.whatsapp   && { icon: IC.wp,   href: `https://wa.me/${shop.whatsapp.replace(/\D/g,"")}`,  label: "WhatsApp",  color: "#25D366" },
     shop.instagram  && { icon: IC.ig,   href: `https://instagram.com/${shop.instagram.replace("@","")}`, label: "Instagram", color: "#E1306C" },
     shop.tiktok     && { icon: IC.tt,   href: `https://tiktok.com/@${shop.tiktok.replace("@","")}`,       label: "TikTok",    color: "#010101" },
     shop.website    && { icon: IC.link, href: shop.website,                                                label: "Website",   color: "#046EF2" },
-  ].filter(Boolean);
+  ].filter(Boolean) : [];
 
   return (
     <div style={{ background: "var(--bg,#F7F8FA)", minHeight: "100vh",
@@ -336,101 +356,116 @@ export default function StoreFront() {
       <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 16px" }}>
 
         {/* ── STORE IDENTITY ROW ── */}
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 16, marginTop: -44, marginBottom: 20, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 14,
+          marginTop: -44, marginBottom: 16 }}>
+
           {/* Logo */}
           <div style={{ width: 80, height: 80, borderRadius: 18, border: "3px solid var(--card,#fff)",
             background: shop.logoUrl ? "transparent" : "#046EF2",
             overflow: "hidden", flexShrink: 0, boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
             display: "flex", alignItems: "center", justifyContent: "center" }}>
             {shop.logoUrl
-              ? <img src={shop.logoUrl} alt={shop.shopName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ? <img src={shop.logoUrl} alt={shop.shopName} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
               : <span style={{ fontSize: 28, fontWeight: 900, color: "#fff" }}>
                   {(shop.shopName || "S").charAt(0).toUpperCase()}
                 </span>
             }
           </div>
 
-          {/* Name + badges */}
+          {/* Name + stats */}
           <div style={{ flex: 1, paddingBottom: 4, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <h1 style={{ fontSize: 20, fontWeight: 900, color: "var(--text,#111)",
-                letterSpacing: "-0.03em", margin: 0 }}>
+            {/* Store name + verified */}
+            <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+              <h1 style={{ fontSize: 19, fontWeight: 900, color: "var(--text,#111)",
+                letterSpacing: "-0.03em", margin: 0, whiteSpace: "nowrap",
+                overflow: "hidden", textOverflow: "ellipsis" }}>
                 {shop.shopName || "Store"}
               </h1>
               {shop.verified && (
-                <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 10px",
-                  borderRadius: 100, background: "rgba(4,110,242,0.1)", border: "1px solid rgba(4,110,242,0.2)" }}>
-                  <Ico d={IC.verified} size={13} color="#046EF2" />
-                  <span style={{ fontSize: 11, fontWeight: 800, color: "#046EF2" }}>Verified</span>
-                </div>
-              )}
-              {shop.status === "active" && (
-                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11,
-                  fontWeight: 700, color: "#22C55E" }}>
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E" }} />
-                  Active
+                <div style={{ display: "flex", alignItems: "center", gap: 3, padding: "2px 8px",
+                  borderRadius: 100, background: "rgba(4,110,242,0.1)", border: "1px solid rgba(4,110,242,0.2)",
+                  flexShrink: 0 }}>
+                  <Ico d={IC.verified} size={11} color="#046EF2" />
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "#046EF2" }}>Verified</span>
                 </div>
               )}
             </div>
 
-            {/* Stats row */}
-            <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 6, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 13, color: "var(--muted,#6B7280)", fontWeight: 600 }}>
+            {/* Stats — horizontal single line */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 5,
+              flexWrap: "nowrap", overflow: "hidden" }}>
+              {shop.status === "active" && (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E", flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#22C55E", whiteSpace: "nowrap" }}>Active</span>
+                  </div>
+                  <span style={{ color: "var(--border,rgba(0,0,0,0.15))", fontSize: 12 }}>·</span>
+                </>
+              )}
+              <span style={{ fontSize: 13, color: "var(--muted,#6B7280)", fontWeight: 600, whiteSpace: "nowrap" }}>
                 <strong style={{ color: "var(--text,#111)" }}>{products.length}</strong> products
               </span>
-              <span style={{ fontSize: 13, color: "var(--muted,#6B7280)", fontWeight: 600 }}>
-                <strong style={{ color: "var(--text,#111)" }}>{follCount.toLocaleString()}</strong> followers
+              <span style={{ color: "var(--border,rgba(0,0,0,0.15))", fontSize: 12 }}>·</span>
+              <span style={{ fontSize: 13, color: "var(--muted,#6B7280)", fontWeight: 600, whiteSpace: "nowrap" }}>
+                <strong style={{ color: "var(--text,#111)" }}>
+                  {/* Ensure count is at least 1 when user is following */}
+                  {following && follCount === 0 ? 1 : follCount.toLocaleString()}
+                </strong> followers
               </span>
               {shop.sellerScore > 0 && (
-                <span style={{ fontSize: 13, color: "var(--muted,#6B7280)", fontWeight: 600 }}>
-                  <strong style={{ color: "var(--text,#111)" }}>{shop.sellerScore}%</strong> seller score
-                </span>
+                <>
+                  <span style={{ color: "var(--border,rgba(0,0,0,0.15))", fontSize: 12 }}>·</span>
+                  <span style={{ fontSize: 13, color: "var(--muted,#6B7280)", fontWeight: 600, whiteSpace: "nowrap" }}>
+                    <strong style={{ color: "var(--text,#111)" }}>{shop.sellerScore}%</strong> score
+                  </span>
+                </>
               )}
             </div>
           </div>
+        </div>
 
-          {/* Action buttons */}
-          <div style={{ display: "flex", gap: 8, paddingBottom: 4, flexShrink: 0 }}>
+        {/* ── ACTION BUTTONS ROW ── */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+          {/* Follow — hidden for store owner */}
+          {!isOwnStore && (
             <button type="button" onClick={handleFollow} disabled={fwLoading}
               style={{ padding: "9px 20px", borderRadius: 100,
                 border: `1.5px solid ${following ? "#046EF2" : "rgba(0,0,0,0.12)"}`,
                 background: following ? "#046EF2" : "var(--card,#fff)",
                 color: following ? "#fff" : "var(--text,#111)",
-                fontSize: 13, fontWeight: 800, cursor: "pointer",
-                fontFamily: "inherit", transition: "all 0.15s" }}>
+                fontSize: 13, fontWeight: 800, cursor: fwLoading ? "default" : "pointer",
+                fontFamily: "inherit", transition: "all 0.15s",
+                opacity: fwLoading ? 0.7 : 1 }}>
               {fwLoading ? "…" : following ? "Following ✓" : "Follow"}
             </button>
-            {shop.whatsapp && (
-              <a href={`https://wa.me/${shop.whatsapp.replace(/\D/g,"")}`}
-                target="_blank" rel="noreferrer"
-                style={{ padding: "9px 16px", borderRadius: 100, border: "1.5px solid rgba(0,0,0,0.12)",
-                  background: "var(--card,#fff)", color: "var(--text,#111)",
-                  fontSize: 13, fontWeight: 800, cursor: "pointer", textDecoration: "none",
-                  display: "flex", alignItems: "center", gap: 6 }}>
-                <Ico d={IC.chat} size={14} />
-                Chat
-              </a>
-            )}
-          </div>
-        </div>
+          )}
 
-        {/* ── SOCIAL LINKS ── */}
-        {socialLinks.length > 0 && (
-          <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-            {socialLinks.map(s => (
-              <a key={s.label} href={s.href} target="_blank" rel="noreferrer"
-                style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 14px",
-                  borderRadius: 100, border: "1px solid rgba(0,0,0,0.1)",
-                  background: "var(--card,#fff)", color: "var(--text,#333)",
-                  fontSize: 12, fontWeight: 700, textDecoration: "none", transition: "border-color 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = s.color; e.currentTarget.style.color = s.color; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(0,0,0,0.1)"; e.currentTarget.style.color = "var(--text,#333)"; }}>
-                <Ico d={s.icon} size={14} color="currentColor" />
-                {s.label}
-              </a>
-            ))}
-          </div>
-        )}
+          {/* Chat — uses seller's preferred chat method */}
+          <button type="button" onClick={handleChat}
+            style={{ padding: "9px 18px", borderRadius: 100,
+              border: "1.5px solid rgba(0,0,0,0.12)",
+              background: "var(--card,#fff)", color: "var(--text,#111)",
+              fontSize: 13, fontWeight: 800, cursor: "pointer",
+              fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>
+            <Ico d={IC.chat} size={14} />
+            Chat
+          </button>
+
+          {/* Social links — Starter+ plans only, pill style */}
+          {canShowSocialLinks && socialLinks.map(s => (
+            <a key={s.label} href={s.href} target="_blank" rel="noreferrer"
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px",
+                borderRadius: 100, border: "1px solid rgba(0,0,0,0.1)",
+                background: "var(--card,#fff)", color: "var(--text,#333)",
+                fontSize: 13, fontWeight: 700, textDecoration: "none", transition: "all 0.15s" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = s.color; e.currentTarget.style.color = s.color; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(0,0,0,0.1)"; e.currentTarget.style.color = "var(--text,#333)"; }}>
+              <Ico d={s.icon} size={13} color="currentColor" />
+              {s.label}
+            </a>
+          ))}
+        </div>
 
         {/* ── TAB NAV ── */}
         <div style={{ display: "flex", gap: 4, borderBottom: "1px solid rgba(0,0,0,0.08)",
