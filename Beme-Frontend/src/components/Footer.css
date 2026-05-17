@@ -292,18 +292,129 @@
 }
 .ft-bottom-links a:hover { color: #fff; }
 
-/* ── Responsive ── */
+
+/* ═══════════════════════════════════════════
+   MOBILE COLLAPSIBLE FOOTER
+   Tablet and below only (≤ 820px)
+═══════════════════════════════════════════ */
+
+/* The tab is hidden on desktop */
+.ft-mobile-tab { display: none; }
+
 @media (max-width: 820px) {
+
+  /* ── Hide the drawer by default on mobile ── */
+  .ft-drawer {
+    overflow: hidden;
+    max-height: 0;
+    /* Smooth cubic reveal — feels like a spring */
+    transition:
+      max-height 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+      opacity    0.4s ease;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .ft-drawer--open {
+    max-height: 2000px; /* large enough for full content */
+    opacity: 1;
+    pointer-events: auto;
+    /* Collapse is snappier than expand */
+    transition:
+      max-height 0.4s cubic-bezier(0.7, 0, 1, 0.6),
+      opacity    0.25s ease;
+  }
+
+  /* ── The visible tab strip ── */
+  .ft-mobile-tab {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 13px 20px;
+    border: none;
+    background: #fff;
+    cursor: pointer;
+    font-family: var(--font-main, 'Nunito', system-ui, sans-serif);
+    text-align: left;
+    /* Subtle shadow so the tab floats a bit */
+    box-shadow: 0 -2px 0 0 var(--grtheme, #046EF2) inset;
+    transition: background 0.15s;
+  }
+
+  .ft-mobile-tab:active {
+    background: rgba(4, 110, 242, 0.05);
+  }
+
+  .ft-mobile-tab-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ft-mobile-tab-icon {
+    color: var(--grtheme, #046EF2);
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .ft-mobile-tab-label {
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: -0.025em;
+    color: #111;
+  }
+
+  .ft-mobile-tab-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ft-mobile-tab-hint {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #9CA3AF;
+  }
+
+  /* Chevron rotates smoothly when open */
+  .ft-tab-chevron {
+    color: #9CA3AF;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+  }
+
+  .ft-tab-chevron--up {
+    transform: rotate(180deg);
+  }
+
+  /* ── Layout adjustments inside the drawer ── */
   .ft-inner {
     grid-template-columns: 1fr;
     gap: 32px;
     padding: 32px 20px 28px;
   }
+
   .ft-tagline { max-width: 100%; }
   .ft-grid { grid-template-columns: repeat(3, 1fr); }
-  .ft-newsletter-inner { flex-direction: column; align-items: flex-start; gap: 16px; }
-  .ft-newsletter-form { width: 100%; border-radius: 10px; overflow: hidden; }
+
+  .ft-newsletter-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .ft-newsletter-form {
+    width: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
   .ft-newsletter-input { flex: 1; width: auto; }
+
 }
 
 @media (max-width: 600px) {
@@ -318,6 +429,7 @@
   .ft-newsletter-input { width: 100%; }
   .ft-newsletter-btn { width: 100%; }
 }
+
 
 /* ── Dark mode ── */
 body.dark .ft {
@@ -357,10 +469,26 @@ body.dark .ft-payment-badge {
 }
 
 body.dark .ft-payments-label { color: rgba(255,255,255,0.3); }
-
 body.dark .ft-newsletter { background: #0a2a6b; }
+
+/* Dark mode tab */
+body.dark .ft-mobile-tab {
+  background: #111;
+  box-shadow: 0 -2px 0 0 var(--grtheme, #046EF2) inset;
+}
+body.dark .ft-mobile-tab:active {
+  background: rgba(4, 110, 242, 0.1);
+}
+body.dark .ft-mobile-tab-label { color: #f0f0f0; }
+body.dark .ft-mobile-tab-hint  { color: rgba(255,255,255,0.3); }
+body.dark .ft-tab-chevron       { color: rgba(255,255,255,0.3); }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .ft-social-btn, .ft-newsletter-btn, .ft-col a { transition: none !important; }
+  .ft-drawer,
+  .ft-drawer--open       { transition: none !important; }
+  .ft-tab-chevron        { transition: none !important; }
+  .ft-social-btn,
+  .ft-newsletter-btn,
+  .ft-col a              { transition: none !important; }
 }
