@@ -44,8 +44,8 @@
   position: relative;
   height: 196px;
   border-radius: 0;
-  border: 2.5px solid #111;
-  box-shadow: 5px 5px 0 #111;
+  border: none;
+  box-shadow: none;
   overflow: hidden;
   cursor: pointer;
   outline: none;
@@ -56,14 +56,14 @@
 
 .sc-card:active {
   transform: translate(3px, 3px);
-  box-shadow: 2px 2px 0 #111;
+  opacity: 0.92;
 }
 .sc-card:focus-visible {
-  box-shadow: 5px 5px 0 #111, 0 0 0 3px rgba(232,108,44,0.55);
+  outline: 3px solid rgba(232,108,44,0.7); outline-offset: 2px;
 }
 
-body.dark .sc-card { border-color: rgba(255,255,255,0.88); box-shadow: 5px 5px 0 rgba(255,255,255,0.88); }
-body.dark .sc-card:active { box-shadow: 2px 2px 0 rgba(255,255,255,0.88); }
+body.dark .sc-card { border: none; }
+
 
 /* ── Full-bleed background image ──────────────────────────────────── */
 .sc-bg-image-wrap { position: absolute; inset: 0; z-index: 0; }
@@ -184,16 +184,11 @@ body.dark .sc-card:active { box-shadow: 2px 2px 0 rgba(255,255,255,0.88); }
   .sc-desktop-grid {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr;
-    gap: 8px;
-    height: 476px; /* 280 * 1.7 = 476px */
-    border: 2.5px solid #111;
-    box-shadow: 5px 5px 0 #111;
+    gap: 6px;
+    height: 476px;
+    border-radius: 14px;
     overflow: hidden;
-  }
-
-  body.dark .sc-desktop-grid {
-    border-color: rgba(255,255,255,0.88);
-    box-shadow: 5px 5px 0 rgba(255,255,255,0.88);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.14);
   }
 
   /* Each panel fills its grid cell */
@@ -205,9 +200,8 @@ body.dark .sc-card:active { box-shadow: 2px 2px 0 rgba(255,255,255,0.88); }
 
   /* Side panels: stack 2 vertically if only 2 right slots */
   .sc-desktop-cell--side {
-    border-left: 2px solid #111;
+    border-left: none;
   }
-  body.dark .sc-desktop-cell--side { border-left-color: rgba(255,255,255,0.88); }
 
   /* Card fills its cell completely */
   .sc-desktop-cell .sc-card {
@@ -218,7 +212,7 @@ body.dark .sc-card:active { box-shadow: 2px 2px 0 rgba(255,255,255,0.88); }
   }
   .sc-desktop-cell .sc-card:active {
     transform: none;
-    box-shadow: none;
+    opacity: 0.9;
   }
 
   /* Larger text in main panel */
@@ -232,24 +226,34 @@ body.dark .sc-card:active { box-shadow: 2px 2px 0 rgba(255,255,255,0.88); }
 
   /* Side panels: slightly smaller text */
   .sc-desktop-cell--side .sc-title  { font-size: 17px; }
-  .sc-desktop-cell--side .sc-subtitle { font-size: 11px; display: none; }
+  .sc-desktop-cell--side .sc-subtitle { font-size: 11px; display: block; opacity: 0.85; }
   .sc-desktop-cell--side .sc-btn   { font-size: 11px; padding: 7px 14px; margin-top: 8px; }
   .sc-desktop-cell--side .sc-inner { padding: 20px 16px 38px 20px; }
   .sc-desktop-cell--side .sc-content { max-width: 90%; }
   .sc-desktop-cell--side .sc-stamp { width: 90px; height: 90px; }
 
+  /* Smooth fade when panels change */
+  @keyframes sc-panel-fadein {
+    from { opacity: 0; transform: scale(0.985); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .sc-desktop-cell {
+    animation: sc-panel-fadein 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+
   /* Arrows — overlay the grid */
   .sc-arrow {
     display: flex; align-items: center; justify-content: center;
-    position: absolute; top: 50%; transform: translateY(-55%);
-    z-index: 40; width: 38px; height: 38px;
-    border-radius: 0; border: 2px solid #fff;
-    box-shadow: 3px 3px 0 rgba(0,0,0,0.55);
-    background: rgba(0,0,0,0.52); color: #fff;
-    font-size: 24px; line-height: 1;
-    cursor: pointer; transition: transform 0.1s, box-shadow 0.1s;
+    position: absolute; top: 50%; transform: translateY(-50%);
+    z-index: 40; width: 40px; height: 40px;
+    border-radius: 50%; border: none;
+    background: rgba(255,255,255,0.93);
+    box-shadow: 0 2px 14px rgba(0,0,0,0.22);
+    color: #111; font-size: 22px; line-height: 1;
+    cursor: pointer; transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
   }
-  .sc-arrow:active { transform: translateY(-55%) translate(2px,2px); box-shadow: 1px 1px 0 rgba(0,0,0,0.55); }
+  .sc-arrow:hover { background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.28); transform: translateY(-50%) scale(1.06); }
+  .sc-arrow:active { transform: translateY(-50%) scale(0.96); box-shadow: 0 2px 10px rgba(0,0,0,0.18); }
   .sc-arrow--prev { left: 10px; }
   .sc-arrow--next { right: 15px; }
 

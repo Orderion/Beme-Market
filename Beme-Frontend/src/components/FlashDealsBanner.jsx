@@ -5,42 +5,46 @@ import { db } from "../firebase";
 import "./FlashDealsBanner.css";
 
 const FLASH_COLLECTION = "FlashDeals";
+const TICKET_SHAPES = ["notch", "rounded", "perforated", "stub"];
 
-/* ── Diverse accent colors — 10 distinct hues, no yellows ── */
-const ACCENT_COLORS = [
-  "#046EF2", // blue
-  "#22C55E", // green
-  "#F97316", // orange
-  "#8B5CF6", // purple
-  "#EF4444", // red
-  "#06B6D4", // cyan
-  "#EC4899", // pink
-  "#10B981", // emerald
-  "#F59E0B", // amber
-  "#6366F1", // indigo
+/* Pastel ticket colors — varied, not aggressive */
+const TICKET_COLORS = [
+  "#DBEAFE", // blue-100
+  "#DCFCE7", // green-100
+  "#FEF9C3", // yellow-100 (muted)
+  "#FCE7F3", // pink-100
+  "#EDE9FE", // purple-100
+  "#CCFBF1", // teal-100
+  "#FEF3C7", // amber-100
+  "#FEE2E2", // red-100
+  "#E0F2FE", // sky-100
+  "#F0FDF4", // emerald-100
 ];
 
 /**
- * Assign accent colors to deals so no two consecutive deals share the same color.
- * Uses a deterministic hash per deal ID but filters out the previous color.
+ * Assign non-consecutive colors AND shapes per deal.
+ * Prevents the same color or shape appearing back-to-back.
  */
-function assignNonConsecutiveColors(deals) {
-  const colors = [];
+function assignStyles(deals) {
+  const styles = [];
   deals.forEach((deal, i) => {
     let hash = 0;
     for (let j = 0; j < deal.id.length; j++) {
       hash = (hash * 31 + deal.id.charCodeAt(j)) >>> 0;
     }
-    // Exclude the previous color AND the one before that to avoid near-repeats
-    const excluded = new Set([colors[i - 1], colors[i - 2]].filter(Boolean));
-    const available = ACCENT_COLORS.filter(c => !excluded.has(c));
-    // Pick from available using hash
-    colors.push(available[hash % available.length]);
+    // Exclude last 2 colors and last shape from candidates
+    const usedColors = new Set([styles[i-1]?.color, styles[i-2]?.color].filter(Boolean));
+    const usedShape  = styles[i-1]?.shape;
+    const availColors  = TICKET_COLORS.filter(c => !usedColors.has(c));
+    const availShapes  = TICKET_SHAPES.filter(s => s !== usedShape);
+    styles.push({
+      color: availColors[hash % availColors.length],
+      shape: availShapes[(hash >> 2) % availShapes.length],
+    });
   });
-  return colors;
+  return styles;
 }
 
-/* ── Data normalizer ── */
 function normalizeFlashDeal(docSnap) {
   const d = docSnap.data() || {};
   return {
@@ -54,110 +58,78 @@ function normalizeFlashDeal(docSnap) {
     productId: String(d.productId || "").trim(),
     shopKey: String(d.shopKey || "").trim(),
     order: Number(d.order || 0),
-    durationHours: Number(d.durationHours || 24),
     endsAt: d.endsAt || null,
     stock: Number(d.stock || 0),
   };
 }
 
-function formatMoney(value) {
-  return `GHS ${Number(value || 0).toFixed(2)}`;
-}
-
-function getEndsAtMillis(deal) {
-  if (!deal.endsAt) return null;
-  if (deal.endsAt?.toMillis) return deal.endsAt.toMillis();
-  return Number(deal.endsAt);
-}
-
-function computeCountdown(endsAtMs) {
-  if (!endsAtMs) return null;
-  const diff = endsAtMs - Date.now();
+function formatMoney(v) { return `GHS ${Number(v||0).toFixed(2)}`; }
+function getEndsAtMs(d) { if (!d.endsAt) return null; return d.endsAt?.toMillis ? d.endsAt.toMillis() : Number(d.endsAt); }
+function countdown(ms) {
+  if (!ms) return null;
+  const diff = ms - Date.now();
   if (diff <= 0) return { expired: true, h:0, m:0, s:0 };
-  const h = Math.floor(diff / 3600000);
-  const m = Math.floor((diff % 3600000) / 60000);
-  const s = Math.floor((diff % 60000) / 1000);
-  return { expired: false, h, m, s };
+  return { expired:false, h:Math.floor(diff/3600000), m:Math.floor((diff%3600000)/60000), s:Math.floor((diff%60000)/1000) };
 }
+function pad(n) { return String(n).padStart(2,"0"); }
 
-function pad(n) { return String(n).padStart(2, "0"); }
-
-/* ════════════════════════════════════════════
-   DEAL CARD — clean modern design
-════════════════════════════════════════════ */
-function DealCard({ deal, accentColor, onClick }) {
-  const [countdown, setCountdown] = useState(() =>
-    computeCountdown(getEndsAtMillis(deal))
-  );
-
+/* ── Ticket card ── */
+function TicketCard({ deal, style, onClick }) {
+  const [cd, setCd] = useState(() => countdown(getEndsAtMs(deal)));
   useEffect(() => {
-    const endsAtMs = getEndsAtMillis(deal);
-    if (!endsAtMs) return;
-    const interval = setInterval(() => setCountdown(computeCountdown(endsAtMs)), 1000);
-    return () => clearInterval(interval);
+    const ms = getEndsAtMs(deal);
+    if (!ms) return;
+    const t = setInterval(() => setCd(countdown(ms)), 1000);
+    return () => clearInterval(t);
   }, [deal]);
 
-  const isExpired = !countdown || countdown.expired;
-
+  const expired = !cd || cd.expired;
   const discount = deal.discountPercent
     ? deal.discountPercent
     : deal.originalPrice > deal.dealPrice
-    ? Math.round(((deal.originalPrice - deal.dealPrice) / deal.originalPrice) * 100)
-    : 0;
-
+    ? Math.round(((deal.originalPrice - deal.dealPrice) / deal.originalPrice) * 100) : 0;
   const lowStock = deal.stock > 0 && deal.stock <= 15;
 
   return (
     <button
       type="button"
-      className={`fdb-card${isExpired ? " fdb-card--expired" : ""}`}
+      className={`fdb-ticket fdb-ticket--${style.shape}${expired ? " fdb-ticket--expired" : ""}`}
       onClick={onClick}
       aria-label={deal.title}
     >
-      {/* Colored accent bar at top */}
-      <div className="fdb-card-accent" style={{ background: accentColor }}/>
+      <div className="fdb-ticket-body" style={{ "--tc": style.color }}>
+        {style.shape === "stub" && <div className="fdb-ticket-stub-line"/>}
 
-      <div className="fdb-card-body">
-        {/* ── Image ── */}
+        {/* Image */}
         <div className="fdb-card-img-wrap">
           {deal.image ? (
             <img src={deal.image} alt={deal.title} className="fdb-card-img"/>
           ) : (
             <div className="fdb-card-img-empty">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                 <rect x="3" y="3" width="18" height="18" rx="3"/>
                 <circle cx="8.5" cy="8.5" r="1.5"/>
                 <path d="M21 15l-5-5L5 21"/>
               </svg>
             </div>
           )}
-          {discount > 0 && !isExpired && (
-            <span className="fdb-discount-pill">-{discount}%</span>
-          )}
-          {isExpired && (
-            <div className="fdb-expired-overlay"><span>Expired</span></div>
-          )}
+          {discount > 0 && !expired && <span className="fdb-discount-pill">-{discount}%</span>}
+          {expired && <div className="fdb-expired-overlay"><span>Expired</span></div>}
         </div>
 
-        {/* ── Info ── */}
+        {/* Info */}
         <div className="fdb-card-info">
           <div className="fdb-card-top-row">
             <p className="fdb-card-name">{deal.title}</p>
-            {lowStock && !isExpired && (
-              <span className="fdb-stock-badge">{deal.stock} left</span>
-            )}
+            {lowStock && !expired && <span className="fdb-stock-badge">{deal.stock} left</span>}
           </div>
-
-          {!isExpired && countdown ? (
+          {deal.description ? <p className="fdb-card-desc">{deal.description}</p> : null}
+          {!expired && cd ? (
             <div className="fdb-timer">
               <span className="fdb-timer-dot"/>
-              <span className="fdb-timer-text">
-                {pad(countdown.h)}:{pad(countdown.m)}:{pad(countdown.s)}
-              </span>
+              <span className="fdb-timer-text">{pad(cd.h)}:{pad(cd.m)}:{pad(cd.s)}</span>
             </div>
           ) : null}
-
           <p className="fdb-price">{formatMoney(deal.dealPrice)}</p>
         </div>
       </div>
@@ -165,9 +137,7 @@ function DealCard({ deal, accentColor, onClick }) {
   );
 }
 
-/* ════════════════════════════════════════════
-   MAIN EXPORT
-════════════════════════════════════════════ */
+/* ── Main export ── */
 export default function FlashDealsBanner() {
   const navigate = useNavigate();
   const [deals,   setDeals]   = useState([]);
@@ -177,42 +147,33 @@ export default function FlashDealsBanner() {
     let alive = true;
     async function load() {
       try {
-        const snap = await getDocs(
-          query(collection(db, FLASH_COLLECTION), orderBy("order", "asc"))
-        );
+        const snap = await getDocs(query(collection(db, FLASH_COLLECTION), orderBy("order","asc")));
         if (!alive) return;
-        setDeals(snap.docs.map(normalizeFlashDeal).sort((a,b) => a.order-b.order));
+        setDeals(snap.docs.map(normalizeFlashDeal).sort((a,b)=>a.order-b.order));
       } catch {
         try {
-          const fallback = await getDocs(collection(db, FLASH_COLLECTION));
+          const fb = await getDocs(collection(db, FLASH_COLLECTION));
           if (!alive) return;
-          setDeals(fallback.docs.map(normalizeFlashDeal).sort((a,b) => a.order-b.order));
-        } catch (err) {
-          console.error("FlashDealsBanner fetch error:", err);
-        }
-      } finally {
-        if (alive) setLoading(false);
-      }
+          setDeals(fb.docs.map(normalizeFlashDeal).sort((a,b)=>a.order-b.order));
+        } catch(e) { console.error(e); }
+      } finally { if (alive) setLoading(false); }
     }
     load();
     return () => { alive = false; };
   }, []);
 
-  /* Non-consecutive color assignment — recomputed when deals change */
-  const accentColors = useMemo(() => assignNonConsecutiveColors(deals), [deals]);
+  const styles = useMemo(() => assignStyles(deals), [deals]);
 
   if (!loading && deals.length === 0) return null;
 
-  const handleCardClick = (deal) => {
-    if (deal.productId)      navigate(`/product/${deal.productId}`);
-    else if (deal.shopKey)   navigate(`/shop?shop=${encodeURIComponent(deal.shopKey)}`);
-    else                     navigate("/flash-deals");
+  const handleClick = (deal) => {
+    if (deal.productId)    navigate(`/product/${deal.productId}`);
+    else if (deal.shopKey) navigate(`/shop?shop=${encodeURIComponent(deal.shopKey)}`);
+    else                   navigate("/flash-deals");
   };
 
   return (
     <section className="fdb-section">
-
-      {/* ── Header ── */}
       <div className="fdb-header">
         <div className="fdb-header-left">
           <svg className="fdb-bolt-icon" viewBox="0 0 24 24" fill="currentColor">
@@ -226,11 +187,10 @@ export default function FlashDealsBanner() {
         </button>
       </div>
 
-      {/* ── Cards ── */}
       {loading ? (
         <div className="fdb-scroll">
-          {[0,1,2].map(i => (
-            <div key={i} className="fdb-skeleton-card">
+          {["notch","rounded","perforated"].map(shape => (
+            <div key={shape} className={`fdb-skeleton-card fdb-ticket--${shape}`}>
               <div className="fdb-skeleton-img"/>
               <div className="fdb-skeleton-body">
                 <div className="fdb-skeleton-line"/>
@@ -243,21 +203,9 @@ export default function FlashDealsBanner() {
       ) : (
         <div className="fdb-scroll">
           {deals.map((deal, idx) => (
-            <DealCard
-              key={deal.id}
-              deal={deal}
-              accentColor={accentColors[idx]}
-              onClick={() => handleCardClick(deal)}
-            />
+            <TicketCard key={deal.id} deal={deal} style={styles[idx]} onClick={() => handleClick(deal)}/>
           ))}
-
-          {/* View all tail */}
-          <button
-            type="button"
-            className="fdb-view-all-card"
-            onClick={() => navigate("/flash-deals")}
-            aria-label="View all flash deals"
-          >
+          <button type="button" className="fdb-view-all-card" onClick={() => navigate("/flash-deals")} aria-label="View all flash deals">
             <svg className="fdb-view-all-bolt" viewBox="0 0 24 24" fill="currentColor">
               <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z"/>
             </svg>
