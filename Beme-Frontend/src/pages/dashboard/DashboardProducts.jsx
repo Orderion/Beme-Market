@@ -164,49 +164,54 @@ function ProductRow({ product, onEdit, onDelete, onToggleStatus, onView, deletin
         </div>
       </div>
 
-      {/* Action column */}
+      {/* Action column — icon + label */}
       <div style={{ display:"flex", flexDirection:"column", justifyContent:"space-between",
-        padding:"10px 12px 10px 0", gap:6, flexShrink:0 }}>
+        padding:"10px 10px 10px 0", gap:5, flexShrink:0 }}>
 
         {/* Edit */}
         <button type="button" onClick={() => onEdit(product)}
-          title="Edit product"
-          style={{ width:34, height:34, borderRadius:9, border:"1.5px solid rgba(0,0,0,0.1)",
-            background:"var(--card,#fff)", cursor:"pointer", display:"flex",
-            alignItems:"center", justifyContent:"center", color:"#046EF2" }}>
+          style={{ minWidth:54, padding:"5px 8px", borderRadius:9,
+            border:"1.5px solid rgba(0,0,0,0.1)", background:"var(--card,#fff)",
+            cursor:"pointer", display:"flex", flexDirection:"column",
+            alignItems:"center", gap:2, color:"#046EF2" }}>
           <Ico d={IC.edit} size={14} color="#046EF2"/>
+          <span style={{ fontSize:9, fontWeight:800, color:"#046EF2", lineHeight:1 }}>Edit</span>
         </button>
 
         {/* Toggle active/draft */}
         <button type="button" onClick={handleToggle} disabled={toggling}
-          title={product.status === "active" ? "Set to Draft" : "Set to Active"}
-          style={{ width:34, height:34, borderRadius:9,
-            border:`1.5px solid ${product.status === "active" ? "rgba(34,197,94,0.3)" : "rgba(0,0,0,0.1)"}`,
-            background: product.status === "active" ? "rgba(34,197,94,0.08)" : "var(--card,#fff)",
-            cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
-            opacity: toggling ? 0.5 : 1, transition:"all 0.15s" }}>
-          <Ico d={product.status === "active" ? IC.eye : IC.eyeoff} size={14}
-            color={product.status === "active" ? "#22C55E" : "#9CA3AF"}/>
+          style={{ minWidth:54, padding:"5px 8px", borderRadius:9,
+            border:`1.5px solid ${product.status==="active"?"rgba(34,197,94,0.3)":"rgba(0,0,0,0.1)"}`,
+            background: product.status==="active" ? "rgba(34,197,94,0.08)" : "var(--card,#fff)",
+            cursor:"pointer", display:"flex", flexDirection:"column",
+            alignItems:"center", gap:2, opacity: toggling ? 0.5 : 1, transition:"all 0.15s" }}>
+          <Ico d={product.status==="active" ? IC.eye : IC.eyeoff} size={14}
+            color={product.status==="active" ? "#22C55E" : "#9CA3AF"}/>
+          <span style={{ fontSize:9, fontWeight:800, lineHeight:1,
+            color: product.status==="active" ? "#22C55E" : "#9CA3AF" }}>
+            {product.status==="active" ? "Active" : "Draft"}
+          </span>
         </button>
 
         {/* View on marketplace */}
         <button type="button" onClick={() => onView(product)}
-          title="View on marketplace"
-          style={{ width:34, height:34, borderRadius:9, border:"1.5px solid rgba(0,0,0,0.1)",
-            background:"var(--card,#fff)", cursor:"pointer", display:"flex",
-            alignItems:"center", justifyContent:"center", color:"#9CA3AF" }}>
+          style={{ minWidth:54, padding:"5px 8px", borderRadius:9,
+            border:"1.5px solid rgba(0,0,0,0.1)", background:"var(--card,#fff)",
+            cursor:"pointer", display:"flex", flexDirection:"column",
+            alignItems:"center", gap:2, color:"#9CA3AF" }}>
           <Ico d={IC.box} size={14} color="#9CA3AF"/>
+          <span style={{ fontSize:9, fontWeight:800, color:"#9CA3AF", lineHeight:1 }}>View</span>
         </button>
 
         {/* Delete */}
         <button type="button" onClick={() => onDelete(product)}
-          title="Delete product"
           disabled={deleting === product.id}
-          style={{ width:34, height:34, borderRadius:9, border:"1.5px solid rgba(239,68,68,0.2)",
-            background:"rgba(239,68,68,0.05)", cursor:"pointer", display:"flex",
-            alignItems:"center", justifyContent:"center",
-            opacity: deleting === product.id ? 0.5 : 1 }}>
+          style={{ minWidth:54, padding:"5px 8px", borderRadius:9,
+            border:"1.5px solid rgba(239,68,68,0.2)", background:"rgba(239,68,68,0.05)",
+            cursor:"pointer", display:"flex", flexDirection:"column",
+            alignItems:"center", gap:2, opacity: deleting===product.id ? 0.5 : 1 }}>
           <Ico d={IC.trash} size={14} color="#EF4444"/>
+          <span style={{ fontSize:9, fontWeight:800, color:"#EF4444", lineHeight:1 }}>Delete</span>
         </button>
       </div>
     </div>

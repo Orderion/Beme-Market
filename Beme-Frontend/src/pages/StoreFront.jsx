@@ -342,85 +342,85 @@ export default function StoreFront() {
     <div style={{ background: "var(--bg,#F7F8FA)", minHeight: "100vh",
       fontFamily: "var(--font-main,'Nunito',sans-serif)", paddingBottom: 60 }}>
 
-      {/* ── BANNER ── */}
-      <div style={{ position: "relative", height: 200, overflow: "hidden",
+      {/* ── BANNER — logo sits INSIDE banner so it's always above the image ── */}
+      <div style={{ position: "relative", height: 220,
         background: shop.bannerUrl ? "transparent" : "linear-gradient(135deg,#046EF2 0%,#1e3a8a 100%)" }}>
         {shop.bannerUrl && (
           <img src={shop.bannerUrl} alt="banner"
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%",
+              objectFit: "cover", display: "block" }} />
         )}
-        {/* Dark overlay for readability */}
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,rgba(0,0,0,0) 40%,rgba(0,0,0,0.4) 100%)" }} />
+        {/* Gradient overlay */}
+        <div style={{ position: "absolute", inset: 0,
+          background: "linear-gradient(to bottom,rgba(0,0,0,0) 40%,rgba(0,0,0,0.45) 100%)" }} />
+        {/* Logo — absolutely positioned at bottom-left, always on top */}
+        <div style={{ position: "absolute", bottom: -36, left: 16, zIndex: 3,
+          width: 80, height: 80, borderRadius: 18,
+          border: "3.5px solid var(--card,#fff)",
+          background: shop.logoUrl ? "transparent" : "#046EF2",
+          overflow: "hidden", boxShadow: "0 4px 18px rgba(0,0,0,0.2)",
+          display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {shop.logoUrl
+            ? <img src={shop.logoUrl} alt={shop.shopName}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <span style={{ fontSize: 28, fontWeight: 900, color: "#fff" }}>
+                {(shop.shopName || "S").charAt(0).toUpperCase()}
+              </span>
+          }
+        </div>
       </div>
 
       <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 16px" }}>
 
-        {/* ── STORE IDENTITY ROW ── */}
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 14,
-          marginTop: -44, marginBottom: 16 }}>
+        {/* ── STORE IDENTITY — sits below banner with padding for overlapping logo ── */}
+        <div style={{ paddingTop: 44, marginBottom: 10 }}>
 
-          {/* Logo */}
-          <div style={{ width: 80, height: 80, borderRadius: 18, border: "3px solid var(--card,#fff)",
-            background: shop.logoUrl ? "transparent" : "#046EF2",
-            overflow: "hidden", flexShrink: 0, boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
-            display: "flex", alignItems: "center", justifyContent: "center" }}>
-            {shop.logoUrl
-              ? <img src={shop.logoUrl} alt={shop.shopName} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
-              : <span style={{ fontSize: 28, fontWeight: 900, color: "#fff" }}>
-                  {(shop.shopName || "S").charAt(0).toUpperCase()}
-                </span>
-            }
-          </div>
-
-          {/* Name + stats */}
-          <div style={{ flex: 1, paddingBottom: 4, minWidth: 0 }}>
-            {/* Store name + verified */}
-            <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-              <h1 style={{ fontSize: 19, fontWeight: 900, color: "var(--text,#111)",
-                letterSpacing: "-0.03em", margin: 0, whiteSpace: "nowrap",
-                overflow: "hidden", textOverflow: "ellipsis" }}>
-                {shop.shopName || "Store"}
-              </h1>
-              {shop.verified && (
-                <div style={{ display: "flex", alignItems: "center", gap: 3, padding: "2px 8px",
-                  borderRadius: 100, background: "rgba(4,110,242,0.1)", border: "1px solid rgba(4,110,242,0.2)",
-                  flexShrink: 0 }}>
-                  <Ico d={IC.verified} size={11} color="#046EF2" />
-                  <span style={{ fontSize: 10, fontWeight: 800, color: "#046EF2" }}>Verified</span>
-                </div>
-              )}
-            </div>
-
-            {/* Stats — horizontal single line */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 5,
-              flexWrap: "nowrap", overflow: "hidden" }}>
-              {shop.status === "active" && (
-                <>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E", flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#22C55E", whiteSpace: "nowrap" }}>Active</span>
+          {/* Store name + badges — full width, no crowding */}
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+            gap: 8, flexWrap: "wrap" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                <h1 style={{ fontSize: 20, fontWeight: 900, color: "var(--text,#111)",
+                  letterSpacing: "-0.03em", margin: 0 }}>
+                  {shop.shopName || "Store"}
+                </h1>
+                {shop.verified && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 3, padding: "2px 8px",
+                    borderRadius: 100, background: "rgba(4,110,242,0.1)",
+                    border: "1px solid rgba(4,110,242,0.2)", flexShrink: 0 }}>
+                    <Ico d={IC.verified} size={11} color="#046EF2" />
+                    <span style={{ fontSize: 10, fontWeight: 800, color: "#046EF2" }}>Verified</span>
                   </div>
-                  <span style={{ color: "var(--border,rgba(0,0,0,0.15))", fontSize: 12 }}>·</span>
-                </>
-              )}
-              <span style={{ fontSize: 13, color: "var(--muted,#6B7280)", fontWeight: 600, whiteSpace: "nowrap" }}>
-                <strong style={{ color: "var(--text,#111)" }}>{products.length}</strong> products
-              </span>
-              <span style={{ color: "var(--border,rgba(0,0,0,0.15))", fontSize: 12 }}>·</span>
-              <span style={{ fontSize: 13, color: "var(--muted,#6B7280)", fontWeight: 600, whiteSpace: "nowrap" }}>
-                <strong style={{ color: "var(--text,#111)" }}>
-                  {/* Ensure count is at least 1 when user is following */}
-                  {following && follCount === 0 ? 1 : follCount.toLocaleString()}
-                </strong> followers
-              </span>
-              {shop.sellerScore > 0 && (
-                <>
-                  <span style={{ color: "var(--border,rgba(0,0,0,0.15))", fontSize: 12 }}>·</span>
-                  <span style={{ fontSize: 13, color: "var(--muted,#6B7280)", fontWeight: 600, whiteSpace: "nowrap" }}>
-                    <strong style={{ color: "var(--text,#111)" }}>{shop.sellerScore}%</strong> score
-                  </span>
-                </>
-              )}
+                )}
+              </div>
+
+              {/* Stats — horizontal, all on one line */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+                {shop.status === "active" && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#22C55E" }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#22C55E" }}>Active</span>
+                  </div>
+                )}
+                {shop.status === "active" && <span style={{ color: "rgba(0,0,0,0.2)", fontSize: 12 }}>·</span>}
+                <span style={{ fontSize: 13, color: "var(--muted,#6B7280)", fontWeight: 600 }}>
+                  <strong style={{ color: "var(--text,#111)" }}>{products.length}</strong>{" "}products
+                </span>
+                <span style={{ color: "rgba(0,0,0,0.2)", fontSize: 12 }}>·</span>
+                <span style={{ fontSize: 13, color: "var(--muted,#6B7280)", fontWeight: 600 }}>
+                  <strong style={{ color: "var(--text,#111)" }}>
+                    {following && follCount === 0 ? 1 : follCount.toLocaleString()}
+                  </strong>{" "}followers
+                </span>
+                {shop.sellerScore > 0 && (
+                  <>
+                    <span style={{ color: "rgba(0,0,0,0.2)", fontSize: 12 }}>·</span>
+                    <span style={{ fontSize: 13, color: "var(--muted,#6B7280)", fontWeight: 600 }}>
+                      <strong style={{ color: "var(--text,#111)" }}>{shop.sellerScore}%</strong>{" "}score
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
