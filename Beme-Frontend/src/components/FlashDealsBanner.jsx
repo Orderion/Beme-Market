@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "../firebase";
@@ -6,38 +6,41 @@ import "./FlashDealsBanner.css";
 
 const FLASH_COLLECTION = "FlashDeals";
 
-/* ── Ticket shape variants ── */
-const TICKET_SHAPES = ["notch", "rounded", "perforated", "stub"];
-
-/* ── Curated color palette — vivid, high-contrast ── */
-const TICKET_COLORS = [
-  "#FFD700", // gold
-  "#FF6B6B", // coral red
-  "#4ECDC4", // teal
-  "#A8E6CF", // mint
-  "#FFB347", // orange
-  "#DDA0DD", // plum
-  "#87CEEB", // sky blue
-  "#F8B500", // amber
-  "#98FB98", // pale green
-  "#FF69B4", // hot pink
-  "#B0E0E6", // powder blue
-  "#FFDAB9", // peach
+/* ── Diverse accent colors — 10 distinct hues, no yellows ── */
+const ACCENT_COLORS = [
+  "#046EF2", // blue
+  "#22C55E", // green
+  "#F97316", // orange
+  "#8B5CF6", // purple
+  "#EF4444", // red
+  "#06B6D4", // cyan
+  "#EC4899", // pink
+  "#10B981", // emerald
+  "#F59E0B", // amber
+  "#6366F1", // indigo
 ];
 
-/* ── Assign a stable shape + color per deal id ── */
-function getTicketStyle(id) {
-  // Use the id string to deterministically pick shape + color
-  // so it stays stable across re-renders but varies per card
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  }
-  const shape = TICKET_SHAPES[hash % TICKET_SHAPES.length];
-  const color = TICKET_COLORS[(hash >> 2) % TICKET_COLORS.length];
-  return { shape, color };
+/**
+ * Assign accent colors to deals so no two consecutive deals share the same color.
+ * Uses a deterministic hash per deal ID but filters out the previous color.
+ */
+function assignNonConsecutiveColors(deals) {
+  const colors = [];
+  deals.forEach((deal, i) => {
+    let hash = 0;
+    for (let j = 0; j < deal.id.length; j++) {
+      hash = (hash * 31 + deal.id.charCodeAt(j)) >>> 0;
+    }
+    // Exclude the previous color AND the one before that to avoid near-repeats
+    const excluded = new Set([colors[i - 1], colors[i - 2]].filter(Boolean));
+    const available = ACCENT_COLORS.filter(c => !excluded.has(c));
+    // Pick from available using hash
+    colors.push(available[hash % available.length]);
+  });
+  return colors;
 }
 
+/* ── Data normalizer ── */
 function normalizeFlashDeal(docSnap) {
   const d = docSnap.data() || {};
   return {
@@ -70,21 +73,19 @@ function getEndsAtMillis(deal) {
 function computeCountdown(endsAtMs) {
   if (!endsAtMs) return null;
   const diff = endsAtMs - Date.now();
-  if (diff <= 0) return { expired: true, h: 0, m: 0, s: 0 };
+  if (diff <= 0) return { expired: true, h:0, m:0, s:0 };
   const h = Math.floor(diff / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
   const s = Math.floor((diff % 60000) / 1000);
   return { expired: false, h, m, s };
 }
 
-function pad(n) {
-  return String(n).padStart(2, "0");
-}
+function pad(n) { return String(n).padStart(2, "0"); }
 
 /* ════════════════════════════════════════════
-   BANNER CARD — ticket shaped
+   DEAL CARD — clean modern design
 ════════════════════════════════════════════ */
-function BannerCard({ deal, onClick }) {
+function DealCard({ deal, accentColor, onClick }) {
   const [countdown, setCountdown] = useState(() =>
     computeCountdown(getEndsAtMillis(deal))
   );
@@ -92,9 +93,7 @@ function BannerCard({ deal, onClick }) {
   useEffect(() => {
     const endsAtMs = getEndsAtMillis(deal);
     if (!endsAtMs) return;
-    const interval = setInterval(() => {
-      setCountdown(computeCountdown(endsAtMs));
-    }, 1000);
+    const interval = setInterval(() => setCountdown(computeCountdown(endsAtMs)), 1000);
     return () => clearInterval(interval);
   }, [deal]);
 
@@ -108,48 +107,36 @@ function BannerCard({ deal, onClick }) {
 
   const lowStock = deal.stock > 0 && deal.stock <= 15;
 
-  const { shape, color } = getTicketStyle(deal.id);
-
   return (
     <button
       type="button"
-      className={`fdb-ticket fdb-ticket--${shape}${isExpired ? " fdb-ticket--expired" : ""}`}
+      className={`fdb-card${isExpired ? " fdb-card--expired" : ""}`}
       onClick={onClick}
       aria-label={deal.title}
     >
-      <div
-        className="fdb-ticket-body"
-        style={{ "--tc": color }}
-      >
-        {/* Stub shape gets a tear-off line */}
-        {shape === "stub" && <div className="fdb-ticket-stub-line" />}
+      {/* Colored accent bar at top */}
+      <div className="fdb-card-accent" style={{ background: accentColor }}/>
 
+      <div className="fdb-card-body">
         {/* ── Image ── */}
         <div className="fdb-card-img-wrap">
           {deal.image ? (
-            <img src={deal.image} alt={deal.title} className="fdb-card-img" />
+            <img src={deal.image} alt={deal.title} className="fdb-card-img"/>
           ) : (
             <div className="fdb-card-img-empty">
-              <svg
-                width="26" height="26" viewBox="0 0 24 24"
-                fill="none" stroke="currentColor"
-                strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="3" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <path d="M21 15l-5-5L5 21" />
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <rect x="3" y="3" width="18" height="18" rx="3"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <path d="M21 15l-5-5L5 21"/>
               </svg>
             </div>
           )}
-
           {discount > 0 && !isExpired && (
             <span className="fdb-discount-pill">-{discount}%</span>
           )}
-
           {isExpired && (
-            <div className="fdb-expired-overlay">
-              <span>Expired</span>
-            </div>
+            <div className="fdb-expired-overlay"><span>Expired</span></div>
           )}
         </div>
 
@@ -162,13 +149,9 @@ function BannerCard({ deal, onClick }) {
             )}
           </div>
 
-          {deal.description ? (
-            <p className="fdb-card-desc">{deal.description}</p>
-          ) : null}
-
           {!isExpired && countdown ? (
             <div className="fdb-timer">
-              <span className="fdb-timer-dot" />
+              <span className="fdb-timer-dot"/>
               <span className="fdb-timer-text">
                 {pad(countdown.h)}:{pad(countdown.m)}:{pad(countdown.s)}
               </span>
@@ -187,7 +170,7 @@ function BannerCard({ deal, onClick }) {
 ════════════════════════════════════════════ */
 export default function FlashDealsBanner() {
   const navigate = useNavigate();
-  const [deals, setDeals] = useState([]);
+  const [deals,   setDeals]   = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -198,16 +181,12 @@ export default function FlashDealsBanner() {
           query(collection(db, FLASH_COLLECTION), orderBy("order", "asc"))
         );
         if (!alive) return;
-        setDeals(snap.docs.map(normalizeFlashDeal).sort((a, b) => a.order - b.order));
+        setDeals(snap.docs.map(normalizeFlashDeal).sort((a,b) => a.order-b.order));
       } catch {
         try {
           const fallback = await getDocs(collection(db, FLASH_COLLECTION));
           if (!alive) return;
-          setDeals(
-            fallback.docs
-              .map(normalizeFlashDeal)
-              .sort((a, b) => a.order - b.order)
-          );
+          setDeals(fallback.docs.map(normalizeFlashDeal).sort((a,b) => a.order-b.order));
         } catch (err) {
           console.error("FlashDealsBanner fetch error:", err);
         }
@@ -219,12 +198,15 @@ export default function FlashDealsBanner() {
     return () => { alive = false; };
   }, []);
 
+  /* Non-consecutive color assignment — recomputed when deals change */
+  const accentColors = useMemo(() => assignNonConsecutiveColors(deals), [deals]);
+
   if (!loading && deals.length === 0) return null;
 
   const handleCardClick = (deal) => {
-    if (deal.productId) navigate(`/product/${deal.productId}`);
-    else if (deal.shopKey) navigate(`/shop?shop=${encodeURIComponent(deal.shopKey)}`);
-    else navigate("/flash-deals");
+    if (deal.productId)      navigate(`/product/${deal.productId}`);
+    else if (deal.shopKey)   navigate(`/shop?shop=${encodeURIComponent(deal.shopKey)}`);
+    else                     navigate("/flash-deals");
   };
 
   return (
@@ -234,47 +216,42 @@ export default function FlashDealsBanner() {
       <div className="fdb-header">
         <div className="fdb-header-left">
           <svg className="fdb-bolt-icon" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" />
+            <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z"/>
           </svg>
           <h3 className="fdb-title">Flash Deals</h3>
           <span className="fdb-live-badge">LIVE</span>
         </div>
-        <button
-          type="button"
-          className="fdb-see-all"
-          onClick={() => navigate("/flash-deals")}
-        >
+        <button type="button" className="fdb-see-all" onClick={() => navigate("/flash-deals")}>
           See all →
         </button>
       </div>
 
-      {/* ── Scroll strip ── */}
+      {/* ── Cards ── */}
       {loading ? (
         <div className="fdb-scroll">
-          {/* Skeleton cards — each gets a different shape */}
-          {["notch", "rounded", "perforated"].map((shape) => (
-            <div key={shape} className={`fdb-skeleton-card fdb-ticket--${shape}`}>
-              <div className="fdb-skeleton-img" />
+          {[0,1,2].map(i => (
+            <div key={i} className="fdb-skeleton-card">
+              <div className="fdb-skeleton-img"/>
               <div className="fdb-skeleton-body">
-                <div className="fdb-skeleton-line" />
-                <div className="fdb-skeleton-line fdb-skeleton-line--short" />
-                <div className="fdb-skeleton-line fdb-skeleton-line--med" />
-                <div className="fdb-skeleton-line fdb-skeleton-line--short" />
+                <div className="fdb-skeleton-line"/>
+                <div className="fdb-skeleton-line fdb-skeleton-line--short"/>
+                <div className="fdb-skeleton-line fdb-skeleton-line--med"/>
               </div>
             </div>
           ))}
         </div>
       ) : (
         <div className="fdb-scroll">
-          {deals.map((deal) => (
-            <BannerCard
+          {deals.map((deal, idx) => (
+            <DealCard
               key={deal.id}
               deal={deal}
+              accentColor={accentColors[idx]}
               onClick={() => handleCardClick(deal)}
             />
           ))}
 
-          {/* View all tail — notch ticket style */}
+          {/* View all tail */}
           <button
             type="button"
             className="fdb-view-all-card"
@@ -282,13 +259,12 @@ export default function FlashDealsBanner() {
             aria-label="View all flash deals"
           >
             <svg className="fdb-view-all-bolt" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" />
+              <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z"/>
             </svg>
-            <span className="fdb-view-all-text">View<br />all</span>
+            <span className="fdb-view-all-text">View all</span>
           </button>
         </div>
       )}
-
     </section>
   );
 }
