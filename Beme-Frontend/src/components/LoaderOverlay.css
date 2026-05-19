@@ -1,218 +1,485 @@
-/* ================================
-   LOADER OVERLAY — Cart Drop Animation
-   Clean, minimal. Items fall into cart.
-================================ */
+/* =========================================
+   PINTEREST-STYLE BEME MARKET LOADER
+========================================= */
 
-/* ── Fullscreen overlay ── */
 .loader-overlay {
   position: fixed;
   inset: 0;
   z-index: 9999;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.32s ease, visibility 0.32s ease;
+
+  transition:
+    opacity 0.35s ease,
+    visibility 0.35s ease;
 }
+
 .loader-overlay.show {
   opacity: 1;
   visibility: visible;
 }
 
-/* ── Backdrop ── */
+/* =========================================
+   BACKDROP
+========================================= */
+
 .loader-overlay-backdrop {
   position: absolute;
   inset: 0;
-  background: var(--bg, #FCFAF2);
-  transition: background var(--motion-slow, 400ms);
-}
-body.dark .loader-overlay-backdrop {
-  background: var(--bg, #111111);
+
+  background: var(--bg, #f8f8f8);
+
+  transition:
+    background 300ms ease;
 }
 
-/* ── Center stack ── */
+body.dark .loader-overlay-backdrop {
+  background: #0d0d0d;
+}
+
+/* =========================================
+   CENTER
+========================================= */
+
 .loader-overlay-center {
   position: relative;
-  z-index: 1;
+  z-index: 2;
+
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 32px;
-  animation: ldrEnter 0.38s ease both;
-}
-@keyframes ldrEnter {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+
+  gap: 22px;
+
+  animation: fadeUp 0.45s ease;
 }
 
-/* ════════════════════════════════
-   SCENE — cart + items container
-════════════════════════════════ */
-.ldr-scene {
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================
+   CART ANIMATION
+========================================= */
+
+.cart-loader {
   position: relative;
-  width: 160px;
-  height: 180px;
-  /* centre the whole scene */
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
+
+  width: 150px;
+  height: 120px;
 }
 
-/* ── Cart ── */
-.ldr-cart {
+/* ---------------------------
+   CART
+---------------------------- */
+
+.cart-body {
   position: absolute;
   bottom: 0;
   left: 50%;
+
   transform: translateX(-50%);
-  width: 80px;
-  color: var(--text, #111);
-  opacity: 0.22;
-  animation: ldrCartBounce 2.8s ease-in-out infinite;
-  transition: color 400ms;
-}
-body.dark .ldr-cart { color: var(--text, #f0f0f0); }
-
-@keyframes ldrCartBounce {
-  /* subtle squish when items land (~55% of cycle) */
-  0%,  45%, 100% { transform: translateX(-50%) scaleY(1); }
-  58%  { transform: translateX(-50%) scaleY(0.88) translateY(3px); }
-  65%  { transform: translateX(-50%) scaleY(1.04); }
-  72%  { transform: translateX(-50%) scaleY(1); }
 }
 
-/* ── Shared item styles ── */
-.ldr-item {
+.cart-basket {
+  width: 70px;
+  height: 34px;
+
+  border: 5px solid rgba(40, 40, 40, 0.9);
+  border-top: none;
+
+  border-radius: 0 0 14px 14px;
+}
+
+body.dark .cart-basket {
+  border-color: rgba(240, 240, 240, 0.9);
+}
+
+.cart-handle {
   position: absolute;
+
   width: 34px;
-  color: var(--text, #111);
+  height: 5px;
+
+  background: rgba(40, 40, 40, 0.9);
+
+  top: -4px;
+  left: -16px;
+
+  border-radius: 20px;
+
+  transform: rotate(-65deg);
+  transform-origin: right center;
+}
+
+body.dark .cart-handle {
+  background: rgba(240, 240, 240, 0.9);
+}
+
+/* wheels */
+
+.wheel {
+  position: absolute;
+  bottom: -12px;
+
+  width: 10px;
+  height: 10px;
+
+  border-radius: 50%;
+
+  background: rgba(40, 40, 40, 0.9);
+}
+
+body.dark .wheel {
+  background: rgba(240, 240, 240, 0.9);
+}
+
+.wheel.left {
+  left: 6px;
+}
+
+.wheel.right {
+  right: 6px;
+}
+
+/* =========================================
+   FLOATING ITEMS
+========================================= */
+
+.floating-item {
+  position: absolute;
+
   opacity: 0;
-  transition: color 400ms;
-  transform-origin: center center;
-}
-body.dark .ldr-item { color: var(--text, #f0f0f0); }
 
-/* ════════════════════════════════
-   ITEM POSITIONS & ANIMATIONS
-   Each item has its own start x/y
-   and converges toward the cart
-════════════════════════════════ */
-
-/*
-  Animation phases (2.8s cycle):
-    0-8%   : appear at start position  (fade in)
-    8-52%  : fall + converge to cart
-    52-62% : enter cart (shrink + fade)
-    62-100%: hold invisible (reset)
-*/
-
-/* ── Shirt — top-left ── */
-.ldr-item--shirt {
-  width: 30px;
-  top: 18px;
-  left: 20px;
-  animation: ldrDropShirt 2.8s cubic-bezier(0.25, 0.1, 0.25, 1) 0s infinite;
-}
-@keyframes ldrDropShirt {
-  0%   { transform: translate(0px,  0px) scale(1);    opacity: 0; }
-  8%   { transform: translate(0px,  0px) scale(1);    opacity: 0.75; }
-  50%  { transform: translate(28px, 105px) scale(0.7); opacity: 0.65; }
-  60%  { transform: translate(32px, 120px) scale(0.15); opacity: 0; }
-  100% { transform: translate(0px,  0px) scale(1);    opacity: 0; }
+  animation-duration: 1.6s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
 }
 
-/* ── Ball — top-right ── */
-.ldr-item--ball {
-  width: 28px;
-  top: 10px;
-  right: 20px;
-  animation: ldrDropBall 2.8s cubic-bezier(0.25, 0.1, 0.25, 1) 0.12s infinite;
-}
-@keyframes ldrDropBall {
-  0%   { transform: translate(0px,   0px) scale(1);    opacity: 0; }
-  8%   { transform: translate(0px,   0px) scale(1);    opacity: 0.7; }
-  50%  { transform: translate(-30px, 112px) scale(0.65); opacity: 0.6; }
-  60%  { transform: translate(-34px, 128px) scale(0.12); opacity: 0; }
-  100% { transform: translate(0px,   0px) scale(1);    opacity: 0; }
+/* Shirt */
+
+.item-shirt {
+  width: 18px;
+  height: 16px;
+
+  background: rgba(90, 90, 90, 0.45);
+
+  top: 0;
+  left: 50%;
+
+  clip-path: polygon(
+    18% 0%,
+    35% 0%,
+    42% 12%,
+    58% 12%,
+    65% 0%,
+    82% 0%,
+    100% 25%,
+    82% 40%,
+    82% 100%,
+    18% 100%,
+    18% 40%,
+    0% 25%
+  );
+
+  animation-name: dropShirt;
 }
 
-/* ── Shoe — middle-left ── */
-.ldr-item--shoe {
-  width: 36px;
-  top: 55px;
-  left: 10px;
-  animation: ldrDropShoe 2.8s cubic-bezier(0.25, 0.1, 0.25, 1) 0.06s infinite;
-}
-@keyframes ldrDropShoe {
-  0%   { transform: translate(0px,  0px) scale(1);    opacity: 0; }
-  8%   { transform: translate(0px,  0px) scale(1);    opacity: 0.72; }
-  50%  { transform: translate(34px, 72px) scale(0.6); opacity: 0.6; }
-  60%  { transform: translate(38px, 84px) scale(0.1); opacity: 0; }
-  100% { transform: translate(0px,  0px) scale(1);    opacity: 0; }
+body.dark .item-shirt {
+  background: rgba(255, 255, 255, 0.45);
 }
 
-/* ── Controller — middle-right ── */
-.ldr-item--ctrl {
-  width: 36px;
-  top: 48px;
-  right: 8px;
-  animation: ldrDropCtrl 2.8s cubic-bezier(0.25, 0.1, 0.25, 1) 0.18s infinite;
-}
-@keyframes ldrDropCtrl {
-  0%   { transform: translate(0px,   0px) scale(1);    opacity: 0; }
-  8%   { transform: translate(0px,   0px) scale(1);    opacity: 0.72; }
-  50%  { transform: translate(-36px, 78px) scale(0.6); opacity: 0.6; }
-  60%  { transform: translate(-40px, 90px) scale(0.1); opacity: 0; }
-  100% { transform: translate(0px,   0px) scale(1);    opacity: 0; }
+/* Ball */
+
+.item-ball {
+  width: 10px;
+  height: 10px;
+
+  border-radius: 50%;
+
+  background: rgba(90, 90, 90, 0.45);
+
+  top: 8px;
+  left: 70%;
+
+  animation-name: dropBall;
+  animation-delay: 0.15s;
 }
 
-/* ════════════════════════════════
-   BRAND TEXT + TICKING DOTS
-════════════════════════════════ */
-.ldr-brand-row {
+body.dark .item-ball {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+/* Shoe */
+
+.item-shoe {
+  width: 20px;
+  height: 8px;
+
+  background: rgba(90, 90, 90, 0.45);
+
+  top: 36px;
+  left: 30%;
+
+  border-radius: 10px 4px 4px 10px;
+
+  transform: rotate(-12deg);
+
+  animation-name: dropShoe;
+  animation-delay: 0.3s;
+}
+
+body.dark .item-shoe {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+/* Game */
+
+.item-game {
+  width: 18px;
+  height: 10px;
+
+  border-radius: 10px;
+
+  border: 3px solid rgba(90, 90, 90, 0.45);
+
+  top: 44px;
+  left: 63%;
+
+  animation-name: dropGame;
+  animation-delay: 0.45s;
+}
+
+body.dark .item-game {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* =========================================
+   DROP ANIMATIONS
+========================================= */
+
+@keyframes dropShirt {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.7);
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  70% {
+    opacity: 1;
+    transform: translateY(68px) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(86px) scale(0.5);
+  }
+}
+
+@keyframes dropBall {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.6);
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  70% {
+    opacity: 1;
+    transform: translateY(58px) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(76px) scale(0.5);
+  }
+}
+
+@keyframes dropShoe {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) rotate(-12deg) scale(0.7);
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  70% {
+    opacity: 1;
+    transform: translateY(44px) rotate(-12deg) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(66px) rotate(-12deg) scale(0.5);
+  }
+}
+
+@keyframes dropGame {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.7);
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  70% {
+    opacity: 1;
+    transform: translateY(34px) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(58px) scale(0.5);
+  }
+}
+
+/* =========================================
+   TEXT
+========================================= */
+
+.loader-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  gap: 6px;
+}
+
+.loader-brand {
+  margin: 0;
+
+  font-size: 15px;
+  font-weight: 600;
+
+  color: rgba(20, 20, 20, 0.92);
+
+  letter-spacing: -0.02em;
+
+  font-family:
+    "Inter",
+    "Manrope",
+    sans-serif;
+}
+
+body.dark .loader-brand {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.loader-loading-row {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.ldr-brand-text {
-  font-family: var(--font-main, "Manrope", system-ui, sans-serif);
+.loader-loading-text {
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text, #111);
-  opacity: 0.22;
-  transition: color 400ms;
-  user-select: none;
-}
-body.dark .ldr-brand-text { color: var(--text, #f0f0f0); }
+  font-weight: 500;
 
-/* Tick dots */
-.ldr-tick-dots {
-  display: flex;
-  gap: 4px;
-  align-items: center;
+  color: rgba(100, 100, 100, 0.7);
+
+  text-transform: lowercase;
+
+  letter-spacing: 0.02em;
 }
-.ldr-tick-dot {
+
+body.dark .loader-loading-text {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* =========================================
+   TICKING DOTS
+========================================= */
+
+.loader-ticking-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.loader-ticking-dots span {
   width: 4px;
   height: 4px;
+
   border-radius: 50%;
-  background: var(--text, #111);
-  opacity: 0.15;
-  transition: opacity 0.22s ease, transform 0.22s ease, background 400ms;
-}
-body.dark .ldr-tick-dot { background: var(--text, #f0f0f0); }
-.ldr-tick-dot--on {
-  opacity: 0.55;
-  transform: scale(1.35);
+
+  background: rgba(120, 120, 120, 0.5);
+
+  animation: ticking 1.2s infinite;
 }
 
-/* ── Reduced motion ── */
+body.dark .loader-ticking-dots span {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.loader-ticking-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loader-ticking-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes ticking {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+/* =========================================
+   MOBILE POLISH
+========================================= */
+
+@media (max-width: 768px) {
+  .cart-loader {
+    transform: scale(0.95);
+  }
+
+  .loader-brand {
+    font-size: 14px;
+  }
+}
+
+/* =========================================
+   REDUCED MOTION
+========================================= */
+
 @media (prefers-reduced-motion: reduce) {
-  .ldr-item,
-  .ldr-cart,
-  .loader-overlay-center { animation: none !important; }
-  .ldr-item { opacity: 0.5; }
-  .ldr-cart { animation: none; }
+  .floating-item,
+  .loader-overlay-center,
+  .loader-ticking-dots span {
+    animation: none !important;
+  }
+
+  .floating-item {
+    opacity: 0.7;
+  }
 }
