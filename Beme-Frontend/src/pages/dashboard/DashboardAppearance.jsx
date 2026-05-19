@@ -26,7 +26,6 @@ const IC = {
   store:  "M3 9h18v10a2 2 0 01-2 2H5a2 2 0 01-2-2V9z|M3 9l2.45-4.9A2 2 0 017.24 3h9.52a2 2 0 011.8 1.1L21 9",
 };
 
-/* ─── Image uploader ─── */
 function ImgUpload({ value, onChange, uploading, isLogo, label }) {
   const inputRef = useRef(null);
   const onFile = async (file) => {
@@ -39,7 +38,7 @@ function ImgUpload({ value, onChange, uploading, isLogo, label }) {
 
   return (
     <div>
-      <label style={{ fontSize: 13, fontWeight: 700, color: "var(--text,#111)", display: "block", marginBottom: 8 }}>{label}</label>
+      <label style={{ fontSize: 13, fontWeight: 700, color: "#111", display: "block", marginBottom: 8 }}>{label}</label>
       {value
         ? <div style={{ position: "relative", display: "inline-block", width: isLogo ? 80 : "100%" }}>
             <img src={value} alt={label}
@@ -54,9 +53,9 @@ function ImgUpload({ value, onChange, uploading, isLogo, label }) {
           </div>
         : <div onClick={() => inputRef.current?.click()} onDrop={onDrop} onDragOver={e=>e.preventDefault()}
             style={{ width: isLogo ? 80 : "100%", height: isLogo ? 80 : 160,
-              border: "2px dashed rgba(4,110,242,0.3)", borderRadius: isLogo ? "50%" : 12,
-              background: "rgba(4,110,242,0.03)", cursor: uploading ? "wait" : "pointer",
-              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, color: "#046EF2" }}>
+              border: "2px dashed rgba(0,0,0,0.15)", borderRadius: isLogo ? "50%" : 12,
+              background: "#fafafa", cursor: uploading ? "wait" : "pointer",
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, color: "#9CA3AF" }}>
             {uploading
               ? <span style={{ fontSize: 12, color: "#9CA3AF" }}>Uploading…</span>
               : <>
@@ -73,11 +72,10 @@ function ImgUpload({ value, onChange, uploading, isLogo, label }) {
   );
 }
 
-/* ─── Text field ─── */
 function Field({ label, hint, icon, value, onChange, placeholder, multiline, type = "text" }) {
   const sty = {
     width: "100%", border: "1.5px solid rgba(0,0,0,0.1)", borderRadius: 10,
-    background: "var(--bg,#F7F8FA)", color: "var(--text,#111)", fontSize: 14,
+    background: "#fff", color: "#111", fontSize: 14,
     fontWeight: 500, outline: "none", fontFamily: "inherit", boxSizing: "border-box",
     transition: "border-color 0.15s", padding: icon ? (multiline ? "11px 14px 11px 38px" : "0 14px 0 38px") : (multiline ? "11px 14px" : "0 14px"),
     height: multiline ? "auto" : 46,
@@ -86,20 +84,19 @@ function Field({ label, hint, icon, value, onChange, placeholder, multiline, typ
   const blur  = e => e.target.style.borderColor = "rgba(0,0,0,0.1)";
   return (
     <div style={{ marginBottom: 16 }}>
-      <label style={{ fontSize: 13, fontWeight: 700, color: "var(--text,#111)", display: "block", marginBottom: 6 }}>{label}</label>
+      <label style={{ fontSize: 13, fontWeight: 700, color: "#111", display: "block", marginBottom: 6 }}>{label}</label>
       <div style={{ position: "relative" }}>
-        {icon && <div style={{ position: "absolute", left: 12, top: multiline ? 13 : "50%", transform: multiline ? "none" : "translateY(-50%)", color: "var(--muted,#9CA3AF)", pointerEvents: "none" }}><Ico d={icon} size={15} /></div>}
+        {icon && <div style={{ position: "absolute", left: 12, top: multiline ? 13 : "50%", transform: multiline ? "none" : "translateY(-50%)", color: "#9CA3AF", pointerEvents: "none" }}><Ico d={icon} size={15} /></div>}
         {multiline
           ? <textarea rows={3} value={value||""} onChange={onChange} placeholder={placeholder} style={{ ...sty, resize: "vertical", lineHeight: 1.6 }} onFocus={focus} onBlur={blur} />
           : <input type={type} value={value||""} onChange={onChange} placeholder={placeholder} style={sty} onFocus={focus} onBlur={blur} />
         }
       </div>
-      {hint && <p style={{ fontSize: 11, color: "var(--muted,#9CA3AF)", margin: "5px 0 0" }}>{hint}</p>}
+      {hint && <p style={{ fontSize: 11, color: "#9CA3AF", margin: "5px 0 0" }}>{hint}</p>}
     </div>
   );
 }
 
-/* ─── Mini storefront preview ─── */
 function Preview({ form }) {
   const letter = (form.shopName || "S").charAt(0).toUpperCase();
   const social = [
@@ -109,29 +106,26 @@ function Preview({ form }) {
     form.website   && { l: "Website",    c: "#046EF2" },
   ].filter(Boolean);
   return (
-    <div style={{ border: "1px solid rgba(0,0,0,0.1)", borderRadius: 14, overflow: "hidden",
-      background: "var(--card,#fff)", fontFamily: "var(--font-main,'Nunito',sans-serif)" }}>
-      {/* Banner */}
+    <div style={{ border: "1px solid rgba(0,0,0,0.1)", borderRadius: 14, overflow: "hidden", background: "#fff" }}>
       <div style={{ height: 80, position: "relative", overflow: "hidden",
-        background: form.bannerUrl ? "transparent" : "linear-gradient(135deg,#046EF2,#1e3a8a)" }}>
+        background: form.bannerUrl ? "transparent" : "linear-gradient(135deg,#111,#333)" }}>
         {form.bannerUrl && <img src={form.bannerUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,transparent 40%,rgba(0,0,0,0.3))" }} />
       </div>
-      {/* Logo + name */}
       <div style={{ padding: "0 14px 14px" }}>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 10, marginTop: -24 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, border: "2.5px solid var(--card,#fff)",
-            overflow: "hidden", flexShrink: 0, background: form.logoUrl ? "transparent" : "#046EF2",
+          <div style={{ width: 48, height: 48, borderRadius: 12, border: "2.5px solid #fff",
+            overflow: "hidden", flexShrink: 0, background: form.logoUrl ? "transparent" : "#111",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 18, fontWeight: 900, color: "#fff" }}>
             {form.logoUrl ? <img src={form.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : letter}
           </div>
           <div style={{ flex: 1, paddingBottom: 4, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 900, color: "var(--text,#111)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <div style={{ fontSize: 14, fontWeight: 900, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {form.shopName || "Your Store Name"}
             </div>
             {form.description && (
-              <div style={{ fontSize: 11, color: "var(--muted,#9CA3AF)", overflow: "hidden",
+              <div style={{ fontSize: 11, color: "#9CA3AF", overflow: "hidden",
                 display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", marginTop: 2 }}>
                 {form.description}
               </div>
@@ -153,7 +147,6 @@ function Preview({ form }) {
   );
 }
 
-/* ═══ MAIN ═══ */
 export default function DashboardAppearance() {
   const { shop, storeId, subscriptionPlan } = useSellerAuth();
   const { user } = useAuth();
@@ -161,32 +154,25 @@ export default function DashboardAppearance() {
   const [form, setForm] = useState({
     shopName:"", description:"", bannerUrl:"", logoUrl:"",
     whatsapp:"", instagram:"", tiktok:"", website:"",
-    chatPreference: "whatsapp", // "whatsapp" | "beme" | "website"
+    chatPreference: "whatsapp",
   });
   const [saving,   setSaving]   = useState(false);
   const [saved,    setSaved]    = useState(false);
   const [upBanner, setUpBanner] = useState(false);
   const [upLogo,   setUpLogo]   = useState(false);
 
-  /* Auto-create shop document if it doesn't exist yet (Spark plan — CF never ran) */
   useEffect(() => {
     const sid = storeId || user?.uid;
-    if (!sid || shop) return; // Already loaded or not ready
+    if (!sid || shop) return;
     const autoCreate = async () => {
       const ref = doc(db, "shops", sid);
       const snap = await getDoc(ref);
-      if (snap.exists()) return; // Already exists
-      // Create a starter shop doc so /store/${sid} resolves
+      if (snap.exists()) return;
       const rawName = user?.displayName || "My Store";
-      const slug = sid; // Use uid as slug so URL is always /store/${uid}
+      const slug = sid;
       await setDoc(ref, {
-        ownerId:     sid,
-        shopName:    rawName,
-        slug,
-        status:      "active",
-        planId:      "basic",
-        createdAt:   serverTimestamp(),
-        updatedAt:   serverTimestamp(),
+        ownerId: sid, shopName: rawName, slug, status: "active",
+        planId: "basic", createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
       }, { merge: true });
     };
     autoCreate().catch(e => console.error("[DashboardAppearance] auto-create:", e));
@@ -195,14 +181,10 @@ export default function DashboardAppearance() {
   useEffect(() => {
     if (!shop) return;
     setForm({
-      shopName:       shop.shopName       || "",
-      description:    shop.description    || "",
-      bannerUrl:      shop.bannerUrl      || "",
-      logoUrl:        shop.logoUrl        || "",
-      whatsapp:       shop.whatsapp       || "",
-      instagram:      shop.instagram      || "",
-      tiktok:         shop.tiktok         || "",
-      website:        shop.website        || "",
+      shopName: shop.shopName || "", description: shop.description || "",
+      bannerUrl: shop.bannerUrl || "", logoUrl: shop.logoUrl || "",
+      whatsapp: shop.whatsapp || "", instagram: shop.instagram || "",
+      tiktok: shop.tiktok || "", website: shop.website || "",
       chatPreference: shop.chatPreference || "whatsapp",
     });
   }, [shop?.id]);
@@ -210,27 +192,20 @@ export default function DashboardAppearance() {
   const upd = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
-    // storeId is null when Cloud Functions haven't run (Spark plan) — fall back to user.uid
     const sid = storeId || shop?.id || user?.uid;
     if (!sid) { alert("Please log in again."); return; }
     if (!form.shopName.trim()) { alert("Store name is required."); return; }
     setSaving(true);
     try {
-      // setDoc with merge:true creates the document if it doesn't exist
       await setDoc(doc(db, "shops", sid), {
-        shopName:       form.shopName.trim(),
-        description:    form.description.trim(),
-        bannerUrl:      form.bannerUrl,
-        logoUrl:        form.logoUrl,
-        whatsapp:       form.whatsapp.trim(),
-        instagram:      form.instagram.trim(),
-        tiktok:         form.tiktok.trim(),
-        website:        form.website.trim(),
+        shopName: form.shopName.trim(), description: form.description.trim(),
+        bannerUrl: form.bannerUrl, logoUrl: form.logoUrl,
+        whatsapp: form.whatsapp.trim(), instagram: form.instagram.trim(),
+        tiktok: form.tiktok.trim(), website: form.website.trim(),
         chatPreference: form.chatPreference || "whatsapp",
-        ownerId:     user?.uid || sid,
-        slug:        form.shopName.trim().toLowerCase().replace(/[^a-z0-9]/g,"-").replace(/-+/g,"-"),
-        status:      "active",
-        updatedAt:   serverTimestamp(),
+        ownerId: user?.uid || sid,
+        slug: form.shopName.trim().toLowerCase().replace(/[^a-z0-9]/g,"-").replace(/-+/g,"-"),
+        status: "active", updatedAt: serverTimestamp(),
       }, { merge: true });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -242,38 +217,34 @@ export default function DashboardAppearance() {
     }
   };
 
-  // Build a reliable store URL — shop doc ID = storeId or user.uid (set at creation)
-  // slug field is set on first save; fall back to doc ID which StoreFront.jsx can resolve
   const effectiveId = storeId || shop?.id || user?.uid || "my-store";
   const storeSlug = shop?.slug
-    || (form.shopName?.trim()
-        ? form.shopName.trim().toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-")
-        : null)
+    || (form.shopName?.trim() ? form.shopName.trim().toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-") : null)
     || effectiveId;
   const storeUrl = `/store/${storeSlug}`;
 
   return (
-    <div style={{ fontFamily: "var(--font-main,'Nunito',sans-serif)" }}>
+    <div style={{ fontFamily: "var(--font-main,'Nunito',sans-serif)", background: "#fff" }}>
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: "var(--text,#111)", letterSpacing: "-0.03em" }}>Store Design</div>
-          <div style={{ fontSize: 13, color: "var(--muted,#9CA3AF)", fontWeight: 500, marginTop: 3 }}>Customise what customers see on your public store page</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#111", letterSpacing: "-0.03em" }}>Store Design</div>
+          <div style={{ fontSize: 13, color: "#9CA3AF", fontWeight: 500, marginTop: 3 }}>Customise what customers see on your public store page</div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <a href={storeUrl} target="_blank" rel="noreferrer"
             style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 10,
-              border: "1.5px solid rgba(0,0,0,0.1)", background: "var(--card,#fff)",
-              color: "var(--text,#111)", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+              border: "1.5px solid rgba(0,0,0,0.12)", background: "#fff",
+              color: "#111", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
             <Ico d={IC.eye} size={14} /> View Store
           </a>
           <button type="button" onClick={handleSave} disabled={saving || upBanner || upLogo}
             style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 20px", borderRadius: 10,
-              border: "none", background: saved ? "#22C55E" : "#046EF2", color: "#fff",
+              border: "none", background: saved ? "#22C55E" : "#111", color: "#fff",
               fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
               transition: "background 0.2s", opacity: (saving||upBanner||upLogo) ? 0.7 : 1,
-              boxShadow: "0 4px 14px rgba(4,110,242,0.3)" }}>
+              boxShadow: "0 4px 14px rgba(0,0,0,0.15)" }}>
             {saved ? <><Ico d={IC.check} size={14} color="#fff"/> Saved!</>
               : saving ? "Saving…"
               : <><Ico d={IC.save} size={14} color="#fff"/> Save Changes</>}
@@ -288,25 +259,25 @@ export default function DashboardAppearance() {
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
           {/* Media */}
-          <div style={{ background: "var(--card,#fff)", borderRadius: 16, border: "1px solid rgba(0,0,0,0.07)", padding: "20px" }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text,#111)", marginBottom: 18 }}>Store Media</div>
+          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid rgba(0,0,0,0.08)", padding: "20px" }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#111", marginBottom: 18 }}>Store Media</div>
             <ImgUpload value={form.bannerUrl} onChange={(u,l)=>{setUpBanner(l);if(u!==null)upd("bannerUrl",u);}} uploading={upBanner} isLogo={false} label="Store Banner"/>
-            <p style={{ fontSize: 11, color: "var(--muted,#9CA3AF)", margin: "6px 0 20px" }}>Shown at the top of your store page. 16:9 ratio (e.g. 1200×675px).</p>
+            <p style={{ fontSize: 11, color: "#9CA3AF", margin: "6px 0 20px" }}>Shown at the top of your store page. 16:9 ratio (e.g. 1200×675px).</p>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
               <ImgUpload value={form.logoUrl} onChange={(u,l)=>{setUpLogo(l);if(u!==null)upd("logoUrl",u);}} uploading={upLogo} isLogo label="Store Logo"/>
               <div style={{ paddingTop: 24 }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "var(--muted,#6B7280)", margin: "0 0 3px" }}>Square image · min 200×200px</p>
-                <p style={{ fontSize: 11, color: "var(--muted,#9CA3AF)", margin: 0 }}>JPG, PNG, WEBP · Max 5MB</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", margin: "0 0 3px" }}>Square image · min 200×200px</p>
+                <p style={{ fontSize: 11, color: "#9CA3AF", margin: 0 }}>JPG, PNG, WEBP · Max 5MB</p>
               </div>
             </div>
           </div>
 
           {/* Info */}
-          <div style={{ background: "var(--card,#fff)", borderRadius: 16, border: "1px solid rgba(0,0,0,0.07)", padding: "20px" }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text,#111)", marginBottom: 18 }}>Store Information</div>
+          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid rgba(0,0,0,0.08)", padding: "20px" }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#111", marginBottom: 18 }}>Store Information</div>
             <Field label="Store Name" value={form.shopName} onChange={e=>upd("shopName",e.target.value)} placeholder="e.g. Kente Kicks GH" hint="This is your store title that customers see."/>
             <Field label="Store Description" value={form.description} onChange={e=>upd("description",e.target.value)} placeholder="Tell customers what makes your store special…" multiline hint="Shown on your store's About tab."/>
-            <div style={{ padding: "12px 14px", borderRadius: 10, background: "rgba(4,110,242,0.05)", border: "1px solid rgba(4,110,242,0.15)" }}>
+            <div style={{ padding: "12px 14px", borderRadius: 10, background: "rgba(4,110,242,0.04)", border: "1px solid rgba(4,110,242,0.12)" }}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#9CA3AF", marginBottom: 5 }}>
                 Your store link — share this with customers
               </div>
@@ -321,8 +292,8 @@ export default function DashboardAppearance() {
                     if (btn) { btn.textContent = "Copied!"; setTimeout(() => { btn.textContent = "Copy"; }, 2000); }
                   }}
                   id="copy-store-url-btn"
-                  style={{ padding: "6px 12px", borderRadius: 7, border: "1.5px solid rgba(4,110,242,0.3)",
-                    background: "#046EF2", color: "#fff", fontSize: 12, fontWeight: 800,
+                  style={{ padding: "6px 12px", borderRadius: 7, border: "1.5px solid rgba(0,0,0,0.15)",
+                    background: "#111", color: "#fff", fontSize: 12, fontWeight: 800,
                     cursor: "pointer", fontFamily: "inherit", flexShrink: 0, whiteSpace: "nowrap" }}>
                   Copy
                 </button>
@@ -331,9 +302,8 @@ export default function DashboardAppearance() {
                 Share on WhatsApp, Instagram bio, or TikTok profile so customers can find and follow your store.
               </p>
             </div>
-            {/* One store per account notice */}
             <div style={{ marginTop: 10, padding: "10px 14px", borderRadius: 10,
-              background: "rgba(0,0,0,0.03)", border: "1px solid rgba(0,0,0,0.07)",
+              background: "#fafafa", border: "1px solid rgba(0,0,0,0.07)",
               display: "flex", alignItems: "center", gap: 8 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round">
                 <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
@@ -345,10 +315,10 @@ export default function DashboardAppearance() {
             </div>
           </div>
 
-          {/* Chat Preference — how customers contact you */}
-          <div style={{ background:"var(--card,#fff)", borderRadius:16, border:"1px solid rgba(0,0,0,0.07)", padding:"20px" }}>
-            <div style={{ fontSize:15, fontWeight:800, color:"var(--text,#111)", marginBottom:4 }}>Chat Preference</div>
-            <p style={{ fontSize:13, color:"var(--muted,#9CA3AF)", marginBottom:14, marginTop:4 }}>
+          {/* Chat Preference */}
+          <div style={{ background:"#fff", borderRadius:16, border:"1px solid rgba(0,0,0,0.08)", padding:"20px" }}>
+            <div style={{ fontSize:15, fontWeight:800, color:"#111", marginBottom:4 }}>Chat Preference</div>
+            <p style={{ fontSize:13, color:"#9CA3AF", marginBottom:14, marginTop:4 }}>
               Choose how customers reach you when they tap the Chat button on your store page.
             </p>
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
@@ -361,10 +331,10 @@ export default function DashboardAppearance() {
                   onClick={() => upd("chatPreference", opt.id)}
                   style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px",
                     borderRadius:10, border:`1.5px solid ${form.chatPreference===opt.id?"#046EF2":"rgba(0,0,0,0.09)"}`,
-                    background: form.chatPreference===opt.id ? "rgba(4,110,242,0.05)" : "var(--bg,#F7F8FA)",
+                    background: form.chatPreference===opt.id ? "rgba(4,110,242,0.04)" : "#fafafa",
                     cursor:"pointer", textAlign:"left", fontFamily:"inherit" }}>
                   <div style={{ width:36, height:36, borderRadius:9, flexShrink:0,
-                    background: form.chatPreference===opt.id ? "rgba(4,110,242,0.12)" : "rgba(0,0,0,0.06)",
+                    background: form.chatPreference===opt.id ? "rgba(4,110,242,0.1)" : "rgba(0,0,0,0.05)",
                     display:"flex", alignItems:"center", justifyContent:"center",
                     color: form.chatPreference===opt.id ? "#046EF2" : "#9CA3AF" }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -373,8 +343,8 @@ export default function DashboardAppearance() {
                     </svg>
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:14, fontWeight:700, color:"var(--text,#111)" }}>{opt.label}</div>
-                    <div style={{ fontSize:12, color:"var(--muted,#9CA3AF)", marginTop:2 }}>{opt.sub}</div>
+                    <div style={{ fontSize:14, fontWeight:700, color:"#111" }}>{opt.label}</div>
+                    <div style={{ fontSize:12, color:"#9CA3AF", marginTop:2 }}>{opt.sub}</div>
                   </div>
                   <div style={{ width:18, height:18, borderRadius:"50%", flexShrink:0,
                     border:`2px solid ${form.chatPreference===opt.id?"#046EF2":"rgba(0,0,0,0.15)"}`,
@@ -389,10 +359,10 @@ export default function DashboardAppearance() {
             </div>
           </div>
 
-          {/* Social - locked for basic plan */}
-          <div style={{ background:"var(--card,#fff)", borderRadius:16, border:"1px solid rgba(0,0,0,0.07)", padding:"20px" }}>
+          {/* Social Links */}
+          <div style={{ background:"#fff", borderRadius:16, border:"1px solid rgba(0,0,0,0.08)", padding:"20px" }}>
             <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:4 }}>
-              <div style={{ fontSize:15, fontWeight:800, color:"var(--text,#111)" }}>Social Links & Contacts</div>
+              <div style={{ fontSize:15, fontWeight:800, color:"#111" }}>Social Links & Contacts</div>
               {(!subscriptionPlan || subscriptionPlan === "basic") && (
                 <span style={{ fontSize:11, fontWeight:800, padding:"3px 9px", borderRadius:100,
                   background:"rgba(239,68,68,0.1)", color:"#EF4444", border:"1px solid rgba(239,68,68,0.2)" }}>
@@ -402,18 +372,18 @@ export default function DashboardAppearance() {
             </div>
             {(!subscriptionPlan || subscriptionPlan === "basic") ? (
               <div style={{ marginTop:14, padding:"20px 18px", borderRadius:12,
-                background:"rgba(0,0,0,0.03)", border:"2px dashed rgba(0,0,0,0.1)", textAlign:"center" }}>
+                background:"#fafafa", border:"2px dashed rgba(0,0,0,0.1)", textAlign:"center" }}>
                 <div style={{ width:44, height:44, borderRadius:12, background:"rgba(0,0,0,0.06)",
                   display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 12px" }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.8" strokeLinecap="round">
                     <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
                   </svg>
                 </div>
-                <div style={{ fontSize:14, fontWeight:800, color:"var(--text,#111)", marginBottom:6 }}>
+                <div style={{ fontSize:14, fontWeight:800, color:"#111", marginBottom:6 }}>
                   Social links locked on Basic plan
                 </div>
-                <div style={{ fontSize:13, color:"var(--muted,#6B7280)", marginBottom:16, lineHeight:1.5 }}>
-                  Upgrade to Starter (GHS 49/mo) to add WhatsApp, Instagram, TikTok and your website so customers can reach you directly.
+                <div style={{ fontSize:13, color:"#6B7280", marginBottom:16, lineHeight:1.5 }}>
+                  Upgrade to Starter (GHS 49/mo) to add WhatsApp, Instagram, TikTok and your website.
                 </div>
                 <a href="/store-plans" style={{ display:"inline-flex", alignItems:"center", gap:6,
                   padding:"10px 20px", borderRadius:10, background:"#111", color:"#fff",
@@ -423,7 +393,7 @@ export default function DashboardAppearance() {
               </div>
             ) : (
               <>
-                <p style={{ fontSize:13, color:"var(--muted,#9CA3AF)", marginBottom:18, marginTop:4 }}>
+                <p style={{ fontSize:13, color:"#9CA3AF", marginBottom:18, marginTop:4 }}>
                   These appear as contact buttons on your store page.
                 </p>
                 <Field label="WhatsApp Business Number" icon={IC.phone} type="tel" value={form.whatsapp} onChange={e=>upd("whatsapp",e.target.value)} placeholder="+233 XX XXX XXXX" hint="Customers tap to message you directly"/>
@@ -438,19 +408,19 @@ export default function DashboardAppearance() {
         {/* Right — live preview */}
         <div style={{ position: "sticky", top: 80 }}>
           <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase",
-            letterSpacing: "0.07em", color: "var(--muted,#9CA3AF)", marginBottom: 10 }}>
+            letterSpacing: "0.07em", color: "#9CA3AF", marginBottom: 10 }}>
             Live Preview
           </div>
           <Preview form={form} />
-          <p style={{ fontSize: 11, color: "var(--muted,#9CA3AF)", marginTop: 8, textAlign: "center" }}>
+          <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 8, textAlign: "center" }}>
             How your store header looks to customers
           </p>
           <a href={storeUrl} target="_blank" rel="noreferrer"
             style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
               marginTop: 8, padding: "9px 0", borderRadius: 10,
-              border: "1.5px solid rgba(4,110,242,0.2)", background: "rgba(4,110,242,0.05)",
-              color: "#046EF2", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
-            <Ico d={IC.store} size={14} color="#046EF2" />
+              border: "1.5px solid rgba(0,0,0,0.12)", background: "#fff",
+              color: "#111", fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+            <Ico d={IC.store} size={14} color="#111" />
             Open Full Store Page
           </a>
         </div>

@@ -1,16 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-} from "recharts";
-import {
-  collection, query, where, getDocs,
-  orderBy, limit, Timestamp,
-} from "firebase/firestore";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { collection, query, where, getDocs, orderBy, limit, Timestamp } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
 import { useAuth } from "../../context/AuthContext";
 
-/* ─── Helpers ─── */
 function fmtMoney(n) {
   const v = Number(n||0);
   if (v>=1000000) return `${(v/1000000).toFixed(1)}M`;
@@ -32,7 +26,6 @@ const DAY=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const STATUS_COLOR={paid:"#22C55E",delivered:"#22C55E",processing:"#046EF2",shipped:"#7C3AED",pending:"#F59E0B",cancelled:"#EF4444"};
 const AVATAR_PAL=["#046EF2","#7C3AED","#22C55E","#F59E0B","#EF4444","#0891B2"];
 
-/* ─── SVGs ─── */
 function Ico({d,size=14,color="currentColor"}) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -50,66 +43,55 @@ const IC={
   dn:   "M6 9l6 6 6-6",
 };
 
-/* ─── Metric Card ─── */
-function MetricCard({label,value,pctVal,icon,iconColor="#046EF2",dark,loading}) {
+function MetricCard({label,value,pctVal,icon,iconColor="#111",loading}) {
   const up = pctVal>=0;
   const barW = Math.min(Math.abs(pctVal),100);
   return (
     <div style={{
-      background: dark ? "var(--grtheme,#046EF2)" : "var(--card,#fff)",
+      background: "#fff",
       borderRadius:16, padding:"20px 20px 16px",
-      border: dark ? "none" : "1px solid rgba(0,0,0,0.07)",
-      boxShadow: dark ? "0 8px 28px rgba(4,110,242,0.3)" : "0 1px 4px rgba(0,0,0,0.05)",
+      border: "1px solid rgba(0,0,0,0.08)",
+      boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
     }}>
-      {/* Top row */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-        <span style={{fontSize:11,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.07em",
-          color:dark?"rgba(255,255,255,0.75)":"var(--muted,#9CA3AF)"}}>
+        <span style={{fontSize:11,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.07em",color:"#9CA3AF"}}>
           {label}
         </span>
         <div style={{width:30,height:30,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",
-          background:dark?"rgba(255,255,255,0.15)":iconColor+"15",color:dark?"#fff":iconColor}}>
+          background:iconColor+"12",color:iconColor}}>
           <Ico d={icon} size={14}/>
         </div>
       </div>
-
-      {/* Big number */}
       {loading
-        ? <div style={{height:34,width:"55%",borderRadius:6,background:dark?"rgba(255,255,255,0.2)":"rgba(0,0,0,0.07)",marginBottom:10}}/>
-        : <div style={{fontSize:28,fontWeight:900,color:dark?"#fff":"var(--text,#111)",letterSpacing:"-0.04em",lineHeight:1,marginBottom:10}}>
+        ? <div style={{height:34,width:"55%",borderRadius:6,background:"rgba(0,0,0,0.07)",marginBottom:10}}/>
+        : <div style={{fontSize:28,fontWeight:900,color:"#111",letterSpacing:"-0.04em",lineHeight:1,marginBottom:10}}>
             {value}
           </div>
       }
-
-      {/* Progress bar */}
-      <div style={{height:4,background:dark?"rgba(255,255,255,0.2)":"rgba(0,0,0,0.07)",borderRadius:2,overflow:"hidden",marginBottom:8}}>
-        {!loading && <div style={{height:"100%",width:`${barW}%`,background:dark?"rgba(255,255,255,0.6)":iconColor,borderRadius:2,transition:"width 0.7s ease"}}/>}
+      <div style={{height:4,background:"rgba(0,0,0,0.07)",borderRadius:2,overflow:"hidden",marginBottom:8}}>
+        {!loading && <div style={{height:"100%",width:`${barW}%`,background:iconColor,borderRadius:2,transition:"width 0.7s ease"}}/>}
       </div>
-
-      {/* Pct change */}
       {!loading && (
         <div style={{display:"flex",alignItems:"center",gap:5,fontSize:12,fontWeight:700}}>
-          <span style={{display:"flex",alignItems:"center",gap:2,
-            color:up?(dark?"rgba(255,255,255,0.95)":"#22C55E"):(dark?"rgba(255,255,255,0.7)":"#EF4444")}}>
-            <Ico d={up?IC.up:IC.dn} size={10} color={up?(dark?"#fff":"#22C55E"):(dark?"rgba(255,255,255,0.7)":"#EF4444")}/>
+          <span style={{display:"flex",alignItems:"center",gap:2,color:up?"#22C55E":"#EF4444"}}>
+            <Ico d={up?IC.up:IC.dn} size={10} color={up?"#22C55E":"#EF4444"}/>
             {Math.abs(pctVal)}%
           </span>
-          <span style={{color:dark?"rgba(255,255,255,0.5)":"var(--muted,#9CA3AF)",fontWeight:500}}>vs last month</span>
+          <span style={{color:"#9CA3AF",fontWeight:500}}>vs last month</span>
         </div>
       )}
     </div>
   );
 }
 
-/* ─── Tab Switcher ─── */
 function Tabs({value,options,onChange}) {
   return (
-    <div style={{display:"flex",background:"var(--bg,#F7F8FA)",borderRadius:100,padding:3,border:"1px solid rgba(0,0,0,0.07)"}}>
+    <div style={{display:"flex",background:"#f5f5f5",borderRadius:100,padding:3,border:"1px solid rgba(0,0,0,0.07)"}}>
       {options.map(o=>(
         <button key={o.v} type="button" onClick={()=>onChange(o.v)}
           style={{padding:"5px 12px",borderRadius:100,border:"none",
-            background:value===o.v?"var(--card,#fff)":"transparent",
-            color:value===o.v?"var(--text,#111)":"var(--muted,#9CA3AF)",
+            background:value===o.v?"#fff":"transparent",
+            color:value===o.v?"#111":"#9CA3AF",
             fontSize:12,fontWeight:700,cursor:"pointer",
             boxShadow:value===o.v?"0 1px 4px rgba(0,0,0,0.1)":"none",
             transition:"all 0.15s",fontFamily:"inherit"}}>
@@ -120,21 +102,19 @@ function Tabs({value,options,onChange}) {
   );
 }
 
-/* ─── Tooltip ─── */
 function Tip({active,payload,label}) {
   if(!active||!payload?.length) return null;
   const k = payload[0]?.dataKey;
   const v = payload[0]?.value;
   return (
-    <div style={{background:"var(--card,#fff)",border:"1px solid rgba(0,0,0,0.08)",borderRadius:10,
+    <div style={{background:"#fff",border:"1px solid rgba(0,0,0,0.08)",borderRadius:10,
       padding:"10px 14px",fontSize:12,fontWeight:600,boxShadow:"0 4px 20px rgba(0,0,0,0.1)"}}>
       <div style={{color:"#9CA3AF",marginBottom:4}}>{label}</div>
-      <div style={{color:"#046EF2"}}>{k==="revenue"?`GHS ${Number(v).toFixed(2)}`:v+" orders"}</div>
+      <div style={{color:"#111"}}>{k==="revenue"?`GHS ${Number(v).toFixed(2)}`:v+" orders"}</div>
     </div>
   );
 }
 
-/* ─── Main ─── */
 export default function DashboardHome() {
   const {user}                         = useAuth();
   const {shop,storeId,subscriptionPlan} = useSellerAuth();
@@ -188,24 +168,24 @@ export default function DashboardHome() {
   const dateStr=new Date().toLocaleDateString("en-GH",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 
   return (
-    <div style={{fontFamily:"var(--font-main,'Nunito',sans-serif)"}}>
+    <div style={{fontFamily:"var(--font-main,'Nunito',sans-serif)", background:"#fff"}}>
 
       {/* Header */}
       <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:22}}>
         <div>
-          <div style={{fontSize:22,fontWeight:900,color:"var(--text,#111)",letterSpacing:"-0.03em",lineHeight:1.1}}>Analytics</div>
-          <div style={{fontSize:13,color:"var(--muted,#9CA3AF)",fontWeight:500,marginTop:3}}>{dateStr}</div>
+          <div style={{fontSize:22,fontWeight:900,color:"#111",letterSpacing:"-0.03em",lineHeight:1.1}}>Analytics</div>
+          <div style={{fontSize:13,color:"#9CA3AF",fontWeight:500,marginTop:3}}>{dateStr}</div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:7,fontSize:12,fontWeight:700,color:"#22C55E",
-          background:"rgba(34,197,94,0.1)",padding:"6px 12px",borderRadius:100,border:"1px solid rgba(34,197,94,0.2)"}}>
+          background:"rgba(34,197,94,0.08)",padding:"6px 12px",borderRadius:100,border:"1px solid rgba(34,197,94,0.2)"}}>
           <div style={{width:6,height:6,borderRadius:"50%",background:"#22C55E"}}/>
           Store Active
         </div>
       </div>
 
-      {/* 4 metric cards — first is the dark hero */}
+      {/* 4 metric cards */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:10}}>
-        <MetricCard label="Revenue (Month)" value={`GHS ${fmtMoney(m.rev)}`} pctVal={pct(m.rev,m.pRev)} icon={IC.rev} dark loading={loading}/>
+        <MetricCard label="Revenue (Month)" value={`GHS ${fmtMoney(m.rev)}`} pctVal={pct(m.rev,m.pRev)} icon={IC.rev} iconColor="#046EF2" loading={loading}/>
         <MetricCard label="Orders (Week)"   value={m.wkO}                   pctVal={pct(m.wkO,m.pwO)} icon={IC.ord} iconColor="#7C3AED" loading={loading}/>
         <MetricCard label="Approved"        value={m.apr}                   pctVal={pct(m.apr,m.pApr)} icon={IC.chk} iconColor="#22C55E" loading={loading}/>
         <MetricCard label="Customers"       value={m.custs}                 pctVal={pct(m.custs,m.pCusts)} icon={IC.usr} iconColor="#F59E0B" loading={loading}/>
@@ -217,17 +197,17 @@ export default function DashboardHome() {
           {label:"Total Orders",    val:m.total,                    color:"#046EF2", icon:IC.arr},
           {label:"Avg. Order Value",val:`GHS ${fmtMoney(m.avg)}`,   color:"#7C3AED", icon:IC.rev},
         ].map(s=>(
-          <div key={s.label} style={{background:"var(--card,#fff)",borderRadius:12,
-            border:"1px solid rgba(0,0,0,0.07)",padding:"12px 14px",display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:36,height:36,borderRadius:9,background:s.color+"12",flexShrink:0,
+          <div key={s.label} style={{background:"#fff",borderRadius:12,
+            border:"1px solid rgba(0,0,0,0.08)",padding:"12px 14px",display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:36,height:36,borderRadius:9,background:s.color+"10",flexShrink:0,
               display:"flex",alignItems:"center",justifyContent:"center",color:s.color}}>
               <Ico d={s.icon} size={15}/>
             </div>
             <div>
-              <div style={{fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em",color:"var(--muted,#9CA3AF)"}}>{s.label}</div>
+              <div style={{fontSize:10,fontWeight:800,textTransform:"uppercase",letterSpacing:"0.06em",color:"#9CA3AF"}}>{s.label}</div>
               {loading
                 ?<div style={{height:16,width:50,background:"rgba(0,0,0,0.07)",borderRadius:4,marginTop:4}}/>
-                :<div style={{fontSize:16,fontWeight:900,color:"var(--text,#111)",letterSpacing:"-0.03em",lineHeight:1.2}}>{s.val}</div>
+                :<div style={{fontSize:16,fontWeight:900,color:"#111",letterSpacing:"-0.03em",lineHeight:1.2}}>{s.val}</div>
               }
             </div>
           </div>
@@ -235,9 +215,9 @@ export default function DashboardHome() {
       </div>
 
       {/* Chart */}
-      <div style={{background:"var(--card,#fff)",borderRadius:16,border:"1px solid rgba(0,0,0,0.07)",padding:"18px 20px 14px",marginBottom:14}}>
+      <div style={{background:"#fff",borderRadius:16,border:"1px solid rgba(0,0,0,0.08)",padding:"18px 20px 14px",marginBottom:14}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
-          <span style={{fontSize:14,fontWeight:800,color:"var(--text,#111)"}}>
+          <span style={{fontSize:14,fontWeight:800,color:"#111"}}>
             {chartMode==="orders"?"Orders":"Revenue"} — Last 7 Days
           </span>
           <Tabs value={chartMode} options={[{v:"orders",l:"Orders"},{v:"revenue",l:"Revenue"}]} onChange={setChartMode}/>
@@ -246,24 +226,24 @@ export default function DashboardHome() {
           ?<div style={{height:150,background:"rgba(0,0,0,0.04)",borderRadius:8}}/>
           :m.bar.every(d=>(chartMode==="orders"?d.orders:d.revenue)===0)
             ?<div style={{height:150,display:"flex",alignItems:"center",justifyContent:"center"}}>
-               <span style={{fontSize:13,color:"var(--muted,#9CA3AF)",fontWeight:600}}>No data this week yet</span>
+               <span style={{fontSize:13,color:"#9CA3AF",fontWeight:600}}>No data this week yet</span>
              </div>
             :<ResponsiveContainer width="100%" height={150}>
                <BarChart data={m.bar} barSize={26}>
                  <XAxis dataKey="day" tick={{fontSize:11,fill:"#9CA3AF",fontFamily:"inherit"}} axisLine={false} tickLine={false}/>
                  <YAxis tick={{fontSize:11,fill:"#9CA3AF",fontFamily:"inherit"}} axisLine={false} tickLine={false}/>
-                 <Tooltip content={<Tip/>} cursor={{fill:"rgba(4,110,242,0.04)"}}/>
-                 <Bar dataKey={chartMode} radius={[6,6,0,0]} fill="#046EF2"/>
+                 <Tooltip content={<Tip/>} cursor={{fill:"rgba(0,0,0,0.03)"}}/>
+                 <Bar dataKey={chartMode} radius={[6,6,0,0]} fill="#111"/>
                </BarChart>
              </ResponsiveContainer>
         }
       </div>
 
       {/* Order list */}
-      <div style={{background:"var(--card,#fff)",borderRadius:16,border:"1px solid rgba(0,0,0,0.07)",padding:"18px 20px"}}>
+      <div style={{background:"#fff",borderRadius:16,border:"1px solid rgba(0,0,0,0.08)",padding:"18px 20px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
-          <span style={{fontSize:14,fontWeight:800,color:"var(--text,#111)"}}>Order List</span>
-          <span style={{fontSize:11,fontWeight:600,color:"var(--muted,#9CA3AF)"}}>{m.total} orders this month</span>
+          <span style={{fontSize:14,fontWeight:800,color:"#111"}}>Order List</span>
+          <span style={{fontSize:11,fontWeight:600,color:"#9CA3AF"}}>{m.total} orders this month</span>
         </div>
 
         {loading
@@ -278,8 +258,8 @@ export default function DashboardHome() {
             ))
           :m.recent.length===0
             ?<div style={{textAlign:"center",padding:"28px 0"}}>
-               <div style={{fontSize:13,color:"var(--muted,#9CA3AF)",fontWeight:600}}>No orders yet</div>
-               <div style={{fontSize:12,color:"var(--muted,#9CA3AF)",marginTop:3}}>Your first order will appear here.</div>
+               <div style={{fontSize:13,color:"#9CA3AF",fontWeight:600}}>No orders yet</div>
+               <div style={{fontSize:12,color:"#9CA3AF",marginTop:3}}>Your first order will appear here.</div>
              </div>
             :m.recent.map((o,i)=>{
                const cust=o.customer;
@@ -296,10 +276,10 @@ export default function DashboardHome() {
                      {ini}
                    </div>
                    <div style={{flex:1,minWidth:0}}>
-                     <div style={{fontSize:13,fontWeight:700,color:"var(--text,#111)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{name}</div>
-                     <div style={{fontSize:11,color:"var(--muted,#9CA3AF)",fontWeight:500}}>{fmtDate(o.createdAt)}</div>
+                     <div style={{fontSize:13,fontWeight:700,color:"#111",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{name}</div>
+                     <div style={{fontSize:11,color:"#9CA3AF",fontWeight:500}}>{fmtDate(o.createdAt)}</div>
                    </div>
-                   <div style={{fontSize:13,fontWeight:800,color:"var(--text,#111)",flexShrink:0}}>
+                   <div style={{fontSize:13,fontWeight:800,color:"#111",flexShrink:0}}>
                      +GHS {Number(o.pricing?.total||0).toFixed(2)}
                    </div>
                    <div style={{padding:"4px 10px",borderRadius:100,flexShrink:0,fontSize:11,fontWeight:700,
@@ -315,15 +295,15 @@ export default function DashboardHome() {
       {/* New store hint */}
       {!loading&&m.total===0&&(
         <div style={{marginTop:14,padding:"14px 18px",borderRadius:12,
-          background:"rgba(4,110,242,0.05)",border:"1px solid rgba(4,110,242,0.12)",
+          background:"rgba(0,0,0,0.03)",border:"1px solid rgba(0,0,0,0.08)",
           display:"flex",alignItems:"center",gap:12}}>
-          <div style={{width:36,height:36,borderRadius:9,background:"rgba(4,110,242,0.12)",
-            display:"flex",alignItems:"center",justifyContent:"center",color:"#046EF2",flexShrink:0}}>
+          <div style={{width:36,height:36,borderRadius:9,background:"rgba(0,0,0,0.07)",
+            display:"flex",alignItems:"center",justifyContent:"center",color:"#111",flexShrink:0}}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
           </div>
           <div>
-            <div style={{fontSize:13,fontWeight:800,color:"#046EF2"}}>Your store is live — start listing products!</div>
-            <div style={{fontSize:12,color:"var(--muted,#6B7280)",fontWeight:500,marginTop:2}}>Go to <strong>Products</strong> to add your first product.</div>
+            <div style={{fontSize:13,fontWeight:800,color:"#111"}}>Your store is live — start listing products!</div>
+            <div style={{fontSize:12,color:"#6B7280",fontWeight:500,marginTop:2}}>Go to <strong>Products</strong> to add your first product.</div>
           </div>
         </div>
       )}

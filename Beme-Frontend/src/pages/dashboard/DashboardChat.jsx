@@ -63,14 +63,16 @@ export default function DashboardChat() {
       <div className="sd-empty" style={{ padding:64 }}>
         <ChatGateIcon />
         <div className="sd-empty-title">Live Chat requires Standard or Pro</div>
-        <div className="sd-empty-text">Upgrade your plan to chat with customers in real time, send images, and set auto-replies.</div>
-        <button className="sd-btn sd-btn-primary">Upgrade Plan</button>
+        <div className="sd-empty-text">Upgrade your plan to chat with customers in real time.</div>
+        <button className="sd-btn" style={{ background:"#111", color:"#fff", border:"none", padding:"10px 20px", borderRadius:10, fontWeight:800, cursor:"pointer" }}>
+          Upgrade Plan
+        </button>
       </div>
     );
   }
 
   return (
-    <div>
+    <div style={{ background:"#fff" }}>
       <div className="sd-page-head" style={{ marginBottom:14 }}>
         <div>
           <div className="sd-page-title">Messages</div>
@@ -81,20 +83,21 @@ export default function DashboardChat() {
       <div style={{ height:"calc(100vh - 180px)", minHeight:480 }}>
         <div className="sd-chat-root" style={{ height:"100%" }}>
           {/* Conversation list */}
-          <div className="sd-chat-list">
-            <div className="sd-chat-list-head">Conversations</div>
+          <div className="sd-chat-list" style={{ background:"#fff", borderRight:"1px solid rgba(0,0,0,0.08)" }}>
+            <div className="sd-chat-list-head" style={{ fontWeight:800, fontSize:13, color:"#111", padding:"14px 16px", borderBottom:"1px solid rgba(0,0,0,0.08)" }}>Conversations</div>
             {loading
               ? [1,2,3].map((i) => <div key={i} className="sd-skeleton" style={{ height:58, margin:8, borderRadius:8 }} />)
               : conversations.length === 0
                 ? <EmptyConversations />
                 : conversations.map((c) => (
-                  <div key={c.id} className={`sd-chat-item ${activeChat === c.id ? "active" : ""}`} onClick={() => handleSelectChat(c.id)}>
-                    <div style={{ width:34, height:34, borderRadius:"50%", background:"rgba(4,110,242,0.1)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:13, color:"#046EF2", flexShrink:0 }}>
+                  <div key={c.id} className={`sd-chat-item ${activeChat === c.id ? "active" : ""}`} onClick={() => handleSelectChat(c.id)}
+                    style={{ borderLeft: activeChat === c.id ? "3px solid #046EF2" : "3px solid transparent", cursor:"pointer", padding:"12px 16px", display:"flex", alignItems:"center", gap:10 }}>
+                    <div style={{ width:34, height:34, borderRadius:"50%", background:"rgba(4,110,242,0.08)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:13, color:"#046EF2", flexShrink:0 }}>
                       {(c.customerName || "?")[0].toUpperCase()}
                     </div>
                     <div style={{ minWidth:0, flex:1 }}>
-                      <div className="sd-chat-item-name">{c.customerName || "Customer"}</div>
-                      <div className="sd-chat-item-preview">{c.lastMessage || "No messages yet"}</div>
+                      <div className="sd-chat-item-name" style={{ fontWeight:700, fontSize:13, color:"#111" }}>{c.customerName || "Customer"}</div>
+                      <div className="sd-chat-item-preview" style={{ fontSize:12, color:"#9CA3AF", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.lastMessage || "No messages yet"}</div>
                     </div>
                     {c.unreadBySeller > 0 && (
                       <div style={{ background:"#046EF2", color:"#fff", borderRadius:"50%", width:18, height:18, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, flexShrink:0 }}>
@@ -107,17 +110,17 @@ export default function DashboardChat() {
           </div>
 
           {/* Chat area */}
-          <div className="sd-chat-main">
+          <div className="sd-chat-main" style={{ background:"#fff", display:"flex", flexDirection:"column" }}>
             {!activeChat
               ? <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%" }}><SelectConversationIcon /></div>
               : (
                 <>
-                  <div className="sd-chat-header">
-                    <div style={{ width:34, height:34, borderRadius:"50%", background:"rgba(4,110,242,0.1)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:13, color:"#046EF2" }}>
+                  <div className="sd-chat-header" style={{ padding:"14px 16px", borderBottom:"1px solid rgba(0,0,0,0.08)", display:"flex", alignItems:"center", gap:12 }}>
+                    <div style={{ width:34, height:34, borderRadius:"50%", background:"rgba(4,110,242,0.08)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:13, color:"#046EF2" }}>
                       {(activeChatData?.customerName || "?")[0].toUpperCase()}
                     </div>
                     <div>
-                      <div style={{ fontSize:13, fontWeight:700, color:"#1A1D3B" }}>{activeChatData?.customerName || "Customer"}</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:"#111" }}>{activeChatData?.customerName || "Customer"}</div>
                       <div style={{ fontSize:11, color:"#22C55E", display:"flex", alignItems:"center", gap:4 }}>
                         <div style={{ width:6, height:6, borderRadius:"50%", background:"#22C55E" }} />
                         Online
@@ -125,10 +128,14 @@ export default function DashboardChat() {
                     </div>
                   </div>
 
-                  <div className="sd-chat-messages">
+                  <div className="sd-chat-messages" style={{ flex:1, overflowY:"auto", padding:16, display:"flex", flexDirection:"column", gap:8 }}>
                     {messages.map((m) => (
                       <div key={m.id}>
-                        <div className={`sd-msg ${m.senderRole === "seller" ? "sd-msg-seller" : "sd-msg-customer"}`}>
+                        <div className={`sd-msg ${m.senderRole === "seller" ? "sd-msg-seller" : "sd-msg-customer"}`}
+                          style={{ maxWidth:"70%", padding:"10px 14px", borderRadius:12, fontSize:13, lineHeight:1.5,
+                            background: m.senderRole === "seller" ? "#111" : "#f4f4f4",
+                            color: m.senderRole === "seller" ? "#fff" : "#111",
+                            marginLeft: m.senderRole === "seller" ? "auto" : 0 }}>
                           {m.text}
                           {m.imageUrl && <img src={m.imageUrl} alt="attachment" style={{ maxWidth:"100%", borderRadius:6, marginTop:6 }} />}
                         </div>
@@ -139,9 +146,16 @@ export default function DashboardChat() {
                     ))}
                   </div>
 
-                  <div className="sd-chat-input-row">
-                    <input className="sd-input" value={text} onChange={(e) => setText(e.target.value)} placeholder="Type a message…" onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()} />
-                    <button className="sd-btn sd-btn-primary" onClick={handleSend} disabled={sending || !text.trim()}>
+                  <div className="sd-chat-input-row" style={{ padding:"12px 16px", borderTop:"1px solid rgba(0,0,0,0.08)", display:"flex", gap:8 }}>
+                    <input className="sd-input" value={text} onChange={(e) => setText(e.target.value)}
+                      placeholder="Type a message…"
+                      style={{ flex:1, height:42, padding:"0 14px", border:"1.5px solid rgba(0,0,0,0.1)", borderRadius:10, fontSize:14, outline:"none", fontFamily:"inherit" }}
+                      onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()} />
+                    <button onClick={handleSend} disabled={sending || !text.trim()}
+                      style={{ padding:"0 20px", height:42, borderRadius:10, border:"none",
+                        background: "#111", color:"#fff", fontSize:13, fontWeight:800,
+                        cursor: sending || !text.trim() ? "not-allowed" : "pointer",
+                        opacity: sending || !text.trim() ? 0.5 : 1, fontFamily:"inherit" }}>
                       {sending ? "…" : "Send"}
                     </button>
                   </div>
@@ -154,4 +168,3 @@ export default function DashboardChat() {
     </div>
   );
 }
-

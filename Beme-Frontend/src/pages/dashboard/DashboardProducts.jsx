@@ -25,7 +25,6 @@ const IC = {
   check:  "M20 6L9 17l-5-5",
   img:    "M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14l4-4 3 3 3-3 4 4z",
   tag:    "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z|M7 7h.01",
-  more:   "M12 5h.01|M12 12h.01|M12 19h.01",
 };
 
 const STATUS_OPTS = ["All", "Active", "Draft", "Out of Stock"];
@@ -36,27 +35,26 @@ function fmtMoney(n) {
   return `GHS ${Number(n||0).toLocaleString("en-GH",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 }
 
-/* ─── Confirm modal ─── */
 function Confirm({ name, onConfirm, onCancel }) {
   return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:1000,
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.4)", zIndex:1000,
       display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
-      <div style={{ background:"var(--card,#fff)", borderRadius:18, padding:"28px 24px",
-        maxWidth:340, width:"100%", boxShadow:"0 20px 60px rgba(0,0,0,0.25)" }}>
-        <div style={{ width:48, height:48, borderRadius:12, background:"rgba(239,68,68,0.1)",
+      <div style={{ background:"#fff", borderRadius:18, padding:"28px 24px",
+        maxWidth:340, width:"100%", boxShadow:"0 20px 60px rgba(0,0,0,0.2)" }}>
+        <div style={{ width:48, height:48, borderRadius:12, background:"rgba(239,68,68,0.08)",
           display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 14px" }}>
           <Ico d={IC.trash} size={22} color="#EF4444"/>
         </div>
-        <div style={{ fontSize:17, fontWeight:900, color:"var(--text,#111)", textAlign:"center", marginBottom:8 }}>
+        <div style={{ fontSize:17, fontWeight:900, color:"#111", textAlign:"center", marginBottom:8 }}>
           Delete Product?
         </div>
-        <div style={{ fontSize:13, color:"var(--muted,#6B7280)", textAlign:"center", lineHeight:1.5, marginBottom:22 }}>
+        <div style={{ fontSize:13, color:"#6B7280", textAlign:"center", lineHeight:1.5, marginBottom:22 }}>
           "<strong>{name}</strong>" will be permanently removed. This cannot be undone.
         </div>
         <div style={{ display:"flex", gap:10 }}>
           <button type="button" onClick={onCancel}
             style={{ flex:1, height:44, borderRadius:10, border:"1.5px solid rgba(0,0,0,0.1)",
-              background:"transparent", color:"var(--text,#333)", fontSize:14, fontWeight:700,
+              background:"transparent", color:"#333", fontSize:14, fontWeight:700,
               cursor:"pointer", fontFamily:"inherit" }}>
             Cancel
           </button>
@@ -72,9 +70,7 @@ function Confirm({ name, onConfirm, onCancel }) {
   );
 }
 
-/* ─── Product row card (Jumia-style) ─── */
 function ProductRow({ product, onEdit, onDelete, onToggleStatus, onView, deleting }) {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [toggling, setToggling] = useState(false);
 
   const img    = (Array.isArray(product.images) ? product.images[0] : null) || product.imageUrl || "";
@@ -90,14 +86,13 @@ function ProductRow({ product, onEdit, onDelete, onToggleStatus, onView, deletin
 
   return (
     <div style={{
-      background: "var(--card,#fff)", borderRadius: 14,
-      border: "1px solid rgba(0,0,0,0.07)", overflow: "hidden",
+      background: "#fff", borderRadius: 14,
+      border: "1px solid rgba(0,0,0,0.08)", overflow: "hidden",
       display: "flex", alignItems: "stretch",
       boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-      transition: "box-shadow 0.15s",
     }}>
-      {/* Image thumbnail */}
-      <div style={{ width: 90, flexShrink: 0, background: "var(--bg,#F7F8FA)",
+      {/* Image */}
+      <div style={{ width: 90, flexShrink: 0, background: "#fafafa",
         position: "relative", overflow: "hidden", cursor: "pointer" }}
         onClick={() => onView(product)}>
         {img
@@ -108,7 +103,6 @@ function ProductRow({ product, onEdit, onDelete, onToggleStatus, onView, deletin
               <Ico d={IC.img} size={26} color="rgba(0,0,0,0.15)"/>
             </div>
         }
-        {/* Status overlay dot */}
         <div style={{ position:"absolute", top:6, left:6, width:8, height:8,
           borderRadius:"50%", background:sColor,
           boxShadow:`0 0 0 2px rgba(255,255,255,0.8)` }}/>
@@ -116,42 +110,35 @@ function ProductRow({ product, onEdit, onDelete, onToggleStatus, onView, deletin
 
       {/* Info */}
       <div style={{ flex:1, padding:"12px 14px", minWidth:0, display:"flex", flexDirection:"column", gap:4 }}>
-        {/* Name */}
-        <div style={{ fontSize:14, fontWeight:800, color:"var(--text,#111)",
+        <div style={{ fontSize:14, fontWeight:800, color:"#111",
           whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", lineHeight:1.2 }}>
           {product.name}
         </div>
-
-        {/* Category tag */}
         {product.category && (
           <div style={{ display:"flex", alignItems:"center", gap:4 }}>
             <Ico d={IC.tag} size={11} color="#9CA3AF"/>
-            <span style={{ fontSize:11, color:"var(--muted,#9CA3AF)", fontWeight:500 }}>
+            <span style={{ fontSize:11, color:"#9CA3AF", fontWeight:500 }}>
               {product.category}
             </span>
           </div>
         )}
-
-        {/* Price row */}
         <div style={{ display:"flex", alignItems:"baseline", gap:7, marginTop:2 }}>
-          <span style={{ fontSize:15, fontWeight:900, color:"var(--text,#111)", letterSpacing:"-0.02em" }}>
+          <span style={{ fontSize:15, fontWeight:900, color:"#111", letterSpacing:"-0.02em" }}>
             {fmtMoney(product.price)}
           </span>
           {product.comparePrice > product.price && (
-            <span style={{ fontSize:11, color:"var(--muted,#9CA3AF)", textDecoration:"line-through", fontWeight:500 }}>
+            <span style={{ fontSize:11, color:"#9CA3AF", textDecoration:"line-through", fontWeight:500 }}>
               {fmtMoney(product.comparePrice)}
             </span>
           )}
         </div>
-
-        {/* Status + stock */}
         <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:2, flexWrap:"wrap" }}>
           <span style={{ fontSize:11, fontWeight:800, padding:"3px 10px", borderRadius:100,
             background:sBg, color:sColor, textTransform:"capitalize" }}>
             {status === "out of stock" ? "Out of Stock" : status.charAt(0).toUpperCase() + status.slice(1)}
           </span>
           {product.stock !== null && product.stock !== undefined && (
-            <span style={{ fontSize:11, color:"var(--muted,#9CA3AF)", fontWeight:600 }}>
+            <span style={{ fontSize:11, color:"#9CA3AF", fontWeight:600 }}>
               {product.stock} in stock
             </span>
           )}
@@ -164,27 +151,24 @@ function ProductRow({ product, onEdit, onDelete, onToggleStatus, onView, deletin
         </div>
       </div>
 
-      {/* Action column — icon + label */}
+      {/* Actions */}
       <div style={{ display:"flex", flexDirection:"column", justifyContent:"space-between",
         padding:"10px 10px 10px 0", gap:5, flexShrink:0 }}>
-
-        {/* Edit */}
         <button type="button" onClick={() => onEdit(product)}
           style={{ minWidth:54, padding:"5px 8px", borderRadius:9,
-            border:"1.5px solid rgba(0,0,0,0.1)", background:"var(--card,#fff)",
+            border:"1.5px solid rgba(0,0,0,0.1)", background:"#fff",
             cursor:"pointer", display:"flex", flexDirection:"column",
             alignItems:"center", gap:2, color:"#046EF2" }}>
           <Ico d={IC.edit} size={14} color="#046EF2"/>
           <span style={{ fontSize:9, fontWeight:800, color:"#046EF2", lineHeight:1 }}>Edit</span>
         </button>
 
-        {/* Toggle active/draft */}
         <button type="button" onClick={handleToggle} disabled={toggling}
           style={{ minWidth:54, padding:"5px 8px", borderRadius:9,
             border:`1.5px solid ${product.status==="active"?"rgba(34,197,94,0.3)":"rgba(0,0,0,0.1)"}`,
-            background: product.status==="active" ? "rgba(34,197,94,0.08)" : "var(--card,#fff)",
+            background: product.status==="active" ? "rgba(34,197,94,0.08)" : "#fff",
             cursor:"pointer", display:"flex", flexDirection:"column",
-            alignItems:"center", gap:2, opacity: toggling ? 0.5 : 1, transition:"all 0.15s" }}>
+            alignItems:"center", gap:2, opacity: toggling ? 0.5 : 1 }}>
           <Ico d={product.status==="active" ? IC.eye : IC.eyeoff} size={14}
             color={product.status==="active" ? "#22C55E" : "#9CA3AF"}/>
           <span style={{ fontSize:9, fontWeight:800, lineHeight:1,
@@ -193,21 +177,19 @@ function ProductRow({ product, onEdit, onDelete, onToggleStatus, onView, deletin
           </span>
         </button>
 
-        {/* View on marketplace */}
         <button type="button" onClick={() => onView(product)}
           style={{ minWidth:54, padding:"5px 8px", borderRadius:9,
-            border:"1.5px solid rgba(0,0,0,0.1)", background:"var(--card,#fff)",
+            border:"1.5px solid rgba(0,0,0,0.1)", background:"#fff",
             cursor:"pointer", display:"flex", flexDirection:"column",
             alignItems:"center", gap:2, color:"#9CA3AF" }}>
           <Ico d={IC.box} size={14} color="#9CA3AF"/>
           <span style={{ fontSize:9, fontWeight:800, color:"#9CA3AF", lineHeight:1 }}>View</span>
         </button>
 
-        {/* Delete */}
         <button type="button" onClick={() => onDelete(product)}
           disabled={deleting === product.id}
           style={{ minWidth:54, padding:"5px 8px", borderRadius:9,
-            border:"1.5px solid rgba(239,68,68,0.2)", background:"rgba(239,68,68,0.05)",
+            border:"1.5px solid rgba(239,68,68,0.2)", background:"rgba(239,68,68,0.04)",
             cursor:"pointer", display:"flex", flexDirection:"column",
             alignItems:"center", gap:2, opacity: deleting===product.id ? 0.5 : 1 }}>
           <Ico d={IC.trash} size={14} color="#EF4444"/>
@@ -218,7 +200,6 @@ function ProductRow({ product, onEdit, onDelete, onToggleStatus, onView, deletin
   );
 }
 
-/* ═══ MAIN ═══ */
 export default function DashboardProducts() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -227,7 +208,7 @@ export default function DashboardProducts() {
   const [products,     setProducts]     = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [deleting,     setDeleting]     = useState(null);
-  const [confirmProd,  setConfirmProd]  = useState(null); // product awaiting delete confirm
+  const [confirmProd,  setConfirmProd]  = useState(null);
   const [search,       setSearch]       = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
@@ -247,7 +228,6 @@ export default function DashboardProducts() {
 
   const handleEdit   = (p) => navigate(`/seller-dashboard/products/${p.id}`);
   const handleView   = (p) => navigate(`/product/${p.id}`);
-
   const handleDelete = (p) => setConfirmProd(p);
 
   const confirmDelete = async () => {
@@ -265,15 +245,12 @@ export default function DashboardProducts() {
     const newStatus = product.status === "active" ? "draft" : "active";
     try {
       await updateDoc(doc(db, "Products", product.id), {
-        status:    newStatus,
-        inStock:   newStatus === "active",
-        updatedAt: serverTimestamp(),
+        status: newStatus, inStock: newStatus === "active", updatedAt: serverTimestamp(),
       });
       setProducts(ps => ps.map(p => p.id === product.id ? { ...p, status:newStatus, inStock:newStatus==="active" } : p));
     } catch (e) { alert("Failed to update status."); console.error(e); }
   };
 
-  /* Filtered list */
   const filtered = products.filter(p => {
     const matchSearch = !search.trim() || p.name?.toLowerCase().includes(search.toLowerCase());
     const st = p.status === "active" ? "Active" : p.inStock === false ? "Out of Stock" : "Draft";
@@ -284,23 +261,20 @@ export default function DashboardProducts() {
   const active   = products.filter(p => p.status === "active").length;
   const draft    = products.filter(p => p.status === "draft").length;
   const outOfStock = products.filter(p => p.inStock === false || p.stock === 0).length;
-  // Import plan limits directly as safety net in case planLimits hasn't loaded
   const FALLBACK_LIMITS = { basic:5, free:5, starter:10, growth:25, standard:25, pro:500 };
-  const maxProds = planLimits?.maxProducts
-    || FALLBACK_LIMITS[(subscriptionPlan||"basic").toLowerCase()]
-    || 5;
+  const maxProds = planLimits?.maxProducts || FALLBACK_LIMITS[(subscriptionPlan||"basic").toLowerCase()] || 5;
   const usedPct  = Math.min((products.length / maxProds) * 100, 100);
   const atLimit  = products.length >= maxProds;
   const planName = (subscriptionPlan || "basic").charAt(0).toUpperCase() + (subscriptionPlan||"basic").slice(1);
 
   return (
-    <div style={{ fontFamily:"var(--font-main,'Nunito',sans-serif)" }}>
+    <div style={{ fontFamily:"var(--font-main,'Nunito',sans-serif)", background:"#fff" }}>
 
       {/* Page header */}
       <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:20 }}>
         <div>
-          <div style={{ fontSize:22, fontWeight:900, color:"var(--text,#111)", letterSpacing:"-0.03em" }}>Products</div>
-          <div style={{ fontSize:13, color:"var(--muted,#9CA3AF)", fontWeight:500, marginTop:3 }}>
+          <div style={{ fontSize:22, fontWeight:900, color:"#111", letterSpacing:"-0.03em" }}>Products</div>
+          <div style={{ fontSize:13, color:"#9CA3AF", fontWeight:500, marginTop:3 }}>
             {products.length} / {maxProds} products · {active} active · {draft} draft
           </div>
         </div>
@@ -308,36 +282,37 @@ export default function DashboardProducts() {
           onClick={() => atLimit ? navigate("/seller-dashboard?tab=subscription") : navigate("/seller-dashboard/products/new")}
           style={{ display:"flex", alignItems:"center", gap:7, padding:"10px 20px",
             borderRadius:12, border:"none",
-            background: atLimit ? "#F59E0B" : "#046EF2",
+            background: atLimit ? "#F59E0B" : "#111",
             color:"#fff", fontSize:14, fontWeight:800, cursor:"pointer",
-            fontFamily:"inherit", boxShadow:"0 4px 14px rgba(4,110,242,0.3)" }}>
+            fontFamily:"inherit", boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
           <Ico d={atLimit ? "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" : IC.plus} size={15} color="#fff"/>
           {atLimit ? "Upgrade Plan" : "+ Add Product"}
         </button>
       </div>
 
       {/* Plan usage bar */}
-      <div style={{ background:"var(--card,#fff)", borderRadius:14, border:"1px solid rgba(0,0,0,0.07)",
+      <div style={{ background:"#fff", borderRadius:14, border:"1px solid rgba(0,0,0,0.08)",
         padding:"14px 18px", marginBottom:12 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-          <span style={{ fontSize:13, fontWeight:700, color:"var(--muted,#6B7280)" }}>
+          <span style={{ fontSize:13, fontWeight:700, color:"#6B7280" }}>
             Product Usage — {planName} Plan
           </span>
-          <span style={{ fontSize:13, fontWeight:900, color: atLimit ? "#EF4444" : "#046EF2" }}>
+          <span style={{ fontSize:13, fontWeight:900, color: atLimit ? "#EF4444" : "#111" }}>
             {products.length} / {maxProds}
           </span>
         </div>
         <div style={{ height:5, background:"rgba(0,0,0,0.07)", borderRadius:3, overflow:"hidden" }}>
           <div style={{ height:"100%", width:`${usedPct}%`,
-            background: atLimit ? "#EF4444" : usedPct > 80 ? "#F59E0B" : "#046EF2",
+            background: atLimit ? "#EF4444" : usedPct > 80 ? "#F59E0B" : "#111",
             borderRadius:3, transition:"width 0.5s ease" }}/>
         </div>
         {atLimit && (
           <div style={{ fontSize:12, color:"#EF4444", fontWeight:700, marginTop:6 }}>
-            Product limit reached. <button type="button"
+            Product limit reached.{" "}
+            <button type="button"
               onClick={() => navigate("/seller-dashboard?tab=subscription")}
-              style={{ background:"none", border:"none", cursor:"pointer", color:"#046EF2",
-                fontWeight:800, fontSize:12, fontFamily:"inherit", padding:0 }}>
+              style={{ background:"none", border:"none", cursor:"pointer", color:"#111",
+                fontWeight:800, fontSize:12, fontFamily:"inherit", padding:0, textDecoration:"underline" }}>
               Upgrade your plan →
             </button>
           </div>
@@ -351,20 +326,19 @@ export default function DashboardProducts() {
           { label:"Draft",        val:draft,       color:"#9CA3AF" },
           { label:"Out of Stock", val:outOfStock,  color:"#EF4444" },
         ].map(s => (
-          <div key={s.label} style={{ background:"var(--card,#fff)", borderRadius:12,
-            border:"1px solid rgba(0,0,0,0.07)", padding:"14px 12px", textAlign:"center" }}>
+          <div key={s.label} style={{ background:"#fff", borderRadius:12,
+            border:"1px solid rgba(0,0,0,0.08)", padding:"14px 12px", textAlign:"center" }}>
             <div style={{ fontSize:26, fontWeight:900, color:s.color, letterSpacing:"-0.03em", lineHeight:1 }}>
               {s.val}
             </div>
-            <div style={{ fontSize:11, color:"var(--muted,#9CA3AF)", fontWeight:600, marginTop:4 }}>{s.label}</div>
+            <div style={{ fontSize:11, color:"#9CA3AF", fontWeight:600, marginTop:4 }}>{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* Search + filter */}
-      <div style={{ background:"var(--card,#fff)", borderRadius:14, border:"1px solid rgba(0,0,0,0.07)",
+      <div style={{ background:"#fff", borderRadius:14, border:"1px solid rgba(0,0,0,0.08)",
         padding:"12px 14px", marginBottom:14 }}>
-        {/* Search */}
         <div style={{ position:"relative", marginBottom:10 }}>
           <div style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:"#9CA3AF", pointerEvents:"none" }}>
             <Ico d={IC.search} size={15}/>
@@ -373,19 +347,17 @@ export default function DashboardProducts() {
             placeholder="Search products…"
             style={{ width:"100%", height:40, paddingLeft:38, paddingRight:14,
               border:"1.5px solid rgba(0,0,0,0.08)", borderRadius:10,
-              background:"var(--bg,#F7F8FA)", color:"var(--text,#111)",
+              background:"#fafafa", color:"#111",
               fontSize:14, fontWeight:500, outline:"none", fontFamily:"inherit",
               boxSizing:"border-box" }}/>
         </div>
-
-        {/* Status filter pills */}
         <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
           {STATUS_OPTS.map(opt => (
             <button key={opt} type="button" onClick={() => setStatusFilter(opt)}
               style={{ padding:"6px 14px", borderRadius:100, border:"1.5px solid",
                 borderColor: statusFilter===opt ? "#046EF2" : "rgba(0,0,0,0.1)",
                 background: statusFilter===opt ? "#046EF2" : "transparent",
-                color: statusFilter===opt ? "#fff" : "var(--text,#333)",
+                color: statusFilter===opt ? "#fff" : "#333",
                 fontSize:12, fontWeight:700, cursor:"pointer",
                 fontFamily:"inherit", transition:"all 0.15s" }}>
               {opt}
@@ -394,30 +366,13 @@ export default function DashboardProducts() {
         </div>
       </div>
 
-      {/* Controls legend */}
-      {products.length > 0 && (
-        <div style={{ display:"flex", gap:16, marginBottom:10, paddingLeft:2 }}>
-          {[
-            { icon:IC.edit,   color:"#046EF2", label:"Edit" },
-            { icon:IC.eye,    color:"#22C55E", label:"Toggle Active/Draft" },
-            { icon:IC.box,    color:"#9CA3AF", label:"View on Marketplace" },
-            { icon:IC.trash,  color:"#EF4444", label:"Delete" },
-          ].map(l => (
-            <div key={l.label} style={{ display:"flex", alignItems:"center", gap:5 }}>
-              <Ico d={l.icon} size={12} color={l.color}/>
-              <span style={{ fontSize:11, color:"var(--muted,#9CA3AF)", fontWeight:600 }}>{l.label}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Product list */}
       {loading
         ? [1,2,3].map(i => (
-            <div key={i} style={{ background:"var(--card,#fff)", borderRadius:14,
-              border:"1px solid rgba(0,0,0,0.07)", height:90,
+            <div key={i} style={{ background:"#fff", borderRadius:14,
+              border:"1px solid rgba(0,0,0,0.08)", height:90,
               marginBottom:8, overflow:"hidden", display:"flex" }}>
-              <div style={{ width:90, background:"rgba(0,0,0,0.06)", animation:"dpPulse 1.4s ease infinite" }}/>
+              <div style={{ width:90, background:"rgba(0,0,0,0.05)" }}/>
               <div style={{ flex:1, padding:"14px 16px" }}>
                 <div style={{ height:13, width:"60%", background:"rgba(0,0,0,0.07)", borderRadius:4, marginBottom:8 }}/>
                 <div style={{ height:11, width:"35%", background:"rgba(0,0,0,0.05)", borderRadius:4 }}/>
@@ -426,24 +381,22 @@ export default function DashboardProducts() {
           ))
         : filtered.length === 0
           ? (
-            <div style={{ background:"var(--card,#fff)", borderRadius:16,
-              border:"1px solid rgba(0,0,0,0.07)", padding:"50px 20px", textAlign:"center" }}>
+            <div style={{ background:"#fff", borderRadius:16,
+              border:"1px solid rgba(0,0,0,0.08)", padding:"50px 20px", textAlign:"center" }}>
               <div style={{ marginBottom:14 }}><Ico d={IC.box} size={44} color="rgba(0,0,0,0.12)"/></div>
-              <div style={{ fontSize:16, fontWeight:800, color:"var(--text,#111)", marginBottom:6 }}>
+              <div style={{ fontSize:16, fontWeight:800, color:"#111", marginBottom:6 }}>
                 {products.length === 0 ? "No products yet" : "No products match your search"}
               </div>
-              <div style={{ fontSize:13, color:"var(--muted,#9CA3AF)", marginBottom:22, lineHeight:1.5 }}>
-                {products.length === 0
-                  ? "Add your first product to start selling on Beme Market."
-                  : "Try a different search or filter."}
+              <div style={{ fontSize:13, color:"#9CA3AF", marginBottom:22, lineHeight:1.5 }}>
+                {products.length === 0 ? "Add your first product to start selling on Beme Market." : "Try a different search or filter."}
               </div>
               {products.length === 0 && (
                 <button type="button"
                   onClick={() => navigate("/seller-dashboard/products/new")}
                   style={{ padding:"12px 28px", borderRadius:12, border:"none",
-                    background:"#046EF2", color:"#fff", fontSize:14, fontWeight:800,
+                    background:"#111", color:"#fff", fontSize:14, fontWeight:800,
                     cursor:"pointer", fontFamily:"inherit",
-                    boxShadow:"0 4px 14px rgba(4,110,242,0.3)" }}>
+                    boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
                   + Add First Product
                 </button>
               )}
@@ -453,17 +406,14 @@ export default function DashboardProducts() {
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
               {filtered.map(p => (
                 <ProductRow key={p.id} product={p}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onToggleStatus={handleToggleStatus}
-                  onView={handleView}
+                  onEdit={handleEdit} onDelete={handleDelete}
+                  onToggleStatus={handleToggleStatus} onView={handleView}
                   deleting={deleting}/>
               ))}
             </div>
           )
       }
 
-      {/* Delete confirm modal */}
       {confirmProd && (
         <Confirm
           name={confirmProd.name}
@@ -471,9 +421,7 @@ export default function DashboardProducts() {
           onCancel={() => setConfirmProd(null)}/>
       )}
 
-      <style>{`
-        @keyframes dpPulse { 0%,100%{opacity:.45} 50%{opacity:.85} }
-      `}</style>
+      <style>{`@keyframes dpPulse { 0%,100%{opacity:.45} 50%{opacity:.85} }`}</style>
     </div>
   );
 }
