@@ -1,11 +1,11 @@
 /* =========================================
-   PINTEREST-STYLE BEME MARKET LOADER
+   PINTEREST-STYLE BEME LOADER
 ========================================= */
 
 .loader-overlay {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 99999;
 
   display: flex;
   align-items: center;
@@ -32,21 +32,20 @@
   position: absolute;
   inset: 0;
 
-  background: var(--bg, #f8f8f8);
+  background: #f3f3f3;
 
-  transition:
-    background 300ms ease;
+  transition: background 300ms ease;
 }
 
 body.dark .loader-overlay-backdrop {
-  background: #0d0d0d;
+  background: #0f0f10;
 }
 
 /* =========================================
    CENTER
 ========================================= */
 
-.loader-overlay-center {
+.loader-center {
   position: relative;
   z-index: 2;
 
@@ -54,304 +53,314 @@ body.dark .loader-overlay-backdrop {
   flex-direction: column;
   align-items: center;
 
-  gap: 22px;
+  transform: translateY(-20px);
 
-  animation: fadeUp 0.45s ease;
+  animation: loaderFade 0.4s ease;
 }
 
-@keyframes fadeUp {
+@keyframes loaderFade {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(-8px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(-20px);
   }
 }
 
 /* =========================================
-   CART ANIMATION
+   ANIMATION AREA
 ========================================= */
 
-.cart-loader {
+.loader-animation {
   position: relative;
 
-  width: 150px;
-  height: 120px;
+  width: 78px;
+  height: 82px;
+
+  margin-bottom: 8px;
 }
 
-/* ---------------------------
+/* =========================================
    CART
----------------------------- */
+========================================= */
 
-.cart-body {
+.cart {
   position: absolute;
-  bottom: 0;
   left: 50%;
+  bottom: 0;
 
   transform: translateX(-50%);
 }
 
 .cart-basket {
-  width: 70px;
-  height: 34px;
+  position: relative;
 
-  border: 5px solid rgba(40, 40, 40, 0.9);
+  width: 42px;
+  height: 28px;
+
+  border: 4px solid #3d3d3f;
   border-top: none;
 
-  border-radius: 0 0 14px 14px;
+  border-radius: 0 0 10px 10px;
 }
 
 body.dark .cart-basket {
-  border-color: rgba(240, 240, 240, 0.9);
+  border-color: rgba(255, 255, 255, 0.88);
 }
 
 .cart-handle {
   position: absolute;
 
-  width: 34px;
-  height: 5px;
+  width: 18px;
+  height: 4px;
 
-  background: rgba(40, 40, 40, 0.9);
+  background: #3d3d3f;
 
-  top: -4px;
-  left: -16px;
+  left: -5px;
+  top: 4px;
 
-  border-radius: 20px;
+  border-radius: 999px;
 
-  transform: rotate(-65deg);
+  transform: rotate(-62deg);
   transform-origin: right center;
 }
 
 body.dark .cart-handle {
-  background: rgba(240, 240, 240, 0.9);
+  background: rgba(255, 255, 255, 0.88);
 }
 
-/* wheels */
+/* Wheels */
 
 .wheel {
   position: absolute;
-  bottom: -12px;
+  bottom: -11px;
 
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 
   border-radius: 50%;
 
-  background: rgba(40, 40, 40, 0.9);
+  background: #3d3d3f;
 }
 
 body.dark .wheel {
-  background: rgba(240, 240, 240, 0.9);
+  background: rgba(255, 255, 255, 0.88);
 }
 
-.wheel.left {
-  left: 6px;
+.wheel-left {
+  left: 2px;
 }
 
-.wheel.right {
-  right: 6px;
+.wheel-right {
+  right: 2px;
 }
 
 /* =========================================
    FLOATING ITEMS
 ========================================= */
 
-.floating-item {
+.item {
   position: absolute;
 
   opacity: 0;
 
-  animation-duration: 1.6s;
-  animation-timing-function: ease-in-out;
+  animation-duration: 1.5s;
   animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
 }
 
 /* Shirt */
 
 .item-shirt {
-  width: 18px;
-  height: 16px;
+  width: 12px;
+  height: 11px;
 
-  background: rgba(90, 90, 90, 0.45);
+  left: 34px;
+  top: -2px;
 
-  top: 0;
-  left: 50%;
+  background: rgba(120, 120, 120, 0.5);
 
   clip-path: polygon(
     18% 0%,
-    35% 0%,
+    34% 0%,
     42% 12%,
     58% 12%,
-    65% 0%,
+    66% 0%,
     82% 0%,
-    100% 25%,
-    82% 40%,
+    100% 24%,
+    82% 42%,
     82% 100%,
     18% 100%,
-    18% 40%,
-    0% 25%
+    18% 42%,
+    0% 24%
   );
 
   animation-name: dropShirt;
 }
 
 body.dark .item-shirt {
-  background: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.4);
 }
 
 /* Ball */
 
 .item-ball {
-  width: 10px;
-  height: 10px;
+  width: 7px;
+  height: 7px;
 
   border-radius: 50%;
 
-  background: rgba(90, 90, 90, 0.45);
+  left: 56px;
+  top: 5px;
 
-  top: 8px;
-  left: 70%;
+  background: rgba(120, 120, 120, 0.5);
 
   animation-name: dropBall;
-  animation-delay: 0.15s;
+  animation-delay: 0.1s;
 }
 
 body.dark .item-ball {
-  background: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.4);
 }
 
 /* Shoe */
 
 .item-shoe {
-  width: 20px;
-  height: 8px;
+  width: 14px;
+  height: 6px;
 
-  background: rgba(90, 90, 90, 0.45);
-
-  top: 36px;
-  left: 30%;
+  left: 12px;
+  top: 12px;
 
   border-radius: 10px 4px 4px 10px;
 
-  transform: rotate(-12deg);
+  background: rgba(120, 120, 120, 0.45);
+
+  transform: rotate(-10deg);
 
   animation-name: dropShoe;
-  animation-delay: 0.3s;
+  animation-delay: 0.2s;
 }
 
 body.dark .item-shoe {
-  background: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.4);
 }
 
-/* Game */
+/* Gamepad */
 
-.item-game {
-  width: 18px;
-  height: 10px;
+.item-gamepad {
+  width: 12px;
+  height: 7px;
 
-  border-radius: 10px;
+  left: 50px;
+  top: 18px;
 
-  border: 3px solid rgba(90, 90, 90, 0.45);
+  border: 2px solid rgba(160, 160, 160, 0.3);
 
-  top: 44px;
-  left: 63%;
+  border-radius: 999px;
 
-  animation-name: dropGame;
-  animation-delay: 0.45s;
+  animation-name: dropGamepad;
+  animation-delay: 0.3s;
 }
 
-body.dark .item-game {
-  border-color: rgba(255, 255, 255, 0.45);
+body.dark .item-gamepad {
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
 /* =========================================
-   DROP ANIMATIONS
+   DROP MOTION
 ========================================= */
 
 @keyframes dropShirt {
   0% {
     opacity: 0;
-    transform: translateY(-10px) scale(0.7);
+    transform: translateY(-4px) scale(0.7);
   }
 
-  20% {
+  25% {
     opacity: 1;
   }
 
-  70% {
+  75% {
     opacity: 1;
-    transform: translateY(68px) scale(1);
+    transform: translateY(40px) scale(1);
   }
 
   100% {
     opacity: 0;
-    transform: translateY(86px) scale(0.5);
+    transform: translateY(52px) scale(0.5);
   }
 }
 
 @keyframes dropBall {
   0% {
     opacity: 0;
-    transform: translateY(-10px) scale(0.6);
+    transform: translateY(-4px) scale(0.7);
   }
 
-  20% {
+  25% {
     opacity: 1;
   }
 
-  70% {
+  75% {
     opacity: 1;
-    transform: translateY(58px) scale(1);
+    transform: translateY(35px) scale(1);
   }
 
   100% {
     opacity: 0;
-    transform: translateY(76px) scale(0.5);
+    transform: translateY(46px) scale(0.5);
   }
 }
 
 @keyframes dropShoe {
   0% {
     opacity: 0;
-    transform: translateY(-10px) rotate(-12deg) scale(0.7);
+    transform: translateY(-4px)
+      rotate(-10deg)
+      scale(0.7);
   }
 
-  20% {
+  25% {
     opacity: 1;
   }
 
-  70% {
+  75% {
     opacity: 1;
-    transform: translateY(44px) rotate(-12deg) scale(1);
+    transform: translateY(30px)
+      rotate(-10deg)
+      scale(1);
   }
 
   100% {
     opacity: 0;
-    transform: translateY(66px) rotate(-12deg) scale(0.5);
+    transform: translateY(42px)
+      rotate(-10deg)
+      scale(0.5);
   }
 }
 
-@keyframes dropGame {
+@keyframes dropGamepad {
   0% {
     opacity: 0;
-    transform: translateY(-10px) scale(0.7);
+    transform: translateY(-4px) scale(0.7);
   }
 
-  20% {
+  25% {
     opacity: 1;
   }
 
-  70% {
+  75% {
     opacity: 1;
-    transform: translateY(34px) scale(1);
+    transform: translateY(26px) scale(1);
   }
 
   100% {
     opacity: 0;
-    transform: translateY(58px) scale(0.5);
+    transform: translateY(40px) scale(0.5);
   }
 }
 
@@ -364,107 +373,103 @@ body.dark .item-game {
   flex-direction: column;
   align-items: center;
 
-  gap: 6px;
-}
-
-.loader-brand {
-  margin: 0;
-
-  font-size: 15px;
-  font-weight: 600;
-
-  color: rgba(20, 20, 20, 0.92);
-
-  letter-spacing: -0.02em;
-
-  font-family:
-    "Inter",
-    "Manrope",
-    sans-serif;
-}
-
-body.dark .loader-brand {
-  color: rgba(255, 255, 255, 0.92);
-}
-
-.loader-loading-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.loader-loading-text {
-  font-size: 12px;
-  font-weight: 500;
-
-  color: rgba(100, 100, 100, 0.7);
-
-  text-transform: lowercase;
-
-  letter-spacing: 0.02em;
-}
-
-body.dark .loader-loading-text {
-  color: rgba(255, 255, 255, 0.45);
-}
-
-/* =========================================
-   TICKING DOTS
-========================================= */
-
-.loader-ticking-dots {
-  display: flex;
-  align-items: center;
   gap: 4px;
 }
 
-.loader-ticking-dots span {
-  width: 4px;
-  height: 4px;
+.loader-title {
+  margin: 0;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  color: #242426;
+
+  letter-spacing: -0.03em;
+
+  font-family:
+    Inter,
+    Manrope,
+    sans-serif;
+}
+
+body.dark .loader-title {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* =========================================
+   LOADING ROW
+========================================= */
+
+.loader-loading {
+  display: flex;
+  align-items: center;
+
+  gap: 4px;
+}
+
+.loader-loading-text {
+  font-size: 8px;
+  font-weight: 500;
+
+  letter-spacing: 0.02em;
+
+  color: rgba(120, 120, 120, 0.78);
+
+  text-transform: lowercase;
+
+  font-family:
+    Inter,
+    sans-serif;
+}
+
+body.dark .loader-loading-text {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+/* =========================================
+   DOTS
+========================================= */
+
+.loader-dots {
+  display: flex;
+  align-items: center;
+
+  gap: 3px;
+}
+
+.loader-dots span {
+  width: 3px;
+  height: 3px;
 
   border-radius: 50%;
 
-  background: rgba(120, 120, 120, 0.5);
+  background: rgba(160, 160, 160, 0.6);
 
-  animation: ticking 1.2s infinite;
+  animation: pulseDot 1s infinite ease-in-out;
 }
 
-body.dark .loader-ticking-dots span {
-  background: rgba(255, 255, 255, 0.55);
+body.dark .loader-dots span {
+  background: rgba(255, 255, 255, 0.5);
 }
 
-.loader-ticking-dots span:nth-child(2) {
-  animation-delay: 0.2s;
+.loader-dots span:nth-child(2) {
+  animation-delay: 0.15s;
 }
 
-.loader-ticking-dots span:nth-child(3) {
-  animation-delay: 0.4s;
+.loader-dots span:nth-child(3) {
+  animation-delay: 0.3s;
 }
 
-@keyframes ticking {
+@keyframes pulseDot {
   0%,
   100% {
-    opacity: 0.25;
+    opacity: 0.3;
     transform: translateY(0);
   }
 
   50% {
     opacity: 1;
-    transform: translateY(-2px);
-  }
-}
-
-/* =========================================
-   MOBILE POLISH
-========================================= */
-
-@media (max-width: 768px) {
-  .cart-loader {
-    transform: scale(0.95);
-  }
-
-  .loader-brand {
-    font-size: 14px;
+    transform: translateY(-1px);
   }
 }
 
@@ -473,13 +478,13 @@ body.dark .loader-ticking-dots span {
 ========================================= */
 
 @media (prefers-reduced-motion: reduce) {
-  .floating-item,
-  .loader-overlay-center,
-  .loader-ticking-dots span {
+  .item,
+  .loader-dots span,
+  .loader-center {
     animation: none !important;
   }
 
-  .floating-item {
+  .item {
     opacity: 0.7;
   }
 }
