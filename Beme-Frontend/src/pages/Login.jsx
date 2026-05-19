@@ -3,14 +3,14 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
+  sendPasswordResetEmail,
   GoogleAuthProvider,
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import "./Auth.css";
 
-const RESET_COOLDOWN_MS = 45000;
-const RESET_TIMEOUT_MS  = 20000;
+const RESET_COOLDOWN_MS = 60000; // 60s between resets
 
 function isValidEmail(v) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || "").trim());
@@ -18,17 +18,8 @@ function isValidEmail(v) {
 function normalizeEmail(v) {
   return String(v || "").trim().toLowerCase();
 }
-function getApiBaseUrl() {
-  const raw = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || "http://localhost:5000";
-  return String(raw).replace(/\/+$/, "");
-}
-async function fetchWithTimeout(url, opts = {}, ms = RESET_TIMEOUT_MS) {
-  const ctrl = new AbortController();
-  const t = window.setTimeout(() => ctrl.abort(), ms);
-  try { return await fetch(url, { ...opts, signal: ctrl.signal }); }
-  finally { window.clearTimeout(t); }
-}
 
+/* ── Icons ── */
 function EyeIcon({ open }) {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -164,12 +155,13 @@ export default function Login() {
   const [showPass,   setShowPass]   = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
-  const [loading,      setLoading]      = useState(false);
-  const [googleLoading,setGoogleLoading]= useState(false);
-  const [err,          setErr]          = useState("");
-  const [msg,          setMsg]          = useState("");
-  const [resetLoading, setResetLoading] = useState(false);
-  const [lastResetAt,  setLastResetAt]  = useState(0);
+  const [loading,       setLoading]       = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [resetLoading,  setResetLoading]  = useState(false);
+  const [lastResetAt,   setLastResetAt]   = useState(0);
+
+  const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
 
   const resetCooldownLeft = useMemo(() => {
     const rem = RESET_COOLDOWN_MS - (Date.now() - lastResetAt);
@@ -178,6 +170,7 @@ export default function Login() {
 
   const anyLoading = loading || googleLoading || resetLoading;
 
+  // ── Email / password sign in ─────────────────────────────────────────────
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr(""); setMsg("");
@@ -198,14 +191,20 @@ export default function Login() {
       navigate(redirectTo, { replace: true });
     } catch (e) {
       const code = e?.code || "";
-      if (code.includes("auth/invalid-credential") || code.includes("auth/user-not-found") || code.includes("auth/wrong-password"))
+      if (code.includes("auth/invalid-credential") ||
+          code.includes("auth/user-not-found")     ||
+          code.includes("auth/wrong-password"))
         setErr("Invalid email or password.");
-      else if (code.includes("auth/invalid-email"))  setErr("Invalid email address.");
-      else if (code.includes("auth/too-many-requests")) setErr("Too many attempts. Please wait.");
-      else setErr("Login failed. Try again.");
+      else if (code.includes("auth/invalid-email"))
+        setErr("Invalid email address.");
+      else if (code.includes("auth/too-many-requests"))
+        setErr("Too many attempts. Please wait a moment.");
+      else
+        setErr("Sign in failed. Try again.");
     } finally { setLoading(false); }
   };
 
+  // ── Google sign in ───────────────────────────────────────────────────────
   const handleGoogle = async () => {
     setErr(""); setMsg("");
     setGoogleLoading(true);
@@ -236,32 +235,49 @@ export default function Login() {
       navigate(redirectTo, { replace: true });
     } catch (e) {
       const code = e?.code || "";
-      if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") return;
+      if (code === "auth/popup-closed-by-user" ||
+          code === "auth/cancelled-popup-request") return;
       setErr("Google sign-in failed. Try again.");
     } finally { setGoogleLoading(false); }
   };
 
+  // ── Forgot password ──────────────────────────────────────────────────────
+  // Uses Firebase's native sendPasswordResetEmail — no backend needed,
+  // no timeouts, and goes through Brevo SMTP so it lands in inbox.
   const onForgot = async () => {
     if (anyLoading) return;
     setErr(""); setMsg("");
     const emailTrim = normalizeEmail(email);
     if (!emailTrim)               { setErr("Enter your email address first.");    return; }
     if (!isValidEmail(emailTrim)) { setErr("Enter a valid email address first."); return; }
+
     const cooldownRem = RESET_COOLDOWN_MS - (Date.now() - lastResetAt);
-    if (cooldownRem > 0) { setErr(`Wait ${Math.ceil(cooldownRem / 1000)}s before trying again.`); return; }
+    if (cooldownRem > 0) {
+      setErr(`Wait ${Math.ceil(cooldownRem / 1000)}s before trying again.`);
+      return;
+    }
+
     setResetLoading(true);
     try {
-      const res  = await fetchWithTimeout(`${getApiBaseUrl()}/api/auth/forgot-password`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: emailTrim }),
+      await sendPasswordResetEmail(auth, emailTrim, {
+        // After resetting, send user back to login page
+        url: `${window.location.origin}/login`,
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.message || "Could not send reset email.");
       setLastResetAt(Date.now());
-      setMsg(data?.message || "If an account exists, a reset link has been sent.");
+      setMsg("Password reset email sent — check your inbox.");
     } catch (e) {
-      if (e?.name === "AbortError") setErr("Reset request timed out.");
-      else setErr(e?.message || "Could not send reset email. Try again.");
+      const code = e?.code || "";
+      // Don't reveal whether an account exists — always show success
+      if (code === "auth/user-not-found") {
+        setLastResetAt(Date.now());
+        setMsg("If an account exists for this email, a reset link has been sent.");
+      } else if (code.includes("auth/invalid-email")) {
+        setErr("Invalid email address.");
+      } else if (code.includes("auth/too-many-requests")) {
+        setErr("Too many requests. Please wait before trying again.");
+      } else {
+        setErr("Could not send reset email. Try again.");
+      }
     } finally { setResetLoading(false); }
   };
 
@@ -274,7 +290,7 @@ export default function Login() {
         <Link to="/" className="auth-logo">
           <div className="auth-logo-mark">
             <img src="/Favicon-white.PNG" alt="" width="22" height="22"
-            style={{ objectFit: "contain" }} />
+              style={{ objectFit: "contain" }} />
           </div>
           <span className="auth-logo-name">Beme Market</span>
         </Link>
@@ -287,7 +303,7 @@ export default function Login() {
           <button className="auth-btn-social" onClick={handleGoogle}
             disabled={anyLoading} type="button">
             {googleLoading ? <Spinner dark /> : <GoogleLogo />}
-            Continue with Google
+            {googleLoading ? "Signing in…" : "Continue with Google"}
           </button>
         </div>
 
@@ -331,16 +347,26 @@ export default function Login() {
               </button>
               <span className="auth-check-label">Remember me</span>
             </div>
-            <button type="button" className="auth-forgot" onClick={onForgot} disabled={anyLoading}>
-              {resetLoading ? "Sending…" : resetCooldownLeft > 0 ? `Retry in ${resetCooldownLeft}s` : "Forgot password?"}
+            <button type="button" className="auth-forgot"
+              onClick={onForgot} disabled={anyLoading}>
+              {resetLoading
+                ? "Sending…"
+                : resetCooldownLeft > 0
+                ? `Retry in ${resetCooldownLeft}s`
+                : "Forgot password?"}
             </button>
           </div>
 
           {err && <div className="auth-alert auth-alert--error" role="alert">{err}</div>}
           {msg && <div className="auth-alert auth-alert--ok"    role="status">{msg}</div>}
 
+          {/* Primary sign in button — shows spinner while loading */}
           <button className="auth-btn-primary" type="submit" disabled={anyLoading}>
-            {loading ? <><Spinner /> Signing in…</> : "Sign in"}
+            {loading
+              ? <><Spinner /> Signing in…</>
+              : resetLoading
+              ? <><Spinner /> Sending reset…</>
+              : "Sign in"}
           </button>
 
           <button type="button" className="auth-btn-ghost"
