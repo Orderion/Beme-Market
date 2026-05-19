@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { reload } from "firebase/auth";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { applyActionCode, reload } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { auth } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import "./Auth.css";
 
-const cloudResend = httpsCallable(getFunctions(), "resendVerificationEmail");
+const cloudResend      = httpsCallable(getFunctions(), "resendVerificationEmail");
 const RESEND_COOLDOWN_S = 60;
 
+/* ── Icons ── */
 function MailIcon() {
   return (
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
@@ -31,13 +32,33 @@ function CheckCircleIcon() {
   );
 }
 
+function SuccessIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.6"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="9 12 11 14 15 10" />
+    </svg>
+  );
+}
+
 function Spinner() {
   return <span className="auth-spinner" aria-hidden="true" />;
 }
 
 export default function VerifyEmail() {
-  const { user }  = useAuth();
-  const navigate  = useNavigate();
+  const { user }         = useAuth();
+  const navigate         = useNavigate();
+  const [searchParams]   = useSearchParams();
+
+  // URL params from email link (e.g. ?mode=verifyEmail&oobCode=xxx)
+  const mode    = searchParams.get("mode");
+  const oobCode = searchParams.get("oobCode");
+
+  const [applying,  setApplying]  = useState(false);
+  const [applyDone, setApplyDone] = useState(false);
+  const [applyErr,  setApplyErr]  = useState("");
 
   const [checking,  setChecking]  = useState(false);
   const [resending, setResending] = useState(false);
@@ -49,16 +70,55 @@ export default function VerifyEmail() {
   const currentUser  = auth.currentUser;
   const displayEmail = currentUser?.email || user?.email || "";
 
+  // ── Handle email link click (mode=verifyEmail&oobCode=xxx) ──────────────
+  // This runs when the user clicks the link from their email and
+  // lands on /verify-email?mode=verifyEmail&oobCode=...
   useEffect(() => {
-    if (!currentUser) navigate("/signup", { replace: true });
-  }, [currentUser, navigate]);
+    if (mode !== "verifyEmail" || !oobCode) return;
 
+    setApplying(true);
+    setApplyErr("");
+
+    applyActionCode(auth, oobCode)
+      .then(async () => {
+        // Code applied — reload the user token to get fresh emailVerified = true
+        if (auth.currentUser) {
+          await reload(auth.currentUser);
+        }
+        setApplyDone(true);
+        setApplying(false);
+        // Redirect after a short pause so the user sees the success state
+        setTimeout(() => navigate("/onboarding", { replace: true }), 1800);
+      })
+      .catch((err) => {
+        const code = err?.code || "";
+        if (code === "auth/expired-action-code")
+          setApplyErr("This verification link has expired. Request a new one below.");
+        else if (code === "auth/invalid-action-code")
+          setApplyErr("This link has already been used or is invalid. Request a new one below.");
+        else if (code === "auth/user-disabled")
+          setApplyErr("This account has been disabled. Contact support.");
+        else
+          setApplyErr("Could not verify your email. Please request a new link.");
+        setApplying(false);
+      });
+  }, [mode, oobCode, navigate]);
+
+  // ── Guard: already verified (no oobCode in URL) ────────────────────────
   useEffect(() => {
+    if (mode === "verifyEmail") return; // Let oobCode handler manage this
     if (currentUser?.emailVerified) navigate("/onboarding", { replace: true });
-  }, [currentUser, navigate]);
+  }, [currentUser, navigate, mode]);
 
-  /* Auto-poll every 5s */
+  // ── Guard: not logged in ───────────────────────────────────────────────
   useEffect(() => {
+    if (mode === "verifyEmail") return; // Allow even if not logged in
+    if (!currentUser) navigate("/signup", { replace: true });
+  }, [currentUser, navigate, mode]);
+
+  // ── Auto-poll every 5s ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (mode === "verifyEmail") return; // oobCode handler already running
     const interval = setInterval(async () => {
       if (!auth.currentUser) return;
       try {
@@ -67,9 +127,9 @@ export default function VerifyEmail() {
       } catch (_) {}
     }, 5000);
     return () => clearInterval(interval);
-  }, [navigate]);
+  }, [navigate, mode]);
 
-  /* Cooldown countdown */
+  // ── Cooldown countdown ─────────────────────────────────────────────────
   useEffect(() => {
     if (cooldown <= 0) return;
     const t = setInterval(() => {
@@ -78,6 +138,7 @@ export default function VerifyEmail() {
     return () => clearInterval(t);
   }, [cooldown]);
 
+  // ── Manual check ──────────────────────────────────────────────────────
   const handleCheck = async () => {
     if (!auth.currentUser) return;
     setCheckErr(""); setResendMsg(""); setResendErr("");
@@ -91,13 +152,14 @@ export default function VerifyEmail() {
     } finally { setChecking(false); }
   };
 
+  // ── Resend via Cloud Function ─────────────────────────────────────────
   const handleResend = async () => {
     if (!auth.currentUser || cooldown > 0 || resending) return;
     setResendErr(""); setResendMsg(""); setCheckErr("");
     setResending(true);
     try {
       await cloudResend();
-      setResendMsg("Verification email resent — check your inbox (and spam just in case).");
+      setResendMsg("Verification email resent — check your inbox (and spam folder).");
       setCooldown(RESEND_COOLDOWN_S);
     } catch (e) {
       const code = e?.code || "";
@@ -110,6 +172,62 @@ export default function VerifyEmail() {
     } finally { setResending(false); }
   };
 
+  // ═══════════════════════════════════════════════════════════════
+  // STATE 1: Applying oobCode from email link
+  // ═══════════════════════════════════════════════════════════════
+  if (applying) {
+    return (
+      <div className="auth-page auth-page--centered">
+        <div className="auth-centered-wrap">
+          <div className="verify-card">
+            <div className="verify-icon-wrap">
+              <div className="verify-icon">
+                <Spinner />
+              </div>
+            </div>
+            <h2 className="verify-title">Verifying your email…</h2>
+            <p className="verify-subtitle">Just a moment, please don't close this page.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // STATE 2: Successfully verified via link — show success briefly
+  // ═══════════════════════════════════════════════════════════════
+  if (applyDone) {
+    return (
+      <div className="auth-page auth-page--centered">
+        <div className="auth-centered-wrap">
+          <div className="verify-card">
+            <div className="verify-icon-wrap">
+              <div className="verify-icon" style={{ background: "#EEFFF5", color: "#006633" }}>
+                <SuccessIcon />
+              </div>
+            </div>
+            <h2 className="verify-title">Email verified! 🎉</h2>
+            <p className="verify-subtitle">
+              Your account is now active. Redirecting you to set up your profile…
+            </p>
+            <div className="verify-auto-row">
+              <span className="verify-pulse" aria-hidden="true" />
+              <span className="verify-auto-label">Redirecting now…</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // STATE 3: Error applying oobCode (expired/invalid link)
+  // Falls through to the normal page with the error showing
+  // ═══════════════════════════════════════════════════════════════
+
+  // ═══════════════════════════════════════════════════════════════
+  // STATE 4: Normal waiting page
+  // ═══════════════════════════════════════════════════════════════
   return (
     <div className="auth-page auth-page--centered">
 
@@ -123,12 +241,8 @@ export default function VerifyEmail() {
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <Link to="/" className="auth-logo" style={{ justifyContent: "center" }}>
             <div className="auth-logo-mark">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"
-                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-                <line x1="3" y1="6" x2="21" y2="6"/>
-                <path d="M16 10a4 4 0 0 1-8 0"/>
-              </svg>
+              <img src="/Favicon-white.PNG" alt="" width="22" height="22"
+                style={{ objectFit: "contain" }} />
             </div>
             <span className="auth-logo-name">Beme Market</span>
           </Link>
@@ -143,7 +257,6 @@ export default function VerifyEmail() {
           </div>
 
           <h2 className="verify-title">Check your email</h2>
-
           <p className="verify-subtitle">We sent a verification link to</p>
 
           <div className="verify-email-pill">
@@ -152,10 +265,11 @@ export default function VerifyEmail() {
 
           <p className="verify-instructions">
             Open the email and click <strong>"Verify email address"</strong>.
-            Once verified, come back and press the button below —
-            or this page will redirect you automatically.
+            Once verified, this page redirects you automatically — or press the button below.
           </p>
 
+          {/* Show applyErr if link was expired/invalid */}
+          {applyErr  && <div className="auth-alert auth-alert--error" role="alert">{applyErr}</div>}
           {checkErr  && <div className="auth-alert auth-alert--error" role="alert">{checkErr}</div>}
           {resendErr && <div className="auth-alert auth-alert--error" role="alert">{resendErr}</div>}
           {resendMsg && <div className="auth-alert auth-alert--ok"    role="status">{resendMsg}</div>}
@@ -164,16 +278,14 @@ export default function VerifyEmail() {
             disabled={checking} type="button">
             {checking
               ? <><Spinner /> Checking…</>
-              : <><CheckCircleIcon /> I&rsquo;ve verified my email</>}
+              : <><CheckCircleIcon /> I've verified my email</>}
           </button>
 
           <div className="auth-divider">or</div>
 
           <button className="auth-btn-ghost" onClick={handleResend}
-            disabled={resending || cooldown > 0} type="button"
-            style={{ marginTop: 0 }}>
-            {resending
-              ? <><Spinner style={{ borderTopColor: "var(--text)" }} /> Sending…</>
+            disabled={resending || cooldown > 0} type="button">
+            {resending ? <><Spinner /> Sending…</>
               : cooldown > 0 ? `Resend in ${cooldown}s`
               : "Resend verification email"}
           </button>
@@ -186,9 +298,9 @@ export default function VerifyEmail() {
           <details className="verify-tips">
             <summary className="verify-tips-toggle">Didn't get the email?</summary>
             <ul className="verify-tips-list">
-              <li>Check your <strong>spam</strong> or <strong>junk</strong> folder.</li>
+              <li>Check your <strong>spam</strong> or <strong>junk</strong> folder — mark it as Not Spam.</li>
               <li>Make sure <strong>{displayEmail}</strong> is correct.</li>
-              <li>Wait a minute — sometimes delivery is slightly delayed.</li>
+              <li>Wait a minute — delivery can sometimes be slightly delayed.</li>
               <li>Press <strong>Resend</strong> above if it's been over 5 minutes.</li>
             </ul>
           </details>
