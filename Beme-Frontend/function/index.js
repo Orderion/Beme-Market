@@ -1,285 +1,316 @@
-const functions  = require("firebase-functions");
-const admin      = require("firebase-admin");
-const nodemailer = require("nodemailer");
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { applyActionCode, reload } from "firebase/auth";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { auth } from "../firebase";
+import { useAuth } from "../context/AuthContext";
+import "./Auth.css";
 
-admin.initializeApp();
+const cloudResend      = httpsCallable(getFunctions(), "resendVerificationEmail");
+const RESEND_COOLDOWN_S = 60;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TRANSPORTER
-// Lazy-initialised so we only build it after functions.config() is available.
-// Credentials are stored via:
-//   firebase functions:config:set
-//     brevo.smtp_user="your-brevo-login@email.com"
-//     brevo.smtp_key="your-brevo-smtp-key"
-//     brevo.from_email="noreply@yourdomain.com"
-//     brevo.from_name="Beme Market"
-// ─────────────────────────────────────────────────────────────────────────────
-let _transporter = null;
-
-function getTransporter() {
-  if (_transporter) return _transporter;
-  const cfg = functions.config().brevo;
-  _transporter = nodemailer.createTransport({
-    host:   "smtp-relay.brevo.com",
-    port:   587,
-    secure: false,          // STARTTLS on port 587
-    auth: {
-      user: cfg.smtp_user,
-      pass: cfg.smtp_key,
-    },
-  });
-  return _transporter;
+/* ── Icons ── */
+function MailIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.6"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="M2 7l10 7 10-7" />
+    </svg>
+  );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// EMAIL TEMPLATE
-// Matches Beme Market's neo-brutalist identity.
-// Table-based layout for maximum email-client compatibility.
-// ─────────────────────────────────────────────────────────────────────────────
-function buildVerificationEmail(link, name) {
-  const safeName = name || "there";
-
-  return /* html */ `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Verify your Beme Market account</title>
-</head>
-<body style="margin:0;padding:0;background:#FCFAF2;
-             font-family:'Arial',Helvetica,sans-serif;-webkit-font-smoothing:antialiased;">
-
-  <table width="100%" cellpadding="0" cellspacing="0" border="0"
-         style="background:#FCFAF2;padding:40px 16px;">
-    <tr>
-      <td align="center">
-
-        <!-- Outer card — max 480 px -->
-        <table width="480" cellpadding="0" cellspacing="0" border="0"
-               style="max-width:480px;width:100%;
-                      background:#ffffff;
-                      border:2px solid #111111;
-                      box-shadow:5px 5px 0 0 #111111;">
-
-          <!-- ── Top banner ── -->
-          <tr>
-            <td style="background:#111111;padding:14px 24px;text-align:center;">
-              <span style="color:#FCFAF2;font-size:10px;font-weight:900;
-                           letter-spacing:0.12em;text-transform:uppercase;">
-                Welcome to Beme Market &mdash; Ghana&rsquo;s favourite shop &#127468;&#127469;
-              </span>
-            </td>
-          </tr>
-
-          <!-- ── Brand heading ── -->
-          <tr>
-            <td style="padding:36px 32px 0;text-align:center;">
-              <h1 style="margin:0;font-size:34px;font-weight:900;
-                         letter-spacing:-0.04em;color:#111111;
-                         border-bottom:3px solid #111111;
-                         display:inline-block;padding-bottom:4px;">
-                Beme Market
-              </h1>
-            </td>
-          </tr>
-
-          <!-- ── Body copy ── -->
-          <tr>
-            <td style="padding:24px 32px 0;">
-              <h2 style="margin:0 0 14px;font-size:20px;font-weight:900;
-                         color:#111111;letter-spacing:-0.02em;">
-                Verify your email address
-              </h2>
-              <p style="margin:0 0 8px;font-size:14px;color:#555555;line-height:1.7;">
-                Hi ${safeName},
-              </p>
-              <p style="margin:0 0 20px;font-size:14px;color:#555555;line-height:1.7;">
-                Thanks for signing up! Click the button below to verify your
-                email and fully activate your account &mdash; including your
-                <strong style="color:#111111;">10&nbsp;% first-order discount</strong>.
-              </p>
-            </td>
-          </tr>
-
-          <!-- ── CTA button ── -->
-          <tr>
-            <td style="padding:0 32px 28px;">
-              <table cellpadding="0" cellspacing="0" border="0" width="100%">
-                <tr>
-                  <td align="center">
-                    <a href="${link}"
-                       style="display:inline-block;
-                              background:#111111;
-                              color:#FCFAF2;
-                              padding:16px 36px;
-                              font-size:13px;font-weight:900;
-                              letter-spacing:0.1em;
-                              text-transform:uppercase;
-                              text-decoration:none;
-                              border:2px solid #111111;
-                              box-shadow:4px 4px 0 0 #0066FF;">
-                      Verify my email address &rarr;
-                    </a>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- ── Expiry notice ── -->
-          <tr>
-            <td style="padding:0 32px 24px;">
-              <table cellpadding="0" cellspacing="0" border="0" width="100%"
-                     style="background:#E0EEFF;border:1.5px solid #111111;
-                            border-radius:2px;padding:12px 16px;">
-                <tr>
-                  <td style="font-size:12px;color:#111111;font-weight:700;line-height:1.6;">
-                    &#9432;&nbsp; This link expires in <strong>24&nbsp;hours</strong>.
-                    If it&rsquo;s expired, log in and request a new one from the
-                    verification page.
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- ── Fallback link ── -->
-          <tr>
-            <td style="padding:0 32px 28px;">
-              <p style="margin:0;font-size:11px;color:#888888;line-height:1.7;">
-                Button not working? Paste this into your browser:<br />
-                <a href="${link}"
-                   style="color:#0066FF;word-break:break-all;font-size:11px;">
-                  ${link}
-                </a>
-              </p>
-            </td>
-          </tr>
-
-          <!-- ── Footer ── -->
-          <tr>
-            <td style="background:#FCFAF2;border-top:2px solid #111111;
-                       padding:16px 32px;">
-              <p style="margin:0;font-size:11px;color:#888888;line-height:1.7;">
-                If you didn&rsquo;t create a Beme Market account you can safely
-                ignore this email.<br />
-                &copy; ${new Date().getFullYear()} Beme Market &middot; Ghana &#127468;&#127469;
-              </p>
-            </td>
-          </tr>
-
-        </table>
-        <!-- /card -->
-
-      </td>
-    </tr>
-  </table>
-
-</body>
-</html>`;
+function CheckCircleIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="9 12 11 14 15 10" />
+    </svg>
+  );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SHARED SEND HELPER
-// Used by both the onCreate trigger and the resend callable below.
-// ─────────────────────────────────────────────────────────────────────────────
-async function dispatchVerificationEmail(email, displayName) {
-  const cfg  = functions.config().brevo;
-  const link = await admin.auth().generateEmailVerificationLink(email);
-  const html = buildVerificationEmail(link, displayName);
-
-  await getTransporter().sendMail({
-    from:    `"${cfg.from_name || "Beme Market"}" <${cfg.from_email}>`,
-    to:      email,
-    subject: "Verify your Beme Market account",
-    html,
-    // Plain-text fallback for clients that strip HTML
-    text: [
-      `Hi ${displayName || "there"},`,
-      "",
-      "Please verify your Beme Market account by visiting the link below.",
-      "",
-      link,
-      "",
-      "The link expires in 24 hours.",
-      "",
-      "If you didn't create a Beme Market account, ignore this email.",
-      "",
-      `© ${new Date().getFullYear()} Beme Market · Ghana`,
-    ].join("\n"),
-  });
+function SuccessIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.6"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="9 12 11 14 15 10" />
+    </svg>
+  );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TRIGGER: fires automatically every time a new user is created.
-// This replaces the client-side sendEmailVerification() call entirely.
-// ─────────────────────────────────────────────────────────────────────────────
-exports.sendVerificationOnSignup = functions.auth.user().onCreate(async (user) => {
-  // Skip if no email (phone-only) or already verified (e.g. Google OAuth)
-  if (!user.email || user.emailVerified) return null;
+function Spinner() {
+  return <span className="auth-spinner" aria-hidden="true" />;
+}
 
-  try {
-    await dispatchVerificationEmail(user.email, user.displayName);
-    functions.logger.info(`[verify] Sent to ${user.email}`);
-  } catch (err) {
-    // Log but don't throw — a failed email must not fail account creation.
-    functions.logger.error(`[verify] Failed for ${user.email}:`, err);
-  }
+export default function VerifyEmail() {
+  const { user }         = useAuth();
+  const navigate         = useNavigate();
+  const [searchParams]   = useSearchParams();
 
-  return null;
-});
+  // URL params from email link (e.g. ?mode=verifyEmail&oobCode=xxx)
+  const mode    = searchParams.get("mode");
+  const oobCode = searchParams.get("oobCode");
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CALLABLE: resend verification email on demand.
-// Called from VerifyEmail.jsx when the user clicks "Resend".
-// Rate-limiting is handled on the client (60 s cooldown) but we also check
-// server-side that the email isn't already verified.
-// ─────────────────────────────────────────────────────────────────────────────
-exports.resendVerificationEmail = functions.https.onCall(async (data, context) => {
-  // Must be signed in
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
-      "unauthenticated",
-      "You must be signed in to request a new verification email."
+  const [applying,  setApplying]  = useState(false);
+  const [applyDone, setApplyDone] = useState(false);
+  const [applyErr,  setApplyErr]  = useState("");
+
+  const [checking,  setChecking]  = useState(false);
+  const [resending, setResending] = useState(false);
+  const [checkErr,  setCheckErr]  = useState("");
+  const [resendMsg, setResendMsg] = useState("");
+  const [resendErr, setResendErr] = useState("");
+  const [cooldown,  setCooldown]  = useState(0);
+
+  const currentUser  = auth.currentUser;
+  const displayEmail = currentUser?.email || user?.email || "";
+
+  // ── Handle email link click (mode=verifyEmail&oobCode=xxx) ──────────────
+  // This runs when the user clicks the link from their email and
+  // lands on /verify-email?mode=verifyEmail&oobCode=...
+  useEffect(() => {
+    if (mode !== "verifyEmail" || !oobCode) return;
+
+    setApplying(true);
+    setApplyErr("");
+
+    applyActionCode(auth, oobCode)
+      .then(async () => {
+        // Code applied — reload the user token to get fresh emailVerified = true
+        if (auth.currentUser) {
+          await reload(auth.currentUser);
+        }
+        setApplyDone(true);
+        setApplying(false);
+        // Redirect after a short pause so the user sees the success state
+        setTimeout(() => navigate("/onboarding", { replace: true }), 1800);
+      })
+      .catch((err) => {
+        const code = err?.code || "";
+        if (code === "auth/expired-action-code")
+          setApplyErr("This verification link has expired. Request a new one below.");
+        else if (code === "auth/invalid-action-code")
+          setApplyErr("This link has already been used or is invalid. Request a new one below.");
+        else if (code === "auth/user-disabled")
+          setApplyErr("This account has been disabled. Contact support.");
+        else
+          setApplyErr("Could not verify your email. Please request a new link.");
+        setApplying(false);
+      });
+  }, [mode, oobCode, navigate]);
+
+  // ── Guard: already verified (no oobCode in URL) ────────────────────────
+  useEffect(() => {
+    if (mode === "verifyEmail") return; // Let oobCode handler manage this
+    if (currentUser?.emailVerified) navigate("/onboarding", { replace: true });
+  }, [currentUser, navigate, mode]);
+
+  // ── Guard: not logged in ───────────────────────────────────────────────
+  useEffect(() => {
+    if (mode === "verifyEmail") return; // Allow even if not logged in
+    if (!currentUser) navigate("/signup", { replace: true });
+  }, [currentUser, navigate, mode]);
+
+  // ── Auto-poll every 5s ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (mode === "verifyEmail") return; // oobCode handler already running
+    const interval = setInterval(async () => {
+      if (!auth.currentUser) return;
+      try {
+        await reload(auth.currentUser);
+        if (auth.currentUser.emailVerified) navigate("/onboarding", { replace: true });
+      } catch (_) {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [navigate, mode]);
+
+  // ── Cooldown countdown ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setInterval(() => {
+      setCooldown(c => { if (c <= 1) { clearInterval(t); return 0; } return c - 1; });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [cooldown]);
+
+  // ── Manual check ──────────────────────────────────────────────────────
+  const handleCheck = async () => {
+    if (!auth.currentUser) return;
+    setCheckErr(""); setResendMsg(""); setResendErr("");
+    setChecking(true);
+    try {
+      await reload(auth.currentUser);
+      if (auth.currentUser.emailVerified) navigate("/onboarding", { replace: true });
+      else setCheckErr("Email not verified yet — click the link in your inbox first.");
+    } catch {
+      setCheckErr("Could not check verification status. Try again.");
+    } finally { setChecking(false); }
+  };
+
+  // ── Resend via Cloud Function ─────────────────────────────────────────
+  const handleResend = async () => {
+    if (!auth.currentUser || cooldown > 0 || resending) return;
+    setResendErr(""); setResendMsg(""); setCheckErr("");
+    setResending(true);
+    try {
+      await cloudResend();
+      setResendMsg("Verification email resent — check your inbox (and spam folder).");
+      setCooldown(RESEND_COOLDOWN_S);
+    } catch (e) {
+      const code = e?.code || "";
+      if (code === "functions/already-exists")
+        setResendErr("Your email is already verified — try logging in.");
+      else if (code === "functions/unauthenticated")
+        setResendErr("Session expired. Please log in again.");
+      else
+        setResendErr("Could not resend the email. Try again in a moment.");
+    } finally { setResending(false); }
+  };
+
+  // ═══════════════════════════════════════════════════════════════
+  // STATE 1: Applying oobCode from email link
+  // ═══════════════════════════════════════════════════════════════
+  if (applying) {
+    return (
+      <div className="auth-page auth-page--centered">
+        <div className="auth-centered-wrap">
+          <div className="verify-card">
+            <div className="verify-icon-wrap">
+              <div className="verify-icon">
+                <Spinner />
+              </div>
+            </div>
+            <h2 className="verify-title">Verifying your email…</h2>
+            <p className="verify-subtitle">Just a moment, please don't close this page.</p>
+          </div>
+        </div>
+      </div>
     );
   }
 
-  const uid = context.auth.uid;
-
-  // Fetch the latest user record from Auth (not from Firestore)
-  let userRecord;
-  try {
-    userRecord = await admin.auth().getUser(uid);
-  } catch (err) {
-    functions.logger.error(`[resend] getUser failed for ${uid}:`, err);
-    throw new functions.https.HttpsError("internal", "Could not fetch user record.");
-  }
-
-  // Already verified — nothing to do
-  if (userRecord.emailVerified) {
-    throw new functions.https.HttpsError(
-      "failed-precondition",
-      "This email address is already verified."
+  // ═══════════════════════════════════════════════════════════════
+  // STATE 2: Successfully verified via link — show success briefly
+  // ═══════════════════════════════════════════════════════════════
+  if (applyDone) {
+    return (
+      <div className="auth-page auth-page--centered">
+        <div className="auth-centered-wrap">
+          <div className="verify-card">
+            <div className="verify-icon-wrap">
+              <div className="verify-icon" style={{ background: "#EEFFF5", color: "#006633" }}>
+                <SuccessIcon />
+              </div>
+            </div>
+            <h2 className="verify-title">Email verified! 🎉</h2>
+            <p className="verify-subtitle">
+              Your account is now active. Redirecting you to set up your profile…
+            </p>
+            <div className="verify-auto-row">
+              <span className="verify-pulse" aria-hidden="true" />
+              <span className="verify-auto-label">Redirecting now…</span>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
-  if (!userRecord.email) {
-    throw new functions.https.HttpsError(
-      "failed-precondition",
-      "No email address is associated with this account."
-    );
-  }
+  // ═══════════════════════════════════════════════════════════════
+  // STATE 3: Error applying oobCode (expired/invalid link)
+  // Falls through to the normal page with the error showing
+  // ═══════════════════════════════════════════════════════════════
 
-  try {
-    await dispatchVerificationEmail(userRecord.email, userRecord.displayName);
-    functions.logger.info(`[resend] Sent to ${userRecord.email}`);
-    return { success: true };
-  } catch (err) {
-    functions.logger.error(`[resend] Failed for ${userRecord.email}:`, err);
-    throw new functions.https.HttpsError(
-      "internal",
-      "Failed to send the verification email. Please try again."
-    );
-  }
-});
+  // ═══════════════════════════════════════════════════════════════
+  // STATE 4: Normal waiting page
+  // ═══════════════════════════════════════════════════════════════
+  return (
+    <div className="auth-page auth-page--centered">
+
+      <div className="auth-banner">
+        Welcome to Beme Market — Ghana's favourite shop 🇬🇭
+      </div>
+
+      <div className="auth-centered-wrap">
+
+        {/* Logo */}
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <Link to="/" className="auth-logo" style={{ justifyContent: "center" }}>
+            <div className="auth-logo-mark">
+              <img src="/Favicon-white.PNG" alt="" width="22" height="22"
+                style={{ objectFit: "contain" }} />
+            </div>
+            <span className="auth-logo-name">Beme Market</span>
+          </Link>
+        </div>
+
+        <div className="verify-card">
+
+          <div className="verify-icon-wrap">
+            <div className="verify-icon">
+              <MailIcon />
+            </div>
+          </div>
+
+          <h2 className="verify-title">Check your email</h2>
+          <p className="verify-subtitle">We sent a verification link to</p>
+
+          <div className="verify-email-pill">
+            {displayEmail || "your email address"}
+          </div>
+
+          <p className="verify-instructions">
+            Open the email and click <strong>"Verify email address"</strong>.
+            Once verified, this page redirects you automatically — or press the button below.
+          </p>
+
+          {/* Show applyErr if link was expired/invalid */}
+          {applyErr  && <div className="auth-alert auth-alert--error" role="alert">{applyErr}</div>}
+          {checkErr  && <div className="auth-alert auth-alert--error" role="alert">{checkErr}</div>}
+          {resendErr && <div className="auth-alert auth-alert--error" role="alert">{resendErr}</div>}
+          {resendMsg && <div className="auth-alert auth-alert--ok"    role="status">{resendMsg}</div>}
+
+          <button className="auth-btn-primary verify-cta" onClick={handleCheck}
+            disabled={checking} type="button">
+            {checking
+              ? <><Spinner /> Checking…</>
+              : <><CheckCircleIcon /> I've verified my email</>}
+          </button>
+
+          <div className="auth-divider">or</div>
+
+          <button className="auth-btn-ghost" onClick={handleResend}
+            disabled={resending || cooldown > 0} type="button">
+            {resending ? <><Spinner /> Sending…</>
+              : cooldown > 0 ? `Resend in ${cooldown}s`
+              : "Resend verification email"}
+          </button>
+
+          <div className="verify-auto-row">
+            <span className="verify-pulse" aria-hidden="true" />
+            <span className="verify-auto-label">Checking automatically every 5 seconds</span>
+          </div>
+
+          <details className="verify-tips">
+            <summary className="verify-tips-toggle">Didn't get the email?</summary>
+            <ul className="verify-tips-list">
+              <li>Check your <strong>spam</strong> or <strong>junk</strong> folder — mark it as Not Spam.</li>
+              <li>Make sure <strong>{displayEmail}</strong> is correct.</li>
+              <li>Wait a minute — delivery can sometimes be slightly delayed.</li>
+              <li>Press <strong>Resend</strong> above if it's been over 5 minutes.</li>
+            </ul>
+          </details>
+
+          <div className="verify-back">
+            <Link className="auth-link" to="/login">← Back to login</Link>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
