@@ -1,9 +1,9 @@
-/* ================================
-   LOADER OVERLAY — Neo-Brutalist
-   Full dark / light theme support
-================================ */
+/* ============================================
+   LoaderOverlay.css — Premium cart drop loader
+   Monochrome · Stroke icons · Spring physics
+============================================ */
 
-/* ── Fullscreen overlay ── */
+/* ── Overlay ── */
 .loader-overlay {
   position: fixed;
   inset: 0;
@@ -13,39 +13,25 @@
   justify-content: center;
   opacity: 0;
   visibility: hidden;
-  transition:
-    opacity 0.32s ease,
-    visibility 0.32s ease;
+  transition: opacity 0.28s ease, visibility 0.28s ease;
 }
-
 .loader-overlay.show {
   opacity: 1;
   visibility: visible;
 }
 
-/* ── Backdrop — uses global --bg token ── */
+/* ── Backdrop ── */
 .loader-overlay-backdrop {
   position: absolute;
   inset: 0;
-  background: var(--bg, #FCFAF2);
-  /* Graph-paper grid — light mode: dark lines */
-  background-image:
-    linear-gradient(rgba(17, 17, 17, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(17, 17, 17, 0.05) 1px, transparent 1px);
-  background-size: 32px 32px;
-  transition: background var(--motion-slow, 400ms);
+  background: var(--bg, #ffffff);
+  transition: background 0.4s ease;
 }
-
-/* Dark mode: invert grid line colour */
 body.dark .loader-overlay-backdrop {
   background: var(--bg, #111111);
-  background-image:
-    linear-gradient(rgba(252, 250, 242, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(252, 250, 242, 0.06) 1px, transparent 1px);
-  background-size: 32px 32px;
 }
 
-/* ── Center content stack ── */
+/* ── Center stack ── */
 .loader-overlay-center {
   position: relative;
   z-index: 1;
@@ -53,193 +39,188 @@ body.dark .loader-overlay-backdrop {
   flex-direction: column;
   align-items: center;
   gap: 28px;
-  animation: loaderEnter 0.4s ease both;
+  animation: ldr-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-
-@keyframes loaderEnter {
+@keyframes ldr-enter {
   from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0);    }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ================================
-   LOGO BOX — bordered stamp
-================================ */
-.loader-logo-wrap {
-  width: 88px;
-  height: 88px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* Light: white box, black border + shadow */
-  background: var(--card, #ffffff);
-  border: 3px solid var(--text, #111111);
-  box-shadow: 6px 6px 0px 0px var(--text, #111111);
-  border-radius: 0;
-  animation: stampBounce 1.8s ease-in-out infinite;
-  transition:
-    background var(--motion-slow, 400ms),
-    border-color var(--motion-slow, 400ms),
-    box-shadow var(--motion-slow, 400ms);
+/* ══════════════════════════════════════
+   SCENE — items + cart
+   130 × 148px canvas. Cart anchored bottom.
+   Items scattered above, converge to cart.
+══════════════════════════════════════ */
+.ldr-scene {
+  position: relative;
+  width: 130px;
+  height: 148px;
+  /* All SVG strokes inherit this color */
+  color: var(--text, #111111);
+  transition: color 0.4s ease;
+}
+body.dark .ldr-scene {
+  color: var(--text, #f0f0f0);
 }
 
-body.dark .loader-logo-wrap {
-  background: var(--card, #1A1A18);
-  border-color: var(--text, #FCFAF2);
-  box-shadow: 6px 6px 0px 0px var(--text, #FCFAF2);
-}
-
-.loader-logo-img {
-  width: 52px;
-  height: 52px;
-  object-fit: contain;
-  display: block;
-  user-select: none;
-  -webkit-user-drag: none;
-}
-
-/* Vertical bounce — shadow stretches when lifted */
-@keyframes stampBounce {
-  0%, 100% {
-    transform: translateY(0);
-    box-shadow: 6px 6px 0 0 var(--text, #111111);
-  }
-  45%, 55% {
-    transform: translateY(-6px);
-    box-shadow: 6px 12px 0 0 var(--text, #111111);
-  }
-}
-
-body.dark .loader-logo-wrap {
-  animation: stampBounceDark 1.8s ease-in-out infinite;
-}
-
-@keyframes stampBounceDark {
-  0%, 100% {
-    transform: translateY(0);
-    box-shadow: 6px 6px 0 0 #FCFAF2;
-  }
-  45%, 55% {
-    transform: translateY(-6px);
-    box-shadow: 6px 12px 0 0 #FCFAF2;
-  }
-}
-
-/* ================================
-   DOTS — square brutalist style
-================================ */
-.loader-dots {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 0;
-  /* Light: dark square */
-  background: var(--text, #111111);
-  opacity: 0.18;
-  animation: dotStamp 1.4s ease-in-out infinite;
-  transition: background var(--motion-slow, 400ms);
-}
-
-.dot:nth-child(1) { animation-delay: 0s;    }
-.dot:nth-child(2) { animation-delay: 0.14s; }
-.dot:nth-child(3) { animation-delay: 0.28s; }
-.dot:nth-child(4) { animation-delay: 0.42s; }
-
-/* Accent dot — always full opacity, uses --grtheme */
-.dot--accent {
-  background: var(--grtheme, #046EF2);
+/* ── Cart — fixed at bottom, smaller ── */
+.ldr-cart {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
   opacity: 0.9;
-  animation: dotStampAccent 1.4s ease-in-out infinite;
-  animation-delay: 0.42s;
+  transform-origin: center bottom;
+  animation: ldr-cart-squish 2.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+  will-change: transform;
+}
+@keyframes ldr-cart-squish {
+  0%,  50%  { transform: translateX(-50%) scaleY(1) scaleX(1); }
+  58%        { transform: translateX(-50%) scaleY(0.88) scaleX(1.06); }
+  64%        { transform: translateX(-50%) scaleY(1.04) scaleX(0.98); }
+  72%, 100%  { transform: translateX(-50%) scaleY(1) scaleX(1); }
 }
 
-@keyframes dotStamp {
-  0%, 60%, 100% { transform: scaleY(1);   opacity: 0.18; }
-  30%            { transform: scaleY(1.6); opacity: 1;    }
+/* ── Shared item base ── */
+.ldr-item {
+  position: absolute;
+  display: block;
+  opacity: 0;
+  will-change: transform, opacity;
+  transform-origin: center center;
 }
 
-@keyframes dotStampAccent {
-  0%, 60%, 100% { transform: scaleY(1);   opacity: 0.8; }
-  30%            { transform: scaleY(1.6); opacity: 1;   }
+/* ══════════════════════════════════════
+   INDIVIDUAL ITEMS
+   Each starts at its own scatter position,
+   rotates slightly, falls and shrinks into cart.
+   Animation cycle: 2.8s with per-item stagger.
+
+   Cart center ≈ (65px from left, 125px from top).
+   Items converge there as they enter the cart.
+══════════════════════════════════════ */
+
+/* ── Shirt — top left ── */
+.ldr-item--shirt {
+  width: 24px;
+  top: 12px;
+  left: 14px;
+  animation: ldr-fall-shirt 2.8s cubic-bezier(0.4, 0, 0.6, 1) 0ms infinite;
+}
+@keyframes ldr-fall-shirt {
+  0%   { transform: translate(0,   0)    rotate(-8deg) scale(1);    opacity: 0;    }
+  8%   { transform: translate(0,   0)    rotate(-8deg) scale(1);    opacity: 0.78; }
+  50%  { transform: translate(34px, 94px) rotate(-2deg) scale(0.72); opacity: 0.65; }
+  60%  { transform: translate(37px,108px) rotate( 0deg) scale(0.18); opacity: 0;    }
+  60.1%{ transform: translate(0,   0)    rotate(-8deg) scale(1);    opacity: 0;    }
+  100% { transform: translate(0,   0)    rotate(-8deg) scale(1);    opacity: 0;    }
 }
 
-/* Dark mode: dots flip to light */
-body.dark .dot:not(.dot--accent) {
-  background: var(--text, #FCFAF2);
+/* ── Ball — top right ── */
+.ldr-item--ball {
+  width: 22px;
+  top: 6px;
+  right: 12px;
+  animation: ldr-fall-ball 2.8s cubic-bezier(0.4, 0, 0.6, 1) 90ms infinite;
+}
+@keyframes ldr-fall-ball {
+  0%   { transform: translate(0,    0)    scale(1);    opacity: 0;    }
+  8%   { transform: translate(0,    0)    scale(1);    opacity: 0.78; }
+  50%  { transform: translate(-34px, 98px) scale(0.68); opacity: 0.65; }
+  60%  { transform: translate(-37px,112px) scale(0.16); opacity: 0;    }
+  60.1%{ transform: translate(0,    0)    scale(1);    opacity: 0;    }
+  100% { transform: translate(0,    0)    scale(1);    opacity: 0;    }
 }
 
-/* ================================
-   TEXT BLOCK — bordered card
-================================ */
-.loader-text {
+/* ── Shoe — mid left ── */
+.ldr-item--shoe {
+  width: 26px;
+  top: 52px;
+  left: 8px;
+  animation: ldr-fall-shoe 2.8s cubic-bezier(0.4, 0, 0.6, 1) 50ms infinite;
+}
+@keyframes ldr-fall-shoe {
+  0%   { transform: translate(0,   0)   rotate(6deg)  scale(1);    opacity: 0;    }
+  8%   { transform: translate(0,   0)   rotate(6deg)  scale(1);    opacity: 0.75; }
+  50%  { transform: translate(41px, 55px) rotate(1deg) scale(0.7);  opacity: 0.62; }
+  60%  { transform: translate(44px, 65px) rotate(0deg) scale(0.15); opacity: 0;    }
+  60.1%{ transform: translate(0,   0)   rotate(6deg)  scale(1);    opacity: 0;    }
+  100% { transform: translate(0,   0)   rotate(6deg)  scale(1);    opacity: 0;    }
+}
+
+/* ── Controller — mid right ── */
+.ldr-item--ctrl {
+  width: 26px;
+  top: 48px;
+  right: 6px;
+  animation: ldr-fall-ctrl 2.8s cubic-bezier(0.4, 0, 0.6, 1) 140ms infinite;
+}
+@keyframes ldr-fall-ctrl {
+  0%   { transform: translate(0,    0)    rotate(-5deg) scale(1);    opacity: 0;    }
+  8%   { transform: translate(0,    0)    rotate(-5deg) scale(1);    opacity: 0.75; }
+  50%  { transform: translate(-42px, 58px) rotate(-1deg) scale(0.7);  opacity: 0.62; }
+  60%  { transform: translate(-45px, 68px) rotate( 0deg) scale(0.14); opacity: 0;    }
+  60.1%{ transform: translate(0,    0)    rotate(-5deg) scale(1);    opacity: 0;    }
+  100% { transform: translate(0,    0)    rotate(-5deg) scale(1);    opacity: 0;    }
+}
+
+/* ══════════════════════════════════════
+   CAPTION — faint brand + tick dots
+══════════════════════════════════════ */
+.ldr-caption {
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 6px;
-  background: var(--card, #ffffff);
-  border: 2px solid var(--text, #111111);
-  box-shadow: 4px 4px 0px 0px var(--text, #111111);
-  border-radius: 0;
-  padding: 12px 24px;
-  transition:
-    background var(--motion-slow, 400ms),
-    border-color var(--motion-slow, 400ms),
-    box-shadow var(--motion-slow, 400ms);
 }
 
-body.dark .loader-text {
-  background: var(--card, #1A1A18);
-  border-color: var(--text, #FCFAF2);
-  box-shadow: 4px 4px 0px 0px var(--text, #FCFAF2);
-}
-
-.loader-label {
-  font-family: var(--font-display, "Space Grotesk", "Manrope", sans-serif);
-  font-size: 18px;
-  font-weight: 900;
-  letter-spacing: -0.02em;
+.ldr-caption-text {
+  font-family: var(--font-main, "Manrope", system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--text, #111111);
-  margin: 0;
-  line-height: 1;
-  text-transform: uppercase;
-  transition: color var(--motion-slow, 400ms);
+  opacity: 0.18;
+  transition: color 0.4s ease;
+  user-select: none;
+}
+body.dark .ldr-caption-text {
+  color: var(--text, #f0f0f0);
 }
 
-.loader-sub {
-  font-family: var(--font-main, "Manrope", sans-serif);
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--grtheme, #046EF2);
-  margin: 0;
-  /* grtheme is same in both modes — no override needed */
+/* Tick dots — pure CSS, no JS needed */
+.ldr-dots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.ldr-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text, #111111);
+  opacity: 0.15;
+  transition: background 0.4s ease;
+  animation: ldr-dot-tick 1.4s ease-in-out infinite;
+}
+body.dark .ldr-dot {
+  background: var(--text, #f0f0f0);
+}
+.ldr-dot--1 { animation-delay: 0ms;   }
+.ldr-dot--2 { animation-delay: 200ms; }
+.ldr-dot--3 { animation-delay: 400ms; }
+
+@keyframes ldr-dot-tick {
+  0%, 60%, 100% { opacity: 0.15; transform: scale(1);   }
+  30%            { opacity: 0.6;  transform: scale(1.5); }
 }
 
-/* ================================
-   REDUCED MOTION
-================================ */
+/* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
-  .loader-logo-wrap,
-  .dot,
-  .dot--accent,
-  .loader-overlay-center {
+  .ldr-item, .ldr-cart, .ldr-dot, .loader-overlay-center {
     animation: none !important;
   }
-
-  .dot         { opacity: 0.35; }
-  .dot--accent { opacity: 1;    }
-
-  .loader-logo-wrap {
-    transform: none;
-    box-shadow: 6px 6px 0 0 var(--text, #111111);
-  }
-
-  body.dark .loader-logo-wrap {
-    box-shadow: 6px 6px 0 0 var(--text, #FCFAF2);
-  }
+  .ldr-item { opacity: 0.45; }
+  .ldr-dot  { opacity: 0.35; }
 }
