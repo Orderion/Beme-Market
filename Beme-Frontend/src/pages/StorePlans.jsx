@@ -1,231 +1,181 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import {
-  initSubscriptionPayment,
-  redirectToPaystack,
-} from "../services/subscriptionService";
+import { useSellerAuth } from "../hooks/useSellerAuth";
+import { initSubscriptionPayment, redirectToPaystack } from "../services/subscriptionService";
 import "./StorePlans.css";
 
-/* ─── Plans — matches GetAStore.jsx exactly ──────────────── */
+// Updated prices: Basic GHS 0 / Starter GHS 59 / Growth GHS 129 / Pro GHS 399
+// Beme Delivery Support: Growth and Pro only
 const PLANS = [
   {
-    id: "basic", name: "Basic", label: "Free forever", price: 0,
-    color: "#6B7280", highlight: false,
-    badge: "5 products",
+    id: "basic", name: "Basic", price: 0, limit: "5 products",
+    tagline: "Get started for free",
     features: [
-      { t: "5 products max",                ok: true  },
-      { t: "Basic storefront",              ok: true  },
-      { t: "Order management",              ok: true  },
-      { t: "Basic analytics",               ok: true  },
-      { t: "Social links & contacts",       ok: false },
-      { t: "Customer chat",                 ok: false },
-      { t: "Product boosts",                ok: false },
-      { t: "Verified badge",                ok: false },
+      { label: "5 product listings",     on: true  },
+      { label: "Basic storefront",        on: true  },
+      { label: "Paystack payments",       on: true  },
+      { label: "Order management",        on: true  },
+      { label: "Social media links",      on: false },
+      { label: "Beme Delivery Support",   on: false, badge: "Growth+ only" },
     ],
   },
   {
-    id: "starter", name: "Starter", label: "GHS 49/month", price: 49,
-    color: "#374151", highlight: false,
-    badge: "10 products",
+    id: "starter", name: "Starter", price: 59, limit: "10 products",
+    tagline: "For growing sellers",
     features: [
-      { t: "10 products max",               ok: true  },
-      { t: "WhatsApp & social links",       ok: true  },
-      { t: "Customer chat",                 ok: true  },
-      { t: "Order notifications",           ok: true  },
-      { t: "Store banner & logo",           ok: true  },
-      { t: "Product boosts",                ok: false },
-      { t: "Verified badge",                ok: false },
+      { label: "10 product listings",     on: true  },
+      { label: "WhatsApp & social links", on: true  },
+      { label: "Customer messaging",      on: true  },
+      { label: "Store banner & logo",     on: true  },
+      { label: "Order notifications",     on: true  },
+      { label: "Beme Delivery Support",   on: false, badge: "Growth+ only" },
     ],
   },
   {
-    id: "growth", name: "Growth", label: "GHS 99/month", price: 99,
-    color: "#046EF2", highlight: true, popular: true,
-    badge: "25 products",
+    id: "growth", name: "Growth", price: 129, limit: "25 products",
+    tagline: "For serious sellers", popular: true,
     features: [
-      { t: "25 products max",               ok: true },
-      { t: "WhatsApp & social links",       ok: true },
-      { t: "Real-time customer chat",       ok: true },
-      { t: "Discount codes & flash sales",  ok: true },
-      { t: "Featured boosts (5/mo)",        ok: true },
-      { t: "Verified badge eligible",       ok: true },
-      { t: "Advanced analytics",            ok: true },
-      { t: "Customer reviews",              ok: true },
+      { label: "25 product listings",         on: true },
+      { label: "WhatsApp & social links",     on: true },
+      { label: "Beme Delivery Support",       on: true },
+      { label: "Flash sales & discount codes",on: true },
+      { label: "Featured boosts (5/mo)",      on: true },
+      { label: "Verified badge eligible",     on: true },
+      { label: "Advanced analytics",          on: true },
     ],
   },
   {
-    id: "pro", name: "Pro", label: "GHS 249/month", price: 249,
-    color: "#7C3AED", highlight: false,
-    badge: "500 products",
+    id: "pro", name: "Pro", price: 399, limit: "500 products",
+    tagline: "For power sellers",
     features: [
-      { t: "500 products max",              ok: true },
-      { t: "Custom domain",                 ok: true },
-      { t: "AI captions & descriptions",    ok: true },
-      { t: "Live selling sessions",         ok: true },
-      { t: "20 boosts/month",               ok: true },
-      { t: "Pro verified badge",            ok: true },
-      { t: "Priority support",              ok: true },
-      { t: "Loyalty & referrals",           ok: true },
-      { t: "Homepage ranking boost",        ok: true },
+      { label: "500 product listings",       on: true },
+      { label: "All Growth features",         on: true },
+      { label: "Beme Delivery (discounted)",  on: true },
+      { label: "Custom domain",               on: true },
+      { label: "AI product descriptions",     on: true },
+      { label: "20 featured boosts/month",    on: true },
+      { label: "Pro verified badge",          on: true },
+      { label: "Priority support",            on: true },
     ],
   },
 ];
 
-function CheckSVG({ color }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-      stroke={color} strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}>
-      <polyline points="20 6 9 17 4 12"/>
+function Check({ on }) {
+  if (!on) return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="2" strokeLinecap="round" style={{ flexShrink:0 }}>
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
     </svg>
   );
-}
-function CrossSVG() {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-      stroke="#D1D5DB" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
-      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink:0 }}>
+      <polyline points="20 6 9 17 4 12"/>
     </svg>
   );
 }
 
 export default function StorePlans() {
-  const navigate    = useNavigate();
-  const { user }    = useAuth();
+  const navigate     = useNavigate();
+  const { user }     = useAuth();
+  const { shop, appData, subscriptionPlan } = useSellerAuth();
 
-  const [selected, setSelected] = useState("standard");
-  const [agreed,   setAgreed]   = useState(false);
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState(null);
+  const currentPlanId = String(appData?.planId || subscriptionPlan || shop?.planId || "basic").toLowerCase();
+  const [initiating,  setInitiating]  = useState(null);
+  const [err,         setErr]         = useState("");
 
-  const plan = PLANS.find((p) => p.id === selected);
-
-  const handleStart = async () => {
-    if (!agreed) { setError("Please agree to the terms to continue."); return; }
-    if (!user)   { navigate("/login?redirect=/store-plans"); return; }
-    setError(null);
-    setLoading(true);
+  const handleSelect = async (plan) => {
+    if (plan.id === currentPlanId) return;
+    if (!user) { navigate("/login?redirect=/plans"); return; }
+    if (plan.price === 0) { navigate("/get-a-store"); return; }
+    setErr(""); setInitiating(plan.id);
     try {
-      if (plan.price === 0) {
-        navigate("/subscription-success?status=free&plan=basic");
-        return;
-        return;
-      }
-      const result = await initSubscriptionPayment({
-        planId: selected, uid: user.uid, email: user.email, shopId: null,
+      const res = await initSubscriptionPayment({
+        planId: plan.id, uid: user.uid,
+        email: user.email, shopId: shop?.id || user.uid,
       });
-      if (result?.authorization_url) {
-        redirectToPaystack(result.authorization_url);
-      } else {
-        throw new Error("Could not start payment. Please try again.");
-      }
-    } catch (err) {
-      setError(
-        err?.code === "functions/unavailable"
-          ? "Payment service is temporarily unavailable. Please try again shortly."
-          : err.message || "Something went wrong. Please try again."
-      );
+      if (res?.isFree)              navigate("/subscription-success?plan=" + plan.id);
+      else if (res?.authorization_url) redirectToPaystack(res.authorization_url);
+    } catch (e) {
+      setErr(e.message || "Payment initiation failed.");
     } finally {
-      setLoading(false);
+      setInitiating(null);
     }
   };
 
   return (
-    <div className="sp-root">
-      {/* Header */}
-      <div className="sp-header">
-        <button className="sp-back" onClick={() => navigate("/store-survey")}>← Back</button>
-        <div className="sp-progress-bar">
-          <div className="sp-progress-fill" style={{ width: "100%" }} />
-        </div>
-        <div className="sp-step-label">Step 4 of 4</div>
+    <div className="sp-page">
+      <div className="sp-hero">
+        <h1 className="sp-hero-title">Simple, transparent pricing</h1>
+        <p className="sp-hero-sub">
+          Start free. Upgrade when you're ready. No hidden fees — cancel anytime.
+        </p>
       </div>
 
-      <div className="sp-content">
-        <div className="sp-intro">
-          <h1 className="sp-title">Choose Your Plan</h1>
-          <p className="sp-sub">Start free, scale when ready. All plans include Ghana MoMo checkout.</p>
-        </div>
+      {err && (
+        <div className="sp-err">{err}</div>
+      )}
 
-        {/* 4 Plan Cards */}
-        <div className="sp-plans-grid">
-          {PLANS.map((p) => (
-            <div
-              key={p.id}
-              className={`sp-plan ${selected === p.id ? "sp-plan-selected" : ""}`}
-              onClick={() => setSelected(p.id)}
-            >
-              {p.popular && <div className="sp-popular">Most Popular</div>}
+      <div className="sp-grid">
+        {PLANS.map(plan => {
+          const isCurrent = plan.id === currentPlanId;
+          const idx       = PLANS.findIndex(p => p.id === plan.id);
+          const curIdx    = PLANS.findIndex(p => p.id === currentPlanId);
+          const isDowngrade = idx < curIdx;
 
-              <div className="sp-plan-name" style={{ color: selected === p.id ? p.color : "#9CA3AF" }}>
-                {p.name}
-              </div>
+          return (
+            <div key={plan.id} className={`sp-card${plan.popular ? " sp-card--popular" : ""}${isCurrent ? " sp-card--current" : ""}`}>
+              {plan.popular && <div className="sp-badge sp-badge--popular">MOST POPULAR</div>}
+              {isCurrent   && <div className="sp-badge sp-badge--current">YOUR PLAN</div>}
 
-              <div className="sp-plan-price">
-                {p.price === 0
-                  ? <span className="sp-price-main">Free</span>
-                  : <>
-                      <span className="sp-price-main">GHS {p.price}</span>
-                      <span className="sp-price-unit">/month</span>
-                    </>
-                }
+              <div className="sp-card-header">
+                <div className="sp-plan-name">{plan.name}</div>
+                <div className="sp-plan-tagline">{plan.tagline}</div>
+                <div className="sp-plan-price">
+                  {plan.price === 0
+                    ? <span className="sp-price-amount">Free</span>
+                    : <><span className="sp-price-amount">GHS {plan.price}</span><span className="sp-price-period">/mo</span></>}
+                </div>
+                <div className="sp-plan-limit">{plan.limit}</div>
               </div>
 
               <ul className="sp-features">
-                {p.features.map((f) => (
-                  <li key={f.t} style={{ color: f.ok ? "#1A1D3B" : "#C4C9D4" }}>
-                    {f.ok ? <CheckSVG color={selected === p.id ? p.color : "#046EF2"}/> : <CrossSVG/>}
-                    {f.t}
+                {plan.features.map((f, i) => (
+                  <li key={i} className={`sp-feature${f.on ? "" : " sp-feature--off"}`}>
+                    <Check on={f.on}/>
+                    <span>{f.label}</span>
+                    {f.badge && !f.on && <span className="sp-feature-badge">{f.badge}</span>}
                   </li>
                 ))}
               </ul>
 
-              {selected === p.id && (
-                <div className="sp-selected-check">✓ Selected</div>
-              )}
+              <div className="sp-card-footer">
+                {isCurrent ? (
+                  <div className="sp-btn sp-btn--current">✓ Current plan</div>
+                ) : isDowngrade ? (
+                  <div className="sp-btn sp-btn--disabled">Contact support to downgrade</div>
+                ) : (
+                  <button type="button" className="sp-btn sp-btn--cta"
+                    onClick={() => handleSelect(plan)}
+                    disabled={!!initiating}>
+                    {initiating === plan.id
+                      ? "Processing…"
+                      : plan.price === 0 ? "Get started free" : `Choose ${plan.name}`}
+                  </button>
+                )}
+              </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
+      </div>
 
-        {/* Terms */}
-        <div className="sp-terms-box">
-          <label className="sp-terms-check">
-            <input
-              type="checkbox"
-              checked={agreed}
-              onChange={(e) => { setAgreed(e.target.checked); setError(null); }}
-            />
-            <div>
-              I agree to Beme Market's{" "}
-              <a href="/seller-terms"   target="_blank">Seller Terms & Conditions</a>,{" "}
-              <a href="/seller-policy"  target="_blank">Seller Policy</a>, and{" "}
-              <a href="/privacy-policy" target="_blank">Privacy Policy</a>.
-              I understand that subscriptions are non-refundable and that my store can be
-              suspended for policy violations.
-            </div>
-          </label>
-        </div>
-
-        {error && <div className="sp-error">{error}</div>}
-
-        <div className="sp-cta">
-          <button
-            className="sp-start-btn"
-            onClick={handleStart}
-            disabled={loading || !agreed}
-          >
-            {loading
-              ? "Processing…"
-              : plan?.price === 0
-                ? "Activate Free Store →"
-                : `Pay GHS ${plan?.price}/mo with Paystack →`
-            }
-          </button>
-          <div className="sp-secure-note">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2" strokeLinecap="round" style={{ display:"inline", verticalAlign:"middle", marginRight:4 }}>
-              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-            Secured by Paystack · MoMo, Visa, Mastercard accepted
+      {/* Delivery callout */}
+      <div className="sp-delivery-note">
+        <div className="sp-delivery-icon">📦</div>
+        <div>
+          <div className="sp-delivery-title">Beme Delivery Support — Growth & Pro plans</div>
+          <div className="sp-delivery-desc">
+            Upgrade to Growth (GHS 129/mo) or Pro (GHS 399/mo) to access Beme's courier network.
+            We coordinate pickup and delivery so you can focus on selling.
           </div>
         </div>
       </div>
