@@ -1,211 +1,135 @@
-/* =========================
-   BOTTOM NAV — Neo-Brutalist Edition
-   Heavy borders · Hard shadows · Off-white · All-caps
-========================= */
+/* =============================================
+   BOTTOM NAV — Clean Floating Pill
+   Soft shadow · Rounded card · Thin icons
+   Active = bold top border + bold label
+============================================= */
 
-/* NAV BASE */
+/* ── Floating card wrapper ── */
 .bottom-nav {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 66px;
-  background: #fff;
-  border-top: 3px solid #0A0A0A;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  width: calc(100% - 32px);
+  max-width: 480px;
+  height: 70px;
+  background: #ffffff;
+  border-radius: 22px;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.09),
+    0 1px 4px rgba(0, 0, 0, 0.05);
   z-index: 999;
-  transform: translateY(0);
-  transition: transform 0.34s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.34s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity  0.34s ease;
   will-change: transform;
-  /* Hard top shadow — the brutalist touch */
-  box-shadow: 0 -4px 0px 0px #0A0A0A;
+  border: none;
+  outline: none;
 }
 
 .bottom-nav--hidden {
-  transform: translateY(100%);
+  transform: translateX(-50%) translateY(calc(100% + 24px));
 }
 
-/* ITEMS */
+/* ── Inner flex row ── */
+.bn-inner {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  padding: 0 6px;
+}
+
+/* ── Each tab button ── */
 .bn-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  font-size: 9px;
-  font-weight: 900;
-  font-family: 'Archivo Black', 'Arial Black', sans-serif;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #888;
+  justify-content: center;
+  gap: 4px;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 6px 10px;
+  padding: 0 4px 6px;
   position: relative;
-  transition: color 0.13s;
-  flex: 1;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.12s;
 }
 
-/* ACTIVE STATE */
-.bn-item.active {
-  color: #0057FF;
+.bn-item:active {
+  opacity: 0.6;
 }
 
-.bn-item.active .bn-active-pip {
+/* ── Top active bar ── */
+.bn-top-bar {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 2.5px;
+  border-radius: 0 0 3px 3px;
+  background: transparent;
+  transition: background 0.18s ease;
+}
+
+.bn-item.active .bn-top-bar {
+  background: #111111;
+}
+
+/* ── Icon ── */
+.bn-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bn-svg {
+  width: 22px;
+  height: 22px;
+  color: #BBBBBB;
+  transition: color 0.15s ease;
   display: block;
 }
 
-/* Active pip — brutalist underline indicator */
-.bn-active-pip {
-  display: none;
+.bn-item.active .bn-svg {
+  color: #111111;
+}
+
+/* ── Label ── */
+.bn-label {
+  font-size: 10.5px;
+  font-weight: 500;
+  font-family: 'SF Pro Text', -apple-system, 'Helvetica Neue', sans-serif;
+  letter-spacing: 0.01em;
+  color: #BBBBBB;
+  transition: color 0.15s ease, font-weight 0.15s ease;
+  line-height: 1;
+}
+
+.bn-item.active .bn-label {
+  color: #111111;
+  font-weight: 700;
+}
+
+/* ── Badge ── */
+.bn-badge {
   position: absolute;
-  bottom: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 20px;
-  height: 2.5px;
-  background: #0057FF;
-}
-
-/* TAP ANIMATION */
-.bn-item:active {
-  transform: translateY(2px);
-  color: #0A0A0A;
-}
-
-/* ICON */
-.bn-svg {
-  width: 21px;
-  height: 21px;
-  fill: none;
-  transition: color 0.13s;
-}
-
-/* =========================
-   CENTER SHOP BUTTON
-   Square + hard shadow — no circle
-========================= */
-.bn-center {
-  position: relative;
-  top: -18px;
-  width: 56px;
-  height: 56px;
-  border-radius: 0;                          /* Square — key brutalist move */
-  background: #0057FF;
-  color: #FCFAF2;
-  border: 2.5px solid #0A0A0A;
-  box-shadow: 4px 4px 0px 0px #0A0A0A;      /* Hard shadow */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: box-shadow 0.12s, transform 0.1s, background 0.13s;
-}
-
-.bn-center .bn-svg {
-  width: 22px;
-  height: 22px;
-  color: #FCFAF2;
-}
-
-.bn-center:hover {
-  background: #0A0A0A;
-}
-
-.bn-center:active {
-  transform: translate(4px, 4px);
-  box-shadow: 1px 1px 0px 0px #0A0A0A;
-}
-
-/* SAFE AREA */
-body {
-  padding-bottom: 80px;
-}
-
-/* =========================
-   BACK TO TOP BUTTON
-========================= */
-.bn-back-top {
-  position: fixed;
-  right: 14px;
-  bottom: 84px;
-  z-index: 1000;
-  width: 42px;
-  height: 42px;
-  border-radius: 0;                         /* Square */
-  border: 2.5px solid #0A0A0A;
-  box-shadow: 4px 4px 0px 0px #0A0A0A;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #FCFAF2;
-  color: #0A0A0A;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(10px);
-  transition:
-    opacity 0.22s ease,
-    transform 0.28s cubic-bezier(0.34, 1.1, 0.64, 1),
-    bottom 0.34s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.12s,
-    background 0.13s;
-  will-change: transform, opacity;
-}
-
-.bn-back-top--visible {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
-}
-
-.bn-back-top--nav-hidden {
-  bottom: 16px;
-}
-
-.bn-back-top:hover {
-  background: #0057FF;
-  color: #FCFAF2;
-  border-color: #0A0A0A;
-}
-
-.bn-back-top:active {
-  transform: translate(4px, 4px);
-  box-shadow: 1px 1px 0px 0px #0A0A0A;
-}
-
-/* =========================
-   WISHLIST / ACCOUNT BADGE
-========================= */
-.bn-icon-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bn-saved-badge {
-  position: absolute;
-  top: -7px;
-  right: -9px;
-  min-width: 16px;
-  height: 16px;
+  top: -6px;
+  right: -8px;
+  min-width: 15px;
+  height: 15px;
   padding: 0 3px;
-  border-radius: 0;                         /* Square badge */
-  border: 1.5px solid #0A0A0A;
-  background: #0057FF;
+  border-radius: 999px;
+  background: #111111;
   color: #fff;
   font-size: 8px;
-  font-weight: 900;
-  font-family: 'Archivo Black', 'Arial Black', sans-serif;
-  line-height: 14px;
+  font-weight: 700;
+  font-family: 'SF Pro Text', -apple-system, 'Helvetica Neue', sans-serif;
+  line-height: 15px;
   text-align: center;
   pointer-events: none;
-  letter-spacing: 0.02em;
-  animation: bn-badge-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: bn-badge-pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 @keyframes bn-badge-pop {
@@ -213,154 +137,14 @@ body {
   to   { transform: scale(1); opacity: 1; }
 }
 
-/* =========================
-   LOGOUT CONFIRM POPUP
-========================= */
-.bn-account-wrap {
-  position: relative;
+/* ── Safe area + body padding ── */
+body {
+  padding-bottom: 100px;
 }
 
-.bn-confirm {
-  position: absolute;
-  bottom: 76px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 210px;
-  background: #FCFAF2;
-  border: 2.5px solid #0A0A0A;
-  box-shadow: 5px 5px 0px 0px #0A0A0A;
-  border-radius: 0;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.18s ease, bottom 0.18s ease;
-  text-align: center;
-  padding: 16px 14px;
-  z-index: 1500;
-}
-
-.bn-confirm.is-open {
-  opacity: 1;
-  pointer-events: auto;
-  bottom: 84px;
-}
-
-.bn-confirm p {
-  margin: 0 0 12px;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-family: 'Archivo Black', 'Arial Black', sans-serif;
-  color: #0A0A0A;
-}
-
-.bn-confirm-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.bn-confirm-actions button {
-  width: 100%;
-  padding: 9px 0;
-  border-radius: 0;
-  border: 2px solid #0A0A0A;
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-family: 'Archivo Black', 'Arial Black', sans-serif;
-  cursor: pointer;
-  background: #FCFAF2;
-  color: #0A0A0A;
-  box-shadow: 3px 3px 0px 0px #0A0A0A;
-  transition: box-shadow 0.1s, transform 0.1s, background 0.12s;
-}
-
-.bn-confirm-actions button:active {
-  transform: translate(3px, 3px);
-  box-shadow: none;
-}
-
-.bn-confirm-btn--danger {
-  background: #CC0000 !important;
-  color: #fff !important;
-  border-color: #0A0A0A !important;
-  box-shadow: 3px 3px 0px 0px #0A0A0A !important;
-}
-
-.bn-confirm-btn--danger:hover {
-  background: #aa0000 !important;
-}
-
-/* =========================
-   DARK MODE
-========================= */
-body.dark .bottom-nav {
-  background: #1A1A14;
-  border-top-color: rgba(245, 243, 232, 0.3);
-  box-shadow: 0 -4px 0px 0px rgba(245, 243, 232, 0.2);
-}
-
-body.dark .bn-item {
-  color: #777;
-}
-
-body.dark .bn-item.active {
-  color: #5599ff;
-}
-
-body.dark .bn-item.active .bn-active-pip {
-  background: #5599ff;
-}
-
-body.dark .bn-center {
-  background: #0057FF;
-  border-color: rgba(245, 243, 232, 0.4);
-  box-shadow: 4px 4px 0px 0px rgba(245, 243, 232, 0.25);
-  color: #FCFAF2;
-}
-
-body.dark .bn-center:hover {
-  background: #F5F3E8;
-  color: #0A0A0A;
-}
-
-body.dark .bn-back-top {
-  background: #1A1A14;
-  color: #F5F3E8;
-  border-color: rgba(245, 243, 232, 0.35);
-  box-shadow: 4px 4px 0px 0px rgba(245, 243, 232, 0.2);
-}
-
-body.dark .bn-back-top:hover {
-  background: #0057FF;
-  color: #fff;
-}
-
-body.dark .bn-confirm {
-  background: #1A1A14;
-  border-color: rgba(245, 243, 232, 0.35);
-  box-shadow: 5px 5px 0px 0px rgba(245, 243, 232, 0.2);
-}
-
-body.dark .bn-confirm p {
-  color: #F5F3E8;
-}
-
-body.dark .bn-confirm-actions button {
-  background: #1A1A14;
-  color: #F5F3E8;
-  border-color: rgba(245, 243, 232, 0.35);
-  box-shadow: 3px 3px 0px 0px rgba(245, 243, 232, 0.2);
-}
-
-/* =========================
-   RESPONSIVE
-========================= */
+/* ── Larger screens: hide ── */
 @media (min-width: 768px) {
-  .bottom-nav,
-  .bn-back-top {
+  .bottom-nav {
     display: none !important;
   }
 }
