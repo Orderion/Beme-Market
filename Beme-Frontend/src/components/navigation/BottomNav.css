@@ -1,10 +1,10 @@
 /* =============================================
    BOTTOM NAV — Clean Floating Pill
    Soft shadow · Rounded card · Thin icons
-   Active = bold top border + bold label
+   Active = bold top bar + bold label
 ============================================= */
 
-/* ── Floating card wrapper ── */
+/* ── Floating pill ── */
 .bottom-nav {
   position: fixed;
   bottom: 16px;
@@ -12,22 +12,19 @@
   transform: translateX(-50%) translateY(0);
   width: calc(100% - 32px);
   max-width: 480px;
-  height: 70px;
+  height: 68px;
   background: #ffffff;
   border-radius: 22px;
   box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.09),
-    0 1px 4px rgba(0, 0, 0, 0.05);
+    0 4px 28px rgba(0, 0, 0, 0.10),
+    0 1px 6px  rgba(0, 0, 0, 0.06);
   z-index: 999;
-  transition: transform 0.34s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity  0.34s ease;
+  transition: transform 0.34s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
-  border: none;
-  outline: none;
 }
 
 .bottom-nav--hidden {
-  transform: translateX(-50%) translateY(calc(100% + 24px));
+  transform: translateX(-50%) translateY(calc(100% + 28px));
 }
 
 /* ── Inner flex row ── */
@@ -35,10 +32,10 @@
   display: flex;
   align-items: stretch;
   height: 100%;
-  padding: 0 6px;
+  padding: 0 8px;
 }
 
-/* ── Each tab button ── */
+/* ── Each tab ── */
 .bn-item {
   flex: 1;
   display: flex;
@@ -56,18 +53,18 @@
 }
 
 .bn-item:active {
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
-/* ── Top active bar ── */
+/* ── Active top bar ── */
 .bn-top-bar {
   position: absolute;
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 32px;
+  width: 28px;
   height: 2.5px;
-  border-radius: 0 0 3px 3px;
+  border-radius: 0 0 4px 4px;
   background: transparent;
   transition: background 0.18s ease;
 }
@@ -87,7 +84,7 @@
 .bn-svg {
   width: 22px;
   height: 22px;
-  color: #BBBBBB;
+  color: #C0C0C0;
   transition: color 0.15s ease;
   display: block;
 }
@@ -98,13 +95,13 @@
 
 /* ── Label ── */
 .bn-label {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 500;
   font-family: 'SF Pro Text', -apple-system, 'Helvetica Neue', sans-serif;
   letter-spacing: 0.01em;
-  color: #BBBBBB;
-  transition: color 0.15s ease, font-weight 0.15s ease;
+  color: #C0C0C0;
   line-height: 1;
+  transition: color 0.15s ease, font-weight 0.15s ease;
 }
 
 .bn-item.active .bn-label {
@@ -112,7 +109,7 @@
   font-weight: 700;
 }
 
-/* ── Badge ── */
+/* ── Wishlist / account badge ── */
 .bn-badge {
   position: absolute;
   top: -6px;
@@ -137,14 +134,61 @@
   to   { transform: scale(1); opacity: 1; }
 }
 
-/* ── Safe area + body padding ── */
+
+/* ── Back-to-top button ── */
+.bn-back-top {
+  position: fixed;
+  right: 16px;
+  bottom: 100px;
+  z-index: 1000;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(0, 0, 0, 0.10);
+  background: #ffffff;
+  color: #333333;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition:
+    opacity 0.22s ease,
+    transform 0.28s cubic-bezier(0.34, 1.1, 0.64, 1),
+    bottom 0.34s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.13s;
+  will-change: transform, opacity;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bn-back-top--visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.bn-back-top--nav-hidden {
+  bottom: 20px;
+}
+
+.bn-back-top:active {
+  background: #f2f2f2;
+  transform: scale(0.94);
+}
+
+
+/* ── Safe area ── */
 body {
   padding-bottom: 100px;
 }
 
-/* ── Larger screens: hide ── */
+/* ── Hide on desktop ── */
 @media (min-width: 768px) {
-  .bottom-nav {
+  .bottom-nav,
+  .bn-back-top {
     display: none !important;
   }
 }
