@@ -1,387 +1,316 @@
-import { useEffect, useState } from "react";
-import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../../firebase";
-import { useSellerAuth } from "../../hooks/useSellerAuth";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
+import { useAuth } from "../context/AuthContext";
+import { useSellerAuth } from "../hooks/useSellerAuth";
+import { useChat } from "../hooks/useChat";
+import "./SellerDashboard.css";
 
-const REGIONS = [
-  "Greater Accra","Ashanti","Western","Central","Eastern",
-  "Northern","Upper East","Upper West","Volta","Brong-Ahafo",
-  "Oti","Ahafo","Bono East","North East","Savannah","Western North",
-];
+// Sub-pages
+import DashboardHome         from "./dashboard/DashboardHome";
+import DashboardProducts     from "./dashboard/DashboardProducts";
+import DashboardOrders       from "./dashboard/DashboardOrders";
+import DashboardCustomers    from "./dashboard/DashboardCustomers";
+import DashboardChat         from "./dashboard/DashboardChat";
+import DashboardMarketing    from "./dashboard/DashboardMarketing";
+import DashboardAnalytics    from "./dashboard/DashboardAnalytics";
+import DashboardSubscription from "./dashboard/DashboardSubscription";
+import DashboardVerification from "./dashboard/DashboardVerification";
+import DashboardAppearance   from "./dashboard/DashboardAppearance";
+import DashboardWithdrawals  from "./dashboard/DashboardWithdrawals";
+const DashboardDelivery = React.lazy(() => import("./dashboard/DashboardDelivery").catch(() => ({ default: () => null })));
 
-const BEME_RATES = [
-  { zone: "Within Accra (same day)",  eta: "Same day",   rate: "GHS 20" },
-  { zone: "Accra → Kumasi",           eta: "1–2 days",   rate: "GHS 35" },
-  { zone: "Accra → Other regions",    eta: "2–3 days",   rate: "GHS 40–55" },
-  { zone: "Nationwide (standard)",    eta: "3–5 days",   rate: "GHS 30–60" },
-];
-
-// Beme Delivery: Growth (GHS 129) and Pro (GHS 399) only
-const DELIVERY_ACCESS = {
-  basic:    false, free: false, starter: false,
-  growth:   true,  standard: true, pro: true,
-};
-
-function Ico({ d, size = 16 }) {
+/* ── Icons ── */
+function Icon({ path, size = 16, color = "currentColor" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      {d.split("|").map((seg, i) => <path key={i} d={seg} />)}
+      stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {path.split(" M").map((seg, i) => (
+        <path key={i} d={(i === 0 ? "" : "M") + seg} />
+      ))}
     </svg>
   );
 }
 
-export default function DashboardDelivery() {
-  const { user, shop, storeId, appData, subscriptionPlan } = useSellerAuth();
-  const planId  = (appData?.planId || shop?.planId || subscriptionPlan || "basic").toLowerCase();
-  const canBeme = DELIVERY_ACCESS[planId] ?? false;
-  const shopDocId = storeId || user?.uid;
+const ICONS = {
+  home:     "M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5Z M9 21V12h6v9",
+  products: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z M3.27 6.96L12 12.01l8.73-5.05 M12 22.08V12",
+  orders:   "M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0",
+  customers:"M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 0 8 0 4 4 0 0 0-8 0 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75",
+  chat:     "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
+  marketing:"M13 2L3 14h9l-1 8 10-12h-9l1-8z",
+  analytics:"M18 20V10 M12 20V4 M6 20v-6",
+  wallet:   "M21 12V7H5a2 2 0 0 1 0-4h14v4 M3 5v14a2 2 0 0 0 2 2h16v-5 M18 12h.01",
+  paint:    "M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z M13.5 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z M8.5 7.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z M17.5 10.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z M6.5 12.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z",
+  shield:   "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+  star:     "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+  settings: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z",
+  logout:   "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9",
+  delivery: "M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3 M9 17H7 M17 21H9 M3 9h11 M13 17h2l1-1V9h-3 M16 9l3 3 M19 12v5a2 2 0 0 1-2 2 M17 21a2 2 0 1 0 4 0 2 2 0 0 0-4 0 M7 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0",
+  menu:     "M3 12h18 M3 6h18 M3 18h18",
+  close:    "M18 6L6 18 M6 6l12 12",
+  external: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6 M15 3h6v6 M10 14L21 3",
+  bell:     "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0",
+};
 
-  const [method,          setMethod]          = useState("self");
-  const [feeType,         setFeeType]         = useState("flat");
-  const [flatFee,         setFlatFee]         = useState("");
-  const [processingDays,  setProcessingDays]  = useState("1");
-  const [coverage,        setCoverage]        = useState("nationwide");
-  const [selectedRegions, setSelectedRegions] = useState([]);
-  const [selfPolicy,      setSelfPolicy]      = useState("");
-  const [bemeEnrolled,    setBemeEnrolled]    = useState(false);
-  const [bemeTier,        setBemeTier]        = useState("standard");
-  const [loading,         setLoading]         = useState(true);
-  const [saving,          setSaving]          = useState(false);
-  const [msg,             setMsg]             = useState("");
-  const [msgOk,           setMsgOk]           = useState(true);
+/* ── Nav config ── */
+const NAV = [
+  { id: "home",         icon: "home",      label: "Analytics"    },
+  { id: "products",     icon: "products",  label: "Products"     },
+  { id: "orders",       icon: "orders",    label: "Orders"       },
+  { id: "customers",    icon: "customers", label: "Customers"    },
+  { id: "chat",         icon: "chat",      label: "Messages"     },
+  { id: "marketing",    icon: "marketing", label: "Marketing"    },
+  { id: "analytics",    icon: "analytics", label: "Analytics Pro" },
+  { id: "withdrawals",  icon: "wallet",    label: "Withdrawals"  },
+  { id: "appearance",   icon: "paint",     label: "Store Design" },
+  { id: "delivery",     icon: "delivery",  label: "Delivery"     },
+  { id: "verification", icon: "shield",    label: "Verification" },
+  { id: "subscription", icon: "star",      label: "Subscription" },
+];
 
-  useEffect(() => {
-    if (!shopDocId) return;
-    (async () => {
-      try {
-        const snap = await getDoc(doc(db, "shops", shopDocId));
-        if (snap.exists()) {
-          const d = snap.data().delivery || {};
-          setMethod(d.method || "self");
-          const sd = d.selfDelivery || {};
-          setFeeType(sd.feeType || "flat");
-          setFlatFee(sd.fee != null ? String(sd.fee) : "");
-          setProcessingDays(sd.processingDays != null ? String(sd.processingDays) : "1");
-          setCoverage(sd.coverage || "nationwide");
-          setSelectedRegions(sd.regions || []);
-          setSelfPolicy(sd.policy || "");
-          const bd = d.bemeDelivery || {};
-          setBemeEnrolled(bd.enrolled || false);
-          setBemeTier(bd.tier || "standard");
-        }
-      } catch (e) { console.error(e); }
-      finally { setLoading(false); }
-    })();
-  }, [shopDocId]);
+const PLAN_COLORS = { basic: "#6B7280", standard: "#046EF2", pro: "#7C3AED" };
 
-  const toggleRegion = (r) =>
-    setSelectedRegions(p => p.includes(r) ? p.filter(x => x !== r) : [...p, r]);
+/* ── Sidebar ── */
+function Sidebar({ activeTab, onNav, shop, plan, chatUnread, onClose, isMobile, storeUid }) {
+  const { logout }  = useAuth();
+  const navigate    = useNavigate();
+  const planColor   = PLAN_COLORS[plan] || "#046EF2";
+  const planInitial = (shop?.shopName || "S")[0].toUpperCase();
 
-  const handleSave = async () => {
-    setMsg(""); setSaving(true);
-    if ((method === "self" || method === "both") && feeType === "flat" && flatFee !== "") {
-      if (isNaN(Number(flatFee)) || Number(flatFee) < 0) {
-        setMsg("Enter a valid delivery fee."); setMsgOk(false); setSaving(false); return;
-      }
-    }
-    if ((method === "self" || method === "both") && coverage === "selected" && selectedRegions.length === 0) {
-      setMsg("Select at least one region."); setMsgOk(false); setSaving(false); return;
-    }
-    try {
-      const payload = { "delivery.method": method, "delivery.updatedAt": serverTimestamp() };
-      if (method === "self" || method === "both") {
-        payload["delivery.selfDelivery"] = {
-          feeType,
-          fee: feeType === "flat" && flatFee !== "" ? Number(flatFee) : null,
-          processingDays: Number(processingDays) || 1,
-          coverage,
-          regions: coverage === "selected" ? selectedRegions : [],
-          policy: selfPolicy.trim(),
-        };
-      }
-      if ((method === "beme" || method === "both") && canBeme) {
-        payload["delivery.bemeDelivery"] = { enrolled: true, tier: bemeTier };
-        if (!bemeEnrolled) payload["delivery.bemeDelivery.enrolledAt"] = serverTimestamp();
-        setBemeEnrolled(true);
-      }
-      await updateDoc(doc(db, "shops", shopDocId), payload);
-      setMsg("Delivery settings saved!"); setMsgOk(true);
-    } catch (e) {
-      console.error(e); setMsg("Failed to save. Try again."); setMsgOk(false);
-    } finally { setSaving(false); }
+  const handleLogout = async () => {
+    await logout().catch(console.error);
+    navigate("/");
   };
 
-  if (loading) return <div style={{ padding: 32, textAlign: "center", color: "#9CA3AF", fontSize: 14 }}>Loading…</div>;
-
-  const Card = ({ icon, title, desc, value, locked, onClick }) => (
-    <button type="button" onClick={() => !locked && onClick()}
-      style={{
-        display: "flex", alignItems: "flex-start", gap: 14,
-        padding: "16px 16px", borderRadius: 14, border: "1.5px solid",
-        borderColor: method === value ? "#111" : "rgba(0,0,0,0.1)",
-        background: method === value ? "#111" : "#fff",
-        cursor: locked ? "not-allowed" : "pointer", width: "100%",
-        opacity: locked ? 0.55 : 1, textAlign: "left", transition: "all 0.15s",
-      }}>
-      <div style={{ fontSize: 22, lineHeight: 1, flexShrink: 0, marginTop: 2 }}>{icon}</div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: method === value ? "#fff" : "#111", marginBottom: 3 }}>
-          {title}
-          {locked && <span style={{ fontSize: 11, fontWeight: 700, marginLeft: 8, padding: "2px 8px", borderRadius: 6, background: "rgba(0,0,0,0.08)", color: "#6B7280" }}>Growth+ required</span>}
+  return (
+    <>
+      {/* Brand */}
+      <div className="sd-brand">
+        <div className="sd-brand-icon">{planInitial}</div>
+        <div className="sd-brand-info">
+          <div className="sd-brand-name">{shop?.shopName || "My Store"}</div>
+          <div className="sd-brand-plan">
+            <div className="sd-plan-dot" style={{ background: planColor }} />
+            {plan?.charAt(0).toUpperCase() + plan?.slice(1)} Plan
+          </div>
         </div>
-        <div style={{ fontSize: 13, color: method === value ? "rgba(255,255,255,0.7)" : "#6B7280", lineHeight: 1.5 }}>{desc}</div>
+        {isMobile && (
+          <button className="sd-hamburger" onClick={onClose} style={{ marginLeft: "auto" }}>
+            <Icon path={ICONS.close} size={18} />
+          </button>
+        )}
       </div>
-      <div style={{
-        width: 20, height: 20, borderRadius: "50%", flexShrink: 0, marginTop: 2,
-        border: `2px solid ${method === value ? "#fff" : "rgba(0,0,0,0.2)"}`,
-        background: method === value ? "#fff" : "transparent",
-        display: "flex", alignItems: "center", justifyContent: "center",
-      }}>
-        {method === value && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#111" }}/>}
-      </div>
-    </button>
-  );
 
-  const RadioCard = ({ label, desc, val, group, checked, onChange }) => (
-    <label style={{
-      display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px",
-      borderRadius: 10, border: `1.5px solid ${checked ? "#111" : "rgba(0,0,0,0.1)"}`,
-      background: checked ? "#fafafa" : "#fff", cursor: "pointer", transition: "all 0.12s",
-    }}>
-      <input type="radio" name={group} value={val} checked={checked} onChange={onChange}
-        style={{ accentColor: "#111", marginTop: 3, flexShrink: 0 }}/>
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "#111" }}>{label}</div>
-        <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>{desc}</div>
+      {/* Nav */}
+      <nav className="sd-nav">
+        {NAV.map(({ id, icon, label }) => (
+          <button
+            key={id}
+            className={`sd-nav-btn ${activeTab === id ? "active" : ""}`}
+            onClick={() => { onNav(id); if (isMobile) onClose(); }}
+          >
+            <span className="sd-nav-icon">
+              <Icon path={ICONS[icon]} size={16} />
+            </span>
+            <span className="sd-nav-label">{label}</span>
+            {id === "chat" && chatUnread > 0 && (
+              <span className="sd-nav-badge">{chatUnread > 99 ? "99+" : chatUnread}</span>
+            )}
+          </button>
+        ))}
+
+        <div className="sd-nav-divider" />
+        <button className="sd-nav-btn" onClick={() => {
+          const slug = shop?.slug
+            || (shop?.shopName ? shop.shopName.toLowerCase().replace(/[^a-z0-9]/g,"-").replace(/-+/g,"-") : null)
+            || shop?.id
+            || storeUid
+            || "my-store";
+          navigate(`/store/${slug}`);
+        }}>
+          <span className="sd-nav-icon"><Icon path={ICONS.external} size={16} /></span>
+          <span className="sd-nav-label">View Store</span>
+        </button>
+        <button className="sd-nav-btn" onClick={handleLogout}>
+          <span className="sd-nav-icon"><Icon path={ICONS.logout} size={16} /></span>
+          <span className="sd-nav-label">Sign Out</span>
+        </button>
+      </nav>
+
+      {/* Support card */}
+      <div className="sd-support">
+        <div className="sd-support-title">Need help?</div>
+        <div className="sd-support-text">Feel free to contact our support team anytime.</div>
+        <button className="sd-support-btn" onClick={() => navigate("/support")}>
+          Get support
+        </button>
       </div>
-    </label>
+    </>
   );
+}
+
+/* ── Main export ── */
+export default function SellerDashboard() {
+  const navigate    = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const { user, loading: authLoading, role, profile } = useAuth();
+  const { isSeller, isSellerActive, shop, subscriptionPlan, loading: sellerLoading } = useSellerAuth();
+  const { totalUnread } = useChat();
+
+  const [mobileOpen,   setMobileOpen]   = useState(false);
+  const [accessGranted, setAccessGranted] = useState(false); // firestore fallback check
+
+  const activeTab = params.get("tab") || "home";
+
+  const goTab = useCallback((tab) => {
+    setParams({ tab }, { replace: true });
+    window.scrollTo({ top: 0 });
+  }, [setParams]);
+
+  // ── Auth guard ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (authLoading || sellerLoading) return;
+
+    // 1. Not logged in → send to login
+    if (!user) {
+      navigate("/login?redirect=/seller-dashboard", { replace: true });
+      return;
+    }
+
+    // 2. Fast-pass checks (synchronous)
+    const appliedUid  = localStorage.getItem("beme_seller_applied");
+    const justApplied = appliedUid && appliedUid === user.uid;
+    const isAdminUser = role === "super_admin" || role === "admin";
+    const hasStoreId  = !!(profile?.storeId);
+    const hasSellerStatus = !!(profile?.sellerStatus && profile.sellerStatus !== "none");
+
+    if (isSeller || justApplied || isAdminUser || hasStoreId || hasSellerStatus) {
+      setAccessGranted(true);
+      return;
+    }
+
+    // 3. Last-resort: check Firestore storeApplications doc
+    //    If user went through onboarding but localStorage was cleared,
+    //    this lets them back in and re-sets the flag.
+    getDoc(doc(db, "storeApplications", user.uid))
+      .then((snap) => {
+        if (snap.exists()) {
+          // They started onboarding — grant access and restore flag
+          localStorage.setItem("beme_seller_applied", user.uid);
+          setAccessGranted(true);
+        } else {
+          // Truly never started onboarding
+          navigate("/get-a-store", { replace: true });
+        }
+      })
+      .catch(() => {
+        // On error, don't lock them out — let them in with limited state
+        setAccessGranted(true);
+      });
+
+  }, [user, isSeller, role, profile, authLoading, sellerLoading, navigate]);
+
+  if (authLoading || sellerLoading) {
+    return (
+      <div className="sd-root" style={{ alignItems: "center", justifyContent: "center" }}>
+        <div style={{ fontSize: 14, color: "#8B8FA8" }}>Loading your dashboard…</div>
+      </div>
+    );
+  }
+
+  // Still running the storeApplications check — show loader
+  const appliedUid  = localStorage.getItem("beme_seller_applied");
+  const justApplied = appliedUid && user && appliedUid === user.uid;
+  const isAdminUser = role === "super_admin" || role === "admin";
+  const hasStoreId  = !!(profile?.storeId);
+  const hasSellerStatus = !!(profile?.sellerStatus && profile.sellerStatus !== "none");
+  const hasImmediateAccess = isSeller || justApplied || isAdminUser || hasStoreId || hasSellerStatus;
+
+  if (!user) return null;
+  if (!hasImmediateAccess && !accessGranted) {
+    return (
+      <div className="sd-root" style={{ alignItems: "center", justifyContent: "center" }}>
+        <div style={{ fontSize: 14, color: "#8B8FA8" }}>Checking access…</div>
+      </div>
+    );
+  }
+
+  const TAB_TITLES = {
+    home: "Analytics", products: "Products", orders: "Orders",
+    customers: "Customers", chat: "Messages", marketing: "Marketing",
+    analytics: "Analytics Pro", withdrawals: "Withdrawals",
+    appearance: "Store Design", verification: "Verification",
+    delivery: "Delivery Settings",
+    subscription: "Subscription",
+  };
+
+  const PAGE_MAP = {
+    home:         <DashboardHome />,
+    products:     <DashboardProducts />,
+    orders:       <DashboardOrders />,
+    customers:    <DashboardCustomers />,
+    chat:         <DashboardChat />,
+    marketing:    <DashboardMarketing />,
+    analytics:    <DashboardAnalytics />,
+    withdrawals:  <DashboardWithdrawals />,
+    appearance:   <DashboardAppearance />,
+    verification: <DashboardVerification />,
+    delivery:     <Suspense fallback={<div style={{padding:32,color:"#9CA3AF",fontSize:14}}>Loading…</div>}><DashboardDelivery /></Suspense>,
+    subscription: <DashboardSubscription />,
+  };
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-GH", { day: "2-digit", month: "2-digit", year: "numeric" });
 
   return (
-    <div style={{ fontFamily: "var(--font-main,'Nunito',sans-serif)", background: "#fff", maxWidth: 640 }}>
-
-      {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 22, fontWeight: 900, color: "#111", letterSpacing: "-0.03em", marginBottom: 4 }}>
-          Delivery Settings
-        </div>
-        <div style={{ fontSize: 13, color: "#9CA3AF" }}>
-          Choose how orders reach your customers. Beme Delivery requires Growth plan (GHS 129/mo) or higher.
-        </div>
-      </div>
-
-      {/* Method cards */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
-        <Card icon="🚗" title="Self Delivery"
-          desc="You handle all shipping. Set your own rates, coverage and processing time."
-          value="self" locked={false} onClick={() => setMethod("self")}/>
-        <Card icon="📦" title="Beme Delivery Support"
-          desc="Beme coordinates pickup via courier partners. Delivery fee deducted from payout per order."
-          value="beme" locked={!canBeme} onClick={() => setMethod("beme")}/>
-        <Card icon="🔄" title="Both Options"
-          desc="Customers choose at checkout between your rate or Beme's courier network."
-          value="both" locked={!canBeme} onClick={() => setMethod("both")}/>
-      </div>
-
-      {/* Self delivery settings */}
-      {(method === "self" || method === "both") && (
-        <div style={{ background: "#fff", borderRadius: 14, border: "1px solid rgba(0,0,0,0.08)", padding: 20, marginBottom: 16 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: "#111", marginBottom: 16 }}>Self delivery settings</div>
-
-          {/* Fee type */}
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Delivery fee type</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {[
-                { val: "flat",       label: "Flat rate",       desc: "Fixed fee per order" },
-                { val: "free",       label: "Free delivery",   desc: "You absorb all costs" },
-                { val: "negotiable", label: "Negotiable",      desc: "Customer contacts you to arrange" },
-              ].map(o => (
-                <RadioCard key={o.val} label={o.label} desc={o.desc} val={o.val}
-                  group="feeType" checked={feeType === o.val} onChange={() => setFeeType(o.val)}/>
-              ))}
-            </div>
-          </div>
-
-          {/* Flat fee input */}
-          {feeType === "flat" && (
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                Delivery fee (GHS)
-              </label>
-              <input type="number" value={flatFee} onChange={e => setFlatFee(e.target.value)}
-                placeholder="e.g. 20" min="0" inputMode="decimal"
-                style={{ width: 140, padding: "10px 14px", borderRadius: 10,
-                  border: "1.5px solid rgba(0,0,0,0.12)", background: "#fafafa",
-                  fontSize: 15, fontWeight: 700, color: "#111", outline: "none",
-                  fontFamily: "inherit" }}/>
-            </div>
-          )}
-
-          {/* Processing days */}
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Processing time
-            </label>
-            <select value={processingDays} onChange={e => setProcessingDays(e.target.value)}
-              style={{ padding: "10px 14px", borderRadius: 10, border: "1.5px solid rgba(0,0,0,0.12)",
-                background: "#fafafa", fontSize: 14, fontWeight: 600, color: "#111",
-                outline: "none", fontFamily: "inherit", cursor: "pointer" }}>
-              {[["1","Same day"],["2","1–2 days"],["3","2–3 days"],["5","3–5 days"],["7","Up to 7 days"]].map(([v,l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Coverage */}
-          <div style={{ marginBottom: selectedRegions.length || coverage === "selected" ? 12 : 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Delivery coverage
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              {[["nationwide","🌍 Nationwide"],["selected","📍 Selected regions"]].map(([v,l]) => (
-                <button key={v} type="button" onClick={() => setCoverage(v)}
-                  style={{ padding: "8px 16px", borderRadius: 100,
-                    border: `1.5px solid ${coverage === v ? "#111" : "rgba(0,0,0,0.12)"}`,
-                    background: coverage === v ? "#111" : "#fff",
-                    color: coverage === v ? "#fff" : "#374151",
-                    fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {coverage === "selected" && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 12 }}>
-                {REGIONS.map(r => (
-                  <label key={r} style={{
-                    display: "flex", alignItems: "center", gap: 6, padding: "6px 12px",
-                    borderRadius: 100, border: `1.5px solid ${selectedRegions.includes(r) ? "#111" : "rgba(0,0,0,0.1)"}`,
-                    background: selectedRegions.includes(r) ? "#111" : "#fff",
-                    color: selectedRegions.includes(r) ? "#fff" : "#374151",
-                    fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.12s",
-                  }}>
-                    <input type="checkbox" checked={selectedRegions.includes(r)}
-                      onChange={() => toggleRegion(r)} style={{ display: "none" }}/>
-                    {r}
-                  </label>
-                ))}
-              </div>
-              {selectedRegions.length > 0 && (
-                <div style={{ fontSize: 12, color: "#6B7280", marginTop: 8 }}>
-                  {selectedRegions.length} region{selectedRegions.length > 1 ? "s" : ""} selected
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Policy note */}
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Delivery policy <span style={{ fontWeight: 500, textTransform: "none" }}>(optional)</span>
-            </label>
-            <textarea value={selfPolicy} onChange={e => setSelfPolicy(e.target.value)} rows={3}
-              maxLength={300} placeholder="e.g. Orders placed before 2pm ship same day…"
-              style={{ width: "100%", padding: "10px 14px", borderRadius: 10,
-                border: "1.5px solid rgba(0,0,0,0.12)", background: "#fafafa",
-                fontSize: 13, color: "#111", outline: "none", resize: "vertical",
-                fontFamily: "inherit", boxSizing: "border-box" }}/>
-            <div style={{ fontSize: 11, color: "#9CA3AF", textAlign: "right" }}>{selfPolicy.length}/300</div>
-          </div>
-        </div>
+    <div className="sd-root">
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div className="sd-overlay" onClick={() => setMobileOpen(false)} />
       )}
 
-      {/* Beme delivery settings */}
-      {(method === "beme" || method === "both") && canBeme && (
-        <div style={{ background: "#fff", borderRadius: 14, border: "1px solid rgba(0,0,0,0.08)", padding: 20, marginBottom: 16 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: "#111", marginBottom: 6 }}>Beme Delivery Support</div>
-          <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 16, lineHeight: 1.6 }}>
-            Beme coordinates pickup via courier partners. Delivery fee collected at checkout, courier cost deducted from your payout.
-          </div>
+      {/* Sidebar */}
+      <aside className={`sd-sidebar ${mobileOpen ? "mobile-open" : ""}`}>
+        <Sidebar
+          activeTab={activeTab}
+          onNav={goTab}
+          shop={shop}
+          storeUid={storeId || user?.uid}
+          plan={subscriptionPlan}
+          chatUnread={totalUnread}
+          onClose={() => setMobileOpen(false)}
+          isMobile={mobileOpen}
+        />
+      </aside>
 
-          {/* Rates table */}
-          <div style={{ background: "#fafafa", borderRadius: 12, border: "1px solid rgba(0,0,0,0.06)", padding: 14, marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#111", marginBottom: 12 }}>📋 Current delivery rates</div>
-            {BEME_RATES.map((r, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "8px 0", borderBottom: i < BEME_RATES.length - 1 ? "1px solid rgba(0,0,0,0.06)" : "none" }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>{r.zone}</div>
-                  <div style={{ fontSize: 11, color: "#9CA3AF" }}>{r.eta}</div>
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 900, color: "#111" }}>{r.rate}</div>
-              </div>
-            ))}
-            <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 10, lineHeight: 1.5 }}>
-              GHS 5–10 handling fee deducted per Beme-delivered order. Rates confirmed at checkout.
-            </div>
+      {/* Main */}
+      <div className="sd-main">
+        {/* Topbar */}
+        <header className="sd-topbar">
+          <div className="sd-topbar-left">
+            <button className="sd-hamburger" onClick={() => setMobileOpen(true)}>
+              <Icon path={ICONS.menu} size={22} color="#8B8FA8" />
+            </button>
+            <div className="sd-topbar-title">{TAB_TITLES[activeTab] || "Dashboard"}</div>
           </div>
+          <div className="sd-topbar-right">
+            <span className="sd-topbar-date">
+              <Icon path="M8 2v3 M16 2v3 M3 10h18 M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" size={13} color="#8B8FA8" />
+              {dateStr}
+            </span>
+            <button className="sd-avatar-btn" title={user?.displayName || user?.email}>
+              {(user?.displayName || user?.email || "S")[0].toUpperCase()}
+            </button>
+          </div>
+        </header>
 
-          {/* Tier */}
-          <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Delivery tier</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <RadioCard label="⚡ Standard" desc="2–3 day nationwide, same-day within Accra"
-                val="standard" group="tier" checked={bemeTier === "standard"} onChange={() => setBemeTier("standard")}/>
-              <RadioCard label="🚀 Express" desc="Priority same-day and next-day. Higher rates apply."
-                val="express" group="tier" checked={bemeTier === "express"} onChange={() => setBemeTier("express")}/>
-            </div>
-          </div>
-
-          {/* Enrollment banner */}
-          <div style={{ padding: "12px 14px", borderRadius: 10,
-            background: bemeEnrolled ? "rgba(34,197,94,0.08)" : "rgba(0,0,0,0.04)",
-            border: `1px solid ${bemeEnrolled ? "rgba(34,197,94,0.2)" : "rgba(0,0,0,0.08)"}`,
-            fontSize: 13, color: bemeEnrolled ? "#166534" : "#374151", lineHeight: 1.5 }}>
-            {bemeEnrolled
-              ? "✅ Enrolled in Beme Delivery. Our team coordinates pickups once orders are placed."
-              : "ℹ️ Saving will enroll your store. Our team contacts you within 24 hours for your first pickup."}
-          </div>
+        {/* Page content */}
+        <div className="sd-content">
+          {PAGE_MAP[activeTab] || <DashboardHome />}
         </div>
-      )}
-
-      {/* How it works */}
-      <div style={{ background: "#fafafa", borderRadius: 14, border: "1px solid rgba(0,0,0,0.06)", padding: 18, marginBottom: 20 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: "#111", marginBottom: 12 }}>💡 How delivery works on Beme Market</div>
-        {[
-          ["Customer orders","Product + delivery option selected at checkout."],
-          ["Payment collected","Paystack collects product price + delivery fee in one transaction."],
-          ["You prepare the order","Hand to Beme courier (Beme Delivery) or ship yourself (Self Delivery)."],
-          ["Payout sent","You receive product price minus any platform and delivery handling fees."],
-        ].map(([title, desc], i) => (
-          <div key={i} style={{ display: "flex", gap: 12, marginBottom: i < 3 ? 10 : 0 }}>
-            <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#111", color: "#fff",
-              fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              {i + 1}
-            </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>{title}</div>
-              <div style={{ fontSize: 12, color: "#6B7280" }}>{desc}</div>
-            </div>
-          </div>
-        ))}
       </div>
-
-      {/* Message */}
-      {msg && (
-        <div style={{ padding: "10px 14px", borderRadius: 10, marginBottom: 14,
-          background: msgOk ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)",
-          border: `1px solid ${msgOk ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`,
-          color: msgOk ? "#166534" : "#991b1b", fontSize: 13 }}>
-          {msg}
-        </div>
-      )}
-
-      <button type="button" onClick={handleSave} disabled={saving}
-        style={{ padding: "13px 28px", borderRadius: 12, border: "none",
-          background: "#111", color: "#fff", fontSize: 15, fontWeight: 800,
-          cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1,
-          fontFamily: "inherit", boxShadow: "0 4px 14px rgba(0,0,0,0.15)" }}>
-        {saving ? "Saving…" : "Save delivery settings"}
-      </button>
     </div>
   );
 }
