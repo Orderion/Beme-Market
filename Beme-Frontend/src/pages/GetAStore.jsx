@@ -6,12 +6,12 @@ import { SELLER_APPLIED_KEY } from "../components/SellerRoute";
 import "./GetAStore.css";
 
 /* ─── Pricing ─────────────────────────────────────────────── */
-const MONTHLY = { free: 0, starter: 29, standard: 99, pro: 249 };
-const YEARLY  = { free: 0, starter: 23, standard: 79, pro: 199 };
+const MONTHLY = { basic: 0, starter: 59, growth: 129, pro: 399 };
+const YEARLY  = { basic: 0, starter: 47, growth: 103, pro: 319 };
 
 const PLANS = [
   {
-    id:"free", name:"Free", tagline:"Test the waters",
+    id:"basic", name:"Basic", tagline:"Test the waters",
     bg:"#fff", nameColor:"#9CA3AF", amtColor:"#111",
     cta:"Start for Free", ctaBg:"#111", ctaColor:"#fff", ctaBorder:"#111",
     dividerColor:"rgba(0,0,0,0.08)",
@@ -35,9 +35,9 @@ const PLANS = [
     ],
   },
   {
-    id:"standard", name:"Standard", tagline:"Grow your brand", badge:"Most Popular",
+    id:"growth", name:"Growth", tagline:"Grow your brand", badge:"Most Popular",
     bg:"#046EF2", nameColor:"rgba(255,255,255,0.6)", amtColor:"#fff",
-    cta:"Get Standard", ctaBg:"#fff", ctaColor:"#046EF2", ctaBorder:"#fff",
+    cta:"Get Growth", ctaBg:"#fff", ctaColor:"#046EF2", ctaBorder:"#fff",
     dividerColor:"rgba(255,255,255,0.15)",
     features:[
       {t:"500 products",ok:true},{t:"Premium store themes",ok:true},
@@ -103,6 +103,7 @@ function HeroIllustration() {
       width="100%"
       height="100%"
       preserveAspectRatio="xMidYMid meet"
+      style={{ overflow: "visible" }}
     >
       <defs>
         <filter id="gs1" x="-30%" y="-30%" width="160%" height="160%">
@@ -120,6 +121,19 @@ function HeroIllustration() {
         <filter id="gs5" x="-30%" y="-30%" width="160%" height="160%">
           <feDropShadow dx="0" dy="4" stdDeviation="10" floodColor="#046EF2" floodOpacity="0.14"/>
         </filter>
+
+        {/* Skeleton shimmer gradient */}
+        <linearGradient id="shimmer" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#E5E7EB">
+            <animate attributeName="offset" values="-2;1" dur="1.6s" repeatCount="indefinite"/>
+          </stop>
+          <stop offset="50%" stopColor="#F3F4F6">
+            <animate attributeName="offset" values="-1;2" dur="1.6s" repeatCount="indefinite"/>
+          </stop>
+          <stop offset="100%" stopColor="#E5E7EB">
+            <animate attributeName="offset" values="0;3" dur="1.6s" repeatCount="indefinite"/>
+          </stop>
+        </linearGradient>
       </defs>
 
       {/* ── Background circles ── */}
@@ -129,148 +143,166 @@ function HeroIllustration() {
       <circle cx="435" cy="425" r="36"  fill="#FEE2E2" opacity="0.4"/>
       <circle cx="60"  cy="120" r="28"  fill="#FEF3C7" opacity="0.5"/>
 
-      {/* ── Phone frame ── */}
-      <rect x="162" y="55" width="176" height="362" rx="30" fill="#111827" filter="url(#gs1)"/>
-      <rect x="159" y="148" width="4"  height="34" rx="2" fill="#374151"/>
-      <rect x="159" y="192" width="4"  height="34" rx="2" fill="#374151"/>
-      <rect x="337" y="163" width="4"  height="54" rx="2" fill="#374151"/>
+      {/* ── Phone — floats up/down ── */}
+      <g style={{ animation: "heroFloat 3s ease-in-out infinite", transformOrigin: "250px 270px" }}>
+        {/* Phone frame */}
+        <rect x="162" y="55" width="176" height="362" rx="30" fill="#111827" filter="url(#gs1)"/>
+        <rect x="159" y="148" width="4"  height="34" rx="2" fill="#374151"/>
+        <rect x="159" y="192" width="4"  height="34" rx="2" fill="#374151"/>
+        <rect x="337" y="163" width="4"  height="54" rx="2" fill="#374151"/>
+        {/* Screen */}
+        <rect x="170" y="68" width="160" height="336" rx="22" fill="#F9FAFB"/>
+        {/* Notch */}
+        <rect x="208" y="62" width="84"  height="16" rx="8" fill="#111827"/>
+        <circle cx="250" cy="70" r="4"   fill="#374151"/>
+        {/* Home bar */}
+        <rect x="213" y="390" width="74" height="5" rx="2.5" fill="#D1D5DB"/>
 
-      {/* Screen */}
-      <rect x="170" y="68" width="160" height="336" rx="22" fill="#F9FAFB"/>
+        {/* ── Screen: Blue header ── */}
+        <rect x="170" y="68"  width="160" height="58" rx="22" fill="#046EF2"/>
+        <rect x="170" y="88"  width="160" height="38" fill="#046EF2"/>
+        {/* Avatar */}
+        <circle cx="191" cy="97" r="13"  fill="rgba(255,255,255,0.2)"/>
+        <circle cx="191" cy="92" r="6"   fill="rgba(255,255,255,0.45)"/>
+        <path   d="M182 104 Q191 100 200 104" fill="rgba(255,255,255,0.3)"/>
+        {/* Name bars — skeleton shimmer */}
+        <rect x="209" y="90"  width="66" height="8" rx="4" fill="url(#shimmer)"/>
+        <rect x="209" y="102" width="46" height="5" rx="2.5" fill="url(#shimmer)" opacity="0.7"/>
+        {/* Bell */}
+        <circle cx="318" cy="97" r="13" fill="rgba(255,255,255,0.12)"/>
+        <path   d="M313 94 Q313 89 318 89 Q323 89 323 94 L324 101 Q318 103 312 101Z"
+                fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.4" strokeLinecap="round"/>
+        <circle cx="323" cy="89" r="4" fill="#EF4444"/>
 
-      {/* Notch */}
-      <rect x="208" y="62" width="84"  height="16" rx="8" fill="#111827"/>
-      <circle cx="250" cy="70" r="4"   fill="#374151"/>
+        {/* ── Revenue card — sparkline draws itself ── */}
+        <rect x="178" y="135" width="144" height="62" rx="12" fill="#fff" filter="url(#gs1)"/>
+        <rect x="186" y="143" width="52"  height="6"  rx="3" fill="url(#shimmer)"/>
+        <rect x="186" y="153" width="86"  height="13" rx="5" fill="#DBEAFE"/>
+        <rect x="189" y="156" width="76"  height="7"  rx="3" fill="#046EF2"/>
+        <rect x="186" y="170" width="48"  height="7"  rx="3" fill="#D1FAE5"/>
+        <rect x="189" y="172" width="30"  height="3"  rx="1.5" fill="#22C55E"/>
+        {/* Animated sparkline */}
+        <polyline points="248,179 256,171 264,175 272,165 280,168 288,159 296,162 308,153"
+          stroke="#046EF2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          fill="none" strokeDasharray="80" strokeDashoffset="80" opacity="0.8">
+          <animate attributeName="stroke-dashoffset" values="80;0;0;80" dur="3s" repeatCount="indefinite" keyTimes="0;0.4;0.7;1" calcMode="spline" keySplines="0.4 0 0.2 1;0 0 0 0;0.4 0 0.2 1"/>
+        </polyline>
 
-      {/* Home bar */}
-      <rect x="213" y="390" width="74" height="5" rx="2.5" fill="#D1D5DB"/>
+        {/* ── Two mini stat cards — skeleton shimmer ── */}
+        <rect x="178" y="205" width="66" height="46" rx="10" fill="#EEF4FF"/>
+        <rect x="186" y="213" width="38" height="6"  rx="3" fill="url(#shimmer)"/>
+        <rect x="186" y="223" width="28" height="12" rx="4" fill="#046EF2"/>
+        <rect x="186" y="239" width="20" height="5"  rx="2" fill="#22C55E" opacity="0.7"/>
 
-      {/* ── Screen: Blue header ── */}
-      <rect x="170" y="68"  width="160" height="58" rx="22" fill="#046EF2"/>
-      <rect x="170" y="88"  width="160" height="38" fill="#046EF2"/>
+        <rect x="252" y="205" width="70" height="46" rx="10" fill="#F5F3FF"/>
+        <rect x="260" y="213" width="38" height="6"  rx="3" fill="url(#shimmer)"/>
+        <rect x="260" y="223" width="32" height="12" rx="4" fill="#7C3AED" opacity="0.85"/>
+        <rect x="260" y="239" width="24" height="5"  rx="2" fill="#F59E0B" opacity="0.8"/>
 
-      {/* Avatar */}
-      <circle cx="191" cy="97" r="13"  fill="rgba(255,255,255,0.2)"/>
-      <circle cx="191" cy="92" r="6"   fill="rgba(255,255,255,0.45)"/>
-      <path   d="M182 104 Q191 100 200 104" fill="rgba(255,255,255,0.3)"/>
+        {/* ── Bar chart — bars grow up ── */}
+        <rect x="178" y="259" width="144" height="70" rx="12" fill="#fff" filter="url(#gs1)"/>
+        <rect x="186" y="267" width="50"  height="6"  rx="3" fill="url(#shimmer)"/>
+        {/* Bars with grow-up animation — transform-box needed */}
+        {[
+          { x:188, fullH:25, y:296, color:"#BFDBFE", delay:"0s" },
+          { x:205, fullH:33, y:288, color:"#93C5FD", delay:"0.1s" },
+          { x:222, fullH:41, y:280, color:"#60A5FA", delay:"0.2s" },
+          { x:239, fullH:37, y:284, color:"#3B82F6", delay:"0.3s" },
+          { x:256, fullH:47, y:274, color:"#2563EB", delay:"0.4s" },
+          { x:273, fullH:43, y:278, color:"#1D4ED8", delay:"0.5s" },
+          { x:290, fullH:53, y:268, color:"#046EF2", delay:"0.6s" },
+        ].map((b, i) => (
+          <rect key={i} x={b.x} y={b.y} width="13" height={b.fullH} rx="3" fill={b.color}
+            style={{ transformOrigin: `${b.x+6.5}px ${b.y+b.fullH}px` }}>
+            <animate attributeName="height" values={`0;${b.fullH};${b.fullH};0`}
+              dur="3s" begin={b.delay} repeatCount="indefinite"
+              keyTimes="0;0.35;0.7;1" calcMode="spline"
+              keySplines="0.34 1.56 0.64 1;0 0 0 0;0.4 0 1 1"/>
+            <animate attributeName="y" values={`${b.y+b.fullH};${b.y};${b.y};${b.y+b.fullH}`}
+              dur="3s" begin={b.delay} repeatCount="indefinite"
+              keyTimes="0;0.35;0.7;1" calcMode="spline"
+              keySplines="0.34 1.56 0.64 1;0 0 0 0;0.4 0 1 1"/>
+          </rect>
+        ))}
 
-      {/* Name bars */}
-      <rect x="209" y="90"  width="66" height="8" rx="4" fill="rgba(255,255,255,0.8)"/>
-      <rect x="209" y="102" width="46" height="5" rx="2.5" fill="rgba(255,255,255,0.4)"/>
+        {/* ── Orders list — skeleton rows ── */}
+        <rect x="178" y="337" width="144" height="54" rx="12" fill="#fff" filter="url(#gs1)"/>
+        <rect x="186" y="345" width="46"  height="5"  rx="2" fill="url(#shimmer)"/>
+        {/* Row 1 */}
+        <circle cx="193" cy="362" r="9" fill="#EEF4FF"/>
+        <rect   x="207" y="357" width="58" height="5" rx="2" fill="url(#shimmer)"/>
+        <rect   x="207" y="365" width="38" height="4" rx="2" fill="url(#shimmer)" opacity="0.7"/>
+        <rect   x="284" y="355" width="30" height="14" rx="6" fill="#D1FAE5"/>
+        <rect   x="287" y="360" width="24" height="4"  rx="2" fill="#22C55E" opacity="0.7"/>
+        {/* Row 2 */}
+        <circle cx="193" cy="380" r="9" fill="#F5F3FF"/>
+        <rect   x="207" y="375" width="50" height="5" rx="2" fill="url(#shimmer)"/>
+        <rect   x="207" y="383" width="32" height="4" rx="2" fill="url(#shimmer)" opacity="0.7"/>
+        <rect   x="284" y="373" width="30" height="14" rx="6" fill="#FEF3C7"/>
+        <rect   x="287" y="378" width="24" height="4"  rx="2" fill="#F59E0B" opacity="0.7"/>
+      </g>
 
-      {/* Bell */}
-      <circle cx="318" cy="97" r="13" fill="rgba(255,255,255,0.12)"/>
-      <rect   cx="318" cy="97" r="7" fill="none"/>
-      <path   d="M313 94 Q313 89 318 89 Q323 89 323 94 L324 101 Q318 103 312 101Z"
-              fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.4" strokeLinecap="round"/>
-      <circle cx="323" cy="89" r="4" fill="#EF4444"/>
-
-      {/* ── Revenue card ── */}
-      <rect x="178" y="135" width="144" height="62" rx="12" fill="#fff" filter="url(#gs1)"/>
-      <rect x="186" y="143" width="52"  height="6"  rx="3" fill="#E5E7EB"/>
-      <rect x="186" y="153" width="86"  height="13" rx="5" fill="#DBEAFE"/>
-      <rect x="189" y="156" width="76"  height="7"  rx="3" fill="#046EF2"/>
-      <rect x="186" y="170" width="48"  height="7"  rx="3" fill="#D1FAE5"/>
-      <rect x="189" y="172" width="30"  height="3"  rx="1.5" fill="#22C55E"/>
-      {/* Sparkline */}
-      <polyline points="248,179 256,171 264,175 272,165 280,168 288,159 296,162 308,153"
-        stroke="#046EF2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.55"/>
-
-      {/* ── Two mini stat cards ── */}
-      <rect x="178" y="205" width="66" height="46" rx="10" fill="#EEF4FF"/>
-      <rect x="186" y="213" width="38" height="6"  rx="3" fill="#CBD5E1"/>
-      <rect x="186" y="223" width="28" height="12" rx="4" fill="#046EF2"/>
-      <rect x="186" y="239" width="20" height="5"  rx="2" fill="#22C55E" opacity="0.7"/>
-
-      <rect x="252" y="205" width="70" height="46" rx="10" fill="#F5F3FF"/>
-      <rect x="260" y="213" width="38" height="6"  rx="3" fill="#CBD5E1"/>
-      <rect x="260" y="223" width="32" height="12" rx="4" fill="#7C3AED" opacity="0.85"/>
-      <rect x="260" y="239" width="24" height="5"  rx="2" fill="#F59E0B" opacity="0.8"/>
-
-      {/* ── Bar chart ── */}
-      <rect x="178" y="259" width="144" height="70" rx="12" fill="#fff" filter="url(#gs1)"/>
-      <rect x="186" y="267" width="50"  height="6"  rx="3" fill="#E5E7EB"/>
-      {/* Bars — rainbow gradient of blues */}
-      <rect x="188" y="296" width="13" height="25" rx="3" fill="#BFDBFE"/>
-      <rect x="205" y="288" width="13" height="33" rx="3" fill="#93C5FD"/>
-      <rect x="222" y="280" width="13" height="41" rx="3" fill="#60A5FA"/>
-      <rect x="239" y="284" width="13" height="37" rx="3" fill="#3B82F6"/>
-      <rect x="256" y="274" width="13" height="47" rx="3" fill="#2563EB"/>
-      <rect x="273" y="278" width="13" height="43" rx="3" fill="#1D4ED8"/>
-      <rect x="290" y="268" width="16" height="53" rx="3" fill="#046EF2"/>
-
-      {/* ── Orders list ── */}
-      <rect x="178" y="337" width="144" height="54" rx="12" fill="#fff" filter="url(#gs1)"/>
-      <rect x="186" y="345" width="46"  height="5"  rx="2" fill="#E5E7EB"/>
-      {/* Row 1 */}
-      <circle cx="193" cy="362" r="9" fill="#EEF4FF"/>
-      <rect   x="207" y="357" width="58" height="5" rx="2" fill="#E5E7EB"/>
-      <rect   x="207" y="365" width="38" height="4" rx="2" fill="#BFDBFE"/>
-      <rect   x="284" y="355" width="30" height="14" rx="6" fill="#D1FAE5"/>
-      <rect   x="287" y="360" width="24" height="4"  rx="2" fill="#22C55E" opacity="0.7"/>
-      {/* Row 2 */}
-      <circle cx="193" cy="380" r="9" fill="#F5F3FF"/>
-      <rect   x="207" y="375" width="50" height="5" rx="2" fill="#E5E7EB"/>
-      <rect   x="207" y="383" width="32" height="4" rx="2" fill="#DDD6FE"/>
-      <rect   x="284" y="373" width="30" height="14" rx="6" fill="#FEF3C7"/>
-      <rect   x="287" y="378" width="24" height="4"  rx="2" fill="#F59E0B" opacity="0.7"/>
-
-      {/* ══ FLOATING CARDS ══ */}
+      {/* ══ FLOATING CARDS — slide in on load ══ */}
 
       {/* Card 1 — Order Received (top-right, GREEN) */}
-      <rect x="348" y="72" width="142" height="74" rx="14" fill="#fff" filter="url(#gs2)"/>
-      <rect x="348" y="72" width="142" height="74" rx="14" fill="none" stroke="#D1FAE5" strokeWidth="1.5"/>
-      <circle cx="369" cy="109" r="17" fill="#D1FAE5"/>
-      <polyline points="361,109 367,115 378,101" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-      <rect x="392" y="90"  width="84" height="8" rx="4" fill="#111" opacity="0.8"/>
-      <rect x="392" y="102" width="64" height="6" rx="3" fill="#22C55E" opacity="0.5"/>
-      <rect x="392" y="112" width="74" height="6" rx="3" fill="#E5E7EB"/>
-      <rect x="392" y="122" width="52" height="6" rx="3" fill="#D1FAE5"/>
-      <circle cx="480" cy="82" r="6"  fill="#22C55E"/>
-      <circle cx="480" cy="82" r="11" fill="#22C55E" opacity="0.18"/>
+      <g style={{ animation: "heroCardIn1 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.2s both" }}>
+        <rect x="348" y="72" width="142" height="74" rx="14" fill="#fff" filter="url(#gs2)"/>
+        <rect x="348" y="72" width="142" height="74" rx="14" fill="none" stroke="#D1FAE5" strokeWidth="1.5"/>
+        <circle cx="369" cy="109" r="17" fill="#D1FAE5"/>
+        <polyline points="361,109 367,115 378,101" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        <rect x="392" y="90"  width="84" height="8" rx="4" fill="#111" opacity="0.8"/>
+        <rect x="392" y="102" width="64" height="6" rx="3" fill="url(#shimmer)"/>
+        <rect x="392" y="112" width="74" height="6" rx="3" fill="url(#shimmer)" opacity="0.8"/>
+        <rect x="392" y="122" width="52" height="6" rx="3" fill="#D1FAE5"/>
+        <circle cx="480" cy="82" r="6"  fill="#22C55E"/>
+        <circle cx="480" cy="82" r="11" fill="#22C55E" opacity="0.18"/>
+      </g>
 
       {/* Card 2 — MoMo Payment (bottom-left, ORANGE) */}
-      <rect x="8"   y="328" width="148" height="82" rx="14" fill="#fff" filter="url(#gs4)"/>
-      <rect x="8"   y="328" width="148" height="82" rx="14" fill="none" stroke="#FEF3C7" strokeWidth="1.5"/>
-      <rect x="20"  y="340" width="36"  height="36" rx="10" fill="#FEF3C7"/>
-      <circle cx="38" cy="358" r="12" fill="#F59E0B" opacity="0.65"/>
-      <circle cx="38" cy="358" r="6"  fill="#F59E0B"/>
-      <rect x="62"  y="341" width="80" height="7" rx="3" fill="#111" opacity="0.75"/>
-      <rect x="62"  y="352" width="84" height="11" rx="5" fill="#FEF9C3"/>
-      <rect x="65"  y="356" width="68" height="4"  rx="2" fill="#F59E0B" opacity="0.8"/>
-      <rect x="62"  y="367" width="62" height="6"  rx="3" fill="#E5E7EB"/>
-      <rect x="62"  y="377" width="44" height="6"  rx="3" fill="#FDE68A"/>
-      <circle cx="146" cy="338" r="6"  fill="#F59E0B"/>
-      <circle cx="146" cy="338" r="11" fill="#F59E0B" opacity="0.18"/>
+      <g style={{ animation: "heroCardIn2 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.4s both" }}>
+        <rect x="8"   y="328" width="148" height="82" rx="14" fill="#fff" filter="url(#gs4)"/>
+        <rect x="8"   y="328" width="148" height="82" rx="14" fill="none" stroke="#FEF3C7" strokeWidth="1.5"/>
+        <rect x="20"  y="340" width="36"  height="36" rx="10" fill="#FEF3C7"/>
+        <circle cx="38" cy="358" r="12" fill="#F59E0B" opacity="0.65"/>
+        <circle cx="38" cy="358" r="6"  fill="#F59E0B"/>
+        <rect x="62"  y="341" width="80" height="7" rx="3" fill="#111" opacity="0.75"/>
+        <rect x="62"  y="352" width="84" height="11" rx="5" fill="#FEF9C3"/>
+        <rect x="65"  y="356" width="68" height="4"  rx="2" fill="#F59E0B" opacity="0.8"/>
+        <rect x="62"  y="367" width="62" height="6"  rx="3" fill="url(#shimmer)"/>
+        <rect x="62"  y="377" width="44" height="6"  rx="3" fill="#FDE68A"/>
+        <circle cx="146" cy="338" r="6"  fill="#F59E0B"/>
+        <circle cx="146" cy="338" r="11" fill="#F59E0B" opacity="0.18"/>
+      </g>
 
       {/* Card 3 — Product (top-left, PURPLE) */}
-      <rect x="8"   y="132" width="148" height="86" rx="14" fill="#fff" filter="url(#gs3)"/>
-      <rect x="8"   y="132" width="148" height="86" rx="14" fill="none" stroke="#EDE9FE" strokeWidth="1.5"/>
-      <rect x="18"  y="142" width="50"  height="66" rx="8" fill="#F5F3FF"/>
-      <rect x="26"  y="152" width="34"  height="22" rx="4" fill="#DDD6FE"/>
-      <path d="M32 152 L26 158 L30 159 L30 173 L54 173 L54 159 L58 158 L52 152 Q42 156 32 152Z" fill="#7C3AED" opacity="0.45"/>
-      <rect x="74"  y="144" width="68" height="8" rx="4" fill="#111" opacity="0.78"/>
-      <rect x="74"  y="156" width="52" height="6" rx="3" fill="#E5E7EB"/>
-      <rect x="74"  y="166" width="46" height="10" rx="5" fill="#7C3AED"/>
-      <rect x="77"  y="169" width="38" height="4"  rx="2" fill="#fff" opacity="0.55"/>
-      <rect x="74"  y="180" width="66" height="7"  rx="3" fill="#FEF3C7"/>
-      <rect x="76"  y="182" width="50" height="3"  rx="1.5" fill="#F59E0B" opacity="0.8"/>
-      <rect x="74"  y="191" width="46" height="6"  rx="3" fill="#EDE9FE"/>
-      <rect x="76"  y="193" width="34" height="2"  rx="1" fill="#7C3AED" opacity="0.5"/>
+      <g style={{ animation: "heroCardIn3 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.1s both" }}>
+        <rect x="8"   y="132" width="148" height="86" rx="14" fill="#fff" filter="url(#gs3)"/>
+        <rect x="8"   y="132" width="148" height="86" rx="14" fill="none" stroke="#EDE9FE" strokeWidth="1.5"/>
+        <rect x="18"  y="142" width="50"  height="66" rx="8" fill="#F5F3FF"/>
+        <rect x="26"  y="152" width="34"  height="22" rx="4" fill="#DDD6FE"/>
+        <path d="M32 152 L26 158 L30 159 L30 173 L54 173 L54 159 L58 158 L52 152 Q42 156 32 152Z" fill="#7C3AED" opacity="0.45"/>
+        <rect x="74"  y="144" width="68" height="8" rx="4" fill="#111" opacity="0.78"/>
+        <rect x="74"  y="156" width="52" height="6" rx="3" fill="url(#shimmer)"/>
+        <rect x="74"  y="166" width="46" height="10" rx="5" fill="#7C3AED"/>
+        <rect x="77"  y="169" width="38" height="4"  rx="2" fill="#fff" opacity="0.55"/>
+        <rect x="74"  y="180" width="66" height="7"  rx="3" fill="url(#shimmer)" opacity="0.8"/>
+        <rect x="74"  y="191" width="46" height="6"  rx="3" fill="#EDE9FE"/>
+      </g>
 
       {/* Card 4 — Verified (bottom-right, BLUE) */}
-      <rect x="346" y="350" width="146" height="76" rx="14" fill="#fff" filter="url(#gs5)"/>
-      <rect x="346" y="350" width="146" height="76" rx="14" fill="none" stroke="#BFDBFE" strokeWidth="1.5"/>
-      <circle cx="368" cy="388" r="19" fill="#DBEAFE"/>
-      <path d="M361 380 L368 376 L375 380 L375 390 Q375 397 368 400 Q361 397 361 390Z" fill="#046EF2"/>
-      <polyline points="363,388 368,393 374,383" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-      <rect x="393" y="362" width="84" height="8"  rx="4" fill="#111" opacity="0.8"/>
-      <rect x="393" y="374" width="68" height="6"  rx="3" fill="#BFDBFE"/>
-      <rect x="393" y="384" width="76" height="6"  rx="3" fill="#E5E7EB"/>
-      <rect x="393" y="394" width="54" height="6"  rx="3" fill="#DBEAFE"/>
-      <rect x="393" y="404" width="40" height="6"  rx="3" fill="#E5E7EB" opacity="0.6"/>
-      <circle cx="482" cy="360" r="6"  fill="#046EF2"/>
-      <circle cx="482" cy="360" r="11" fill="#046EF2" opacity="0.18"/>
+      <g style={{ animation: "heroCardIn4 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.3s both" }}>
+        <rect x="346" y="350" width="146" height="76" rx="14" fill="#fff" filter="url(#gs5)"/>
+        <rect x="346" y="350" width="146" height="76" rx="14" fill="none" stroke="#BFDBFE" strokeWidth="1.5"/>
+        <circle cx="368" cy="388" r="19" fill="#DBEAFE"/>
+        <path d="M361 380 L368 376 L375 380 L375 390 Q375 397 368 400 Q361 397 361 390Z" fill="#046EF2"/>
+        <polyline points="363,388 368,393 374,383" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        <rect x="393" y="362" width="84" height="8"  rx="4" fill="#111" opacity="0.8"/>
+        <rect x="393" y="374" width="68" height="6"  rx="3" fill="url(#shimmer)"/>
+        <rect x="393" y="384" width="76" height="6"  rx="3" fill="url(#shimmer)" opacity="0.8"/>
+        <rect x="393" y="394" width="54" height="6"  rx="3" fill="#DBEAFE"/>
+        <circle cx="482" cy="360" r="6"  fill="#046EF2"/>
+        <circle cx="482" cy="360" r="11" fill="#046EF2" opacity="0.18"/>
+      </g>
 
       {/* ── Connector dashes ── */}
       <line x1="162" y1="190" x2="156" y2="182" stroke="#7C3AED" strokeWidth="1.2" strokeDasharray="4 4" opacity="0.22"/>
@@ -279,18 +311,48 @@ function HeroIllustration() {
       <line x1="330" y1="360" x2="345" y2="372" stroke="#046EF2" strokeWidth="1.2" strokeDasharray="4 4" opacity="0.22"/>
 
       {/* ── Sparkles ── */}
-      <path d="M452 215 L454 222 L461 224 L454 226 L452 233 L450 226 L443 224 L450 222Z" fill="#046EF2" opacity="0.3"/>
-      <path d="M62  195 L63.5 200 L69 201.5 L63.5 203 L62 208 L60.5 203 L55 201.5 L60.5 200Z" fill="#7C3AED" opacity="0.28"/>
-      <path d="M468 458 L469.5 462 L474 464 L469.5 466 L468 470 L466.5 466 L462 464 L466.5 462Z" fill="#22C55E" opacity="0.38"/>
+      <path d="M452 215 L454 222 L461 224 L454 226 L452 233 L450 226 L443 224 L450 222Z" fill="#046EF2" opacity="0.3">
+        <animateTransform attributeName="transform" type="scale" values="1;1.25;1" dur="2.4s" repeatCount="indefinite" additive="sum"/>
+      </path>
+      <path d="M62 195 L63.5 200 L69 201.5 L63.5 203 L62 208 L60.5 203 L55 201.5 L60.5 200Z" fill="#7C3AED" opacity="0.28">
+        <animateTransform attributeName="transform" type="scale" values="1;1.2;1" dur="3.1s" repeatCount="indefinite" additive="sum"/>
+      </path>
+      <path d="M468 458 L469.5 462 L474 464 L469.5 466 L468 470 L466.5 466 L462 464 L466.5 462Z" fill="#22C55E" opacity="0.38">
+        <animateTransform attributeName="transform" type="scale" values="1;1.3;1" dur="2.7s" repeatCount="indefinite" additive="sum"/>
+      </path>
       <circle cx="76"  cy="482" r="6" fill="#F59E0B" opacity="0.32"/>
       <circle cx="460" cy="292" r="5" fill="#EC4899" opacity="0.28"/>
       <circle cx="128" cy="70"  r="7" fill="#046EF2" opacity="0.14"/>
       <circle cx="453" cy="178" r="4" fill="#22C55E" opacity="0.28"/>
+
+      {/* ── Keyframe styles injected ── */}
+      <style>{`
+        @keyframes heroFloat {
+          0%,100% { transform: translateY(0); }
+          50%      { transform: translateY(-8px); }
+        }
+        @keyframes heroCardIn1 {
+          from { opacity:0; transform: translate(20px,-12px) scale(0.92); }
+          to   { opacity:1; transform: translate(0,0) scale(1); }
+        }
+        @keyframes heroCardIn2 {
+          from { opacity:0; transform: translate(-20px,12px) scale(0.92); }
+          to   { opacity:1; transform: translate(0,0) scale(1); }
+        }
+        @keyframes heroCardIn3 {
+          from { opacity:0; transform: translate(-16px,-16px) scale(0.92); }
+          to   { opacity:1; transform: translate(0,0) scale(1); }
+        }
+        @keyframes heroCardIn4 {
+          from { opacity:0; transform: translate(16px,16px) scale(0.92); }
+          to   { opacity:1; transform: translate(0,0) scale(1); }
+        }
+      `}</style>
     </svg>
   );
 }
 
-/* ─── Helpers ─────────────────────────────────────────────── */
+/* ─── Helpers/* ─── Helpers ─────────────────────────────────────────────── */
 function Ico({ d, size = 20 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
@@ -337,7 +399,7 @@ function SellerGuide() {
           <span style={{ fontSize:15, fontWeight:800, color:"#111" }}>{title}</span>
         </div>
         <span style={{ fontSize:18, color:"#9CA3AF", transform: openSection===id?"rotate(180deg)":"none",
-          transition:"transform 0.2s", lineHeight:1 }}>⌄</span>
+          transition:"transform 0.2s", lineHeight:1 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
       </button>
       {openSection === id && (
         <div style={{ paddingBottom:20, paddingLeft:36, fontSize:14, color:"#374151", lineHeight:1.75 }}>
@@ -365,8 +427,8 @@ function SellerGuide() {
       <td style={{ padding:"10px 0", fontWeight:800, color:"#111", fontSize:14 }}>{name}</td>
       <td style={{ padding:"10px 8px", textAlign:"center", fontSize:14, fontWeight:700 }}>{price}</td>
       <td style={{ padding:"10px 8px", textAlign:"center", fontSize:13 }}>{products}</td>
-      <td style={{ padding:"10px 8px", textAlign:"center", fontSize:13 }}>{social ? "✅":"🔒"}</td>
-      <td style={{ padding:"10px 8px", textAlign:"center", fontSize:13 }}>{delivery ? "✅":"🔒"}</td>
+      <td style={{ padding:"10px 8px", textAlign:"center", fontSize:13 }}>{social ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}</td>
+      <td style={{ padding:"10px 8px", textAlign:"center", fontSize:13 }}>{delivery ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}</td>
     </tr>
   );
 
@@ -393,7 +455,7 @@ function SellerGuide() {
       <div style={{ background:"#fafafa", borderRadius:16, border:"1px solid rgba(0,0,0,0.07)",
         padding:"20px 20px", marginBottom:24 }}>
         <div style={{ fontSize:16, fontWeight:900, color:"#111", marginBottom:10 }}>
-          🛍️ What is Beme Market?
+          <svg style={{display:"inline",marginRight:8,verticalAlign:"middle"}} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg> What is Beme Market?
         </div>
         <p style={{ fontSize:14, color:"#374151", lineHeight:1.75, margin:"0 0 10px" }}>
           Beme Market is <strong>Ghana's multi-vendor marketplace</strong> — think of it as having your own
@@ -409,7 +471,7 @@ function SellerGuide() {
       {/* Getting started steps */}
       <div style={{ marginBottom:28 }}>
         <div style={{ fontSize:16, fontWeight:900, color:"#111", marginBottom:16 }}>
-          🚀 Getting started — 5 steps
+          <svg style={{display:"inline",marginRight:8,verticalAlign:"middle"}} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12H2l10-10 10 10h-3"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M9 21v-6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v6"/></svg> Getting started — 5 steps
         </div>
         <Step n={1} title="Create your account" desc="Sign up with email or Google. Verify your email address to unlock full access."/>
         <Step n={2} title="Apply for a store" desc="Fill in your store name, choose a category, and select a subscription plan. Basic is completely free to start."/>
@@ -423,10 +485,10 @@ function SellerGuide() {
         padding:"4px 20px 4px", marginBottom:24 }}>
         <div style={{ fontSize:15, fontWeight:900, color:"#111", padding:"16px 0 12px",
           borderBottom:"1px solid rgba(0,0,0,0.07)" }}>
-          📋 Your Seller Dashboard — every menu explained
+          <svg style={{display:"inline",marginRight:8,verticalAlign:"middle"}} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Your Seller Dashboard — every menu explained
         </div>
 
-        <Section id="home" icon="📊" title="Analytics (Home)">
+        <Section id="home" icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg>} title="Analytics (Home)">
           <p>Your dashboard home shows a snapshot of your store&apos;s performance:</p>
           <ul style={{ paddingLeft:18, margin:"8px 0" }}>
             <li><strong>Total revenue</strong> — how much you&apos;ve earned from completed orders</li>
@@ -437,7 +499,7 @@ function SellerGuide() {
           <p>Use this to track growth week by week. If revenue is flat, try adding more products or sharing your store link.</p>
         </Section>
 
-        <Section id="products" icon="📦" title="Products">
+        <Section id="products" icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>} title="Products">
           <p>This is where you manage everything you sell.</p>
           <ul style={{ paddingLeft:18, margin:"8px 0" }}>
             <li><strong>Add product</strong> — upload photos (up to 5), set a name, price, description, category and stock level</li>
@@ -447,11 +509,11 @@ function SellerGuide() {
             <li><strong>Product limit</strong> — Basic plan: 5 products · Starter: 10 · Growth: 25 · Pro: 500</li>
           </ul>
           <p style={{ background:"rgba(0,0,0,0.04)", padding:"10px 12px", borderRadius:8, marginTop:10, fontSize:13 }}>
-            💡 <strong>Tip:</strong> Good photos = more sales. Use natural lighting and a clean background.
+            <svg style={{display:"inline",marginRight:6,verticalAlign:"middle"}} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="2" x2="12" y2="6"/><line x1="4.22" y1="4.22" x2="7.05" y2="7.05"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="4.22" y1="19.78" x2="7.05" y2="16.95"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="19.78" y1="19.78" x2="16.95" y2="16.95"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="19.78" y1="4.22" x2="16.95" y2="7.05"/><circle cx="12" cy="12" r="4"/></svg> <strong>Tip:</strong> Good photos = more sales. Use natural lighting and a clean background.
           </p>
         </Section>
 
-        <Section id="orders" icon="🧾" title="Orders">
+        <Section id="orders" icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>} title="Orders">
           <p>Every time a customer buys from your store, an order appears here.</p>
           <ul style={{ paddingLeft:18, margin:"8px 0" }}>
             <li><strong>Pending</strong> — payment received, you need to prepare the order</li>
@@ -462,7 +524,7 @@ function SellerGuide() {
           <p>Always update the order status so customers know what&apos;s happening. Good communication = good reviews.</p>
         </Section>
 
-        <Section id="appearance" icon="🎨" title="Store Design (Appearance)">
+        <Section id="appearance" icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></svg>} title="Store Design (Appearance)">
           <p>This is where you build your brand on Beme Market.</p>
           <ul style={{ paddingLeft:18, margin:"8px 0" }}>
             <li><strong>Store name</strong> — your public brand name (shown on your store page and in search)</li>
@@ -475,7 +537,7 @@ function SellerGuide() {
           </ul>
         </Section>
 
-        <Section id="delivery" icon="🚚" title="Delivery Settings">
+        <Section id="delivery" icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>} title="Delivery Settings">
           <p>Choose how you get products to customers.</p>
           <ul style={{ paddingLeft:18, margin:"8px 0" }}>
             <li><strong>Self Delivery</strong> — you handle everything yourself. Set your own fee (flat rate, free, or negotiable), processing time, and which regions you cover</li>
@@ -483,11 +545,11 @@ function SellerGuide() {
             <li><strong>Both options</strong> — let the customer choose at checkout</li>
           </ul>
           <p style={{ background:"rgba(0,0,0,0.04)", padding:"10px 12px", borderRadius:8, marginTop:10, fontSize:13 }}>
-            📦 <strong>Beme Delivery rates:</strong> Within Accra GHS 20 (same day) · Accra→Kumasi GHS 35 (1–2 days) · Nationwide GHS 30–60 (3–5 days)
+            <svg style={{display:"inline",marginRight:6,verticalAlign:"middle"}} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/></svg> <strong>Beme Delivery rates:</strong> Within Accra GHS 20 (same day) · Accra→Kumasi GHS 35 (1–2 days) · Nationwide GHS 30–60 (3–5 days)
           </p>
         </Section>
 
-        <Section id="withdrawal" icon="💰" title="Withdrawals">
+        <Section id="withdrawal" icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>} title="Withdrawals">
           <p>This is where you request payouts from your Beme Market wallet.</p>
           <ul style={{ paddingLeft:18, margin:"8px 0" }}>
             <li><strong>Available balance</strong> — money from completed orders ready to withdraw</li>
@@ -497,17 +559,17 @@ function SellerGuide() {
           <p>Payouts are processed via Paystack to MoMo or bank. Processing typically takes 1–3 business days.</p>
         </Section>
 
-        <Section id="verification" icon="✅" title="Verification">
+        <Section id="verification" icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>} title="Verification">
           <p>Get a verified badge on your store — it builds customer trust.</p>
           <ul style={{ paddingLeft:18, margin:"8px 0" }}>
             <li>Upload a valid Ghana Card or business registration document</li>
             <li>Our team reviews it within 24–48 hours</li>
-            <li>Once verified, a ✅ badge appears on your store page and search results</li>
+            <li>Once verified, a verified badge appears on your store page and search results</li>
             <li>Verified stores rank higher in search and get more customer trust</li>
           </ul>
         </Section>
 
-        <Section id="subscription" icon="⭐" title="Subscription">
+        <Section id="subscription" icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>} title="Subscription">
           <p>Manage your plan and upgrade for more features.</p>
           <ul style={{ paddingLeft:18, margin:"8px 0" }}>
             <li>See your current plan, its limits, and what&apos;s locked</li>
@@ -522,7 +584,7 @@ function SellerGuide() {
       <div style={{ background:"#fafafa", borderRadius:16, border:"1px solid rgba(0,0,0,0.07)",
         padding:"20px 20px", marginBottom:24 }}>
         <div style={{ fontSize:15, fontWeight:900, color:"#111", marginBottom:12 }}>
-          🔍 How customers find your store
+          <svg style={{display:"inline",marginRight:8,verticalAlign:"middle"}} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> How customers find your store
         </div>
         {[
           ["Search","Customers search by product name or store name in the Beme Market search bar."],
@@ -546,7 +608,7 @@ function SellerGuide() {
       <div style={{ background:"#fff", borderRadius:16, border:"1px solid rgba(0,0,0,0.08)",
         padding:"20px 20px", marginBottom:24 }}>
         <div style={{ fontSize:15, fontWeight:900, color:"#111", marginBottom:12 }}>
-          💳 Payments & payouts — how the money works
+          <svg style={{display:"inline",marginRight:8,verticalAlign:"middle"}} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Payments & payouts — how the money works
         </div>
         <ol style={{ paddingLeft:20, margin:0, fontSize:14, color:"#374151", lineHeight:1.9 }}>
           <li>Customer adds product to cart and checks out</li>
@@ -558,7 +620,7 @@ function SellerGuide() {
         </ol>
         <div style={{ marginTop:14, padding:"10px 12px", background:"rgba(0,0,0,0.04)",
           borderRadius:8, fontSize:13, color:"#374151" }}>
-          🔒 <strong>All payments go through Paystack</strong> — Ghana&apos;s most trusted payment gateway. Your customer&apos;s card details are never stored on Beme Market.
+          <svg style={{display:"inline",marginRight:6,verticalAlign:"middle"}} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> <strong>All payments go through Paystack</strong> — Ghana&apos;s most trusted payment gateway. Your customer&apos;s card details are never stored on Beme Market.
         </div>
       </div>
 
@@ -566,7 +628,7 @@ function SellerGuide() {
       <div style={{ background:"#fff", borderRadius:16, border:"1px solid rgba(0,0,0,0.08)",
         padding:"20px 20px", marginBottom:24, overflowX:"auto" }}>
         <div style={{ fontSize:15, fontWeight:900, color:"#111", marginBottom:16 }}>
-          📊 Plan comparison
+          <svg style={{display:"inline",marginRight:8,verticalAlign:"middle"}} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg> Plan comparison
         </div>
         <table style={{ width:"100%", borderCollapse:"collapse", minWidth:400 }}>
           <thead>
@@ -580,7 +642,7 @@ function SellerGuide() {
           </thead>
           <tbody>
             <PlanRow name="Basic"   price="Free"       products="5"   social={false} delivery={false}/>
-            <PlanRow name="Starter" price="GHS 59/mo"  products="10"  social={true}  delivery={false}/>
+            <PlanRow name="Starter" price="GHS 59/mo" products="10"  social={true}  delivery={false}/>
             <PlanRow name="Growth"  price="GHS 129/mo" products="25"  social={true}  delivery={true}/>
             <PlanRow name="Pro"     price="GHS 399/mo" products="500" social={true}  delivery={true}/>
           </tbody>
@@ -589,7 +651,7 @@ function SellerGuide() {
 
       {/* FAQ */}
       <div style={{ background:"#fafafa", borderRadius:16, border:"1px solid rgba(0,0,0,0.07)", padding:"20px 20px" }}>
-        <div style={{ fontSize:15, fontWeight:900, color:"#111", marginBottom:16 }}>❓ Common questions</div>
+        <div style={{ fontSize:15, fontWeight:900, color:"#111", marginBottom:16, display:"flex", alignItems:"center", gap:8 }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Common questions</div>
         {[
           ["Do I need to pay to start?","No. The Basic plan is completely free. You can list up to 5 products and start selling with zero upfront cost."],
           ["How do I get paid?","Through your Beme Market wallet. Once orders are completed, request a payout to your Mobile Money or bank account via the Withdrawals section."],
