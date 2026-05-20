@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
@@ -19,7 +19,7 @@ import DashboardSubscription from "./dashboard/DashboardSubscription";
 import DashboardVerification from "./dashboard/DashboardVerification";
 import DashboardAppearance   from "./dashboard/DashboardAppearance";
 import DashboardWithdrawals  from "./dashboard/DashboardWithdrawals";
-import DashboardDelivery    from "./dashboard/DashboardDelivery";
+const DashboardDelivery = React.lazy(() => import("./dashboard/DashboardDelivery").catch(() => ({ default: () => null })));
 
 /* ── Icons ── */
 function Icon({ path, size = 16, color = "currentColor" }) {
@@ -257,7 +257,7 @@ export default function SellerDashboard() {
     withdrawals:  <DashboardWithdrawals />,
     appearance:   <DashboardAppearance />,
     verification: <DashboardVerification />,
-    delivery:     <DashboardDelivery />,
+    delivery:     <Suspense fallback={<div style={{padding:32,color:"#9CA3AF",fontSize:14}}>Loading…</div>}><DashboardDelivery /></Suspense>,
     subscription: <DashboardSubscription />,
   };
 
