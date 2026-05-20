@@ -7,7 +7,7 @@ import { startPaystackCheckout } from "../lib/checkout";
 import { createCodOrder, getMyOrders } from "../services/api";
 import "./Checkout.css";
 
-/* ── constants (all unchanged) ── */
+/* ── constants ── */
 const FREE_DELIVERY_REGIONS = new Set(["Greater Accra"]);
 const GH_REGIONS = ["Greater Accra"];
 const CITY_MAP = {
@@ -18,16 +18,16 @@ const CHECKOUT_DURATION_SECONDS = 10 * 60;
 const OUTSIDE_ACCRA_DELIVERY_FEE = 50;
 const DELIVERY_METHODS = { MALL_PICKUP: "mall_pickup", HOME_DELIVERY: "home_delivery" };
 const ACCRA_MALL_PICKUP_OPTIONS = [
-  { id: "accra-mall",      label: "Accra Mall Pickup",       area: "Tetteh Quarshie / Spintex", fee: 0  },
-  { id: "achimota-mall",   label: "Achimota Mall Pickup",    area: "Achimota",                  fee: 5  },
-  { id: "marina-mall",     label: "Marina Mall Pickup",      area: "Airport",                   fee: 10 },
-  { id: "west-hills-mall", label: "West Hills Mall Pickup",  area: "Weija",                     fee: 15 },
+  { id: "accra-mall",      label: "Accra Mall Pickup",      area: "Tetteh Quarshie / Spintex", fee: 0  },
+  { id: "achimota-mall",   label: "Achimota Mall Pickup",   area: "Achimota",                  fee: 5  },
+  { id: "marina-mall",     label: "Marina Mall Pickup",     area: "Airport",                   fee: 10 },
+  { id: "west-hills-mall", label: "West Hills Mall Pickup", area: "Weija",                     fee: 15 },
 ];
 const ACCRA_HOME_DELIVERY_FEE = 150;
 const INITIAL_FORM = { email:"", firstName:"", lastName:"", phone:"", address:"", region:"", city:"", area:"", notes:"" };
 const INITIAL_DELIVERY = { method:"", mallId:"" };
 
-/* ── helpers (all unchanged) ── */
+/* ── helpers (unchanged) ── */
 function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(email || "").trim()); }
 function isValidName(value) { const s = String(value || "").trim(); if (s.length < 2) return false; return /^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$/.test(s); }
 function isValidGhanaAddress(value) { const s = String(value || "").trim(); if (s.length < 6) return false; if (!/[A-Za-z]/.test(s)) return false; return /^[A-Za-z0-9\s,./#-]+$/.test(s); }
@@ -111,55 +111,79 @@ function isOrderSuccessfullyPaid(order) {
 }
 
 /* ── icons ── */
-function LockIcon() {
-  return <svg viewBox="0 0 24 24" className="co-lock-icon" aria-hidden="true"><path d="M7.75 10V8.25a4.25 4.25 0 1 1 8.5 0V10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><rect x="5.25" y="10" width="13.5" height="9.5" rx="2.2" fill="none" stroke="currentColor" strokeWidth="1.8"/><path d="M12 13.5v2.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>;
-}
-function CardIcon() {
-  return <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>;
-}
 function TruckIcon() {
-  return <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3.5 6.75h11.25c1.24 0 2.25 1.01 2.25 2.25v4.25h1.34c.68 0 1.31.32 1.71.87l1.16 1.57c.29.39.45.86.45 1.35v1.21c0 .62-.5 1.12-1.12 1.12h-.76a2.87 2.87 0 0 1-5.56 0H9.78a2.87 2.87 0 0 1-5.56 0H3.5c-.62 0-1.12-.5-1.12-1.12V7.87c0-.62.5-1.12 1.12-1.12Z"/></svg>;
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3.5 6.75h11.25c1.24 0 2.25 1.01 2.25 2.25v4.25h1.34c.68 0 1.31.32 1.71.87l1.16 1.57c.29.39.45.86.45 1.35v1.21c0 .62-.5 1.12-1.12 1.12h-.76a2.87 2.87 0 0 1-5.56 0H9.78a2.87 2.87 0 0 1-5.56 0H3.5c-.62 0-1.12-.5-1.12-1.12V7.87c0-.62.5-1.12 1.12-1.12Z"/>
+    </svg>
+  );
 }
 function InfoIcon() {
-  return <svg viewBox="0 0 24 24" className="co-info-icon" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.8"/><path d="M12 10.2v5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><circle cx="12" cy="7.2" r="1.1" fill="currentColor"/></svg>;
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <circle cx="12" cy="12" r="9"/><path d="M12 10.2v5" strokeLinecap="round"/><circle cx="12" cy="7.2" r="1.1" fill="currentColor" stroke="none"/>
+    </svg>
+  );
 }
 function CheckIcon() {
-  return <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>;
+  return (
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  );
 }
 function ShieldIcon() {
-  return <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
+  return (
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+  );
+}
+function ChevronLeftIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+  );
 }
 
+/* ─────────────────────────────────────────
+   COMPONENT
+───────────────────────────────────────── */
 export default function Checkout() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const { cartItems, clearCart, itemCount } = useCart();
   const { user, loading: authLoading } = useAuth();
 
-  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const searchParams   = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const cancelledPayment = searchParams.get("payment") === "cancelled";
 
-  /* ── all state (unchanged) ── */
-  const [method,                  setMethod]                  = useState("");
-  const [loading,                 setLoading]                 = useState(false);
-  const [loadingMode,             setLoadingMode]             = useState("");
-  const [form,                    setForm]                    = useState(INITIAL_FORM);
-  const [delivery,                setDelivery]                = useState(INITIAL_DELIVERY);
-  const [touched,                 setTouched]                 = useState({});
-  const [errors,                  setErrors]                  = useState({});
-  const [timeLeft,                setTimeLeft]                = useState(CHECKOUT_DURATION_SECONDS);
-  const [sessionExpired,          setSessionExpired]          = useState(false);
-  const [showCODInfo,             setShowCODInfo]             = useState(false);
-  const [checkingOrderHistory,    setCheckingOrderHistory]    = useState(true);
-  const [hasSuccessfulPaidOrder,  setHasSuccessfulPaidOrder]  = useState(false);
-  const [paystackError,           setPaystackError]           = useState("");
+  /* ── state ── */
+  const [method,                 setMethod]                 = useState("");
+  const [loading,                setLoading]                = useState(false);
+  const [loadingMode,            setLoadingMode]            = useState("");
+  const [form,                   setForm]                   = useState(INITIAL_FORM);
+  const [delivery,               setDelivery]               = useState(INITIAL_DELIVERY);
+  const [touched,                setTouched]                = useState({});
+  const [errors,                 setErrors]                 = useState({});
+  const [timeLeft,               setTimeLeft]               = useState(CHECKOUT_DURATION_SECONDS);
+  const [sessionExpired,         setSessionExpired]         = useState(false);
+  const [showCODInfo,            setShowCODInfo]            = useState(false);
+  const [checkingOrderHistory,   setCheckingOrderHistory]   = useState(true);
+  const [hasSuccessfulPaidOrder, setHasSuccessfulPaidOrder] = useState(false);
+  const [paystackError,          setPaystackError]          = useState("");
+  /* momo ui */
+  const [showPaymentLoader,      setShowPaymentLoader]      = useState(false);
+  const [paymentLoaderMethod,    setPaymentLoaderMethod]    = useState("");
+  const [showMomoScreen,         setShowMomoScreen]         = useState(null); // 'mtn' | 'telecel'
 
   const feedbackTimerRef = useRef(null);
 
-  /* ── all effects (unchanged) ── */
+  /* ── effects (all unchanged) ── */
   useEffect(() => {
     if (authLoading) return;
-    if (!user) navigate("/login", { replace:true, state:{ from:location.pathname } });
+    if (!user) navigate("/login", { replace: true, state: { from: location.pathname } });
   }, [user, authLoading, navigate, location.pathname]);
 
   useEffect(() => {
@@ -202,29 +226,29 @@ export default function Checkout() {
     return () => { active = false; };
   }, [user, authLoading]);
 
-  /* ── derived (unchanged) ── */
-  const safeCartItems = useMemo(() => buildSafeCartItems(cartItems), [cartItems]);
-  const subtotalUI = useMemo(() => safeCartItems.reduce((s,i) => s + (Number(i.price)||0)*(Number(i.qty)||0), 0), [safeCartItems]);
-  const citiesForRegion = useMemo(() => { if (!form.region) return []; return CITY_MAP[form.region] || DEFAULT_OTHER_CITIES; }, [form.region]);
-  const mallPickupOptions = useMemo(() => form.region === "Greater Accra" ? ACCRA_MALL_PICKUP_OPTIONS : [], [form.region]);
-  const selectedMallOption = useMemo(() => mallPickupOptions.find(o => o.id === delivery.mallId) || null, [mallPickupOptions, delivery.mallId]);
-  const normalizedPhone = useMemo(() => normalizeGhanaPhone(form.phone), [form.phone]);
-  const network = useMemo(() => detectNetwork(normalizedPhone), [normalizedPhone]);
-  const cartShops = useMemo(() => Array.from(new Set(safeCartItems.map(i => normalizeShop(i.shop)))).filter(Boolean), [safeCartItems]);
+  /* ── derived ── */
+  const safeCartItems          = useMemo(() => buildSafeCartItems(cartItems), [cartItems]);
+  const subtotalUI             = useMemo(() => safeCartItems.reduce((s, i) => s + (Number(i.price)||0)*(Number(i.qty)||0), 0), [safeCartItems]);
+  const citiesForRegion        = useMemo(() => { if (!form.region) return []; return CITY_MAP[form.region] || DEFAULT_OTHER_CITIES; }, [form.region]);
+  const mallPickupOptions      = useMemo(() => form.region === "Greater Accra" ? ACCRA_MALL_PICKUP_OPTIONS : [], [form.region]);
+  const selectedMallOption     = useMemo(() => mallPickupOptions.find(o => o.id === delivery.mallId) || null, [mallPickupOptions, delivery.mallId]);
+  const normalizedPhone        = useMemo(() => normalizeGhanaPhone(form.phone), [form.phone]);
+  const network                = useMemo(() => detectNetwork(normalizedPhone), [normalizedPhone]);
+  const cartShops              = useMemo(() => Array.from(new Set(safeCartItems.map(i => normalizeShop(i.shop)))).filter(Boolean), [safeCartItems]);
   const hasShippedFromAbroadItem = useMemo(() => safeCartItems.some(i => i?.shipsFromAbroad === true), [safeCartItems]);
-  const unavailableCartItems = useMemo(() => safeCartItems.map(i => ({ ...i, unavailableReason:getUnavailableReason(i) })).filter(i => i.unavailableReason), [safeCartItems]);
+  const unavailableCartItems   = useMemo(() => safeCartItems.map(i => ({ ...i, unavailableReason: getUnavailableReason(i) })).filter(i => i.unavailableReason), [safeCartItems]);
   const hasUnavailableCartItems = unavailableCartItems.length > 0;
   const needsFirstSuccessfulPaystackOrder = !checkingOrderHistory && !hasSuccessfulPaidOrder;
-  const codDisabledReason = useMemo(() => {
+  const codDisabledReason      = useMemo(() => {
     if (hasUnavailableCartItems) return "Pay on Delivery is unavailable because your cart contains unavailable items.";
     if (hasShippedFromAbroadItem) return "Pay on Delivery is unavailable because your cart contains a shipped from abroad item.";
     if (needsFirstSuccessfulPaystackOrder) return "Pay on Delivery is unavailable until you complete your first successful Paystack payment.";
     return "";
   }, [hasUnavailableCartItems, hasShippedFromAbroadItem, needsFirstSuccessfulPaystackOrder]);
-  const isCODBlocked = !!codDisabledReason;
-  const isFinalMinute = timeLeft <= 60 && !sessionExpired;
-  const inputsDisabled = loading || sessionExpired;
-  const formattedTimeLeft = formatTime(timeLeft);
+  const isCODBlocked           = !!codDisabledReason;
+  const isFinalMinute          = timeLeft <= 60 && !sessionExpired;
+  const inputsDisabled         = loading || sessionExpired;
+  const formattedTimeLeft      = formatTime(timeLeft);
   const regionalBaseDeliveryFeeUI = useMemo(() => { if (!form.region) return 0; return FREE_DELIVERY_REGIONS.has(form.region) ? 0 : OUTSIDE_ACCRA_DELIVERY_FEE; }, [form.region]);
   const selectedDeliveryMethodFeeUI = useMemo(() => {
     if (!delivery.method) return 0;
@@ -232,69 +256,69 @@ export default function Checkout() {
     if (delivery.method === DELIVERY_METHODS.MALL_PICKUP) return Number(selectedMallOption?.fee||0);
     return 0;
   }, [delivery.method, form.region, selectedMallOption]);
-  const abroadDeliveryFeeUI = useMemo(() => safeCartItems.reduce((s,i) => s + getItemAbroadDeliveryFee(i)*(Number(i.qty)||0), 0), [safeCartItems]);
-  const deliveryFeeUI = useMemo(() => regionalBaseDeliveryFeeUI + selectedDeliveryMethodFeeUI + abroadDeliveryFeeUI, [regionalBaseDeliveryFeeUI, selectedDeliveryMethodFeeUI, abroadDeliveryFeeUI]);
-  const totalUI = useMemo(() => subtotalUI + deliveryFeeUI, [subtotalUI, deliveryFeeUI]);
-
+  const abroadDeliveryFeeUI    = useMemo(() => safeCartItems.reduce((s, i) => s + getItemAbroadDeliveryFee(i)*(Number(i.qty)||0), 0), [safeCartItems]);
+  const deliveryFeeUI          = useMemo(() => regionalBaseDeliveryFeeUI + selectedDeliveryMethodFeeUI + abroadDeliveryFeeUI, [regionalBaseDeliveryFeeUI, selectedDeliveryMethodFeeUI, abroadDeliveryFeeUI]);
+  const totalUI                = useMemo(() => subtotalUI + deliveryFeeUI, [subtotalUI, deliveryFeeUI]);
   const selectedDeliverySummary = useMemo(() => {
     if (!delivery.method) return null;
-    if (delivery.method === DELIVERY_METHODS.HOME_DELIVERY) return { title:"Home Delivery", note: form.region==="Greater Accra" ? `+GHS ${ACCRA_HOME_DELIVERY_FEE.toFixed(2)}` : "Regional fee applies" };
-    if (delivery.method === DELIVERY_METHODS.MALL_PICKUP && selectedMallOption) return { title:selectedMallOption.label, note:`${selectedMallOption.area}${selectedMallOption.fee>0?` (+GHS ${selectedMallOption.fee.toFixed(2)})`:" (Free)"}` };
+    if (delivery.method === DELIVERY_METHODS.HOME_DELIVERY) return { title: "Home Delivery", note: form.region === "Greater Accra" ? `+GHS ${ACCRA_HOME_DELIVERY_FEE.toFixed(2)}` : "Regional fee applies" };
+    if (delivery.method === DELIVERY_METHODS.MALL_PICKUP && selectedMallOption) return { title: selectedMallOption.label, note: `${selectedMallOption.area}${selectedMallOption.fee > 0 ? ` (+GHS ${selectedMallOption.fee.toFixed(2)})` : " (Free)"}` };
     return null;
   }, [delivery.method, form.region, selectedMallOption]);
 
-  /* ── effects for side-effects (unchanged) ── */
-  useEffect(() => { if (isCODBlocked && method==="cod") setMethod(""); }, [isCODBlocked, method]);
+  /* ── side-effects (unchanged) ── */
+  useEffect(() => { if (isCODBlocked && method === "cod") setMethod(""); }, [isCODBlocked, method]);
   useEffect(() => {
     if (form.region !== "Greater Accra") {
       setDelivery(prev => {
-        if (prev.method===DELIVERY_METHODS.MALL_PICKUP||prev.mallId) return { method:prev.method===DELIVERY_METHODS.MALL_PICKUP?DELIVERY_METHODS.HOME_DELIVERY:prev.method, mallId:"" };
+        if (prev.method === DELIVERY_METHODS.MALL_PICKUP || prev.mallId)
+          return { method: prev.method === DELIVERY_METHODS.MALL_PICKUP ? DELIVERY_METHODS.HOME_DELIVERY : prev.method, mallId: "" };
         return prev;
       });
     }
   }, [form.region]);
-  useEffect(() => { if (delivery.method!==DELIVERY_METHODS.MALL_PICKUP && delivery.mallId) setDelivery(p=>({...p,mallId:""})); }, [delivery.method, delivery.mallId]);
+  useEffect(() => { if (delivery.method !== DELIVERY_METHODS.MALL_PICKUP && delivery.mallId) setDelivery(p => ({ ...p, mallId: "" })); }, [delivery.method, delivery.mallId]);
   useEffect(() => {
     if (sessionExpired) return;
     const timer = window.setInterval(() => {
-      setTimeLeft(prev => { if (prev<=1) { window.clearInterval(timer); setSessionExpired(true); return 0; } return prev-1; });
+      setTimeLeft(prev => { if (prev <= 1) { window.clearInterval(timer); setSessionExpired(true); return 0; } return prev - 1; });
     }, 1000);
     return () => window.clearInterval(timer);
   }, [sessionExpired]);
 
-  /* ── handlers (unchanged) ── */
+  /* ── handlers ── */
   const setField = (key) => (e) => {
     if (sessionExpired) return;
     const value = e.target.value;
-    if (key==="region") { setForm(prev=>({...prev,region:value,city:""})); setDelivery(INITIAL_DELIVERY); return; }
-    setForm(prev=>({...prev,[key]:value}));
+    if (key === "region") { setForm(prev => ({ ...prev, region: value, city: "" })); setDelivery(INITIAL_DELIVERY); return; }
+    setForm(prev => ({ ...prev, [key]: value }));
   };
-  const setDeliveryMethod = (next) => { if (sessionExpired||loading) return; setDelivery({method:next,mallId:next===DELIVERY_METHODS.MALL_PICKUP?delivery.mallId:""}); setTouched(p=>({...p,deliveryMethod:true})); };
-  const setMallPickup = (mallId) => { if (sessionExpired||loading) return; setDelivery({method:DELIVERY_METHODS.MALL_PICKUP,mallId}); setTouched(p=>({...p,deliveryMethod:true,mallId:true})); };
-  const markTouched = (key) => () => setTouched(p=>({...p,[key]:true}));
+  const setDeliveryMethod = (next) => { if (sessionExpired || loading) return; setDelivery({ method: next, mallId: next === DELIVERY_METHODS.MALL_PICKUP ? delivery.mallId : "" }); setTouched(p => ({ ...p, deliveryMethod: true })); };
+  const setMallPickup = (mallId) => { if (sessionExpired || loading) return; setDelivery({ method: DELIVERY_METHODS.MALL_PICKUP, mallId }); setTouched(p => ({ ...p, deliveryMethod: true, mallId: true })); };
+  const markTouched = (key) => () => setTouched(p => ({ ...p, [key]: true }));
 
   const validate = (v) => {
     const next = {};
-    if (!user&&!authLoading) next.auth="Please login before checkout.";
-    if (!v.email.trim()) next.email="Email is required."; else if (!isValidEmail(v.email)) next.email="Enter a valid email address.";
-    if (!v.firstName.trim()) next.firstName="First name is required."; else if (!isValidName(v.firstName)) next.firstName="Use letters only.";
-    if (!v.lastName.trim()) next.lastName="Last name is required."; else if (!isValidName(v.lastName)) next.lastName="Use letters only.";
-    if (!v.address.trim()) next.address="Address is required."; else if (!isValidGhanaAddress(v.address)) next.address="Enter a valid address.";
-    if (!v.region) next.region="Select a region.";
-    if (!v.city) next.city="Select a city.";
-    if (!v.area.trim()) next.area="Area / locality is required."; else if (v.area.trim().length<2) next.area="Area is too short.";
-    if (!v.phone.trim()) next.phone="Phone is required."; else if (!normalizedPhone) next.phone="Use 0XXXXXXXXX or +233XXXXXXXXX."; else if (!network) next.phone="Phone must be MTN, Telecel, or AirtelTigo.";
-    if (!safeCartItems.length) next.cart="Your cart is empty."; else if (hasUnavailableCartItems) next.cart="Some items are out of stock. Update your cart.";
-    if (!delivery.method) next.deliveryMethod="Please select a delivery option.";
-    if (delivery.method===DELIVERY_METHODS.MALL_PICKUP&&!delivery.mallId) next.mallId="Please select a pickup mall.";
-    if (!method) next.paymentMethod="Please select a payment method.";
+    if (!user && !authLoading) next.auth = "Please login before checkout.";
+    if (!v.email.trim()) next.email = "Email is required."; else if (!isValidEmail(v.email)) next.email = "Enter a valid email address.";
+    if (!v.firstName.trim()) next.firstName = "First name is required."; else if (!isValidName(v.firstName)) next.firstName = "Use letters only.";
+    if (!v.lastName.trim()) next.lastName = "Last name is required."; else if (!isValidName(v.lastName)) next.lastName = "Use letters only.";
+    if (!v.address.trim()) next.address = "Address is required."; else if (!isValidGhanaAddress(v.address)) next.address = "Enter a valid address.";
+    if (!v.region) next.region = "Select a region.";
+    if (!v.city) next.city = "Select a city.";
+    if (!v.area.trim()) next.area = "Area / locality is required."; else if (v.area.trim().length < 2) next.area = "Area is too short.";
+    if (!v.phone.trim()) next.phone = "Phone is required."; else if (!normalizedPhone) next.phone = "Use 0XXXXXXXXX or +233XXXXXXXXX."; else if (!network) next.phone = "Phone must be MTN, Telecel, or AirtelTigo.";
+    if (!safeCartItems.length) next.cart = "Your cart is empty."; else if (hasUnavailableCartItems) next.cart = "Some items are out of stock. Update your cart.";
+    if (!delivery.method) next.deliveryMethod = "Please select a delivery option.";
+    if (delivery.method === DELIVERY_METHODS.MALL_PICKUP && !delivery.mallId) next.mallId = "Please select a pickup mall.";
+    if (!method) next.paymentMethod = "Please select a payment method.";
     return next;
   };
 
   useEffect(() => {
     setErrors(validate(form));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user,authLoading,form.email,form.firstName,form.lastName,form.phone,form.address,form.region,form.city,form.area,safeCartItems,hasUnavailableCartItems,normalizedPhone,network,method,delivery.method,delivery.mallId]);
+  }, [user, authLoading, form.email, form.firstName, form.lastName, form.phone, form.address, form.region, form.city, form.area, safeCartItems, hasUnavailableCartItems, normalizedPhone, network, method, delivery.method, delivery.mallId]);
 
   const showError = (key) => touched[key] && errors[key];
 
@@ -302,142 +326,208 @@ export default function Checkout() {
     if (sessionExpired) { alert("Checkout session expired. Please restart checkout."); return "Checkout session expired."; }
     const next = validate(form);
     setErrors(next);
-    setTouched({ email:true,firstName:true,lastName:true,phone:true,address:true,region:true,city:true,area:true,deliveryMethod:true,mallId:true,paymentMethod:true });
+    setTouched({ email: true, firstName: true, lastName: true, phone: true, address: true, region: true, city: true, area: true, deliveryMethod: true, mallId: true, paymentMethod: true });
     return Object.values(next)[0] || null;
   };
 
   const restartCheckout = () => {
-    setForm({ ...INITIAL_FORM, email:user?.email||"" });
-    setDelivery(INITIAL_DELIVERY); setTouched({}); setErrors({}); setMethod(""); setLoading(false); setLoadingMode(""); setSessionExpired(false); setTimeLeft(CHECKOUT_DURATION_SECONDS); setShowCODInfo(false);
-    window.scrollTo({ top:0, behavior:"smooth" });
+    setForm({ ...INITIAL_FORM, email: user?.email || "" });
+    setDelivery(INITIAL_DELIVERY); setTouched({}); setErrors({}); setMethod(""); setLoading(false); setLoadingMode(""); setSessionExpired(false); setTimeLeft(CHECKOUT_DURATION_SECONDS); setShowCODInfo(false); setShowMomoScreen(null); setShowPaymentLoader(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const dismissCancelledNotice = () => {
     const next = new URLSearchParams(location.search);
     next.delete("payment");
-    navigate({ pathname:location.pathname, search:next.toString()?`?${next.toString()}`:"" }, { replace:true });
+    navigate({ pathname: location.pathname, search: next.toString() ? `?${next.toString()}` : "" }, { replace: true });
   };
 
   const buildDeliveryPayload = () => {
-    const mallLabel = selectedMallOption?.label||"";
-    const mallArea  = selectedMallOption?.area||"";
-    const label = delivery.method===DELIVERY_METHODS.HOME_DELIVERY ? "Home Delivery" : delivery.method===DELIVERY_METHODS.MALL_PICKUP ? mallLabel||"Mall Pickup" : "";
+    const mallLabel = selectedMallOption?.label || "";
+    const mallArea  = selectedMallOption?.area  || "";
+    const label = delivery.method === DELIVERY_METHODS.HOME_DELIVERY ? "Home Delivery" : delivery.method === DELIVERY_METHODS.MALL_PICKUP ? mallLabel || "Mall Pickup" : "";
     return {
-      method:delivery.method, label, fee:deliveryFeeUI,
-      breakdown:{ regionalBaseFee:regionalBaseDeliveryFeeUI, methodFee:selectedDeliveryMethodFeeUI, abroadFee:abroadDeliveryFeeUI },
-      mallPickup: delivery.method===DELIVERY_METHODS.MALL_PICKUP ? { id:delivery.mallId, label:mallLabel, area:mallArea, fee:Number(selectedMallOption?.fee||0) } : null,
-      homeDelivery: delivery.method===DELIVERY_METHODS.HOME_DELIVERY ? { label:"Home Delivery", fee:form.region==="Greater Accra"?ACCRA_HOME_DELIVERY_FEE:0 } : null,
+      method: delivery.method, label, fee: deliveryFeeUI,
+      breakdown: { regionalBaseFee: regionalBaseDeliveryFeeUI, methodFee: selectedDeliveryMethodFeeUI, abroadFee: abroadDeliveryFeeUI },
+      mallPickup:   delivery.method === DELIVERY_METHODS.MALL_PICKUP   ? { id: delivery.mallId, label: mallLabel, area: mallArea, fee: Number(selectedMallOption?.fee||0) } : null,
+      homeDelivery: delivery.method === DELIVERY_METHODS.HOME_DELIVERY ? { label: "Home Delivery", fee: form.region === "Greater Accra" ? ACCRA_HOME_DELIVERY_FEE : 0 } : null,
     };
   };
 
   const buildOrderPayload = (paymentMethod) => {
-    const items = safeCartItems.map(item=>({ id:item.id||"", productId:item.productId||item.id||"", name:item.name||"", price:Number(item.price)||0, basePrice:Number(item.basePrice??item.price??0)||0, optionPriceTotal:Number(item.optionPriceTotal||0)||0, qty:Number(item.qty)||1, image:item.image||"", shop:normalizeShop(item.shop), selectedOptions:item.selectedOptions||{}, selectedOptionsLabel:item.selectedOptionsLabel||"", selectedOptionDetails:Array.isArray(item.selectedOptionDetails)?item.selectedOptionDetails:[], customizations:Array.isArray(item.customizations)?item.customizations:[], shipsFromAbroad:item.shipsFromAbroad===true, abroadDeliveryFee:getItemAbroadDeliveryFee(item), inStock:item.inStock!==false, stock:getNumericStock(item) }));
-    const shops = Array.from(new Set(items.map(i=>i.shop))).filter(Boolean);
+    const items = safeCartItems.map(item => ({
+      id: item.id||"", productId: item.productId||item.id||"", name: item.name||"",
+      price: Number(item.price)||0, basePrice: Number(item.basePrice??item.price??0)||0,
+      optionPriceTotal: Number(item.optionPriceTotal||0)||0, qty: Number(item.qty)||1,
+      image: item.image||"", shop: normalizeShop(item.shop),
+      selectedOptions: item.selectedOptions||{}, selectedOptionsLabel: item.selectedOptionsLabel||"",
+      selectedOptionDetails: Array.isArray(item.selectedOptionDetails) ? item.selectedOptionDetails : [],
+      customizations: Array.isArray(item.customizations) ? item.customizations : [],
+      shipsFromAbroad: item.shipsFromAbroad===true, abroadDeliveryFee: getItemAbroadDeliveryFee(item),
+      inStock: item.inStock!==false, stock: getNumericStock(item),
+    }));
+    const shops = Array.from(new Set(items.map(i => i.shop))).filter(Boolean);
     return {
-      customer:{ email:sanitizeText(form.email,160).toLowerCase(), firstName:sanitizeText(form.firstName,80), lastName:sanitizeText(form.lastName,80), phone:normalizedPhone, address:sanitizeText(form.address,300), region:sanitizeText(form.region,80), city:sanitizeText(form.city,80), area:sanitizeText(form.area,120), notes:sanitizeOptionalText(form.notes,500), country:"Ghana", network, userId:user?.uid||"" },
-      delivery:buildDeliveryPayload(), items, shops, primaryShop:shops[0]||"main",
-      pricing:{ subtotal:subtotalUI, deliveryFee:deliveryFeeUI, total:totalUI, currency:"GHS" },
-      paymentMethod, paymentStatus:"pending", status:paymentMethod==="cod"?"pending":"pending_payment", source:"web",
+      customer: { email: sanitizeText(form.email,160).toLowerCase(), firstName: sanitizeText(form.firstName,80), lastName: sanitizeText(form.lastName,80), phone: normalizedPhone, address: sanitizeText(form.address,300), region: sanitizeText(form.region,80), city: sanitizeText(form.city,80), area: sanitizeText(form.area,120), notes: sanitizeOptionalText(form.notes,500), country: "Ghana", network, userId: user?.uid||"" },
+      delivery: buildDeliveryPayload(), items, shops, primaryShop: shops[0]||"main",
+      pricing: { subtotal: subtotalUI, deliveryFee: deliveryFeeUI, total: totalUI, currency: "GHS" },
+      paymentMethod, paymentStatus: "pending", status: paymentMethod === "cod" ? "pending" : "pending_payment", source: "web",
     };
   };
 
   const placeCOD = async () => {
-    if (loading||sessionExpired||isCODBlocked||checkingOrderHistory||hasUnavailableCartItems) return;
+    if (loading || sessionExpired || isCODBlocked || checkingOrderHistory || hasUnavailableCartItems) return;
     const err = validateRequired(); if (err) return;
     setLoadingMode("cod"); setLoading(true);
     try {
       const payload = buildOrderPayload("cod");
       const result  = await createCodOrder(payload);
-      const createdOrderId = result?.order?.id||result?.id||"";
+      const createdOrderId = result?.order?.id || result?.id || "";
       clearCart();
-      navigate(`/order-success?status=success${createdOrderId?`&orderId=${encodeURIComponent(createdOrderId)}`:""}`, { replace:true });
+      navigate(`/order-success?status=success${createdOrderId ? `&orderId=${encodeURIComponent(createdOrderId)}` : ""}`, { replace: true });
     } catch (e) {
       console.error("COD order failed:", e);
-      alert(e?.message?`Failed to place order: ${e.message}`:"Failed to place order. Try again.");
+      alert(e?.message ? `Failed to place order: ${e.message}` : "Failed to place order. Try again.");
       setLoading(false); setLoadingMode("");
     }
   };
 
   const payWithPaystack = async () => {
     setPaystackError("");
-    if (loading)               { setPaystackError("DEBUG: Already loading."); return; }
-    if (sessionExpired)        { setPaystackError("DEBUG: Session expired."); return; }
-    if (checkingOrderHistory)  { setPaystackError("DEBUG: Still checking order history, please wait."); return; }
-    if (hasUnavailableCartItems) { setPaystackError("DEBUG: Cart has unavailable items."); return; }
-    if (!user)                 { setPaystackError("DEBUG: No user logged in."); return; }
+    if (loading || sessionExpired || checkingOrderHistory || hasUnavailableCartItems || !user) return;
     setLoadingMode("paystack"); setLoading(true);
-    setTouched({ email:true,firstName:true,lastName:true,phone:true,address:true,region:true,city:true,area:true,deliveryMethod:true,mallId:true,paymentMethod:true });
+    setTouched({ email: true, firstName: true, lastName: true, phone: true, address: true, region: true, city: true, area: true, deliveryMethod: true, mallId: true, paymentMethod: true });
     const currentErrors = validate(form);
     const firstError = Object.values(currentErrors)[0];
-    if (firstError) { setPaystackError("DEBUG: Validation failed — "+firstError); setLoading(false); setLoadingMode(""); return; }
+    if (firstError) { setPaystackError(firstError); setLoading(false); setLoadingMode(""); return; }
     try {
-      setPaystackError("DEBUG: Calling startPaystackCheckout...");
       await startPaystackCheckout({
         email: sanitizeText(form.email, 160).toLowerCase(),
-        cartItems: safeCartItems.map(item => ({
-          ...item,
-          qty: Number(item.qty) || 1,
-          price: Number(item.price) || 0,
-          basePrice: Number(item.basePrice ?? item.price ?? 0) || 0,
-          optionPriceTotal: Number(item.optionPriceTotal || 0) || 0,
-        })),
+        cartItems: safeCartItems.map(item => ({ ...item, qty: Number(item.qty)||1, price: Number(item.price)||0, basePrice: Number(item.basePrice??item.price??0)||0, optionPriceTotal: Number(item.optionPriceTotal||0)||0 })),
         delivery: buildDeliveryPayload(),
         pricing: { subtotal: subtotalUI, deliveryFee: deliveryFeeUI, total: totalUI, currency: "GHS" },
-        customer: {
-          userId:    user?.uid || "",
-          firstName: sanitizeText(form.firstName, 80),
-          lastName:  sanitizeText(form.lastName, 80),
-          phone:     normalizedPhone || "",
-          network:   network || "",
-          address:   sanitizeText(form.address, 300),
-          region:    sanitizeText(form.region, 80),
-          city:      sanitizeText(form.city, 80),
-          area:      sanitizeText(form.area, 120),
-          notes:     sanitizeOptionalText(form.notes, 500),
-          country:   "Ghana",
-        },
+        customer: { userId: user?.uid||"", firstName: sanitizeText(form.firstName,80), lastName: sanitizeText(form.lastName,80), phone: normalizedPhone||"", network: network||"", address: sanitizeText(form.address,300), region: sanitizeText(form.region,80), city: sanitizeText(form.city,80), area: sanitizeText(form.area,120), notes: sanitizeOptionalText(form.notes,500), country: "Ghana" },
       });
-      setPaystackError("DEBUG: startPaystackCheckout returned without redirecting.");
       setLoading(false); setLoadingMode("");
     } catch (e) {
-      setPaystackError("DEBUG: startPaystackCheckout threw — "+(e?.message||String(e)));
+      setPaystackError(e?.message || "Payment failed. Please try again.");
       setLoading(false); setLoadingMode("");
     }
   };
 
+  const handleMomoCheckout = (type) => {
+    const err = validateRequired();
+    if (err) return;
+    setPaymentLoaderMethod(type === "mtn" ? "MTN Mobile Money" : "Telecel Cash");
+    setShowPaymentLoader(true);
+    setTimeout(() => {
+      setShowPaymentLoader(false);
+      setShowMomoScreen(type);
+    }, 2200);
+  };
+
+  const handleCheckout = () => {
+    if (method === "paystack") payWithPaystack();
+    else if (method === "mtn")     handleMomoCheckout("mtn");
+    else if (method === "telecel") handleMomoCheckout("telecel");
+    else if (method === "cod")     placeCOD();
+  };
+
   const handleMethodChange = (e) => {
     const value = e.target.value;
-    setTouched(p=>({...p,paymentMethod:true}));
+    setTouched(p => ({ ...p, paymentMethod: true }));
     if (!value) { setMethod(""); setShowCODInfo(false); return; }
-    if (value==="cod"&&isCODBlocked) { setMethod(""); setShowCODInfo(true); return; }
+    if (value === "cod" && isCODBlocked) { setMethod(""); setShowCODInfo(true); return; }
     setMethod(value); setShowCODInfo(false);
   };
 
-  /* ── step indicator logic ── */
+  /* step logic */
   const currentStep = !delivery.method ? 1 : !method ? 2 : 3;
 
-  /* ── render ── */
+  const payBtnLabel =
+    method === "paystack" ? "Pay with Paystack" :
+    method === "mtn"      ? "Pay with MTN MoMo" :
+    method === "telecel"  ? "Pay with Telecel Cash" :
+    method === "cod"      ? "Place Order — Pay on Delivery" : "";
+
+  const isCheckoutDisabled =
+    inputsDisabled || !!errors.cart || !user || authLoading ||
+    checkingOrderHistory || hasUnavailableCartItems ||
+    (method === "cod" && isCODBlocked);
+
+  /* ─────────────────────── RENDER ─────────────────────── */
   return (
     <div className="co-page">
-      <div className="co-wrap">
 
-        {/* ── LOGO HEADER ── */}
-        <div className="co-logo-header">
-          <img
-            src="/favicon_black.png"
-            alt="Store logo"
-            className="co-logo-header__img"
-            onError={(e) => {
-              /* fallback to white version if black not found */
-              e.currentTarget.src = "/Favicon-white.PNG";
-              e.currentTarget.onerror = null;
-            }}
-          />
+      {/* ── Payment Validation Loader ── */}
+      {showPaymentLoader && (
+        <div className="co-pay-loader">
+          <div className="co-pay-loader__inner">
+            <div className="co-pay-loader__spinner" />
+            <p className="co-pay-loader__title">Validating payment</p>
+            <p className="co-pay-loader__sub">via {paymentLoaderMethod}</p>
+          </div>
         </div>
+      )}
+
+      {/* ── MoMo USSD Screen ── */}
+      {showMomoScreen && (
+        <div className="co-momo-overlay">
+          <div className="co-momo-screen">
+            <button
+              type="button"
+              className="co-momo-back"
+              onClick={() => setShowMomoScreen(null)}
+            >
+              <ChevronLeftIcon /> Back
+            </button>
+
+            <div className="co-momo-icon">
+              <span /><span /><span />
+            </div>
+
+            <h2 className="co-momo-title">We are waiting for you</h2>
+            <p className="co-momo-sub">
+              Please follow the instructions below. Only leave this page to authorise the payment in another app or window.
+            </p>
+            <p className="co-momo-time-note">This may take up to 2 minutes.</p>
+
+            <div className="co-momo-card">
+              <p>You should receive a prompt on your mobile number to enter your PIN to authorize the payment.</p>
+              <p>If you do not receive the prompt within 10 seconds, follow the instructions below:</p>
+              <ol>
+                {showMomoScreen === "mtn" ? (
+                  <>
+                    <li>Dial <strong>*170#</strong> to see the main MTN USSD menu</li>
+                    <li>If the prompt appears instead, cancel it and dial *170# again</li>
+                    <li>Choose <strong>6) My Wallet</strong></li>
+                    <li>Choose <strong>3) My Approvals</strong></li>
+                    <li>Enter your PIN to proceed</li>
+                    <li>Look for the transaction and follow the prompts to authorise it. Make sure the amount is correct</li>
+                    <li>You have 5 mins to authorise the transaction so if anything goes wrong, simply dial and try again</li>
+                  </>
+                ) : (
+                  <>
+                    <li>Dial <strong>*110#</strong> to see the main Telecel USSD menu</li>
+                    <li>If the prompt appears instead, cancel it and dial *110# again</li>
+                    <li>Choose <strong>6) My Wallet</strong></li>
+                    <li>Choose <strong>5) My Approvals</strong></li>
+                    <li>Enter your PIN to proceed</li>
+                    <li>Look for the transaction and follow the prompts to authorise it. Make sure the amount is correct</li>
+                    <li>You have 5 minutes to authorise the transaction, so if anything goes wrong, simply dial and try again</li>
+                  </>
+                )}
+              </ol>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="co-wrap">
 
         {/* cancelled notice */}
         {cancelledPayment && (
-          <div className="co-notice co-notice--warn" role="status" aria-live="polite">
+          <div className="co-notice" role="status" aria-live="polite">
             <div className="co-notice__body">
               <strong>Payment cancelled.</strong>
               <span>Your order was not completed. Review your details and try again.</span>
@@ -447,32 +537,34 @@ export default function Checkout() {
         )}
 
         {/* timer */}
-        <div className={`co-timer${isFinalMinute?" co-timer--warn":""}${sessionExpired?" co-timer--expired":""}`}>
+        <div className={`co-timer${isFinalMinute ? " co-timer--warn" : ""}${sessionExpired ? " co-timer--expired" : ""}`}>
           <div className="co-timer__left">
-            <span className="co-timer__eye">Session</span>
+            <span className="co-timer__label">Session</span>
             <span className="co-timer__time">{formattedTimeLeft}</span>
           </div>
           <div className="co-timer__right">
             {sessionExpired ? (
               <>
-                <p className="co-timer__msg">Session expired. Please restart checkout.</p>
+                <p className="co-timer__msg">Session expired. Please restart.</p>
                 <button type="button" className="co-timer__btn" onClick={restartCheckout}>Restart</button>
               </>
             ) : (
-              <p className="co-timer__msg">{isFinalMinute?"Final minute — complete your order now.":"Complete your order within 10 minutes."}</p>
+              <p className="co-timer__msg">
+                {isFinalMinute ? "Final minute — complete your order now." : "Complete your order within 10 minutes."}
+              </p>
             )}
           </div>
         </div>
 
-        {/* page title */}
+        {/* title */}
         <h1 className="co-page-title">Checkout</h1>
 
-        {/* step indicator */}
+        {/* steps */}
         <div className="co-steps">
-          {[{n:1,label:"Shipping"},{n:2,label:"Delivery"},{n:3,label:"Payment"}].map((s,i) => (
-            <div key={s.n} className={`co-step${currentStep===s.n?" co-step--active":""}${currentStep>s.n?" co-step--done":""}`}>
+          {[{ n: 1, label: "Shipping" }, { n: 2, label: "Delivery" }, { n: 3, label: "Payment" }].map((s, i) => (
+            <div key={s.n} className={`co-step${currentStep === s.n ? " co-step--active" : ""}${currentStep > s.n ? " co-step--done" : ""}`}>
               <div className="co-step__circle">
-                {currentStep>s.n ? <CheckIcon /> : <span>{s.n}</span>}
+                {currentStep > s.n ? <CheckIcon /> : <span>{s.n}</span>}
               </div>
               <span className="co-step__label">{s.label}</span>
               {i < 2 && <div className="co-step__line" />}
@@ -480,9 +572,7 @@ export default function Checkout() {
           ))}
         </div>
 
-        {paystackError && (
-          <div className="co-debug-error">{paystackError}</div>
-        )}
+        {paystackError && <div className="co-error">{paystackError}</div>}
 
         {!safeCartItems.length ? (
           <div className="co-empty">
@@ -498,9 +588,8 @@ export default function Checkout() {
         ) : (
           <div className="co-grid">
 
-            {/* ── FORM COLUMN ── */}
+            {/* ── LEFT: Form ── */}
             <div className="co-form">
-
               {errors.auth && <div className="co-error">{errors.auth}</div>}
               {errors.cart && <div className="co-error">{errors.cart}</div>}
 
@@ -516,9 +605,7 @@ export default function Checkout() {
               <div className="co-section">
                 <span className="co-section__eyebrow">Step 01</span>
                 <h2 className="co-section__title">Shipping address</h2>
-
                 <select className="co-input" value="Ghana" disabled><option>Ghana</option></select>
-
                 <div className="co-row2">
                   <div>
                     <input className="co-input" placeholder="First name" value={form.firstName} onBlur={markTouched("firstName")} onChange={setField("firstName")} disabled={inputsDisabled} />
@@ -529,10 +616,8 @@ export default function Checkout() {
                     {showError("lastName") && <div className="co-field-error">{errors.lastName}</div>}
                   </div>
                 </div>
-
                 <input className="co-input" placeholder="Address (House No., Street, Landmark)" value={form.address} onBlur={markTouched("address")} onChange={setField("address")} disabled={inputsDisabled} />
                 {showError("address") && <div className="co-field-error">{errors.address}</div>}
-
                 <div className="co-row2">
                   <div>
                     <select className="co-input" value={form.region} onBlur={markTouched("region")} onChange={setField("region")} disabled={inputsDisabled}>
@@ -542,25 +627,22 @@ export default function Checkout() {
                     {showError("region") && <div className="co-field-error">{errors.region}</div>}
                   </div>
                   <div>
-                    <select className="co-input" value={form.city} onBlur={markTouched("city")} onChange={setField("city")} disabled={inputsDisabled||!form.region}>
-                      <option value="">{form.region?"Select city":"Region first"}</option>
+                    <select className="co-input" value={form.city} onBlur={markTouched("city")} onChange={setField("city")} disabled={inputsDisabled || !form.region}>
+                      <option value="">{form.region ? "Select city" : "Region first"}</option>
                       {citiesForRegion.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                     {showError("city") && <div className="co-field-error">{errors.city}</div>}
                   </div>
                 </div>
-
                 <input className="co-input" placeholder="Area / Locality (e.g., East Legon)" value={form.area} onBlur={markTouched("area")} onChange={setField("area")} disabled={inputsDisabled} />
                 {showError("area") && <div className="co-field-error">{errors.area}</div>}
-
                 <input className="co-input" placeholder="Phone (0XXXXXXXXX or +233XXXXXXXXX)" value={form.phone} onBlur={markTouched("phone")} onChange={setField("phone")} disabled={inputsDisabled} />
                 {showError("phone") && <div className="co-field-error">{errors.phone}</div>}
                 {normalizedPhone && network && (
                   <div className="co-network-hint">
-                    <CheckIcon /> Network: <strong>{network}</strong> ({normalizedPhone})
+                    <CheckIcon /> Network: <strong>{network}</strong>&nbsp;({normalizedPhone})
                   </div>
                 )}
-
                 <textarea className="co-input co-textarea" placeholder="Delivery notes (optional)" value={form.notes} onChange={setField("notes")} disabled={inputsDisabled} />
               </div>
 
@@ -568,37 +650,36 @@ export default function Checkout() {
               <div className="co-section">
                 <span className="co-section__eyebrow">Step 02</span>
                 <h2 className="co-section__title">Delivery</h2>
-
                 <div className="co-del-grid">
                   <button type="button"
-                    className={`co-del-card${delivery.method===DELIVERY_METHODS.MALL_PICKUP?" co-del-card--active":""}`}
+                    className={`co-del-card${delivery.method === DELIVERY_METHODS.MALL_PICKUP ? " co-del-card--active" : ""}`}
                     onClick={() => setDeliveryMethod(DELIVERY_METHODS.MALL_PICKUP)}
-                    disabled={inputsDisabled||form.region!=="Greater Accra"}>
+                    disabled={inputsDisabled || form.region !== "Greater Accra"}>
                     <strong>Mall Pickup</strong>
-                    <span>{form.region==="Greater Accra"?"Pick up from a mall in Accra.":"Available only in Greater Accra."}</span>
+                    <span>{form.region === "Greater Accra" ? "Pick up from a mall in Accra." : "Available only in Greater Accra."}</span>
                   </button>
                   <button type="button"
-                    className={`co-del-card${delivery.method===DELIVERY_METHODS.HOME_DELIVERY?" co-del-card--active":""}`}
+                    className={`co-del-card${delivery.method === DELIVERY_METHODS.HOME_DELIVERY ? " co-del-card--active" : ""}`}
                     onClick={() => setDeliveryMethod(DELIVERY_METHODS.HOME_DELIVERY)}
                     disabled={inputsDisabled}>
                     <strong>Home Delivery</strong>
-                    <span>{form.region==="Greater Accra"?`Delivered to your address (+GHS ${ACCRA_HOME_DELIVERY_FEE.toFixed(2)})`:"Delivered to your address. Regional fee applies."}</span>
+                    <span>{form.region === "Greater Accra" ? `Delivered to your address (+GHS ${ACCRA_HOME_DELIVERY_FEE.toFixed(2)})` : "Delivered to your address. Regional fee applies."}</span>
                   </button>
                 </div>
                 {showError("deliveryMethod") && <div className="co-field-error">{errors.deliveryMethod}</div>}
 
-                {delivery.method===DELIVERY_METHODS.MALL_PICKUP && (
+                {delivery.method === DELIVERY_METHODS.MALL_PICKUP && (
                   <div className="co-mall-wrap">
                     <span className="co-mall-label">Select pickup mall</span>
                     <div className="co-mall-grid">
                       {mallPickupOptions.map(mall => (
                         <button key={mall.id} type="button"
-                          className={`co-del-card${delivery.mallId===mall.id?" co-del-card--active":""}`}
+                          className={`co-del-card${delivery.mallId === mall.id ? " co-del-card--active" : ""}`}
                           onClick={() => setMallPickup(mall.id)}
                           disabled={inputsDisabled}>
                           <strong>{mall.label}</strong>
                           <span>{mall.area}</span>
-                          <small>{mall.fee>0?`Fee: GHS ${mall.fee.toFixed(2)}`:"Free pickup"}</small>
+                          <small>{mall.fee > 0 ? `Fee: GHS ${mall.fee.toFixed(2)}` : "Free pickup"}</small>
                         </button>
                       ))}
                     </div>
@@ -607,153 +688,167 @@ export default function Checkout() {
                 )}
 
                 {selectedDeliverySummary && (
-                  <div className="co-review-pill co-review-pill--delivery">
+                  <div className="co-review-pill">
                     <span className="co-review-pill__eye">Delivery selected</span>
                     <strong className="co-review-pill__title">{selectedDeliverySummary.title}</strong>
                     <p className="co-review-pill__note">{selectedDeliverySummary.note}</p>
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* ── RIGHT: Payment + Summary ── */}
+            <div className="co-right">
 
               {/* Payment */}
               <div className="co-section">
                 <span className="co-section__eyebrow">Step 03</span>
                 <h2 className="co-section__title">Payment</h2>
 
-                <label className="co-label">Choose how you want to pay</label>
-                <div className="co-select-wrap">
-                  <select className="co-input co-select" value={method} onChange={handleMethodChange} onBlur={markTouched("paymentMethod")} disabled={inputsDisabled||checkingOrderHistory}>
-                    <option value="">Select payment method</option>
-                    <option value="paystack">Checkout with Paystack</option>
-                    <option value="cod">Pay on Delivery{isCODBlocked?" (Unavailable)":""}</option>
-                  </select>
-                  <span className="co-select-arrow" aria-hidden="true">▾</span>
+                <div className="co-pay-methods">
+                  {/* Paystack */}
+                  <label className={`co-pay-card${method === "paystack" ? " co-pay-card--active" : ""}`}>
+                    <input type="radio" name="payMethod" value="paystack" checked={method === "paystack"} onChange={handleMethodChange} disabled={inputsDisabled || checkingOrderHistory} className="co-pay-radio" />
+                    <img src="/Paystack logo.JPG" alt="Paystack" className="co-pay-logo" onError={e => { e.currentTarget.style.display = "none"; }} />
+                    <div className="co-pay-info">
+                      <span className="co-pay-name">Pay with Paystack</span>
+                      <span className="co-pay-desc">Card, bank transfer & more</span>
+                    </div>
+                    <div className="co-pay-bullet" aria-hidden="true" />
+                  </label>
+
+                  {/* MTN */}
+                  <label className={`co-pay-card${method === "mtn" ? " co-pay-card--active" : ""}`}>
+                    <input type="radio" name="payMethod" value="mtn" checked={method === "mtn"} onChange={handleMethodChange} disabled={inputsDisabled} className="co-pay-radio" />
+                    <img src="/MTN logo.JPG" alt="MTN" className="co-pay-logo" onError={e => { e.currentTarget.style.display = "none"; }} />
+                    <div className="co-pay-info">
+                      <span className="co-pay-name">MTN Mobile Money</span>
+                      <span className="co-pay-desc">Pay with MTN MoMo</span>
+                    </div>
+                    <div className="co-pay-bullet" aria-hidden="true" />
+                  </label>
+
+                  {/* Telecel */}
+                  <label className={`co-pay-card${method === "telecel" ? " co-pay-card--active" : ""}`}>
+                    <input type="radio" name="payMethod" value="telecel" checked={method === "telecel"} onChange={handleMethodChange} disabled={inputsDisabled} className="co-pay-radio" />
+                    <img src="/Telecel logo.JPG" alt="Telecel" className="co-pay-logo" onError={e => { e.currentTarget.style.display = "none"; }} />
+                    <div className="co-pay-info">
+                      <span className="co-pay-name">Telecel Cash</span>
+                      <span className="co-pay-desc">Pay with Telecel Cash</span>
+                    </div>
+                    <div className="co-pay-bullet" aria-hidden="true" />
+                  </label>
+
+                  {/* COD — small/secondary */}
+                  <label className={`co-pay-card co-pay-card--cod${method === "cod" ? " co-pay-card--active" : ""}${isCODBlocked ? " co-pay-card--blocked" : ""}`}>
+                    <input type="radio" name="payMethod" value="cod" checked={method === "cod"} onChange={handleMethodChange} disabled={inputsDisabled || isCODBlocked} className="co-pay-radio" />
+                    <div className="co-pay-icon-wrap"><TruckIcon /></div>
+                    <div className="co-pay-info">
+                      <span className="co-pay-name">Pay on Delivery{isCODBlocked ? " (Unavailable)" : ""}</span>
+                      {isCODBlocked
+                        ? <span className="co-pay-desc co-pay-desc--warn">Not available for your order</span>
+                        : <span className="co-pay-desc">Pay when your order arrives</span>
+                      }
+                    </div>
+                    <div className="co-pay-bullet" aria-hidden="true" />
+                  </label>
                 </div>
+
                 {showError("paymentMethod") && <div className="co-field-error">{errors.paymentMethod}</div>}
-                {checkingOrderHistory && <p className="co-hint">Checking checkout eligibility…</p>}
+                {checkingOrderHistory && <p className="co-hint">Checking eligibility…</p>}
 
-                {method && (
-                  <div className={`co-review-pill${method==="paystack"?" co-review-pill--paystack":" co-review-pill--cod"}`}>
-                    <div className="co-review-pill__icon">
-                      {method==="paystack" ? <CardIcon /> : <TruckIcon />}
-                    </div>
-                    <div>
-                      <strong className="co-review-pill__title">{method==="paystack"?"Paystack selected":"Pay on Delivery selected"}</strong>
-                      <p className="co-review-pill__note">{method==="paystack"?"You will be redirected securely to Paystack to complete payment.":isCODBlocked?codDisabledReason:"You will place the order now and pay when your order arrives."}</p>
-                    </div>
-                  </div>
-                )}
-
-                {(showCODInfo||(method==="cod"&&isCODBlocked)) && (
+                {(showCODInfo || (method === "cod" && isCODBlocked)) && (
                   <div className="co-info-panel">
                     <div className="co-info-panel__icon"><InfoIcon /></div>
                     <div>
                       <strong>Pay on Delivery notice</strong>
-                      <p>{codDisabledReason||"Pay on Delivery is available once your cart and account qualify."}</p>
+                      <p>{codDisabledReason || "Pay on Delivery is available once your cart and account qualify."}</p>
                     </div>
                   </div>
                 )}
 
                 {method && (
                   <div className="co-cta-stack">
-                    {method==="paystack" ? (
-                      <button type="button" className="co-btn co-btn--primary"
-                        onClick={payWithPaystack}
-                        disabled={inputsDisabled||!!errors.cart||!user||authLoading||checkingOrderHistory||hasUnavailableCartItems}>
-                        <div className="co-btn__left">
-                          <div className="co-btn__icon co-btn__icon--inv"><CardIcon /></div>
-                          <div className="co-btn__label">
-                            <span className="co-btn__title">Checkout</span>
-                            <span className="co-btn__sub">via Paystack</span>
-                          </div>
-                        </div>
-                        <span className="co-btn__amount">GHS {totalUI.toFixed(2)}</span>
-                      </button>
-                    ) : (
-                      <button type="button" className={`co-btn co-btn--outline${isCODBlocked?" co-btn--disabled":""}`}
-                        onClick={placeCOD}
-                        disabled={inputsDisabled||!!errors.cart||!user||authLoading||checkingOrderHistory||isCODBlocked||hasUnavailableCartItems}>
-                        <div className="co-btn__left">
-                          <div className="co-btn__icon co-btn__icon--norm"><TruckIcon /></div>
-                          <div className="co-btn__label">
-                            <span className="co-btn__title">Pay on Delivery</span>
-                            <span className="co-btn__sub">{isCODBlocked?"Currently unavailable":"Pay when it arrives"}</span>
-                          </div>
-                        </div>
-                        <span className="co-btn__amount">GHS {totalUI.toFixed(2)}</span>
-                      </button>
-                    )}
-
+                    <button
+                      type="button"
+                      className="co-btn co-btn--primary"
+                      onClick={handleCheckout}
+                      disabled={isCheckoutDisabled}
+                    >
+                      <span className="co-btn__label">{payBtnLabel}</span>
+                      <span className="co-btn__amount">GHS {totalUI.toFixed(2)}</span>
+                    </button>
                     <div className="co-secure">
-                      <ShieldIcon />
-                      Secured by Paystack · All payments encrypted
+                      <ShieldIcon /> Secured · All payments encrypted
                     </div>
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* ── SUMMARY COLUMN ── */}
-            <div className="co-summary">
-              <div className="co-summary__head">
-                <h3 className="co-summary__title">Summary</h3>
-                <span className="co-summary__count">{itemCount} item{itemCount!==1?"s":""}</span>
-              </div>
+              {/* Order Summary */}
+              <div className="co-summary">
+                <div className="co-summary__head">
+                  <h3 className="co-summary__title">Order Summary</h3>
+                  <span className="co-summary__count">{itemCount} item{itemCount !== 1 ? "s" : ""}</span>
+                </div>
 
-              {hasUnavailableCartItems && <div className="co-error" style={{marginBottom:14}}>Some items are unavailable. Remove or reduce quantity.</div>}
+                {hasUnavailableCartItems && (
+                  <div className="co-error" style={{ marginBottom: 14 }}>Some items are unavailable. Remove or reduce quantity.</div>
+                )}
 
-              {safeCartItems.map((item,index) => {
-                const reason = getUnavailableReason(item);
-                const abroadFee = getItemAbroadDeliveryFee(item);
-                return (
-                  <div key={item.lineId||`${item.id}-${index}`} className="co-sum-item">
-                    <div className="co-sum-item__thumb">
-                      {item.image ? <img src={item.image} alt={item.name||"Product"} /> : <div className="co-sum-item__thumb-empty">No image</div>}
+                {safeCartItems.map((item, index) => {
+                  const reason    = getUnavailableReason(item);
+                  const abroadFee = getItemAbroadDeliveryFee(item);
+                  return (
+                    <div key={item.lineId || `${item.id}-${index}`} className="co-sum-item">
+                      <div className="co-sum-item__thumb">
+                        {item.image
+                          ? <img src={item.image} alt={item.name || "Product"} />
+                          : <div className="co-sum-item__thumb-empty">No image</div>
+                        }
+                      </div>
+                      <div className="co-sum-item__info">
+                        <p className="co-sum-item__name">{item.name}</p>
+                        {item.selectedOptionsLabel && <span className="co-sum-item__opts">{item.selectedOptionsLabel}</span>}
+                        {item.shipsFromAbroad && <span className="co-sum-item__opts co-sum-item__opts--abroad">Ships from abroad{abroadFee > 0 ? ` · Fee: GHS ${abroadFee.toFixed(2)} each` : ""}</span>}
+                        {reason && <span className="co-sum-item__opts co-sum-item__opts--err">{reason}</span>}
+                        <span className="co-sum-item__qty">Qty: {item.qty}</span>
+                      </div>
+                      <span className="co-sum-item__price">GHS {(Number(item.price) * Number(item.qty)).toFixed(2)}</span>
                     </div>
-                    <div className="co-sum-item__info">
-                      <p className="co-sum-item__name">{item.name}</p>
-                      {item.selectedOptionsLabel && <span className="co-sum-item__opts">{item.selectedOptionsLabel}</span>}
-                      {item.shipsFromAbroad && <span className="co-sum-item__opts co-sum-item__opts--abroad">Ships from abroad{abroadFee>0?` · Fee: GHS ${abroadFee.toFixed(2)} each`:""}</span>}
-                      {reason && <span className="co-sum-item__opts co-sum-item__opts--err">{reason}</span>}
-                      <span className="co-sum-item__qty">x{item.qty}</span>
-                    </div>
-                    <span className="co-sum-item__price">GHS {(Number(item.price)*Number(item.qty)).toFixed(2)}</span>
-                  </div>
-                );
-              })}
+                  );
+                })}
 
-              <div className="co-sum-divider" />
-              <div className="co-sum-line"><span>Subtotal</span><span>GHS {subtotalUI.toFixed(2)}</span></div>
-              <div className="co-sum-line">
-                <span>Regional delivery<small>{form.region?(FREE_DELIVERY_REGIONS.has(form.region)?"Greater Accra base":"Outside Accra (+50)"):"Select region"}</small></span>
-                <span>GHS {regionalBaseDeliveryFeeUI.toFixed(2)}</span>
+                <div className="co-sum-divider" />
+                <div className="co-sum-line"><span>Subtotal</span><span>GHS {subtotalUI.toFixed(2)}</span></div>
+                <div className="co-sum-line">
+                  <span>Regional delivery<small>{form.region ? (FREE_DELIVERY_REGIONS.has(form.region) ? "Greater Accra base" : "Outside Accra (+50)") : "Select region"}</small></span>
+                  <span>GHS {regionalBaseDeliveryFeeUI.toFixed(2)}</span>
+                </div>
+                <div className="co-sum-line">
+                  <span>Delivery option<small>{selectedDeliverySummary ? selectedDeliverySummary.title : "Select delivery"}</small></span>
+                  <span>GHS {selectedDeliveryMethodFeeUI.toFixed(2)}</span>
+                </div>
+                <div className="co-sum-line">
+                  <span>Abroad delivery<small>{abroadDeliveryFeeUI > 0 ? "Shipped abroad items" : "No abroad fee"}</small></span>
+                  <span>GHS {abroadDeliveryFeeUI.toFixed(2)}</span>
+                </div>
+                <div className="co-sum-total">
+                  <span>Total</span>
+                  <strong>GHS {totalUI.toFixed(2)}</strong>
+                </div>
               </div>
-              <div className="co-sum-line">
-                <span>Delivery option<small>{selectedDeliverySummary?selectedDeliverySummary.title:"Select delivery"}</small></span>
-                <span>GHS {selectedDeliveryMethodFeeUI.toFixed(2)}</span>
-              </div>
-              <div className="co-sum-line">
-                <span>Abroad delivery<small>{abroadDeliveryFeeUI>0?"Shipped abroad items":"No abroad fee"}</small></span>
-                <span>GHS {abroadDeliveryFeeUI.toFixed(2)}</span>
-              </div>
-              <div className="co-sum-line">
-                <span>Shops<small>{cartShops.length?cartShops.join(", "):"main"}</small></span>
-                <span>{cartShops.length||1}</span>
-              </div>
-              <div className="co-sum-total">
-                <span>Total</span>
-                <strong>GHS {totalUI.toFixed(2)}</strong>
-              </div>
+
             </div>
-
+            {/* end co-right */}
           </div>
         )}
       </div>
 
       <LoaderOverlay
         show={loading}
-        label={loadingMode==="paystack"?"Redirecting to Paystack":"Placing your order"}
-        subtext={loadingMode==="paystack"?"Please wait while we secure your payment...":"Please wait while we confirm your order..."}
+        label={loadingMode === "paystack" ? "Redirecting to Paystack" : "Placing your order"}
+        subtext={loadingMode === "paystack" ? "Please wait while we secure your payment..." : "Please wait while we confirm your order..."}
       />
     </div>
   );
