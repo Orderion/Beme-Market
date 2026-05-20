@@ -6,16 +6,22 @@ import { db } from "../firebase";
 import { uploadImageToCloudinary } from "../lib/cloudinary";
 
 // ─── PLAN LIMITS ─────────────────────────────────────────────
+// Updated prices: Basic GHS 0 / Starter GHS 59 / Growth GHS 129 / Pro GHS 399
+// Beme Delivery Support: Growth and Pro only
 const PLAN_LIMITS = {
-  // Basic: 5 products, no contacts, no social links
-  basic:    { maxProducts: 5,   hasChat: false, hasSocialLinks: false, hasCustomDomain: false, hasBranding: false },
-  // Starter: 10 products, contacts enabled
-  starter:  { maxProducts: 10,  hasChat: true,  hasSocialLinks: true,  hasCustomDomain: false, hasBranding: false },
-  // Growth: 25 products
-  growth:   { maxProducts: 25,  hasChat: true,  hasSocialLinks: true,  hasCustomDomain: false, hasBranding: false },
-  standard: { maxProducts: 25,  hasChat: true,  hasSocialLinks: true,  hasCustomDomain: false, hasBranding: false },
-  // Pro: 500 products — top tier, no unlimited
-  pro:      { maxProducts: 500, hasChat: true,  hasSocialLinks: true,  hasCustomDomain: true,  hasBranding: true  },
+  basic:    { maxProducts: 5,   hasChat: false, hasSocialLinks: false, hasBemeDelivery: false, hasCustomDomain: false, hasBranding: false },
+  free:     { maxProducts: 5,   hasChat: false, hasSocialLinks: false, hasBemeDelivery: false, hasCustomDomain: false, hasBranding: false },
+  starter:  { maxProducts: 10,  hasChat: true,  hasSocialLinks: true,  hasBemeDelivery: false, hasCustomDomain: false, hasBranding: false },
+  growth:   { maxProducts: 25,  hasChat: true,  hasSocialLinks: true,  hasBemeDelivery: true,  hasCustomDomain: false, hasBranding: false },
+  standard: { maxProducts: 25,  hasChat: true,  hasSocialLinks: true,  hasBemeDelivery: true,  hasCustomDomain: false, hasBranding: false },
+  pro:      { maxProducts: 500, hasChat: true,  hasSocialLinks: true,  hasBemeDelivery: true,  hasCustomDomain: true,  hasBranding: true  },
+};
+
+export const PLAN_PRICES_GHS = {
+  basic:   0,
+  starter: 59,
+  growth:  129,
+  pro:     399,
 };
 
 export function getPlanLimits(planId) {
