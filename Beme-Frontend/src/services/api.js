@@ -17,12 +17,6 @@ function assertBaseUrl() {
   }
 }
 
-// ✅ FIX: Rewritten to handle three cases correctly:
-//   1. auth.currentUser already set → resolve immediately
-//   2. Firebase emits null first (hydration), then the real user → wait for real user
-//   3. Firebase confirms user is genuinely signed out → reject immediately instead
-//      of hanging for the full 10-second timeout (which caused the stale-token
-//      / "An error occurred" path to be hit on slow connections)
 function waitForAuthReady(timeoutMs = 8000) {
   return new Promise((resolve, reject) => {
     if (auth.currentUser) {
@@ -54,20 +48,15 @@ function waitForAuthReady(timeoutMs = 8000) {
 
     unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        // Got a real user — resolve.
         done(() => resolve(user));
         return;
       }
 
       if (firstEmission) {
-        // Firebase routinely fires null on its very first tick while it
-        // re-hydrates the persisted session.  Give it a chance to fire again
-        // with the real user before giving up.
         firstEmission = false;
         return;
       }
 
-      // A second null means the user is genuinely signed out.
       done(() =>
         reject(new Error("You are not logged in. Please sign in and try again."))
       );
@@ -75,10 +64,12 @@ function waitForAuthReady(timeoutMs = 8000) {
   });
 }
 
-// ✅ FIX: Added forceRefresh parameter.  Paystack checkout always passes
-//   true so the backend always receives a fresh, non-expired ID token.
-//   A stale token was the root cause of the backend returning the generic
-//   "An error occurred" response instead of a proper 401.
+// ✅ FIX: Retry logic now always runs regardless of whether forceRefresh
+//   was true on the first attempt. Previously the retry block was wrapped in
+//   `if (!forceRefresh)` which meant paystackInit (which always passes
+//   forceRefresh=true) would NEVER retry — any token failure threw immediately.
+//   Now: attempt 1 → getIdToken(forceRefresh), attempt 2 → getIdToken(true),
+//   attempt 3 → currentUser.reload() then getIdToken(true).
 async function getAuthHeaders(required = false, forceRefresh = false) {
   let currentUser = auth.currentUser;
 
@@ -93,31 +84,36 @@ async function getAuthHeaders(required = false, forceRefresh = false) {
     return {};
   }
 
+  // Attempt 1 — use cached token or force-refresh as requested
   try {
     const token = await currentUser.getIdToken(forceRefresh);
-    return {
-      Authorization: `Bearer ${token}`,
-    };
+    return { Authorization: `Bearer ${token}` };
   } catch (err) {
-    console.error("❌ Token error:", err);
-
-    // If normal fetch failed, try force-refreshing once before giving up.
-    if (!forceRefresh) {
-      try {
-        const freshToken = await currentUser.getIdToken(true);
-        return { Authorization: `Bearer ${freshToken}` };
-      } catch (retryErr) {
-        console.error("❌ Token refresh also failed:", retryErr);
-      }
-    }
-
-    throw new Error("Failed to get auth token. Please log in again.");
+    console.error("❌ Token error (attempt 1):", err);
   }
+
+  // Attempt 2 — always force-refresh, even if attempt 1 already tried it
+  try {
+    const freshToken = await currentUser.getIdToken(true);
+    return { Authorization: `Bearer ${freshToken}` };
+  } catch (err) {
+    console.error("❌ Token error (attempt 2 – force refresh):", err);
+  }
+
+  // Attempt 3 — reload the Firebase user object then try once more
+  try {
+    await currentUser.reload();
+    // After reload, auth.currentUser may be a new reference
+    const reloadedUser = auth.currentUser || currentUser;
+    const reloadedToken = await reloadedUser.getIdToken(true);
+    return { Authorization: `Bearer ${reloadedToken}` };
+  } catch (err) {
+    console.error("❌ Token error (attempt 3 – after reload):", err);
+  }
+
+  throw new Error("Failed to get auth token. Please log in again.");
 }
 
-// ✅ FIX: toJson now includes the HTTP status code in the thrown error so
-//   the debug banner shows something actionable like "An error occurred
-//   (HTTP 401)" rather than the bare backend string.
 async function toJson(res) {
   const text = await res.text();
 
@@ -146,8 +142,6 @@ async function toJson(res) {
   return data;
 }
 
-// ✅ FIX: Added forceRefresh option so callers that need a guaranteed-fresh
-//   token (like paystackInit) can pass it through.
 async function request(path, options = {}, authRequired = false, forceRefresh = false) {
   assertBaseUrl();
 
@@ -236,9 +230,6 @@ export async function createCodOrder(payload) {
 export async function paystackInit(payload) {
   console.log("💳 Paystack Init Payload:", payload);
 
-  // ✅ FIX: Pass forceRefresh=true so the backend always receives a fresh
-  //   Firebase ID token.  A cached / expired token was causing the backend
-  //   Paystack route to respond with the generic "An error occurred" message.
   return request(
     "/api/paystack/checkout/init",
     {
