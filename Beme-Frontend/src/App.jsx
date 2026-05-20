@@ -13,82 +13,82 @@ import Footer from "./components/Footer";
 import LoaderOverlay from "./components/LoaderOverlay";
 import BottomNav from "./components/navigation/BottomNav.jsx";
 
-/* PAGES — public */
-import Home from "./pages/Home";
-import Shop from "./pages/Shop";
-import Offers from "./pages/Offers";
-import ProductDetails from "./pages/ProductDetails";
-import Checkout from "./pages/Checkout";
-import OrderSuccess from "./pages/OrderSuccess";
-import Orders from "./pages/Orders";
-import FlashDeals from "./pages/FlashDeals";
+/* ── PUBLIC PAGES ── */
+import Home            from "./pages/Home";
+import Shop            from "./pages/Shop";
+import Offers          from "./pages/Offers";
+import ProductDetails  from "./pages/ProductDetails";
+import Checkout        from "./pages/Checkout";
+import OrderSuccess    from "./pages/OrderSuccess";
+import Orders          from "./pages/Orders";
+import FlashDeals      from "./pages/FlashDeals";
 
-/* AUTH */
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import VerifyEmail from "./pages/VerifyEmail";
-import Onboarding from "./pages/Onboarding";
-import AdminLogin from "./pages/AdminLogin";
+/* ── AUTH ── */
+import Login      from "./pages/Login";        // ← Updated: forgot password + cleaner UI
+import Signup     from "./pages/Signup";
+import VerifyEmail from "./pages/VerifyEmail"; // ← Updated: already-verified redirect + auto-poll fix
+import Onboarding  from "./pages/Onboarding";
+import AdminLogin  from "./pages/AdminLogin";
 
-/* ADMIN */
-import AdminDashboard from "./pages/AdminDashboard";
-import Admin from "./pages/Admin";
-import AdminOrders from "./pages/AdminOrders";
-import AdminReviewQueue from "./pages/AdminReviewQueue";
-import Analytics from "./pages/Analytics";
-import PayoutRequests from "./pages/PayoutRequests";
-import ShopApplications from "./pages/ShopApplications";
-import ShopOwnerApply from "./pages/ShopOwnerApply";
-import HomepageAdmin from "./pages/admin/HomepageAdmin";
-import MediaManager from "./pages/admin/MediaManager";
+/* ── ADMIN ── */
+import AdminDashboard        from "./pages/AdminDashboard";
+import Admin                 from "./pages/Admin";
+import AdminOrders           from "./pages/AdminOrders";
+import AdminReviewQueue      from "./pages/AdminReviewQueue";
+import Analytics             from "./pages/Analytics";
+import PayoutRequests        from "./pages/PayoutRequests";
+import ShopApplications      from "./pages/ShopApplications";
+import ShopOwnerApply        from "./pages/ShopOwnerApply";
+import HomepageAdmin         from "./pages/admin/HomepageAdmin";
+import MediaManager          from "./pages/admin/MediaManager";
 import AdminSupportDashboard from "./pages/admin/AdminSupportDashboard";
-import AdminNotifications from "./pages/admin/AdminNotifications";
+import AdminNotifications    from "./pages/admin/AdminNotifications";
 
-/* LEGAL / INFO */
-import About from "./pages/About";
-import Support from "./pages/Support";
-import Contact from "./pages/Contact";
-import FAQ from "./pages/FAQ";
+/* ── LEGAL / INFO ── */
+import About           from "./pages/About";
+import Support         from "./pages/Support";
+import Contact         from "./pages/Contact";
+import FAQ             from "./pages/FAQ";
 import ShippingReturns from "./pages/ShippingReturns";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsOfService from "./pages/TermsOfService";
-import RefundPolicy from "./pages/RefundPolicy";
-import CookiePolicy from "./pages/CookiePolicy";
+import PrivacyPolicy   from "./pages/PrivacyPolicy";
+import TermsOfService  from "./pages/TermsOfService";
+import RefundPolicy    from "./pages/RefundPolicy";
+import CookiePolicy    from "./pages/CookiePolicy";
 
-/* ACCOUNT */
-import Account from "./pages/Account";
-import ManageAccount from "./pages/ManageAccount";
-import PaymentMethods from "./pages/PaymentMethods";
+/* ── ACCOUNT ── */
+import Account           from "./pages/Account";
+import ManageAccount     from "./pages/ManageAccount";
+import PaymentMethods    from "./pages/PaymentMethods";
 import AccountManagement from "./pages/AccountManagement";
 import { SavedItems, Notifications, HelpSupport, ContactUs } from "./pages/AccountSubPages";
-import UserRequests from "./pages/UserRequests";
-import ProductRequests from "./pages/ProductRequests";
+import UserRequests      from "./pages/UserRequests";
+import ProductRequests   from "./pages/ProductRequests";
 
-/* SELLER PUBLIC */
-import GetAStore from "./pages/GetAStore";
-import StorePlans from "./pages/StorePlans";
-import SellerTerms from "./pages/SellerTerms";
-import SellerPolicy from "./pages/SellerPolicy";
+/* ── SELLER PUBLIC ── */
+import GetAStore           from "./pages/GetAStore";        // ← Updated: full how-it-works guide
+import StorePlans          from "./pages/StorePlans";        // ← Updated: GHS 0/59/129/399 + delivery row
+import SellerTerms         from "./pages/SellerTerms";
+import SellerPolicy        from "./pages/SellerPolicy";
 import CommunityGuidelines from "./pages/CommunityGuidelines";
 
-/* SELLER ONBOARDING + DASHBOARD */
-import StoreOnboarding from "./pages/StoreOnboarding";
-import StoreSurvey from "./pages/StoreSurvey";
-import SubscriptionSuccess from "./pages/SubscriptionSuccess";
-import SellerDashboard from "./pages/SellerDashboard";
+/* ── SELLER ONBOARDING + DASHBOARD ── */
+import StoreOnboarding      from "./pages/StoreOnboarding";
+import StoreSurvey          from "./pages/StoreSurvey";
+import SubscriptionSuccess  from "./pages/SubscriptionSuccess";
+import SellerDashboard      from "./pages/SellerDashboard"; // ← Updated: Delivery tab added
 
-/* ── NEW: Seller product detail page ── */
+/* ── SELLER PRODUCT DETAIL ── */
 import DashboardProductDetail from "./pages/dashboard/DashboardProductDetail";
 
-/* NEW: Public seller storefront */
+/* ── PUBLIC STOREFRONT ── */
 import StoreFront from "./pages/StoreFront";
 
-/* ADMIN SELLER MANAGEMENT */
-import SellerPayoutRequests from "./pages/admin/PayoutRequests";
-import VerificationRequests from "./pages/admin/VerificationRequests";
-import StoreModeration from "./pages/admin/StoreModeration";
+/* ── ADMIN SELLER MANAGEMENT ── */
+import SellerPayoutRequests  from "./pages/admin/PayoutRequests";
+import VerificationRequests  from "./pages/admin/VerificationRequests";
+import StoreModeration       from "./pages/admin/StoreModeration";
 
-/* ── helpers ── */
+/* ─── helpers ─── */
 function SuperAdminOnly({ children }) {
   const { loading, isSuperAdmin } = useAuth();
   if (loading) return null;
@@ -96,7 +96,7 @@ function SuperAdminOnly({ children }) {
   return children;
 }
 
-/* ── FULL-SCREEN PATHS (hide header/footer/nav) ── */
+/* ─── FULL-SCREEN PATHS (hide header / footer / bottom nav) ─── */
 const FULL_SCREEN_ROUTES = new Set([
   "/login",
   "/signup",
@@ -125,34 +125,35 @@ const FULL_SCREEN_ROUTES = new Set([
   "/admin/store-moderation",
 ]);
 
-/** Check if a pathname is full-screen (includes dynamic product routes) */
 function isFullScreen(pathname) {
   if (FULL_SCREEN_ROUTES.has(pathname)) return true;
-  // seller product add/edit pages
   if (pathname.startsWith("/seller-dashboard/products/")) return true;
   return false;
 }
 
-/* ── APP SHELL ── */
+/* ─── APP SHELL ─── */
 function AppShell() {
   const location = useLocation();
   const { loading: authLoading } = useAuth();
 
-  const [sidebarOpen, setSidebarOpen]   = useState(false);
-  const [cartOpen, setCartOpen]         = useState(false);
-  const [routeLoading, setRouteLoading] = useState(false);
+  const [sidebarOpen,   setSidebarOpen]   = useState(false);
+  const [cartOpen,      setCartOpen]      = useState(false);
+  const [routeLoading,  setRouteLoading]  = useState(false);
 
   const shouldHideHeader = isFullScreen(location.pathname);
-  const shouldHideFooter = shouldHideHeader ||
+  const shouldHideFooter =
+    shouldHideHeader ||
     location.pathname.startsWith("/account") ||
     location.pathname === "/account";
 
+  /* Route-change loader */
   useEffect(() => {
     setRouteLoading(true);
-    const timeout = setTimeout(() => setRouteLoading(false), 300);
-    return () => clearTimeout(timeout);
+    const t = setTimeout(() => setRouteLoading(false), 300);
+    return () => clearTimeout(t);
   }, [location.pathname]);
 
+  /* Reset sidebar / cart on navigation */
   useEffect(() => {
     setSidebarOpen(false);
     setCartOpen(false);
@@ -174,7 +175,7 @@ function AppShell() {
       <main key={location.pathname} className="route-shell">
         <Routes>
 
-          {/* PUBLIC */}
+          {/* ── PUBLIC ── */}
           <Route path="/"              element={<Home/>}/>
           <Route path="/shop"          element={<Shop/>}/>
           <Route path="/offers"        element={<Offers/>}/>
@@ -184,14 +185,14 @@ function AppShell() {
           <Route path="/order-success" element={<OrderSuccess/>}/>
           <Route path="/orders"        element={<Orders/>}/>
 
-          {/* AUTH */}
+          {/* ── AUTH ── */}
           <Route path="/login"        element={<Login/>}/>
           <Route path="/signup"       element={<Signup/>}/>
           <Route path="/verify-email" element={<VerifyEmail/>}/>
           <Route path="/onboarding"   element={<Onboarding/>}/>
           <Route path="/admin-login"  element={<AdminLogin/>}/>
 
-          {/* ACCOUNT */}
+          {/* ── ACCOUNT ── */}
           <Route path="/account"               element={<Account/>}/>
           <Route path="/account/manage"        element={<ManageAccount/>}/>
           <Route path="/account/payments"      element={<PaymentMethods hasCompletedOrder={false}/>}/>
@@ -201,7 +202,7 @@ function AppShell() {
           <Route path="/saved"                 element={<SavedItems/>}/>
           <Route path="/account/requests"      element={<UserRequests/>}/>
 
-          {/* LEGAL */}
+          {/* ── LEGAL ── */}
           <Route path="/about"            element={<About/>}/>
           <Route path="/support"          element={<Support/>}/>
           <Route path="/contact"          element={<Contact/>}/>
@@ -212,25 +213,30 @@ function AppShell() {
           <Route path="/refund-policy"    element={<RefundPolicy/>}/>
           <Route path="/cookie-policy"    element={<CookiePolicy/>}/>
 
-          {/* SELLER PUBLIC */}
+          {/* ── SELLER PUBLIC ── */}
           <Route path="/get-a-store"          element={<GetAStore/>}/>
           <Route path="/store-plans"          element={<StorePlans/>}/>
           <Route path="/seller-terms"         element={<SellerTerms/>}/>
           <Route path="/seller-policy"        element={<SellerPolicy/>}/>
           <Route path="/community-guidelines" element={<CommunityGuidelines/>}/>
 
-          {/* ── Public seller storefront ── */}
+          {/* ── PUBLIC STOREFRONT ── */}
           <Route path="/store/:storeSlug" element={<StoreFront/>}/>
 
-          {/* SELLER ONBOARDING */}
-          <Route path="/store-onboarding" element={<SellerRoute requireOnly="auth"><StoreOnboarding/></SellerRoute>}/>
-          <Route path="/store-survey"     element={<SellerRoute requireOnly="auth"><StoreSurvey/></SellerRoute>}/>
-          <Route path="/subscription-success" element={<SellerRoute requireOnly="auth"><SubscriptionSuccess/></SellerRoute>}/>
+          {/* ── SELLER ONBOARDING ── */}
+          <Route path="/store-onboarding"
+            element={<SellerRoute requireOnly="auth"><StoreOnboarding/></SellerRoute>}/>
+          <Route path="/store-survey"
+            element={<SellerRoute requireOnly="auth"><StoreSurvey/></SellerRoute>}/>
+          <Route path="/subscription-success"
+            element={<SellerRoute requireOnly="auth"><SubscriptionSuccess/></SellerRoute>}/>
 
-          {/* SELLER DASHBOARD (auth guard inside SellerDashboard) */}
+          {/* ── SELLER DASHBOARD ──
+               Auth guard lives inside SellerDashboard itself.
+               Delivery settings tab accessed via ?tab=delivery.         */}
           <Route path="/seller-dashboard" element={<SellerDashboard/>}/>
 
-          {/* ── NEW: Seller product add/edit ── */}
+          {/* ── SELLER PRODUCT ADD / EDIT ── */}
           <Route path="/seller-dashboard/products/new"
             element={
               <SellerRoute requireOnly="auth">
@@ -246,29 +252,47 @@ function AppShell() {
             }
           />
 
-          {/* ADMIN HUB */}
-          <Route path="/admin" element={<AdminRoute><RequireAdmin><AdminDashboard/></RequireAdmin></AdminRoute>}/>
-          <Route path="/admin/product-manager" element={<AdminRoute><RequireAdmin><Admin/></RequireAdmin></AdminRoute>}/>
-          <Route path="/admin-orders" element={<AdminRoute><RequireAdmin><AdminOrders/></RequireAdmin></AdminRoute>}/>
-          <Route path="/admin-review-queue" element={<AdminRoute><RequireAdmin><AdminReviewQueue/></RequireAdmin></AdminRoute>}/>
-          <Route path="/analytics" element={<AdminRoute><RequireAdmin><Analytics/></RequireAdmin></AdminRoute>}/>
-          <Route path="/payout-requests" element={<AdminRoute><RequireAdmin><PayoutRequests/></RequireAdmin></AdminRoute>}/>
-          <Route path="/shop-applications" element={<AdminRoute><RequireAdmin><ShopApplications/></RequireAdmin></AdminRoute>}/>
-          <Route path="/account-management" element={<AdminRoute><RequireAdmin><AccountManagement/></RequireAdmin></AdminRoute>}/>
-          <Route path="/admin/homepage" element={<AdminRoute><RequireAdmin><HomepageAdmin/></RequireAdmin></AdminRoute>}/>
-          <Route path="/admin/product-requests" element={<AdminRoute><RequireAdmin><ProductRequests/></RequireAdmin></AdminRoute>}/>
-          <Route path="/admin/media" element={<AdminRoute><RequireAdmin><MediaManager/></RequireAdmin></AdminRoute>}/>
-          <Route path="/admin/support" element={<AdminRoute><RequireAdmin><AdminSupportDashboard/></RequireAdmin></AdminRoute>}/>
-          <Route path="/admin/notifications" element={<AdminRoute><RequireAdmin><AdminNotifications/></RequireAdmin></AdminRoute>}/>
-          <Route path="/admin/seller-payouts" element={<AdminRoute><RequireAdmin><SellerPayoutRequests/></RequireAdmin></AdminRoute>}/>
-          <Route path="/admin/verification-requests" element={<AdminRoute><RequireAdmin><VerificationRequests/></RequireAdmin></AdminRoute>}/>
-          <Route path="/admin/store-moderation" element={<AdminRoute><RequireAdmin><StoreModeration/></RequireAdmin></AdminRoute>}/>
+          {/* ── ADMIN ── */}
+          <Route path="/admin"
+            element={<AdminRoute><RequireAdmin><AdminDashboard/></RequireAdmin></AdminRoute>}/>
+          <Route path="/admin/product-manager"
+            element={<AdminRoute><RequireAdmin><Admin/></RequireAdmin></AdminRoute>}/>
+          <Route path="/admin-orders"
+            element={<AdminRoute><RequireAdmin><AdminOrders/></RequireAdmin></AdminRoute>}/>
+          <Route path="/admin-review-queue"
+            element={<AdminRoute><RequireAdmin><AdminReviewQueue/></RequireAdmin></AdminRoute>}/>
+          <Route path="/analytics"
+            element={<AdminRoute><RequireAdmin><Analytics/></RequireAdmin></AdminRoute>}/>
+          <Route path="/payout-requests"
+            element={<AdminRoute><RequireAdmin><PayoutRequests/></RequireAdmin></AdminRoute>}/>
+          <Route path="/shop-applications"
+            element={<AdminRoute><RequireAdmin><ShopApplications/></RequireAdmin></AdminRoute>}/>
+          <Route path="/account-management"
+            element={<AdminRoute><RequireAdmin><AccountManagement/></RequireAdmin></AdminRoute>}/>
+          <Route path="/admin/homepage"
+            element={<AdminRoute><RequireAdmin><HomepageAdmin/></RequireAdmin></AdminRoute>}/>
+          <Route path="/admin/product-requests"
+            element={<AdminRoute><RequireAdmin><ProductRequests/></RequireAdmin></AdminRoute>}/>
+          <Route path="/admin/media"
+            element={<AdminRoute><RequireAdmin><MediaManager/></RequireAdmin></AdminRoute>}/>
+          <Route path="/admin/support"
+            element={<AdminRoute><RequireAdmin><AdminSupportDashboard/></RequireAdmin></AdminRoute>}/>
+          <Route path="/admin/notifications"
+            element={<AdminRoute><RequireAdmin><AdminNotifications/></RequireAdmin></AdminRoute>}/>
+          <Route path="/admin/seller-payouts"
+            element={<AdminRoute><RequireAdmin><SellerPayoutRequests/></RequireAdmin></AdminRoute>}/>
+          <Route path="/admin/verification-requests"
+            element={<AdminRoute><RequireAdmin><VerificationRequests/></RequireAdmin></AdminRoute>}/>
+          <Route path="/admin/store-moderation"
+            element={<AdminRoute><RequireAdmin><StoreModeration/></RequireAdmin></AdminRoute>}/>
 
-          {/* SUPER ADMIN */}
-          <Route path="/own-a-shop" element={<SuperAdminOnly><ShopOwnerApply/></SuperAdminOnly>}/>
+          {/* ── SUPER ADMIN ONLY ── */}
+          <Route path="/own-a-shop"
+            element={<SuperAdminOnly><ShopOwnerApply/></SuperAdminOnly>}/>
 
-          {/* FALLBACK */}
+          {/* ── FALLBACK ── */}
           <Route path="*" element={<Navigate to="/" replace/>}/>
+
         </Routes>
       </main>
 
