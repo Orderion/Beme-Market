@@ -19,7 +19,11 @@ import DashboardSubscription from "./dashboard/DashboardSubscription";
 import DashboardVerification from "./dashboard/DashboardVerification";
 import DashboardAppearance   from "./dashboard/DashboardAppearance";
 import DashboardWithdrawals  from "./dashboard/DashboardWithdrawals";
-const DashboardDelivery = React.lazy(() => import("./dashboard/DashboardDelivery").catch(() => ({ default: () => null })));
+const DashboardDelivery = React.lazy(() =>
+  import("./dashboard/DashboardDelivery")
+    .then(mod => mod)
+    .catch(() => ({ default: () => null }))
+);
 
 /* ── Icons ── */
 function Icon({ path, size = 16, color = "currentColor" }) {
@@ -156,7 +160,7 @@ export default function SellerDashboard() {
   const navigate    = useNavigate();
   const [params, setParams] = useSearchParams();
   const { user, loading: authLoading, role, profile } = useAuth();
-  const { isSeller, isSellerActive, shop, subscriptionPlan, loading: sellerLoading } = useSellerAuth();
+  const { isSeller, isSellerActive, shop, subscriptionPlan, storeId, loading: sellerLoading } = useSellerAuth();
   const { totalUnread } = useChat();
 
   const [mobileOpen,   setMobileOpen]   = useState(false);
