@@ -317,6 +317,299 @@ function CrossIcon() {
 }
 
 /* ─── Main ────────────────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════
+   SELLER GUIDE — Full how-it-works for new sellers / students
+═══════════════════════════════════════════════════════════ */
+function SellerGuide() {
+  const [openSection, setOpenSection] = useState(null);
+  const toggle = (id) => setOpenSection(p => p === id ? null : id);
+
+  const Section = ({ id, icon, title, children }) => (
+    <div style={{ borderBottom: "1px solid rgba(0,0,0,0.07)" }}>
+      <button type="button"
+        onClick={() => toggle(id)}
+        style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between",
+          padding:"16px 0", background:"none", border:"none", cursor:"pointer",
+          fontFamily:"inherit", textAlign:"left" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <span style={{ fontSize:20 }}>{icon}</span>
+          <span style={{ fontSize:15, fontWeight:800, color:"#111" }}>{title}</span>
+        </div>
+        <span style={{ fontSize:18, color:"#9CA3AF", transform: openSection===id?"rotate(180deg)":"none",
+          transition:"transform 0.2s", lineHeight:1 }}>⌄</span>
+      </button>
+      {openSection === id && (
+        <div style={{ paddingBottom:20, paddingLeft:36, fontSize:14, color:"#374151", lineHeight:1.75 }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+
+  const Step = ({ n, title, desc }) => (
+    <div style={{ display:"flex", gap:14, marginBottom:14 }}>
+      <div style={{ width:28, height:28, borderRadius:"50%", background:"#111", color:"#fff",
+        fontSize:13, fontWeight:900, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+        {n}
+      </div>
+      <div>
+        <div style={{ fontSize:14, fontWeight:800, color:"#111", marginBottom:2 }}>{title}</div>
+        <div style={{ fontSize:13, color:"#6B7280", lineHeight:1.6 }}>{desc}</div>
+      </div>
+    </div>
+  );
+
+  const PlanRow = ({ name, price, products, delivery, social }) => (
+    <tr style={{ borderBottom:"1px solid rgba(0,0,0,0.06)" }}>
+      <td style={{ padding:"10px 0", fontWeight:800, color:"#111", fontSize:14 }}>{name}</td>
+      <td style={{ padding:"10px 8px", textAlign:"center", fontSize:14, fontWeight:700 }}>{price}</td>
+      <td style={{ padding:"10px 8px", textAlign:"center", fontSize:13 }}>{products}</td>
+      <td style={{ padding:"10px 8px", textAlign:"center", fontSize:13 }}>{social ? "✅":"🔒"}</td>
+      <td style={{ padding:"10px 8px", textAlign:"center", fontSize:13 }}>{delivery ? "✅":"🔒"}</td>
+    </tr>
+  );
+
+  return (
+    <div style={{ maxWidth:640, margin:"0 auto", padding:"0 20px 80px", fontFamily:"var(--font-main,'Nunito',sans-serif)" }}>
+
+      {/* Hero divider */}
+      <div style={{ textAlign:"center", margin:"56px 0 32px" }}>
+        <div style={{ display:"inline-block", padding:"4px 16px", background:"rgba(0,0,0,0.06)",
+          borderRadius:100, fontSize:12, fontWeight:800, color:"#6B7280",
+          letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:14 }}>
+          New to Beme Market?
+        </div>
+        <h2 style={{ fontSize:28, fontWeight:900, color:"#111", letterSpacing:"-0.04em",
+          margin:"0 0 10px", lineHeight:1.2 }}>
+          Everything you need to know
+        </h2>
+        <p style={{ fontSize:14, color:"#6B7280", margin:0, lineHeight:1.65 }}>
+          A complete guide for first-time sellers — from signup to your first sale.
+        </p>
+      </div>
+
+      {/* What is Beme Market */}
+      <div style={{ background:"#fafafa", borderRadius:16, border:"1px solid rgba(0,0,0,0.07)",
+        padding:"20px 20px", marginBottom:24 }}>
+        <div style={{ fontSize:16, fontWeight:900, color:"#111", marginBottom:10 }}>
+          🛍️ What is Beme Market?
+        </div>
+        <p style={{ fontSize:14, color:"#374151", lineHeight:1.75, margin:"0 0 10px" }}>
+          Beme Market is <strong>Ghana's multi-vendor marketplace</strong> — think of it as having your own
+          Shopify store inside a marketplace like Jumia. Customers browse Beme Market, discover your store,
+          follow it, and buy directly from you.
+        </p>
+        <p style={{ fontSize:14, color:"#374151", lineHeight:1.75, margin:0 }}>
+          You get your own store page at <strong>bememarket.store/store/your-name</strong>, your own product
+          listings, and your own brand — all within a trusted platform that handles payments, discovery, and (on Growth/Pro plans) even delivery.
+        </p>
+      </div>
+
+      {/* Getting started steps */}
+      <div style={{ marginBottom:28 }}>
+        <div style={{ fontSize:16, fontWeight:900, color:"#111", marginBottom:16 }}>
+          🚀 Getting started — 5 steps
+        </div>
+        <Step n={1} title="Create your account" desc="Sign up with email or Google. Verify your email address to unlock full access."/>
+        <Step n={2} title="Apply for a store" desc="Fill in your store name, choose a category, and select a subscription plan. Basic is completely free to start."/>
+        <Step n={3} title="Customise your store" desc="Go to Store Design in your dashboard. Upload a banner image, store logo, set your social links (Starter+), and choose how customers contact you."/>
+        <Step n={4} title="Add your products" desc="Go to Products and click '+ Add Product'. Upload photos, set a price, write a description, and manage your inventory. Your plan determines how many products you can list."/>
+        <Step n={5} title="Share your store link" desc="Copy your store URL from Store Design and share it on WhatsApp, Instagram, TikTok. The more you share, the more followers and sales you get."/>
+      </div>
+
+      {/* Dashboard sections accordion */}
+      <div style={{ background:"#fff", borderRadius:16, border:"1px solid rgba(0,0,0,0.08)",
+        padding:"4px 20px 4px", marginBottom:24 }}>
+        <div style={{ fontSize:15, fontWeight:900, color:"#111", padding:"16px 0 12px",
+          borderBottom:"1px solid rgba(0,0,0,0.07)" }}>
+          📋 Your Seller Dashboard — every menu explained
+        </div>
+
+        <Section id="home" icon="📊" title="Analytics (Home)">
+          <p>Your dashboard home shows a snapshot of your store&apos;s performance:</p>
+          <ul style={{ paddingLeft:18, margin:"8px 0" }}>
+            <li><strong>Total revenue</strong> — how much you&apos;ve earned from completed orders</li>
+            <li><strong>Orders</strong> — total orders placed in your store</li>
+            <li><strong>Products</strong> — how many products you have listed vs your plan limit</li>
+            <li><strong>Followers</strong> — customers who follow your store</li>
+          </ul>
+          <p>Use this to track growth week by week. If revenue is flat, try adding more products or sharing your store link.</p>
+        </Section>
+
+        <Section id="products" icon="📦" title="Products">
+          <p>This is where you manage everything you sell.</p>
+          <ul style={{ paddingLeft:18, margin:"8px 0" }}>
+            <li><strong>Add product</strong> — upload photos (up to 5), set a name, price, description, category and stock level</li>
+            <li><strong>Edit product</strong> — tap the edit icon on any product to update details</li>
+            <li><strong>Active vs Draft</strong> — Active products are visible to customers. Draft products are hidden while you prepare them</li>
+            <li><strong>Stock tracking</strong> — turn on inventory tracking to show customers when stock is low</li>
+            <li><strong>Product limit</strong> — Basic plan: 5 products · Starter: 10 · Growth: 25 · Pro: 500</li>
+          </ul>
+          <p style={{ background:"rgba(0,0,0,0.04)", padding:"10px 12px", borderRadius:8, marginTop:10, fontSize:13 }}>
+            💡 <strong>Tip:</strong> Good photos = more sales. Use natural lighting and a clean background.
+          </p>
+        </Section>
+
+        <Section id="orders" icon="🧾" title="Orders">
+          <p>Every time a customer buys from your store, an order appears here.</p>
+          <ul style={{ paddingLeft:18, margin:"8px 0" }}>
+            <li><strong>Pending</strong> — payment received, you need to prepare the order</li>
+            <li><strong>Processing</strong> — you&apos;ve started preparing it</li>
+            <li><strong>Shipped</strong> — order is on its way to the customer</li>
+            <li><strong>Completed</strong> — customer received the order, your payout is triggered</li>
+          </ul>
+          <p>Always update the order status so customers know what&apos;s happening. Good communication = good reviews.</p>
+        </Section>
+
+        <Section id="appearance" icon="🎨" title="Store Design (Appearance)">
+          <p>This is where you build your brand on Beme Market.</p>
+          <ul style={{ paddingLeft:18, margin:"8px 0" }}>
+            <li><strong>Store name</strong> — your public brand name (shown on your store page and in search)</li>
+            <li><strong>Store URL/slug</strong> — your unique link: bememarket.store/store/your-slug</li>
+            <li><strong>Banner image</strong> — the wide image at the top of your store page. Use 1400×500px for best quality</li>
+            <li><strong>Store logo</strong> — your profile picture / icon. 400×400px recommended</li>
+            <li><strong>Chat preference</strong> — choose how customers contact you: WhatsApp, Beme Chat, or Website</li>
+            <li><strong>Social links</strong> — Instagram, TikTok, WhatsApp, website links (Starter plan and above)</li>
+            <li><strong>Copy store URL button</strong> — instantly copies your link to share anywhere</li>
+          </ul>
+        </Section>
+
+        <Section id="delivery" icon="🚚" title="Delivery Settings">
+          <p>Choose how you get products to customers.</p>
+          <ul style={{ paddingLeft:18, margin:"8px 0" }}>
+            <li><strong>Self Delivery</strong> — you handle everything yourself. Set your own fee (flat rate, free, or negotiable), processing time, and which regions you cover</li>
+            <li><strong>Beme Delivery Support</strong> — available on <strong>Growth plan (GHS 129/mo) and Pro (GHS 399/mo)</strong>. Beme coordinates pickup via courier partners. Delivery fee collected from customer at checkout, courier cost deducted from your payout</li>
+            <li><strong>Both options</strong> — let the customer choose at checkout</li>
+          </ul>
+          <p style={{ background:"rgba(0,0,0,0.04)", padding:"10px 12px", borderRadius:8, marginTop:10, fontSize:13 }}>
+            📦 <strong>Beme Delivery rates:</strong> Within Accra GHS 20 (same day) · Accra→Kumasi GHS 35 (1–2 days) · Nationwide GHS 30–60 (3–5 days)
+          </p>
+        </Section>
+
+        <Section id="withdrawal" icon="💰" title="Withdrawals">
+          <p>This is where you request payouts from your Beme Market wallet.</p>
+          <ul style={{ paddingLeft:18, margin:"8px 0" }}>
+            <li><strong>Available balance</strong> — money from completed orders ready to withdraw</li>
+            <li><strong>Pending balance</strong> — orders that are processing or in transit</li>
+            <li><strong>Request withdrawal</strong> — enter your Mobile Money or bank details and request a payout</li>
+          </ul>
+          <p>Payouts are processed via Paystack to MoMo or bank. Processing typically takes 1–3 business days.</p>
+        </Section>
+
+        <Section id="verification" icon="✅" title="Verification">
+          <p>Get a verified badge on your store — it builds customer trust.</p>
+          <ul style={{ paddingLeft:18, margin:"8px 0" }}>
+            <li>Upload a valid Ghana Card or business registration document</li>
+            <li>Our team reviews it within 24–48 hours</li>
+            <li>Once verified, a ✅ badge appears on your store page and search results</li>
+            <li>Verified stores rank higher in search and get more customer trust</li>
+          </ul>
+        </Section>
+
+        <Section id="subscription" icon="⭐" title="Subscription">
+          <p>Manage your plan and upgrade for more features.</p>
+          <ul style={{ paddingLeft:18, margin:"8px 0" }}>
+            <li>See your current plan, its limits, and what&apos;s locked</li>
+            <li>Compare all 4 plans side-by-side</li>
+            <li>Upgrade payments go through Paystack — secure and instant</li>
+            <li>Downgrades are handled via support to protect your existing listings</li>
+          </ul>
+        </Section>
+      </div>
+
+      {/* How customers find you */}
+      <div style={{ background:"#fafafa", borderRadius:16, border:"1px solid rgba(0,0,0,0.07)",
+        padding:"20px 20px", marginBottom:24 }}>
+        <div style={{ fontSize:15, fontWeight:900, color:"#111", marginBottom:12 }}>
+          🔍 How customers find your store
+        </div>
+        {[
+          ["Search","Customers search by product name or store name in the Beme Market search bar."],
+          ["Categories","Products appear under their category (Fashion, Tech, Food, etc.) when customers browse."],
+          ["Flash Deals","Featured on the homepage. Admins can add your products to flash deals for extra visibility."],
+          ["Your store link","Share bememarket.store/store/your-slug directly on WhatsApp, Instagram, TikTok — this is your most powerful tool."],
+          ["Followers","When someone follows your store, they see your new products in their feed."],
+        ].map(([title, desc], i) => (
+          <div key={i} style={{ display:"flex", gap:10, marginBottom:i<4?12:0 }}>
+            <div style={{ width:6, height:6, borderRadius:"50%", background:"#111",
+              flexShrink:0, marginTop:7 }}/>
+            <div>
+              <span style={{ fontSize:14, fontWeight:800, color:"#111" }}>{title}: </span>
+              <span style={{ fontSize:14, color:"#374151" }}>{desc}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Payments + payouts */}
+      <div style={{ background:"#fff", borderRadius:16, border:"1px solid rgba(0,0,0,0.08)",
+        padding:"20px 20px", marginBottom:24 }}>
+        <div style={{ fontSize:15, fontWeight:900, color:"#111", marginBottom:12 }}>
+          💳 Payments & payouts — how the money works
+        </div>
+        <ol style={{ paddingLeft:20, margin:0, fontSize:14, color:"#374151", lineHeight:1.9 }}>
+          <li>Customer adds product to cart and checks out</li>
+          <li>Payment processed via <strong>Paystack</strong> (card, Mobile Money, bank transfer)</li>
+          <li>Money sits in your Beme Market wallet as <em>pending</em> until order is completed</li>
+          <li>Once order is marked <strong>Completed</strong>, balance moves to <em>available</em></li>
+          <li>You go to <strong>Withdrawals</strong> and request a payout to your MoMo or bank</li>
+          <li>Beme processes within 1–3 business days</li>
+        </ol>
+        <div style={{ marginTop:14, padding:"10px 12px", background:"rgba(0,0,0,0.04)",
+          borderRadius:8, fontSize:13, color:"#374151" }}>
+          🔒 <strong>All payments go through Paystack</strong> — Ghana&apos;s most trusted payment gateway. Your customer&apos;s card details are never stored on Beme Market.
+        </div>
+      </div>
+
+      {/* Plan comparison table */}
+      <div style={{ background:"#fff", borderRadius:16, border:"1px solid rgba(0,0,0,0.08)",
+        padding:"20px 20px", marginBottom:24, overflowX:"auto" }}>
+        <div style={{ fontSize:15, fontWeight:900, color:"#111", marginBottom:16 }}>
+          📊 Plan comparison
+        </div>
+        <table style={{ width:"100%", borderCollapse:"collapse", minWidth:400 }}>
+          <thead>
+            <tr style={{ borderBottom:"2px solid rgba(0,0,0,0.08)" }}>
+              <th style={{ padding:"8px 0", textAlign:"left", fontSize:12, fontWeight:700, color:"#6B7280" }}>Plan</th>
+              <th style={{ padding:"8px 8px", textAlign:"center", fontSize:12, fontWeight:700, color:"#6B7280" }}>Price</th>
+              <th style={{ padding:"8px 8px", textAlign:"center", fontSize:12, fontWeight:700, color:"#6B7280" }}>Products</th>
+              <th style={{ padding:"8px 8px", textAlign:"center", fontSize:12, fontWeight:700, color:"#6B7280" }}>Social links</th>
+              <th style={{ padding:"8px 8px", textAlign:"center", fontSize:12, fontWeight:700, color:"#6B7280" }}>Beme Delivery</th>
+            </tr>
+          </thead>
+          <tbody>
+            <PlanRow name="Basic"   price="Free"       products="5"   social={false} delivery={false}/>
+            <PlanRow name="Starter" price="GHS 59/mo"  products="10"  social={true}  delivery={false}/>
+            <PlanRow name="Growth"  price="GHS 129/mo" products="25"  social={true}  delivery={true}/>
+            <PlanRow name="Pro"     price="GHS 399/mo" products="500" social={true}  delivery={true}/>
+          </tbody>
+        </table>
+      </div>
+
+      {/* FAQ */}
+      <div style={{ background:"#fafafa", borderRadius:16, border:"1px solid rgba(0,0,0,0.07)", padding:"20px 20px" }}>
+        <div style={{ fontSize:15, fontWeight:900, color:"#111", marginBottom:16 }}>❓ Common questions</div>
+        {[
+          ["Do I need to pay to start?","No. The Basic plan is completely free. You can list up to 5 products and start selling with zero upfront cost."],
+          ["How do I get paid?","Through your Beme Market wallet. Once orders are completed, request a payout to your Mobile Money or bank account via the Withdrawals section."],
+          ["Can I have more than one store?","No — each account gets one store. This keeps the marketplace fair and prevents spam stores."],
+          ["What is Beme Delivery?","It's our courier coordination service. We arrange pickup from your location and delivery to the customer. Available on Growth and Pro plans only."],
+          ["How do I upgrade my plan?","Go to Subscription in your dashboard and click 'Upgrade to [Plan]'. Payment is handled securely via Paystack."],
+          ["My store link — where do I find it?","In your dashboard, go to Store Design. Your full store URL is shown there with a copy button."],
+        ].map(([q, a], i) => (
+          <div key={i} style={{ marginBottom: i < 5 ? 16 : 0 }}>
+            <div style={{ fontSize:14, fontWeight:800, color:"#111", marginBottom:4 }}>Q: {q}</div>
+            <div style={{ fontSize:13, color:"#374151", lineHeight:1.65, paddingLeft:16 }}>{a}</div>
+          </div>
+        ))}
+      </div>
+
+    <SellerGuide />
+  </div>
+  );
+}
+
 export default function GetAStore() {
   const navigate = useNavigate();
   const { user, isSellerActive } = useAuth();
@@ -571,6 +864,7 @@ export default function GetAStore() {
         </button>
       </section>
 
+    <SellerGuide />
     </div>
   );
 }
