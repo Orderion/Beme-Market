@@ -8,26 +8,88 @@ import { createCodOrder, getMyOrders } from "../services/api";
 import "./Checkout.css";
 
 /* ── constants ── */
-const FREE_DELIVERY_REGIONS = new Set(["Greater Accra"]);
-const GH_REGIONS = ["Greater Accra"];
+const GH_REGIONS = [
+  "Greater Accra","Ashanti","Western","Central","Eastern",
+  "Northern","Upper East","Upper West","Volta","Brong-Ahafo",
+  "Oti","Ahafo","Bono East","North East","Savannah","Western North",
+];
 const CITY_MAP = {
   "Greater Accra": ["Accra Central","East Legon","Madina","Adenta","Dodowa","Tema","Teshie","Nungua","Spintex","Kasoa","Dansoman","Achimota","Lapaz","Haatso","Dome","Taifa","Abokobi","Ashaiman","Osu","Cantonments","Airport Residential","Dzorwulu","Tesano","Abelemkpe","Kokomlemle"],
+  "Ashanti":     ["Kumasi","Obuasi","Mampong","Ejisu","Juaben","Asante Mampong"],
+  "Western":     ["Takoradi","Sekondi","Tarkwa","Axim","Bogoso","Prestea"],
+  "Central":     ["Cape Coast","Winneba","Mankessim","Saltpond","Elmina"],
+  "Eastern":     ["Koforidua","Akosombo","Nkawkaw","Suhum","Oda","Nsawam"],
+  "Volta":       ["Ho","Aflao","Keta","Hohoe","Sogakope","Kpando"],
+  "Northern":    ["Tamale","Yendi","Savelugu","Gushegu","Tolon"],
+  "Upper East":  ["Bolgatanga","Bawku","Navrongo","Paga","Zebilla"],
+  "Upper West":  ["Wa","Lawra","Tumu","Jirapa","Nandom"],
+  "Brong-Ahafo": ["Sunyani","Techiman","Kintampo","Wenchi","Berekum"],
+  "Oti":         ["Dambai","Jasikan","Kadjebi","Nkwanta"],
+  "Ahafo":       ["Goaso","Kukuom","Acherensua","Hwidiem"],
+  "Bono East":   ["Techiman","Atebubu","Kintampo North","Nkoranza"],
+  "North East":  ["Nalerigu","Walewale","Gambaga","Bunkpurugu"],
+  "Savannah":    ["Damongo","Bole","Sawla","Salaga"],
+  "Western North":["Sefwi Wiawso","Bibiani","Juaboso","Bodi"],
 };
-const DEFAULT_OTHER_CITIES = ["Other"];
+const DEFAULT_OTHER_CITIES = ["Town Centre","Other"];
 const CHECKOUT_DURATION_SECONDS = 10 * 60;
-const OUTSIDE_ACCRA_DELIVERY_FEE = 50;
-const DELIVERY_METHODS = { MALL_PICKUP: "mall_pickup", HOME_DELIVERY: "home_delivery" };
-const ACCRA_MALL_PICKUP_OPTIONS = [
-  { id: "accra-mall",      label: "Accra Mall Pickup",      area: "Tetteh Quarshie / Spintex", fee: 0  },
-  { id: "achimota-mall",   label: "Achimota Mall Pickup",   area: "Achimota",                  fee: 5  },
-  { id: "marina-mall",     label: "Marina Mall Pickup",     area: "Airport",                   fee: 10 },
-  { id: "west-hills-mall", label: "West Hills Mall Pickup", area: "Weija",                     fee: 15 },
-];
-const ACCRA_HOME_DELIVERY_FEE = 150;
-const INITIAL_FORM = { email:"", firstName:"", lastName:"", phone:"", address:"", region:"", city:"", area:"", notes:"" };
-const INITIAL_DELIVERY = { method:"", mallId:"" };
+const SELLER_DIRECT_ID = "seller_direct";
 
-/* ── helpers (unchanged) ── */
+/* ── Courier delivery providers ── */
+const DELIVERY_PROVIDERS = [
+  {
+    id:        "cheetah",
+    name:      "Cheetah Express",
+    tagline:   "Reliable nationwide delivery",
+    accra:     { fee: 25, eta: "1–2 days" },
+    other:     { fee: 45, eta: "3–5 days" },
+    nationwide: true,
+    accrOnly:  false,
+  },
+  {
+    id:        "glovo",
+    name:      "Glovo",
+    tagline:   "Fast on-demand delivery",
+    accra:     { fee: 30, eta: "Same day · 2–4 hrs" },
+    other:     null,
+    nationwide: false,
+    accrOnly:  true,
+  },
+  {
+    id:        "kwikdelivery",
+    name:      "KwikDelivery",
+    tagline:   "Affordable nationwide delivery",
+    accra:     { fee: 20, eta: "1–2 days" },
+    other:     { fee: 35, eta: "3–5 days" },
+    nationwide: true,
+    accrOnly:  false,
+  },
+  {
+    id:        "dhl",
+    name:      "DHL eCommerce",
+    tagline:   "Premium tracked delivery",
+    accra:     { fee: 55, eta: "Next day" },
+    other:     { fee: 75, eta: "2–3 days" },
+    nationwide: true,
+    accrOnly:  false,
+  },
+];
+
+function getProviderFee(provider, region) {
+  if (!provider) return 0;
+  if (region === "Greater Accra") return provider.accra?.fee ?? 0;
+  return provider.other?.fee ?? 0;
+}
+function getProviderEta(provider, region) {
+  if (!provider) return "";
+  if (region === "Greater Accra") return provider.accra?.eta ?? "";
+  return provider.other?.eta ?? "";
+}
+
+const INITIAL_FORM     = { email:"", firstName:"", lastName:"", phone:"", address:"", region:"", city:"", area:"", notes:"" };
+const INITIAL_DELIVERY = { method:"" };
+
+/* ── helpers (unchanged from doc 5) ── */
 function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(email || "").trim()); }
 function isValidName(value) { const s = String(value || "").trim(); if (s.length < 2) return false; return /^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$/.test(s); }
 function isValidGhanaAddress(value) { const s = String(value || "").trim(); if (s.length < 6) return false; if (!/[A-Za-z]/.test(s)) return false; return /^[A-Za-z0-9\s,./#-]+$/.test(s); }
@@ -102,6 +164,7 @@ function buildSafeCartItems(cartItems) {
     customizations:sanitizeCustomizations(item.customizations),
     shipsFromAbroad:item.shipsFromAbroad===true, abroadDeliveryFee:getItemAbroadDeliveryFee(item),
     inStock:item.inStock!==false, stock:getNumericStock(item),
+    sellerDeliveryMethod: sanitizeText(item.sellerDeliveryMethod || "", 20),
   }));
 }
 function isOrderSuccessfullyPaid(order) {
@@ -114,7 +177,9 @@ function isOrderSuccessfullyPaid(order) {
 function TruckIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3.5 6.75h11.25c1.24 0 2.25 1.01 2.25 2.25v4.25h1.34c.68 0 1.31.32 1.71.87l1.16 1.57c.29.39.45.86.45 1.35v1.21c0 .62-.5 1.12-1.12 1.12h-.76a2.87 2.87 0 0 1-5.56 0H9.78a2.87 2.87 0 0 1-5.56 0H3.5c-.62 0-1.12-.5-1.12-1.12V7.87c0-.62.5-1.12 1.12-1.12Z"/>
+      <rect x="1" y="3" width="15" height="13" rx="2"/>
+      <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+      <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
     </svg>
   );
 }
@@ -132,9 +197,9 @@ function CheckIcon() {
     </svg>
   );
 }
-function ShieldIcon() {
+function ShieldIcon({ size=13 }) {
   return (
-    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
     </svg>
   );
@@ -144,6 +209,57 @@ function ChevronLeftIcon() {
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <polyline points="15 18 9 12 15 6"/>
     </svg>
+  );
+}
+function AlertIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="17" r="1" fill="currentColor" stroke="none"/>
+    </svg>
+  );
+}
+
+/* ── Courier badge pill ── */
+function CourierBadge({ id }) {
+  const map = {
+    cheetah:      { label:"CHX", bg:"#111",    fg:"#fff"    },
+    glovo:        { label:"GVO", bg:"#00A082", fg:"#fff"    },
+    kwikdelivery: { label:"KWK", bg:"#046EF2", fg:"#fff"    },
+    dhl:          { label:"DHL", bg:"#FFCC00", fg:"#D40511" },
+  };
+  const b = map[id] || { label:"DEL", bg:"#6B7280", fg:"#fff" };
+  return (
+    <div style={{
+      width:38, height:22, borderRadius:5, background:b.bg, color:b.fg,
+      display:"flex", alignItems:"center", justifyContent:"center",
+      fontSize:9, fontWeight:900, letterSpacing:"0.06em", flexShrink:0,
+    }}>{b.label}</div>
+  );
+}
+
+/* ── Anti-Scam Safety Banner ── */
+function SafetyBanner() {
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed) return null;
+  return (
+    <div className="co-safety-banner" role="alert">
+      <div className="co-safety-banner__icon"><ShieldIcon size={20} /></div>
+      <div className="co-safety-banner__body">
+        <strong>Always pay through Beme Market — never pay sellers directly</strong>
+        <p>
+          Your purchase is protected only when you complete payment through this checkout.
+          Sending money directly to a seller via MoMo, bank transfer, or WhatsApp means
+          {" "}<strong>Beme Market cannot issue a refund</strong> — no exceptions.
+          Stay protected: pay here only.
+        </p>
+      </div>
+      <button type="button" className="co-safety-banner__close" onClick={() => setDismissed(true)} aria-label="Dismiss safety notice">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
   );
 }
 
@@ -176,11 +292,11 @@ export default function Checkout() {
   /* momo ui */
   const [showPaymentLoader,      setShowPaymentLoader]      = useState(false);
   const [paymentLoaderMethod,    setPaymentLoaderMethod]    = useState("");
-  const [showMomoScreen,         setShowMomoScreen]         = useState(null); // 'mtn' | 'telecel'
+  const [showMomoScreen,         setShowMomoScreen]         = useState(null);
 
   const feedbackTimerRef = useRef(null);
 
-  /* ── effects (all unchanged) ── */
+  /* ── effects (all unchanged from doc 5) ── */
   useEffect(() => {
     if (authLoading) return;
     if (!user) navigate("/login", { replace: true, state: { from: location.pathname } });
@@ -227,57 +343,70 @@ export default function Checkout() {
   }, [user, authLoading]);
 
   /* ── derived ── */
-  const safeCartItems          = useMemo(() => buildSafeCartItems(cartItems), [cartItems]);
-  const subtotalUI             = useMemo(() => safeCartItems.reduce((s, i) => s + (Number(i.price)||0)*(Number(i.qty)||0), 0), [safeCartItems]);
-  const citiesForRegion        = useMemo(() => { if (!form.region) return []; return CITY_MAP[form.region] || DEFAULT_OTHER_CITIES; }, [form.region]);
-  const mallPickupOptions      = useMemo(() => form.region === "Greater Accra" ? ACCRA_MALL_PICKUP_OPTIONS : [], [form.region]);
-  const selectedMallOption     = useMemo(() => mallPickupOptions.find(o => o.id === delivery.mallId) || null, [mallPickupOptions, delivery.mallId]);
-  const normalizedPhone        = useMemo(() => normalizeGhanaPhone(form.phone), [form.phone]);
-  const network                = useMemo(() => detectNetwork(normalizedPhone), [normalizedPhone]);
-  const cartShops              = useMemo(() => Array.from(new Set(safeCartItems.map(i => normalizeShop(i.shop)))).filter(Boolean), [safeCartItems]);
+  const safeCartItems     = useMemo(() => buildSafeCartItems(cartItems), [cartItems]);
+  const subtotalUI        = useMemo(() => safeCartItems.reduce((s, i) => s + (Number(i.price)||0)*(Number(i.qty)||0), 0), [safeCartItems]);
+  const citiesForRegion   = useMemo(() => { if (!form.region) return []; return CITY_MAP[form.region] || DEFAULT_OTHER_CITIES; }, [form.region]);
+  const normalizedPhone   = useMemo(() => normalizeGhanaPhone(form.phone), [form.phone]);
+  const network           = useMemo(() => detectNetwork(normalizedPhone), [normalizedPhone]);
+  const cartShops         = useMemo(() => Array.from(new Set(safeCartItems.map(i => normalizeShop(i.shop)))).filter(Boolean), [safeCartItems]);
   const hasShippedFromAbroadItem = useMemo(() => safeCartItems.some(i => i?.shipsFromAbroad === true), [safeCartItems]);
-  const unavailableCartItems   = useMemo(() => safeCartItems.map(i => ({ ...i, unavailableReason: getUnavailableReason(i) })).filter(i => i.unavailableReason), [safeCartItems]);
-  const hasUnavailableCartItems = unavailableCartItems.length > 0;
+  const unavailableCartItems     = useMemo(() => safeCartItems.map(i => ({ ...i, unavailableReason: getUnavailableReason(i) })).filter(i => i.unavailableReason), [safeCartItems]);
+  const hasUnavailableCartItems  = unavailableCartItems.length > 0;
   const needsFirstSuccessfulPaystackOrder = !checkingOrderHistory && !hasSuccessfulPaidOrder;
-  const codDisabledReason      = useMemo(() => {
-    if (hasUnavailableCartItems) return "Pay on Delivery is unavailable because your cart contains unavailable items.";
-    if (hasShippedFromAbroadItem) return "Pay on Delivery is unavailable because your cart contains a shipped from abroad item.";
+
+  /* Seller delivery plan flags */
+  const hasAnySellerDirectOnly = useMemo(() =>
+    safeCartItems.some(i => i.sellerDeliveryMethod === "self" || (!i.sellerDeliveryMethod && i.shop !== "main" && i.shop !== "admin")),
+  [safeCartItems]);
+
+  const codDisabledReason = useMemo(() => {
+    if (hasUnavailableCartItems)           return "Pay on Delivery is unavailable because your cart contains unavailable items.";
+    if (hasShippedFromAbroadItem)          return "Pay on Delivery is unavailable because your cart contains a shipped from abroad item.";
     if (needsFirstSuccessfulPaystackOrder) return "Pay on Delivery is unavailable until you complete your first successful Paystack payment.";
     return "";
   }, [hasUnavailableCartItems, hasShippedFromAbroadItem, needsFirstSuccessfulPaystackOrder]);
-  const isCODBlocked           = !!codDisabledReason;
-  const isFinalMinute          = timeLeft <= 60 && !sessionExpired;
-  const inputsDisabled         = loading || sessionExpired;
-  const formattedTimeLeft      = formatTime(timeLeft);
-  const regionalBaseDeliveryFeeUI = useMemo(() => { if (!form.region) return 0; return FREE_DELIVERY_REGIONS.has(form.region) ? 0 : OUTSIDE_ACCRA_DELIVERY_FEE; }, [form.region]);
-  const selectedDeliveryMethodFeeUI = useMemo(() => {
-    if (!delivery.method) return 0;
-    if (delivery.method === DELIVERY_METHODS.HOME_DELIVERY) return form.region === "Greater Accra" ? ACCRA_HOME_DELIVERY_FEE : 0;
-    if (delivery.method === DELIVERY_METHODS.MALL_PICKUP) return Number(selectedMallOption?.fee||0);
-    return 0;
-  }, [delivery.method, form.region, selectedMallOption]);
-  const abroadDeliveryFeeUI    = useMemo(() => safeCartItems.reduce((s, i) => s + getItemAbroadDeliveryFee(i)*(Number(i.qty)||0), 0), [safeCartItems]);
-  const deliveryFeeUI          = useMemo(() => regionalBaseDeliveryFeeUI + selectedDeliveryMethodFeeUI + abroadDeliveryFeeUI, [regionalBaseDeliveryFeeUI, selectedDeliveryMethodFeeUI, abroadDeliveryFeeUI]);
-  const totalUI                = useMemo(() => subtotalUI + deliveryFeeUI, [subtotalUI, deliveryFeeUI]);
+
+  const isCODBlocked   = !!codDisabledReason;
+  const isFinalMinute  = timeLeft <= 60 && !sessionExpired;
+  const inputsDisabled = loading || sessionExpired;
+  const formattedTimeLeft = formatTime(timeLeft);
+
+  /* Delivery fee */
+  const selectedProvider = useMemo(() =>
+    DELIVERY_PROVIDERS.find(p => p.id === delivery.method) || null,
+  [delivery.method]);
+
+  const courierDeliveryFeeUI = useMemo(() => {
+    if (!selectedProvider) return 0;
+    return getProviderFee(selectedProvider, form.region);
+  }, [selectedProvider, form.region]);
+
+  const abroadDeliveryFeeUI = useMemo(() =>
+    safeCartItems.reduce((s, i) => s + getItemAbroadDeliveryFee(i)*(Number(i.qty)||0), 0),
+  [safeCartItems]);
+
+  const deliveryFeeUI = useMemo(() => courierDeliveryFeeUI + abroadDeliveryFeeUI, [courierDeliveryFeeUI, abroadDeliveryFeeUI]);
+  const totalUI       = useMemo(() => subtotalUI + deliveryFeeUI, [subtotalUI, deliveryFeeUI]);
+
   const selectedDeliverySummary = useMemo(() => {
     if (!delivery.method) return null;
-    if (delivery.method === DELIVERY_METHODS.HOME_DELIVERY) return { title: "Home Delivery", note: form.region === "Greater Accra" ? `+GHS ${ACCRA_HOME_DELIVERY_FEE.toFixed(2)}` : "Regional fee applies" };
-    if (delivery.method === DELIVERY_METHODS.MALL_PICKUP && selectedMallOption) return { title: selectedMallOption.label, note: `${selectedMallOption.area}${selectedMallOption.fee > 0 ? ` (+GHS ${selectedMallOption.fee.toFixed(2)})` : " (Free)"}` };
-    return null;
-  }, [delivery.method, form.region, selectedMallOption]);
+    if (delivery.method === SELLER_DIRECT_ID) return { title: "Arrange with Seller", note: "Contact seller to agree on delivery", isBeme: false };
+    if (!selectedProvider) return null;
+    const fee = getProviderFee(selectedProvider, form.region);
+    const eta = getProviderEta(selectedProvider, form.region);
+    return { title: selectedProvider.name, note: form.region ? `${eta} · GHS ${fee.toFixed(2)}` : "Select region to see fee", isBeme: true };
+  }, [delivery.method, selectedProvider, form.region]);
 
-  /* ── side-effects (unchanged) ── */
+  /* ── side-effects ── */
   useEffect(() => { if (isCODBlocked && method === "cod") setMethod(""); }, [isCODBlocked, method]);
+
+  /* Reset Glovo if region changes to non-Accra */
   useEffect(() => {
-    if (form.region !== "Greater Accra") {
-      setDelivery(prev => {
-        if (prev.method === DELIVERY_METHODS.MALL_PICKUP || prev.mallId)
-          return { method: prev.method === DELIVERY_METHODS.MALL_PICKUP ? DELIVERY_METHODS.HOME_DELIVERY : prev.method, mallId: "" };
-        return prev;
-      });
+    if (form.region && form.region !== "Greater Accra" && delivery.method === "glovo") {
+      setDelivery(INITIAL_DELIVERY);
     }
-  }, [form.region]);
-  useEffect(() => { if (delivery.method !== DELIVERY_METHODS.MALL_PICKUP && delivery.mallId) setDelivery(p => ({ ...p, mallId: "" })); }, [delivery.method, delivery.mallId]);
+  }, [form.region, delivery.method]);
+
   useEffect(() => {
     if (sessionExpired) return;
     const timer = window.setInterval(() => {
@@ -293,8 +422,7 @@ export default function Checkout() {
     if (key === "region") { setForm(prev => ({ ...prev, region: value, city: "" })); setDelivery(INITIAL_DELIVERY); return; }
     setForm(prev => ({ ...prev, [key]: value }));
   };
-  const setDeliveryMethod = (next) => { if (sessionExpired || loading) return; setDelivery({ method: next, mallId: next === DELIVERY_METHODS.MALL_PICKUP ? delivery.mallId : "" }); setTouched(p => ({ ...p, deliveryMethod: true })); };
-  const setMallPickup = (mallId) => { if (sessionExpired || loading) return; setDelivery({ method: DELIVERY_METHODS.MALL_PICKUP, mallId }); setTouched(p => ({ ...p, deliveryMethod: true, mallId: true })); };
+  const setDeliveryMethod = (next) => { if (sessionExpired || loading) return; setDelivery({ method: next }); setTouched(p => ({ ...p, deliveryMethod: true })); };
   const markTouched = (key) => () => setTouched(p => ({ ...p, [key]: true }));
 
   const validate = (v) => {
@@ -310,7 +438,6 @@ export default function Checkout() {
     if (!v.phone.trim()) next.phone = "Phone is required."; else if (!normalizedPhone) next.phone = "Use 0XXXXXXXXX or +233XXXXXXXXX."; else if (!network) next.phone = "Phone must be MTN, Telecel, or AirtelTigo.";
     if (!safeCartItems.length) next.cart = "Your cart is empty."; else if (hasUnavailableCartItems) next.cart = "Some items are out of stock. Update your cart.";
     if (!delivery.method) next.deliveryMethod = "Please select a delivery option.";
-    if (delivery.method === DELIVERY_METHODS.MALL_PICKUP && !delivery.mallId) next.mallId = "Please select a pickup mall.";
     if (!method) next.paymentMethod = "Please select a payment method.";
     return next;
   };
@@ -318,7 +445,7 @@ export default function Checkout() {
   useEffect(() => {
     setErrors(validate(form));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authLoading, form.email, form.firstName, form.lastName, form.phone, form.address, form.region, form.city, form.area, safeCartItems, hasUnavailableCartItems, normalizedPhone, network, method, delivery.method, delivery.mallId]);
+  }, [user, authLoading, form.email, form.firstName, form.lastName, form.phone, form.address, form.region, form.city, form.area, safeCartItems, hasUnavailableCartItems, normalizedPhone, network, method, delivery.method]);
 
   const showError = (key) => touched[key] && errors[key];
 
@@ -326,7 +453,7 @@ export default function Checkout() {
     if (sessionExpired) { alert("Checkout session expired. Please restart checkout."); return "Checkout session expired."; }
     const next = validate(form);
     setErrors(next);
-    setTouched({ email: true, firstName: true, lastName: true, phone: true, address: true, region: true, city: true, area: true, deliveryMethod: true, mallId: true, paymentMethod: true });
+    setTouched({ email: true, firstName: true, lastName: true, phone: true, address: true, region: true, city: true, area: true, deliveryMethod: true, paymentMethod: true });
     return Object.values(next)[0] || null;
   };
 
@@ -343,14 +470,21 @@ export default function Checkout() {
   };
 
   const buildDeliveryPayload = () => {
-    const mallLabel = selectedMallOption?.label || "";
-    const mallArea  = selectedMallOption?.area  || "";
-    const label = delivery.method === DELIVERY_METHODS.HOME_DELIVERY ? "Home Delivery" : delivery.method === DELIVERY_METHODS.MALL_PICKUP ? mallLabel || "Mall Pickup" : "";
+    const isSellerDirect = delivery.method === SELLER_DIRECT_ID;
+    const provider = selectedProvider;
     return {
-      method: delivery.method, label, fee: deliveryFeeUI,
-      breakdown: { regionalBaseFee: regionalBaseDeliveryFeeUI, methodFee: selectedDeliveryMethodFeeUI, abroadFee: abroadDeliveryFeeUI },
-      mallPickup:   delivery.method === DELIVERY_METHODS.MALL_PICKUP   ? { id: delivery.mallId, label: mallLabel, area: mallArea, fee: Number(selectedMallOption?.fee||0) } : null,
-      homeDelivery: delivery.method === DELIVERY_METHODS.HOME_DELIVERY ? { label: "Home Delivery", fee: form.region === "Greater Accra" ? ACCRA_HOME_DELIVERY_FEE : 0 } : null,
+      method:   delivery.method,
+      provider: provider?.name || (isSellerDirect ? "Seller Arranged" : ""),
+      label:    provider ? `${provider.name} Delivery` : (isSellerDirect ? "Seller Arranged Delivery" : ""),
+      fee:      deliveryFeeUI,
+      isBeme:   !isSellerDirect,
+      region:   form.region,
+      eta:      provider ? getProviderEta(provider, form.region) : "",
+      breakdown: {
+        courierFee:     courierDeliveryFeeUI,
+        abroadFee:      abroadDeliveryFeeUI,
+        sellerArranged: isSellerDirect,
+      },
     };
   };
 
@@ -396,10 +530,30 @@ export default function Checkout() {
     setPaystackError("");
     if (loading || sessionExpired || checkingOrderHistory || hasUnavailableCartItems || !user) return;
     setLoadingMode("paystack"); setLoading(true);
-    setTouched({ email: true, firstName: true, lastName: true, phone: true, address: true, region: true, city: true, area: true, deliveryMethod: true, mallId: true, paymentMethod: true });
+    setTouched({ email: true, firstName: true, lastName: true, phone: true, address: true, region: true, city: true, area: true, deliveryMethod: true, paymentMethod: true });
     const currentErrors = validate(form);
     const firstError = Object.values(currentErrors)[0];
     if (firstError) { setPaystackError(firstError); setLoading(false); setLoadingMode(""); return; }
+
+    // ✅ FIX: Get a fresh Firebase ID token directly from the user object in
+    // the component — where we know for certain the user is authenticated.
+    // This bypasses the getAuthHeaders() path in api.js which was failing.
+    // Also handles Render cold-starts: the 55 s timeout in api.js now gives
+    // the service enough time to wake up before the request is aborted.
+    let authToken;
+    try {
+      authToken = await user.getIdToken(true);
+    } catch (tokenErr) {
+      console.error("❌ Token fetch failed (attempt 1):", tokenErr);
+      try {
+        authToken = await user.getIdToken(false);
+      } catch (retryErr) {
+        console.error("❌ Token fetch failed (attempt 2):", retryErr);
+        setPaystackError("Authentication failed. Please refresh the page and try again.");
+        setLoading(false); setLoadingMode(""); return;
+      }
+    }
+
     try {
       await startPaystackCheckout({
         email: sanitizeText(form.email, 160).toLowerCase(),
@@ -407,6 +561,7 @@ export default function Checkout() {
         delivery: buildDeliveryPayload(),
         pricing: { subtotal: subtotalUI, deliveryFee: deliveryFeeUI, total: totalUI, currency: "GHS" },
         customer: { userId: user?.uid||"", firstName: sanitizeText(form.firstName,80), lastName: sanitizeText(form.lastName,80), phone: normalizedPhone||"", network: network||"", address: sanitizeText(form.address,300), region: sanitizeText(form.region,80), city: sanitizeText(form.city,80), area: sanitizeText(form.area,120), notes: sanitizeOptionalText(form.notes,500), country: "Ghana" },
+        authToken, // pre-fetched token — paystackInit uses requestWithToken() directly
       });
       setLoading(false); setLoadingMode("");
     } catch (e) {
@@ -470,28 +625,21 @@ export default function Checkout() {
         </div>
       )}
 
-      {/* ── MoMo USSD Screen ── */}
+      {/* ── MoMo USSD Screen (unchanged from doc 5) ── */}
       {showMomoScreen && (
         <div className="co-momo-overlay">
           <div className="co-momo-screen">
-            <button
-              type="button"
-              className="co-momo-back"
-              onClick={() => setShowMomoScreen(null)}
-            >
+            <button type="button" className="co-momo-back" onClick={() => setShowMomoScreen(null)}>
               <ChevronLeftIcon /> Back
             </button>
-
             <div className="co-momo-icon">
               <span /><span /><span />
             </div>
-
             <h2 className="co-momo-title">We are waiting for you</h2>
             <p className="co-momo-sub">
               Please follow the instructions below. Only leave this page to authorise the payment in another app or window.
             </p>
             <p className="co-momo-time-note">This may take up to 2 minutes.</p>
-
             <div className="co-momo-card">
               <p>You should receive a prompt on your mobile number to enter your PIN to authorize the payment.</p>
               <p>If you do not receive the prompt within 10 seconds, follow the instructions below:</p>
@@ -524,6 +672,9 @@ export default function Checkout() {
       )}
 
       <div className="co-wrap">
+
+        {/* ── Anti-Scam Safety Banner ── */}
+        <SafetyBanner />
 
         {/* cancelled notice */}
         {cancelledPayment && (
@@ -646,46 +797,90 @@ export default function Checkout() {
                 <textarea className="co-input co-textarea" placeholder="Delivery notes (optional)" value={form.notes} onChange={setField("notes")} disabled={inputsDisabled} />
               </div>
 
-              {/* Delivery */}
+              {/* ── Delivery ── */}
               <div className="co-section">
                 <span className="co-section__eyebrow">Step 02</span>
-                <h2 className="co-section__title">Delivery</h2>
-                <div className="co-del-grid">
-                  <button type="button"
-                    className={`co-del-card${delivery.method === DELIVERY_METHODS.MALL_PICKUP ? " co-del-card--active" : ""}`}
-                    onClick={() => setDeliveryMethod(DELIVERY_METHODS.MALL_PICKUP)}
-                    disabled={inputsDisabled || form.region !== "Greater Accra"}>
-                    <strong>Mall Pickup</strong>
-                    <span>{form.region === "Greater Accra" ? "Pick up from a mall in Accra." : "Available only in Greater Accra."}</span>
-                  </button>
-                  <button type="button"
-                    className={`co-del-card${delivery.method === DELIVERY_METHODS.HOME_DELIVERY ? " co-del-card--active" : ""}`}
-                    onClick={() => setDeliveryMethod(DELIVERY_METHODS.HOME_DELIVERY)}
-                    disabled={inputsDisabled}>
-                    <strong>Home Delivery</strong>
-                    <span>{form.region === "Greater Accra" ? `Delivered to your address (+GHS ${ACCRA_HOME_DELIVERY_FEE.toFixed(2)})` : "Delivered to your address. Regional fee applies."}</span>
-                  </button>
-                </div>
-                {showError("deliveryMethod") && <div className="co-field-error">{errors.deliveryMethod}</div>}
+                <h2 className="co-section__title">Delivery method</h2>
 
-                {delivery.method === DELIVERY_METHODS.MALL_PICKUP && (
-                  <div className="co-mall-wrap">
-                    <span className="co-mall-label">Select pickup mall</span>
-                    <div className="co-mall-grid">
-                      {mallPickupOptions.map(mall => (
-                        <button key={mall.id} type="button"
-                          className={`co-del-card${delivery.mallId === mall.id ? " co-del-card--active" : ""}`}
-                          onClick={() => setMallPickup(mall.id)}
-                          disabled={inputsDisabled}>
-                          <strong>{mall.label}</strong>
-                          <span>{mall.area}</span>
-                          <small>{mall.fee > 0 ? `Fee: GHS ${mall.fee.toFixed(2)}` : "Free pickup"}</small>
-                        </button>
-                      ))}
+                <p className="co-del-intro">
+                  Delivered via our courier partners. Select your region above to see live fees and times.
+                  {!form.region && <span className="co-del-intro__note"> ← Do this first.</span>}
+                </p>
+
+                {/* 4 courier cards — 2×2 grid */}
+                <div className="co-del-grid co-del-grid--couriers">
+                  {DELIVERY_PROVIDERS.map(p => {
+                    const accraOnly    = p.accrOnly === true;
+                    const unavailable  = accraOnly && form.region && form.region !== "Greater Accra";
+                    const fee          = form.region ? getProviderFee(p, form.region) : null;
+                    const eta          = form.region ? getProviderEta(p, form.region) : null;
+                    const isActive     = delivery.method === p.id;
+                    return (
+                      <button key={p.id} type="button"
+                        className={`co-del-card co-del-card--courier${isActive ? " co-del-card--active" : ""}${unavailable ? " co-del-card--unavail" : ""}`}
+                        onClick={() => !unavailable && setDeliveryMethod(p.id)}
+                        disabled={inputsDisabled || unavailable}
+                        title={unavailable ? `${p.name} only delivers within Greater Accra` : ""}>
+                        <div className="co-del-card__head">
+                          <CourierBadge id={p.id} />
+                          <span className="co-del-card__name">{p.name}</span>
+                          {isActive && <span className="co-del-card__check"><CheckIcon /></span>}
+                        </div>
+                        <span className="co-del-card__tag">{p.tagline}</span>
+                        <div className="co-del-card__foot">
+                          {unavailable ? (
+                            <span className="co-del-card__only">Accra only</span>
+                          ) : fee !== null ? (
+                            <>
+                              <strong className="co-del-card__fee">GHS {fee.toFixed(2)}</strong>
+                              <span className="co-del-card__eta">{eta}</span>
+                            </>
+                          ) : (
+                            <span className="co-del-card__eta">Select region for fee</span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Seller-direct option (only shown when relevant) */}
+                {hasAnySellerDirectOnly && (
+                  <>
+                    <div className="co-del-or"><span>or</span></div>
+
+                    <div className="co-seller-warn">
+                      <div className="co-seller-warn__icon"><AlertIcon /></div>
+                      <div className="co-seller-warn__text">
+                        <strong>Seller-arranged delivery</strong>
+                        <p>
+                          One or more sellers in your cart manage their own delivery (Basic / Starter plan).
+                          Choose this option only if you plan to contact the seller directly via WhatsApp or Beme chat
+                          to agree on a delivery fee and schedule.
+                          <strong> Beme Market does not cover or refund seller-arranged deliveries.</strong>
+                        </p>
+                      </div>
                     </div>
-                    {showError("mallId") && <div className="co-field-error">{errors.mallId}</div>}
-                  </div>
+
+                    <button type="button"
+                      className={`co-del-card co-del-card--seller${delivery.method === SELLER_DIRECT_ID ? " co-del-card--active" : ""}`}
+                      onClick={() => setDeliveryMethod(SELLER_DIRECT_ID)}
+                      disabled={inputsDisabled}>
+                      <div className="co-del-card__head">
+                        <div className="co-del-card__truck"><TruckIcon /></div>
+                        <span className="co-del-card__name">Arrange with Seller</span>
+                        {delivery.method === SELLER_DIRECT_ID && <span className="co-del-card__check"><CheckIcon /></span>}
+                      </div>
+                      <span className="co-del-card__tag">Contact seller to agree on terms</span>
+                      <div className="co-del-card__foot">
+                        <strong className="co-del-card__fee co-del-card__fee--free">Free*</strong>
+                        <span className="co-del-card__eta">Seller sets fee &amp; schedule</span>
+                      </div>
+                    </button>
+                  </>
                 )}
+
+                {showError("deliveryMethod") && <div className="co-field-error">{errors.deliveryMethod}</div>}
 
                 {selectedDeliverySummary && (
                   <div className="co-review-pill">
@@ -739,7 +934,7 @@ export default function Checkout() {
                     <div className="co-pay-bullet" aria-hidden="true" />
                   </label>
 
-                  {/* COD — small/secondary */}
+                  {/* COD */}
                   <label className={`co-pay-card co-pay-card--cod${method === "cod" ? " co-pay-card--active" : ""}${isCODBlocked ? " co-pay-card--blocked" : ""}`}>
                     <input type="radio" name="payMethod" value="cod" checked={method === "cod"} onChange={handleMethodChange} disabled={inputsDisabled || isCODBlocked} className="co-pay-radio" />
                     <div className="co-pay-icon-wrap"><TruckIcon /></div>
@@ -769,17 +964,12 @@ export default function Checkout() {
 
                 {method && (
                   <div className="co-cta-stack">
-                    <button
-                      type="button"
-                      className="co-btn co-btn--primary"
-                      onClick={handleCheckout}
-                      disabled={isCheckoutDisabled}
-                    >
+                    <button type="button" className="co-btn co-btn--primary" onClick={handleCheckout} disabled={isCheckoutDisabled}>
                       <span className="co-btn__label">{payBtnLabel}</span>
                       <span className="co-btn__amount">GHS {totalUI.toFixed(2)}</span>
                     </button>
                     <div className="co-secure">
-                      <ShieldIcon /> Secured · All payments encrypted
+                      <ShieldIcon /> Secured · All payments encrypted via Beme Market
                     </div>
                   </div>
                 )}
@@ -822,17 +1012,15 @@ export default function Checkout() {
                 <div className="co-sum-divider" />
                 <div className="co-sum-line"><span>Subtotal</span><span>GHS {subtotalUI.toFixed(2)}</span></div>
                 <div className="co-sum-line">
-                  <span>Regional delivery<small>{form.region ? (FREE_DELIVERY_REGIONS.has(form.region) ? "Greater Accra base" : "Outside Accra (+50)") : "Select region"}</small></span>
-                  <span>GHS {regionalBaseDeliveryFeeUI.toFixed(2)}</span>
+                  <span>Delivery<small>{selectedDeliverySummary ? selectedDeliverySummary.title : "Select a courier above"}</small></span>
+                  <span>GHS {courierDeliveryFeeUI.toFixed(2)}</span>
                 </div>
-                <div className="co-sum-line">
-                  <span>Delivery option<small>{selectedDeliverySummary ? selectedDeliverySummary.title : "Select delivery"}</small></span>
-                  <span>GHS {selectedDeliveryMethodFeeUI.toFixed(2)}</span>
-                </div>
-                <div className="co-sum-line">
-                  <span>Abroad delivery<small>{abroadDeliveryFeeUI > 0 ? "Shipped abroad items" : "No abroad fee"}</small></span>
-                  <span>GHS {abroadDeliveryFeeUI.toFixed(2)}</span>
-                </div>
+                {abroadDeliveryFeeUI > 0 && (
+                  <div className="co-sum-line">
+                    <span>Abroad delivery fee<small>Shipped abroad items</small></span>
+                    <span>GHS {abroadDeliveryFeeUI.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="co-sum-total">
                   <span>Total</span>
                   <strong>GHS {totalUI.toFixed(2)}</strong>
@@ -840,7 +1028,6 @@ export default function Checkout() {
               </div>
 
             </div>
-            {/* end co-right */}
           </div>
         )}
       </div>
