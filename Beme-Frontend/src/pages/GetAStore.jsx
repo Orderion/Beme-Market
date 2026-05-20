@@ -605,7 +605,6 @@ function SellerGuide() {
         ))}
       </div>
 
-    <SellerGuide />
   </div>
   );
 }
