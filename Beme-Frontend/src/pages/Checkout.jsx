@@ -32,7 +32,6 @@ const CITY_MAP = {
   "Western North":["Sefwi Wiawso","Bibiani","Juaboso","Bodi"],
 };
 const DEFAULT_OTHER_CITIES = ["Town Centre","Other"];
-const CHECKOUT_DURATION_SECONDS = 10 * 60;
 const SELLER_DIRECT_ID = "seller_direct";
 
 /* ── Courier delivery providers ── */
@@ -108,7 +107,6 @@ const PREFIX_TO_NETWORK = [
   { prefix:"027", network:"AirtelTigo" },{ prefix:"057", network:"AirtelTigo" },
 ];
 function detectNetwork(local10) { if (!local10) return null; const p = local10.slice(0,3); return PREFIX_TO_NETWORK.find(x => x.prefix === p)?.network || null; }
-function formatTime(seconds) { const m = Math.floor(seconds/60), s = seconds%60; return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`; }
 function normalizeShop(value) { return String(value || "main").trim().toLowerCase() || "main"; }
 function getNumericStock(item) { const p = Number(item?.stock); return Number.isFinite(p) ? p : null; }
 function isItemOutOfStock(item) { if (!item) return true; if (item.inStock === false) return true; const s = getNumericStock(item); if (s !== null && s <= 0) return true; return false; }
@@ -283,8 +281,6 @@ export default function Checkout() {
   const [delivery,               setDelivery]               = useState(INITIAL_DELIVERY);
   const [touched,                setTouched]                = useState({});
   const [errors,                 setErrors]                 = useState({});
-  const [timeLeft,               setTimeLeft]               = useState(CHECKOUT_DURATION_SECONDS);
-  const [sessionExpired,         setSessionExpired]         = useState(false);
   const [showCODInfo,            setShowCODInfo]            = useState(false);
   const [checkingOrderHistory,   setCheckingOrderHistory]   = useState(true);
   const [hasSuccessfulPaidOrder, setHasSuccessfulPaidOrder] = useState(false);
@@ -294,7 +290,6 @@ export default function Checkout() {
   const [paymentLoaderMethod,    setPaymentLoaderMethod]    = useState("");
   const [showMomoScreen,         setShowMomoScreen]         = useState(null);
 
-  const feedbackTimerRef = useRef(null);
 
   /* ── effects (all unchanged from doc 5) ── */
   useEffect(() => {
@@ -359,6 +354,14 @@ export default function Checkout() {
     safeCartItems.some(i => i.sellerDeliveryMethod === "self" || (!i.sellerDeliveryMethod && i.shop !== "main" && i.shop !== "admin")),
   [safeCartItems]);
 
+  /* All items in cart require self-delivery (seller on Basic/Starter) */
+  const allSellersNeedSelfDelivery = useMemo(() =>
+    safeCartItems.length > 0 && safeCartItems.every(i =>
+      i.sellerDeliveryMethod === "self" ||
+      (!i.sellerDeliveryMethod && i.shop !== "main" && i.shop !== "admin")
+    ),
+  [safeCartItems]);
+
   const codDisabledReason = useMemo(() => {
     if (hasUnavailableCartItems)           return "Pay on Delivery is unavailable because your cart contains unavailable items.";
     if (hasShippedFromAbroadItem)          return "Pay on Delivery is unavailable because your cart contains a shipped from abroad item.";
@@ -367,9 +370,7 @@ export default function Checkout() {
   }, [hasUnavailableCartItems, hasShippedFromAbroadItem, needsFirstSuccessfulPaystackOrder]);
 
   const isCODBlocked   = !!codDisabledReason;
-  const isFinalMinute  = timeLeft <= 60 && !sessionExpired;
-  const inputsDisabled = loading || sessionExpired;
-  const formattedTimeLeft = formatTime(timeLeft);
+  const inputsDisabled = loading;
 
   /* Delivery fee */
   const selectedProvider = useMemo(() =>
@@ -407,22 +408,17 @@ export default function Checkout() {
     }
   }, [form.region, delivery.method]);
 
-  useEffect(() => {
-    if (sessionExpired) return;
-    const timer = window.setInterval(() => {
-      setTimeLeft(prev => { if (prev <= 1) { window.clearInterval(timer); setSessionExpired(true); return 0; } return prev - 1; });
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [sessionExpired]);
+
+
+
 
   /* ── handlers ── */
   const setField = (key) => (e) => {
-    if (sessionExpired) return;
     const value = e.target.value;
     if (key === "region") { setForm(prev => ({ ...prev, region: value, city: "" })); setDelivery(INITIAL_DELIVERY); return; }
     setForm(prev => ({ ...prev, [key]: value }));
   };
-  const setDeliveryMethod = (next) => { if (sessionExpired || loading) return; setDelivery({ method: next }); setTouched(p => ({ ...p, deliveryMethod: true })); };
+  const setDeliveryMethod = (next) => { if (loading) return; setDelivery({ method: next }); setTouched(p => ({ ...p, deliveryMethod: true })); };
   const markTouched = (key) => () => setTouched(p => ({ ...p, [key]: true }));
 
   const validate = (v) => {
@@ -450,7 +446,6 @@ export default function Checkout() {
   const showError = (key) => touched[key] && errors[key];
 
   const validateRequired = () => {
-    if (sessionExpired) { alert("Checkout session expired. Please restart checkout."); return "Checkout session expired."; }
     const next = validate(form);
     setErrors(next);
     setTouched({ email: true, firstName: true, lastName: true, phone: true, address: true, region: true, city: true, area: true, deliveryMethod: true, paymentMethod: true });
@@ -459,7 +454,7 @@ export default function Checkout() {
 
   const restartCheckout = () => {
     setForm({ ...INITIAL_FORM, email: user?.email || "" });
-    setDelivery(INITIAL_DELIVERY); setTouched({}); setErrors({}); setMethod(""); setLoading(false); setLoadingMode(""); setSessionExpired(false); setTimeLeft(CHECKOUT_DURATION_SECONDS); setShowCODInfo(false); setShowMomoScreen(null); setShowPaymentLoader(false);
+    setDelivery(INITIAL_DELIVERY); setTouched({}); setErrors({}); setMethod(""); setLoading(false); setLoadingMode(""); setShowCODInfo(false); setShowMomoScreen(null); setShowPaymentLoader(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -510,7 +505,7 @@ export default function Checkout() {
   };
 
   const placeCOD = async () => {
-    if (loading || sessionExpired || isCODBlocked || checkingOrderHistory || hasUnavailableCartItems) return;
+    if (loading || isCODBlocked || checkingOrderHistory || hasUnavailableCartItems) return;
     const err = validateRequired(); if (err) return;
     setLoadingMode("cod"); setLoading(true);
     try {
@@ -528,7 +523,7 @@ export default function Checkout() {
 
   const payWithPaystack = async () => {
     setPaystackError("");
-    if (loading || sessionExpired || checkingOrderHistory || hasUnavailableCartItems || !user) return;
+    if (loading || checkingOrderHistory || hasUnavailableCartItems || !user) return;
     setLoadingMode("paystack"); setLoading(true);
     setTouched({ email: true, firstName: true, lastName: true, phone: true, address: true, region: true, city: true, area: true, deliveryMethod: true, paymentMethod: true });
     const currentErrors = validate(form);
@@ -673,9 +668,6 @@ export default function Checkout() {
 
       <div className="co-wrap">
 
-        {/* ── Anti-Scam Safety Banner ── */}
-        <SafetyBanner />
-
         {/* cancelled notice */}
         {cancelledPayment && (
           <div className="co-notice" role="status" aria-live="polite">
@@ -687,27 +679,6 @@ export default function Checkout() {
           </div>
         )}
 
-        {/* timer */}
-        <div className={`co-timer${isFinalMinute ? " co-timer--warn" : ""}${sessionExpired ? " co-timer--expired" : ""}`}>
-          <div className="co-timer__left">
-            <span className="co-timer__label">Session</span>
-            <span className="co-timer__time">{formattedTimeLeft}</span>
-          </div>
-          <div className="co-timer__right">
-            {sessionExpired ? (
-              <>
-                <p className="co-timer__msg">Session expired. Please restart.</p>
-                <button type="button" className="co-timer__btn" onClick={restartCheckout}>Restart</button>
-              </>
-            ) : (
-              <p className="co-timer__msg">
-                {isFinalMinute ? "Final minute — complete your order now." : "Complete your order within 10 minutes."}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* title */}
         <h1 className="co-page-title">Checkout</h1>
 
         {/* steps */}
@@ -807,20 +778,39 @@ export default function Checkout() {
                   {!form.region && <span className="co-del-intro__note"> ← Do this first.</span>}
                 </p>
 
+                {/* Lock courier cards for free-plan sellers */}
+                {allSellersNeedSelfDelivery && (
+                  <div className="co-del-seller-lock">
+                    <div className="co-del-seller-lock__icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                      </svg>
+                    </div>
+                    <div className="co-del-seller-lock__text">
+                      <strong>Courier delivery unavailable for this seller</strong>
+                      <p>
+                        The seller(s) in your cart are on a Basic or Starter plan and handle their own delivery.
+                        Beme courier options are locked — scroll down to use <strong>Arrange with Seller</strong>.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* 4 courier cards — 2×2 grid */}
                 <div className="co-del-grid co-del-grid--couriers">
                   {DELIVERY_PROVIDERS.map(p => {
                     const accraOnly    = p.accrOnly === true;
                     const unavailable  = accraOnly && form.region && form.region !== "Greater Accra";
-                    const fee          = form.region ? getProviderFee(p, form.region) : null;
-                    const eta          = form.region ? getProviderEta(p, form.region) : null;
+                    const lockedBySeller = allSellersNeedSelfDelivery;
+                    const fee          = form.region && !lockedBySeller ? getProviderFee(p, form.region) : null;
+                    const eta          = form.region && !lockedBySeller ? getProviderEta(p, form.region) : null;
                     const isActive     = delivery.method === p.id;
                     return (
                       <button key={p.id} type="button"
-                        className={`co-del-card co-del-card--courier${isActive ? " co-del-card--active" : ""}${unavailable ? " co-del-card--unavail" : ""}`}
-                        onClick={() => !unavailable && setDeliveryMethod(p.id)}
-                        disabled={inputsDisabled || unavailable}
-                        title={unavailable ? `${p.name} only delivers within Greater Accra` : ""}>
+                        className={`co-del-card co-del-card--courier${isActive ? " co-del-card--active" : ""}${(unavailable || lockedBySeller) ? " co-del-card--unavail" : ""}`}
+                        onClick={() => !unavailable && !lockedBySeller && setDeliveryMethod(p.id)}
+                        disabled={inputsDisabled || unavailable || lockedBySeller}
+                        title={lockedBySeller ? "Seller on Basic plan — courier not available" : unavailable ? `${p.name} only delivers within Greater Accra` : ""}>
                         <div className="co-del-card__head">
                           <CourierBadge id={p.id} />
                           <span className="co-del-card__name">{p.name}</span>
@@ -951,6 +941,9 @@ export default function Checkout() {
 
                 {showError("paymentMethod") && <div className="co-field-error">{errors.paymentMethod}</div>}
                 {checkingOrderHistory && <p className="co-hint">Checking eligibility…</p>}
+
+                {/* ── Anti-Scam Safety Banner (below payment options) ── */}
+                <SafetyBanner />
 
                 {(showCODInfo || (method === "cod" && isCODBlocked)) && (
                   <div className="co-info-panel">
