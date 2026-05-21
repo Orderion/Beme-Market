@@ -237,26 +237,41 @@ function CourierBadge({ id }) {
 }
 
 /* ── Anti-Scam Safety Banner ── */
+/* ── SafetyBanner — permanent, no close button ── */
 function SafetyBanner() {
-  const [dismissed, setDismissed] = useState(false);
-  if (dismissed) return null;
   return (
     <div className="co-safety-banner" role="alert">
       <div className="co-safety-banner__icon"><ShieldIcon size={20} /></div>
       <div className="co-safety-banner__body">
         <strong>Always pay through Beme Market — never pay sellers directly</strong>
         <p>
-          Your purchase is protected only when you complete payment through this checkout.
+          Your purchase is protected only when you pay through this checkout.
           Sending money directly to a seller via MoMo, bank transfer, or WhatsApp means
           {" "}<strong>Beme Market cannot issue a refund</strong> — no exceptions.
-          Stay protected: pay here only.
         </p>
       </div>
-      <button type="button" className="co-safety-banner__close" onClick={() => setDismissed(true)} aria-label="Dismiss safety notice">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </div>
+  );
+}
+
+/* ── RefundGuaranteeBanner — permanent buyer protection notice ── */
+function RefundGuaranteeBanner() {
+  return (
+    <div className="co-refund-banner" role="note">
+      <div className="co-refund-banner__icon">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <polyline points="9 12 11 14 15 10"/>
         </svg>
-      </button>
+      </div>
+      <div className="co-refund-banner__body">
+        <strong>Beme Buyer Protection — 2-Month Guarantee</strong>
+        <p>
+          If your order has not arrived within <strong>2 months</strong> of your purchase date,
+          Beme Market will refund your full payment. Open a support ticket and we will
+          investigate and process your refund. Your money is always safe with us.
+        </p>
+      </div>
     </div>
   );
 }
@@ -350,17 +365,26 @@ export default function Checkout() {
   const needsFirstSuccessfulPaystackOrder = !checkingOrderHistory && !hasSuccessfulPaidOrder;
 
   /* Seller delivery plan flags */
+  /* Seller has Beme courier access only if explicitly enrolled (beme/both) or Beme's own shop */
+  const sellerCanUseCourier = (item) => {
+    const shop = normalizeShop(item.shop);
+    if (shop === "main" || shop === "admin") return true;
+    const m = item.sellerDeliveryMethod || "";
+    return m === "beme" || m === "both";
+  };
+
+  /* Any item from a seller without courier access → lock all couriers for the whole cart */
   const hasAnySellerDirectOnly = useMemo(() =>
-    safeCartItems.some(i => i.sellerDeliveryMethod === "self" || (!i.sellerDeliveryMethod && i.shop !== "main" && i.shop !== "admin")),
+    safeCartItems.some(i => !sellerCanUseCourier(i)),
   [safeCartItems]);
 
-  /* All items in cart require self-delivery (seller on Basic/Starter) */
+  /* Every single item requires self-delivery */
   const allSellersNeedSelfDelivery = useMemo(() =>
-    safeCartItems.length > 0 && safeCartItems.every(i =>
-      i.sellerDeliveryMethod === "self" ||
-      (!i.sellerDeliveryMethod && i.shop !== "main" && i.shop !== "admin")
-    ),
+    safeCartItems.length > 0 && safeCartItems.every(i => !sellerCanUseCourier(i)),
   [safeCartItems]);
+
+  /* Lock couriers if ANY seller in cart can't support courier pickup */
+  const courierLocked = hasAnySellerDirectOnly;
 
   const codDisabledReason = useMemo(() => {
     if (hasUnavailableCartItems)           return "Pay on Delivery is unavailable because your cart contains unavailable items.";
@@ -407,6 +431,14 @@ export default function Checkout() {
       setDelivery(INITIAL_DELIVERY);
     }
   }, [form.region, delivery.method]);
+
+  /* Auto-clear courier selection if cart now requires self-delivery only */
+  useEffect(() => {
+    const isCourer = DELIVERY_PROVIDERS.some(p => p.id === delivery.method);
+    if (courierLocked && isCourer) {
+      setDelivery({ method: SELLER_DIRECT_ID });
+    }
+  }, [courierLocked, delivery.method]);
 
 
 
@@ -668,6 +700,9 @@ export default function Checkout() {
 
       <div className="co-wrap">
 
+        {/* ── Buyer protection banner — always visible at top ── */}
+        <RefundGuaranteeBanner />
+
         {/* cancelled notice */}
         {cancelledPayment && (
           <div className="co-notice" role="status" aria-live="polite">
@@ -779,7 +814,7 @@ export default function Checkout() {
                 </p>
 
                 {/* Lock courier cards for free-plan sellers */}
-                {allSellersNeedSelfDelivery && (
+                {courierLocked && (
                   <div className="co-del-seller-lock">
                     <div className="co-del-seller-lock__icon">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -801,7 +836,7 @@ export default function Checkout() {
                   {DELIVERY_PROVIDERS.map(p => {
                     const accraOnly    = p.accrOnly === true;
                     const unavailable  = accraOnly && form.region && form.region !== "Greater Accra";
-                    const lockedBySeller = allSellersNeedSelfDelivery;
+                    const lockedBySeller = courierLocked;
                     const fee          = form.region && !lockedBySeller ? getProviderFee(p, form.region) : null;
                     const eta          = form.region && !lockedBySeller ? getProviderEta(p, form.region) : null;
                     const isActive     = delivery.method === p.id;
