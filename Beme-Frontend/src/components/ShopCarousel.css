@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════
    ShopCarousel.css — Beme Market
-   UI redesigned: Chrome Web Store–style (airy, rounded, pill buttons)
+   Chrome Web Store style: single full-width banner, bottom nav bar
    All overlay animations (kente, glitch, stamp, spray, curtain) untouched
    ═══════════════════════════════════════════════════════════════════ */
 
@@ -16,70 +16,63 @@
 .sc-wrapper {
   position: relative;
   width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-/* ── Track (mobile/tablet) ────────────────────────────────────────── */
+/* ── Track — single-card, clips overflow ──────────────────────────── */
 .sc-track {
   display: flex;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
+  overflow: hidden;
+  width: 100%;
+  border-radius: 20px;
 }
-.sc-track::-webkit-scrollbar { display: none; }
 
 /* ── Card wrapper ─────────────────────────────────────────────────── */
 .sc-card-wrap {
   flex-shrink: 0;
   width: 100%;
-  scroll-snap-align: start;
-  padding-bottom: 6px;
-  padding-right: 0;
 }
 
-/* ── Card shell — soft, airy, large radius ────────────────────────── */
+/* ── Card shell ───────────────────────────────────────────────────── */
 .sc-card {
   position: relative;
-  height: 210px;
-  border-radius: 20px;
+  height: 220px;
+  border-radius: 0;
   border: none;
   overflow: hidden;
   cursor: pointer;
   outline: none;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-  -webkit-tap-highlight-color: transparent;
   width: 100%;
-  box-shadow: 0 4px 24px rgba(17, 17, 17, 0.10);
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.sc-card:active {
-  transform: scale(0.987);
-  box-shadow: 0 2px 12px rgba(17, 17, 17, 0.10);
-}
 .sc-card:focus-visible {
   outline: 3px solid rgba(18, 81, 243, 0.55);
   outline-offset: 3px;
 }
 
-body.dark .sc-card {
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.38);
-}
-
 /* ── Full-bleed background image ──────────────────────────────────── */
 .sc-bg-image-wrap { position: absolute; inset: 0; z-index: 0; }
+
 .sc-bg-image {
   width: 100%; height: 100%;
   object-fit: cover; object-position: center;
   display: block; pointer-events: none; user-select: none;
+  transition: transform 0.6s ease;
 }
-/* Softer, more centered gradient — lets more image show on the right */
+
+.sc-card:hover .sc-bg-image {
+  transform: scale(1.022);
+}
+
 .sc-bg-gradient {
   position: absolute; inset: 0;
   background: linear-gradient(
     to right,
-    rgba(0,0,0,0.72) 0%,
-    rgba(0,0,0,0.38) 52%,
+    rgba(0,0,0,0.68) 0%,
+    rgba(0,0,0,0.32) 55%,
     rgba(0,0,0,0.06) 100%
   );
 }
@@ -89,19 +82,19 @@ body.dark .sc-card {
   position: relative; z-index: 2;
   width: 100%; height: 100%;
   display: flex; align-items: center;
-  padding: 22px 22px 48px 22px;
+  padding: 22px 24px 22px 24px;
 }
 
 /* ── Text content ─────────────────────────────────────────────────── */
 .sc-content {
-  max-width: 62%;
+  max-width: 64%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 5px;
 }
 
-/* Badge — pill style */
+/* Badge — frosted pill */
 .sc-badge {
   display: inline-block;
   background: rgba(255, 255, 255, 0.18);
@@ -110,117 +103,158 @@ body.dark .sc-card {
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  padding: 4px 10px;
+  padding: 4px 11px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.50);
   width: fit-content;
   margin-bottom: 4px;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
-/* Title — clean, modern weight */
+/* Title */
 .sc-title {
-  font-size: clamp(16px, 4.2vw, 22px);
+  font-size: clamp(16px, 4.5vw, 24px);
   font-weight: 800;
   color: #fff;
   line-height: 1.15;
   margin: 0;
   letter-spacing: -0.025em;
-  text-shadow: 0 1px 8px rgba(0,0,0,0.35);
+  text-shadow: 0 1px 10px rgba(0,0,0,0.32);
 }
 
 .sc-subtitle {
-  font-size: 11.5px;
+  font-size: 12px;
   color: rgba(255,255,255,0.78);
   margin: 0;
   line-height: 1.45;
   font-weight: 500;
 }
 
-/* Button — pill outline style (Chrome Web Store aesthetic) */
+/* Button — Chrome Web Store pill outline */
 .sc-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  margin-top: 12px;
+  margin-top: 14px;
   width: fit-content;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
-  padding: 8px 20px;
+  padding: 9px 22px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.15);
   color: #fff;
-  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  border: 1.5px solid rgba(255, 255, 255, 0.80);
   cursor: pointer;
-  letter-spacing: 0.02em;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.15s ease;
   box-shadow: none;
 }
 .sc-btn:hover {
-  background: rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.28);
   border-color: #fff;
 }
 .sc-btn:active {
   transform: scale(0.96);
 }
 
-/* ── Heart button — pill ghost ────────────────────────────────────── */
-.sc-heart {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 20;
+/* ── Bottom nav bar — Chrome Web Store style ──────────────────────── */
+.sc-bottom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 9px 2px 0;
+}
+
+.sc-nav-btn {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1.5px solid rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--border, rgba(17, 17, 17, 0.14));
+  background: var(--card, #fff);
+  color: var(--text, #111);
+  font-size: 18px;
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.18s ease, transform 0.15s ease;
-  box-shadow: none;
+  box-shadow: 0 1px 5px rgba(17, 17, 17, 0.07);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.13s ease;
 }
-.sc-heart:hover  { background: rgba(255, 255, 255, 0.30); }
-.sc-heart:active { transform: scale(0.92); }
-.sc-heart-svg { width: 14px; }
+.sc-nav-btn:hover {
+  background: var(--bg, #f5f5f5);
+  border-color: rgba(17, 17, 17, 0.28);
+}
+.sc-nav-btn:active {
+  transform: scale(0.91);
+}
 
-/* ── Dots — slim pill style ───────────────────────────────────────── */
-.sc-dots {
-  position: absolute;
-  bottom: 13px;
-  left: 0; right: 0;
-  z-index: 30;
+body.dark .sc-nav-btn {
+  background: var(--card, #1e1e1e);
+  color: var(--text, #f0f0f0);
+  border-color: var(--border, rgba(255, 255, 255, 0.12));
+  box-shadow: 0 1px 5px rgba(0,0,0,0.28);
+}
+body.dark .sc-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* Counter — "1 / 5" */
+.sc-counter {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #111);
+  letter-spacing: 0.02em;
+  padding: 0 4px;
+  min-width: 38px;
+  text-align: center;
+  opacity: 0.65;
+  user-select: none;
+}
+body.dark .sc-counter {
+  color: var(--text, #f0f0f0);
+}
+
+/* Pause / play button */
+.sc-pause-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border, rgba(17, 17, 17, 0.14));
+  background: var(--card, #fff);
+  color: var(--text, #111);
+  font-size: 13px;
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 5px;
-  pointer-events: none;
-}
-.sc-dot {
-  width: 6px;
-  height: 6px;
-  background: rgba(255,255,255,0.45);
-  border-radius: 999px;
-  border: none;
-  padding: 0;
+  justify-content: center;
   cursor: pointer;
-  pointer-events: all;
-  transition: width 0.25s ease, background 0.25s ease;
+  box-shadow: 0 1px 5px rgba(17, 17, 17, 0.07);
+  margin-left: 2px;
+  transition: background 0.15s ease, transform 0.13s ease;
 }
-.sc-dot.active {
-  width: 22px;
-  background: #fff;
+.sc-pause-btn:hover {
+  background: var(--bg, #f5f5f5);
+  border-color: rgba(17, 17, 17, 0.28);
+}
+.sc-pause-btn:active {
+  transform: scale(0.91);
+}
+body.dark .sc-pause-btn {
+  background: var(--card, #1e1e1e);
+  color: var(--text, #f0f0f0);
+  border-color: var(--border, rgba(255, 255, 255, 0.12));
+  box-shadow: 0 1px 5px rgba(0,0,0,0.28);
 }
 
-/* ── Desktop arrows — circle ghost (Chrome WS style) ─────────────── */
+/* ── Legacy elements — hidden ─────────────────────────────────────── */
+.sc-dots  { display: none; }
 .sc-arrow { display: none; }
+.sc-heart { display: none; }
 
 /* ══════════════════════════════════════════════════════════════
    RESPONSIVE
@@ -228,137 +262,43 @@ body.dark .sc-card {
 
 @media (max-width: 360px) {
   .sc-root { padding: 0 10px; }
-  .sc-card { height: 182px; border-radius: 16px; }
-  .sc-title { font-size: 14px; }
+  .sc-card { height: 186px; }
+  .sc-track { border-radius: 16px; }
+  .sc-title { font-size: 15px; }
   .sc-subtitle { font-size: 10.5px; }
-  .sc-btn { font-size: 10.5px; padding: 7px 14px; margin-top: 9px; }
+  .sc-btn { font-size: 11px; padding: 8px 16px; margin-top: 10px; }
   .sc-stamp { width: 78px; height: 78px; }
 }
 
 @media (min-width: 640px) {
   .sc-root { padding: 0 18px; }
-  .sc-card { height: 236px; border-radius: 22px; }
-  .sc-title { font-size: 22px; }
-  .sc-subtitle { font-size: 13px; }
-  .sc-btn { font-size: 13px; padding: 10px 24px; margin-top: 13px; }
+  .sc-card { height: 280px; }
+  .sc-track { border-radius: 22px; }
+  .sc-title { font-size: 26px; }
+  .sc-subtitle { font-size: 14px; }
+  .sc-btn { font-size: 14px; padding: 11px 28px; margin-top: 16px; }
   .sc-stamp { width: 106px; height: 106px; }
-  .sc-inner { padding: 26px 30px 50px 28px; }
+  .sc-inner { padding: 28px 32px; }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   DESKTOP ≥ 1024px — 3-panel Wish layout, height +70%
-   Mobile track is hidden; desktop grid is shown
-══════════════════════════════════════════════════════════════ */
 @media (min-width: 1024px) {
   .sc-root { padding: 0 48px; }
+  .sc-card { height: 400px; }
+  .sc-track { border-radius: 24px; }
+  .sc-title { font-size: 36px; }
+  .sc-subtitle { font-size: 16px; }
+  .sc-btn { font-size: 15px; padding: 13px 32px; margin-top: 20px; }
+  .sc-stamp { width: 120px; height: 120px; }
+  .sc-inner { padding: 44px 56px; }
+  .sc-content { max-width: 50%; }
+  .sc-bottom-nav { padding: 10px 4px 0; }
+  .sc-nav-btn, .sc-pause-btn { width: 34px; height: 34px; }
+  .sc-counter { font-size: 14px; }
+}
 
-  /* Hide mobile track on desktop */
-  .sc-track { display: none; }
-
-  /* 3-panel grid */
-  .sc-desktop-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    gap: 8px;
-    height: 476px;
-    border-radius: 22px;
-    overflow: hidden;
-    box-shadow:
-      0 8px 32px rgba(17, 17, 17, 0.12),
-      0 2px 8px rgba(17, 17, 17, 0.06);
-  }
-
-  /* Each panel fills its grid cell */
-  .sc-desktop-cell {
-    position: relative;
-    overflow: hidden;
-    height: 100%;
-  }
-
-  .sc-desktop-cell--side { border-left: none; }
-
-  /* Card fills its cell completely */
-  .sc-desktop-cell .sc-card {
-    height: 100%;
-    width: 100%;
-    border-radius: 0;
-    box-shadow: none;
-  }
-  .sc-desktop-cell .sc-card:active {
-    transform: none;
-    opacity: 0.92;
-  }
-
-  /* Hover zoom on image only */
-  .sc-desktop-cell:hover .sc-bg-image {
-    transform: scale(1.03);
-    transition: transform 0.45s ease;
-  }
-  .sc-bg-image { transition: transform 0.45s ease; }
-
-  /* Larger text in main panel */
-  .sc-desktop-cell--main .sc-title    { font-size: 30px; }
-  .sc-desktop-cell--main .sc-subtitle { font-size: 15px; }
-  .sc-desktop-cell--main .sc-btn      { font-size: 15px; padding: 12px 30px; margin-top: 16px; }
-  .sc-desktop-cell--main .sc-badge    { font-size: 10px; padding: 5px 13px; }
-  .sc-desktop-cell--main .sc-inner    { padding: 34px 90px 64px 44px; }
-  .sc-desktop-cell--main .sc-content  { max-width: 55%; }
-  .sc-desktop-cell--main .sc-stamp    { width: 120px; height: 120px; }
-
-  /* Side panels */
-  .sc-desktop-cell--side .sc-title    { font-size: 18px; }
-  .sc-desktop-cell--side .sc-subtitle { font-size: 11.5px; display: block; opacity: 0.85; }
-  .sc-desktop-cell--side .sc-btn      { font-size: 11.5px; padding: 8px 16px; margin-top: 10px; }
-  .sc-desktop-cell--side .sc-inner    { padding: 22px 16px 42px 20px; }
-  .sc-desktop-cell--side .sc-content  { max-width: 90%; }
-  .sc-desktop-cell--side .sc-stamp    { width: 90px; height: 90px; }
-
-  /* Panel fade-in */
-  @keyframes sc-panel-fadein {
-    from { opacity: 0; transform: scale(0.985); }
-    to   { opacity: 1; transform: scale(1); }
-  }
-  .sc-desktop-cell {
-    animation: sc-panel-fadein 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-  }
-
-  /* Arrows — clean circle ghost (Chrome WS style) */
-  .sc-arrow {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 40;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 1.5px solid rgba(17, 17, 17, 0.14);
-    background: rgba(255, 255, 255, 0.92);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    color: #111;
-    font-size: 22px;
-    line-height: 1;
-    cursor: pointer;
-    box-shadow: 0 2px 12px rgba(17, 17, 17, 0.14);
-    transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
-  }
-  .sc-arrow:hover {
-    background: #fff;
-    box-shadow: 0 4px 20px rgba(17, 17, 17, 0.20);
-    transform: translateY(-50%) scale(1.06);
-  }
-  .sc-arrow:active {
-    transform: translateY(-50%) scale(0.95);
-    box-shadow: 0 2px 8px rgba(17, 17, 17, 0.12);
-  }
-  .sc-arrow--prev { left: 10px; }
-  .sc-arrow--next { right: 15px; }
-
-  /* Dots sit below the grid */
-  .sc-dots { bottom: 10px; }
+@media (min-width: 1280px) {
+  .sc-card { height: 460px; }
+  .sc-title { font-size: 42px; }
 }
 
 /* ── Gadgets: cyan title glow ─────────────────────────────────────── */
@@ -445,7 +385,7 @@ body.dark .sc-card {
 
 /* ── Reduced motion ─────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .sc-card,.sc-curtain-left,.sc-curtain-right { transition:none !important; }
+  .sc-curtain-left,.sc-curtain-right { transition:none !important; }
   .sc-card--visible .sc-curtain-left  { transform:translateX(-100%) !important; }
   .sc-card--visible .sc-curtain-right { transform:translateX(100%)  !important; }
   .sc-kente-path { animation:none !important; stroke-dashoffset:0 !important; }
