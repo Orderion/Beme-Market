@@ -1,7 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════
    ShopCarousel.css — Beme Market
-   Mobile/tablet: unchanged single-card slider
-   Desktop ≥1024px: 3-panel Wish-style layout, height +70%
+   UI redesigned: Chrome Web Store–style (airy, rounded, pill buttons)
    All overlay animations (kente, glitch, stamp, spray, curtain) untouched
    ═══════════════════════════════════════════════════════════════════ */
 
@@ -19,7 +18,7 @@
   width: 100%;
 }
 
-/* ── Track (mobile/tablet only) ───────────────────────────────────── */
+/* ── Track (mobile/tablet) ────────────────────────────────────────── */
 .sc-track {
   display: flex;
   overflow-x: auto;
@@ -36,34 +35,36 @@
   width: 100%;
   scroll-snap-align: start;
   padding-bottom: 6px;
-  padding-right: 5px;
+  padding-right: 0;
 }
 
-/* ── Card shell ───────────────────────────────────────────────────── */
+/* ── Card shell — soft, airy, large radius ────────────────────────── */
 .sc-card {
   position: relative;
-  height: 196px;
-  border-radius: 0;
+  height: 210px;
+  border-radius: 20px;
   border: none;
-  box-shadow: none;
   overflow: hidden;
   cursor: pointer;
   outline: none;
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
   -webkit-tap-highlight-color: transparent;
   width: 100%;
+  box-shadow: 0 4px 24px rgba(17, 17, 17, 0.10);
 }
 
 .sc-card:active {
-  transform: translate(3px, 3px);
-  opacity: 0.92;
+  transform: scale(0.987);
+  box-shadow: 0 2px 12px rgba(17, 17, 17, 0.10);
 }
 .sc-card:focus-visible {
-  outline: 3px solid rgba(232,108,44,0.7); outline-offset: 2px;
+  outline: 3px solid rgba(18, 81, 243, 0.55);
+  outline-offset: 3px;
 }
 
-body.dark .sc-card { border: none; }
-
+body.dark .sc-card {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.38);
+}
 
 /* ── Full-bleed background image ──────────────────────────────────── */
 .sc-bg-image-wrap { position: absolute; inset: 0; z-index: 0; }
@@ -72,9 +73,15 @@ body.dark .sc-card { border: none; }
   object-fit: cover; object-position: center;
   display: block; pointer-events: none; user-select: none;
 }
+/* Softer, more centered gradient — lets more image show on the right */
 .sc-bg-gradient {
   position: absolute; inset: 0;
-  background: linear-gradient(to right, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.48) 48%, rgba(0,0,0,0.12) 100%);
+  background: linear-gradient(
+    to right,
+    rgba(0,0,0,0.72) 0%,
+    rgba(0,0,0,0.38) 52%,
+    rgba(0,0,0,0.06) 100%
+  );
 }
 
 /* ── Inner body ───────────────────────────────────────────────────── */
@@ -82,69 +89,137 @@ body.dark .sc-card { border: none; }
   position: relative; z-index: 2;
   width: 100%; height: 100%;
   display: flex; align-items: center;
-  padding: 20px 20px 42px 20px;
+  padding: 22px 22px 48px 22px;
 }
 
 /* ── Text content ─────────────────────────────────────────────────── */
-.sc-content { max-width: 58%; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
-
-.sc-badge {
-  display: inline-block; background: #e86c2c; color: #fff;
-  font-size: 9px; font-weight: 900; letter-spacing: 0.08em;
-  text-transform: uppercase; padding: 4px 9px; border-radius: 0;
-  border: 1.5px solid #fff; box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
-  width: fit-content; margin-bottom: 4px;
+.sc-content {
+  max-width: 62%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
 }
 
+/* Badge — pill style */
+.sc-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  width: fit-content;
+  margin-bottom: 4px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Title — clean, modern weight */
 .sc-title {
-  font-size: clamp(15px, 4vw, 20px); font-weight: 900; color: #fff;
-  line-height: 1.15; margin: 0; text-transform: uppercase;
-  letter-spacing: -0.02em; text-shadow: 2px 2px 0 rgba(0,0,0,0.55);
+  font-size: clamp(16px, 4.2vw, 22px);
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.15;
+  margin: 0;
+  letter-spacing: -0.025em;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.35);
 }
 
 .sc-subtitle {
-  font-size: 11px; color: rgba(255,255,255,0.80); margin: 0;
-  line-height: 1.4; font-weight: 600;
+  font-size: 11.5px;
+  color: rgba(255,255,255,0.78);
+  margin: 0;
+  line-height: 1.45;
+  font-weight: 500;
 }
 
+/* Button — pill outline style (Chrome Web Store aesthetic) */
 .sc-btn {
-  display: inline-flex; align-items: center; gap: 4px;
-  margin-top: 10px; width: fit-content;
-  font-size: 11px; font-weight: 900; padding: 7px 16px; border-radius: 0;
-  background: #e86c2c; color: #fff; border: 2px solid #fff;
-  box-shadow: 3px 3px 0 rgba(0,0,0,0.55); cursor: pointer;
-  letter-spacing: 0.06em; text-transform: uppercase;
-  transition: transform 0.1s, box-shadow 0.1s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 12px;
+  width: fit-content;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 20px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.15s ease;
+  box-shadow: none;
 }
-.sc-btn:hover  { opacity: 0.9; }
-.sc-btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 rgba(0,0,0,0.55); }
+.sc-btn:hover {
+  background: rgba(255, 255, 255, 0.26);
+  border-color: #fff;
+}
+.sc-btn:active {
+  transform: scale(0.96);
+}
 
-/* ── Heart button ─────────────────────────────────────────────────── */
+/* ── Heart button — pill ghost ────────────────────────────────────── */
 .sc-heart {
-  position: absolute; top: 11px; right: 11px; z-index: 20;
-  width: 30px; height: 30px; border-radius: 0;
-  background: rgba(0,0,0,0.45); border: 2px solid rgba(255,255,255,0.7);
-  box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: transform 0.1s, box-shadow 0.1s;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.15s ease;
+  box-shadow: none;
 }
-.sc-heart:active { transform: translate(1px,1px); box-shadow: 1px 1px 0 rgba(0,0,0,0.5); }
+.sc-heart:hover  { background: rgba(255, 255, 255, 0.30); }
+.sc-heart:active { transform: scale(0.92); }
 .sc-heart-svg { width: 14px; }
 
-/* ── Dots ─────────────────────────────────────────────────────────── */
+/* ── Dots — slim pill style ───────────────────────────────────────── */
 .sc-dots {
-  position: absolute; bottom: 14px; left: 0; right: 0; z-index: 30;
-  display: flex; justify-content: center; align-items: center; gap: 5px;
+  position: absolute;
+  bottom: 13px;
+  left: 0; right: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
   pointer-events: none;
 }
 .sc-dot {
-  width: 8px; height: 8px; background: rgba(255,255,255,0.55); border-radius: 0;
-  border: 1.5px solid rgba(255,255,255,0.8); padding: 0; cursor: pointer;
-  pointer-events: all; transition: width 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  width: 6px;
+  height: 6px;
+  background: rgba(255,255,255,0.45);
+  border-radius: 999px;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: all;
+  transition: width 0.25s ease, background 0.25s ease;
 }
-.sc-dot.active { width: 24px; background: #e86c2c; border-color: #fff; box-shadow: 2px 2px 0 rgba(0,0,0,0.5); }
+.sc-dot.active {
+  width: 22px;
+  background: #fff;
+}
 
-/* ── Desktop arrows ───────────────────────────────────────────────── */
+/* ── Desktop arrows — circle ghost (Chrome WS style) ─────────────── */
 .sc-arrow { display: none; }
 
 /* ══════════════════════════════════════════════════════════════
@@ -153,21 +228,21 @@ body.dark .sc-card { border: none; }
 
 @media (max-width: 360px) {
   .sc-root { padding: 0 10px; }
-  .sc-card { height: 172px; }
+  .sc-card { height: 182px; border-radius: 16px; }
   .sc-title { font-size: 14px; }
   .sc-subtitle { font-size: 10.5px; }
-  .sc-btn { font-size: 10px; padding: 6px 12px; margin-top: 7px; }
+  .sc-btn { font-size: 10.5px; padding: 7px 14px; margin-top: 9px; }
   .sc-stamp { width: 78px; height: 78px; }
 }
 
 @media (min-width: 640px) {
   .sc-root { padding: 0 18px; }
-  .sc-card { height: 220px; }
+  .sc-card { height: 236px; border-radius: 22px; }
   .sc-title { font-size: 22px; }
   .sc-subtitle { font-size: 13px; }
-  .sc-btn { font-size: 13px; padding: 9px 20px; margin-top: 11px; }
+  .sc-btn { font-size: 13px; padding: 10px 24px; margin-top: 13px; }
   .sc-stamp { width: 106px; height: 106px; }
-  .sc-inner { padding: 24px 28px 46px 28px; }
+  .sc-inner { padding: 26px 30px 50px 28px; }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -184,11 +259,13 @@ body.dark .sc-card { border: none; }
   .sc-desktop-grid {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr;
-    gap: 6px;
+    gap: 8px;
     height: 476px;
-    border-radius: 14px;
+    border-radius: 22px;
     overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+    box-shadow:
+      0 8px 32px rgba(17, 17, 17, 0.12),
+      0 2px 8px rgba(17, 17, 17, 0.06);
   }
 
   /* Each panel fills its grid cell */
@@ -198,41 +275,45 @@ body.dark .sc-card { border: none; }
     height: 100%;
   }
 
-  /* Side panels: stack 2 vertically if only 2 right slots */
-  .sc-desktop-cell--side {
-    border-left: none;
-  }
+  .sc-desktop-cell--side { border-left: none; }
 
   /* Card fills its cell completely */
   .sc-desktop-cell .sc-card {
     height: 100%;
     width: 100%;
-    border: none;        /* border is on the grid */
-    box-shadow: none;    /* shadow is on the grid */
+    border-radius: 0;
+    box-shadow: none;
   }
   .sc-desktop-cell .sc-card:active {
     transform: none;
-    opacity: 0.9;
+    opacity: 0.92;
   }
 
+  /* Hover zoom on image only */
+  .sc-desktop-cell:hover .sc-bg-image {
+    transform: scale(1.03);
+    transition: transform 0.45s ease;
+  }
+  .sc-bg-image { transition: transform 0.45s ease; }
+
   /* Larger text in main panel */
-  .sc-desktop-cell--main .sc-title  { font-size: 30px; }
+  .sc-desktop-cell--main .sc-title    { font-size: 30px; }
   .sc-desktop-cell--main .sc-subtitle { font-size: 15px; }
-  .sc-desktop-cell--main .sc-btn   { font-size: 15px; padding: 12px 26px; margin-top: 14px; }
-  .sc-desktop-cell--main .sc-badge { font-size: 10px; padding: 5px 11px; }
-  .sc-desktop-cell--main .sc-inner { padding: 32px 90px 60px 44px; }
-  .sc-desktop-cell--main .sc-content { max-width: 55%; }
-  .sc-desktop-cell--main .sc-stamp { width: 120px; height: 120px; }
+  .sc-desktop-cell--main .sc-btn      { font-size: 15px; padding: 12px 30px; margin-top: 16px; }
+  .sc-desktop-cell--main .sc-badge    { font-size: 10px; padding: 5px 13px; }
+  .sc-desktop-cell--main .sc-inner    { padding: 34px 90px 64px 44px; }
+  .sc-desktop-cell--main .sc-content  { max-width: 55%; }
+  .sc-desktop-cell--main .sc-stamp    { width: 120px; height: 120px; }
 
-  /* Side panels: slightly smaller text */
-  .sc-desktop-cell--side .sc-title  { font-size: 17px; }
-  .sc-desktop-cell--side .sc-subtitle { font-size: 11px; display: block; opacity: 0.85; }
-  .sc-desktop-cell--side .sc-btn   { font-size: 11px; padding: 7px 14px; margin-top: 8px; }
-  .sc-desktop-cell--side .sc-inner { padding: 20px 16px 38px 20px; }
-  .sc-desktop-cell--side .sc-content { max-width: 90%; }
-  .sc-desktop-cell--side .sc-stamp { width: 90px; height: 90px; }
+  /* Side panels */
+  .sc-desktop-cell--side .sc-title    { font-size: 18px; }
+  .sc-desktop-cell--side .sc-subtitle { font-size: 11.5px; display: block; opacity: 0.85; }
+  .sc-desktop-cell--side .sc-btn      { font-size: 11.5px; padding: 8px 16px; margin-top: 10px; }
+  .sc-desktop-cell--side .sc-inner    { padding: 22px 16px 42px 20px; }
+  .sc-desktop-cell--side .sc-content  { max-width: 90%; }
+  .sc-desktop-cell--side .sc-stamp    { width: 90px; height: 90px; }
 
-  /* Smooth fade when panels change */
+  /* Panel fade-in */
   @keyframes sc-panel-fadein {
     from { opacity: 0; transform: scale(0.985); }
     to   { opacity: 1; transform: scale(1); }
@@ -241,19 +322,38 @@ body.dark .sc-card { border: none; }
     animation: sc-panel-fadein 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   }
 
-  /* Arrows — overlay the grid */
+  /* Arrows — clean circle ghost (Chrome WS style) */
   .sc-arrow {
-    display: flex; align-items: center; justify-content: center;
-    position: absolute; top: 50%; transform: translateY(-50%);
-    z-index: 40; width: 40px; height: 40px;
-    border-radius: 50%; border: none;
-    background: rgba(255,255,255,0.93);
-    box-shadow: 0 2px 14px rgba(0,0,0,0.22);
-    color: #111; font-size: 22px; line-height: 1;
-    cursor: pointer; transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 40;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(17, 17, 17, 0.14);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #111;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(17, 17, 17, 0.14);
+    transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
   }
-  .sc-arrow:hover { background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.28); transform: translateY(-50%) scale(1.06); }
-  .sc-arrow:active { transform: translateY(-50%) scale(0.96); box-shadow: 0 2px 10px rgba(0,0,0,0.18); }
+  .sc-arrow:hover {
+    background: #fff;
+    box-shadow: 0 4px 20px rgba(17, 17, 17, 0.20);
+    transform: translateY(-50%) scale(1.06);
+  }
+  .sc-arrow:active {
+    transform: translateY(-50%) scale(0.95);
+    box-shadow: 0 2px 8px rgba(17, 17, 17, 0.12);
+  }
   .sc-arrow--prev { left: 10px; }
   .sc-arrow--next { right: 15px; }
 
@@ -262,7 +362,9 @@ body.dark .sc-card { border: none; }
 }
 
 /* ── Gadgets: cyan title glow ─────────────────────────────────────── */
-.sc-theme-gadgets .sc-title { text-shadow: 0 0 18px rgba(0,220,255,0.7), 2px 2px 0 rgba(0,0,0,0.55); }
+.sc-theme-gadgets .sc-title {
+  text-shadow: 0 0 20px rgba(0,220,255,0.65), 0 1px 8px rgba(0,0,0,0.35);
+}
 
 
 /* ════════════════════════════════════════════════════════════════════
