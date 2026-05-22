@@ -1,8 +1,9 @@
 /* ============================================================
    FILE: src/pages/Shop.jsx
-   Modern redesign — matches Beme Market system style.
-   Neo-brutalist classes removed, soft rounded UI applied.
-   All logic unchanged from original.
+   Categories section now uses the same NAV_CATEGORIES as the
+   header nav (defined once here, same data as Header.jsx).
+   Category filter sets ?q= param, matching header behaviour.
+   Layout fixed for all screen sizes.
 ============================================================ */
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -10,18 +11,36 @@ import ProductGrid from "../components/ProductGrid";
 import ProductRequestModal from "../components/productRequest/ProductRequestModal";
 import shopBanner from "../assets/Shop-banner.JPG";
 import {
-  DEPARTMENTS, KINDS, SHOPS, HOME_FILTER_OPTIONS,
-  DEFAULT_KIND_BY_DEPT, normalizeDept, normalizeKind,
+  SHOPS, HOME_FILTER_OPTIONS,
   normalizeShop, normalizeHomeFilter,
 } from "../constants/catalog";
 import "./Shop.css";
 
-const SHOP_TITLE_MAP = {
-  fashion:"Fashion Shop", main:"Main Store", kente:"Mintah's Kente",
-  perfume:"Perfume Shop",  tech:"Tech Shop",
+/* ── Same categories as Header.jsx NAV_CATEGORIES ── */
+const NAV_CATEGORIES = [
+  { key:"iphones",         label:"Phones",          query:"iphone",      color:"#DDEEFF" },
+  { key:"laptops",         label:"Laptops",          query:"laptop",      color:"#EAE7FD" },
+  { key:"shoes",           label:"Shoes",            query:"shoes",       color:"#FFE8DF" },
+  { key:"clothing",        label:"Clothing",         query:"clothing",    color:"#FFE3EE" },
+  { key:"kids",            label:"Kids",             query:"kids",        color:"#FFF0D6" },
+  { key:"game",            label:"Gaming",           query:"game",        color:"#DDF3E4" },
+  { key:"home_appliances", label:"Home Appliances",  query:"appliances",  color:"#D6F4EC" },
+  { key:"accessories",     label:"Accessories",      query:"accessories", color:"#FFF3DB" },
+];
+
+/* ── Category icons (same stroke style as header ChipIcon) ── */
+const CAT_ICONS = {
+  iphones:(<svg viewBox="0 0 24 24" className="shop-chip-svg" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="7" y="2" width="10" height="20" rx="2.5"/><circle cx="12" cy="17.5" r="0.8" fill="currentColor" stroke="none"/></svg>),
+  laptops:(<svg viewBox="0 0 24 24" className="shop-chip-svg" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="5" width="18" height="12" rx="1.5"/><path d="M1 19h22"/></svg>),
+  shoes:(<svg viewBox="0 0 24 24" className="shop-chip-svg" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M2 16s1-1 4-1 5 2 8 2 6-2 8-2v3s-2 2-8 2-8-2-8-2H2v-2z"/><path d="M6 15V9l4-4h4"/></svg>),
+  clothing:(<svg viewBox="0 0 24 24" className="shop-chip-svg" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M9 3L3 7l3 2v12h12V9l3-2-6-4c0 1.66-1.34 3-3 3S9 4.66 9 3z"/></svg>),
+  kids:(<svg viewBox="0 0 24 24" className="shop-chip-svg" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="7" r="4"/><path d="M8 21v-2a4 4 0 0 1 8 0v2"/></svg>),
+  game:(<svg viewBox="0 0 24 24" className="shop-chip-svg" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="2" y="7" width="20" height="12" rx="4"/><path d="M8 11v4M6 13h4M15 12h2M15 14h2"/></svg>),
+  home_appliances:(<svg viewBox="0 0 24 24" className="shop-chip-svg" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><circle cx="7" cy="6" r="0.8" fill="currentColor" stroke="none"/><circle cx="11" cy="6" r="0.8" fill="currentColor" stroke="none"/></svg>),
+  accessories:(<svg viewBox="0 0 24 24" className="shop-chip-svg" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg>),
 };
+
 const SHOP_FILTER_OPTIONS = SHOPS.map(s => ({ ...s }));
-const HOME_SLOT_OPTIONS   = HOME_FILTER_OPTIONS.map(i => ({ ...i }));
 
 function getLabel(list, key) {
   return list.find(i => i.key === key)?.label || null;
@@ -29,29 +48,27 @@ function getLabel(list, key) {
 
 function ShopIcon({ shopKey }) {
   const p = { fill:"none", stroke:"currentColor", strokeWidth:"1.8", strokeLinejoin:"round" };
-  if (shopKey === "fashion") return <svg viewBox="0 0 24 24" className="shop-chip-svg" {...p}><path d="M9 4l3 2 3-2 3 3-2 3v9H8v-9L6 7l3-3Z"/></svg>;
-  if (shopKey === "kente")   return <svg viewBox="0 0 24 24" className="shop-chip-svg" {...p} strokeLinecap="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>;
-  if (shopKey === "perfume") return <svg viewBox="0 0 24 24" className="shop-chip-svg" {...p} strokeLinecap="round"><path d="M9 2h6v4H9zM12 6v3M7 9h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/></svg>;
-  if (shopKey === "tech")    return <svg viewBox="0 0 24 24" className="shop-chip-svg" {...p} strokeLinecap="round"><rect x="5" y="5" width="14" height="10" rx="1.6"/><path d="M3.5 18h17"/></svg>;
+  if (shopKey==="fashion") return <svg viewBox="0 0 24 24" className="shop-chip-svg" {...p}><path d="M9 4l3 2 3-2 3 3-2 3v9H8v-9L6 7l3-3Z"/></svg>;
+  if (shopKey==="kente")   return <svg viewBox="0 0 24 24" className="shop-chip-svg" {...p} strokeLinecap="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>;
+  if (shopKey==="perfume") return <svg viewBox="0 0 24 24" className="shop-chip-svg" {...p} strokeLinecap="round"><path d="M9 2h6v4H9zM12 6v3M7 9h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/></svg>;
+  if (shopKey==="tech")    return <svg viewBox="0 0 24 24" className="shop-chip-svg" {...p} strokeLinecap="round"><rect x="5" y="5" width="14" height="10" rx="1.6"/><path d="M3.5 18h17"/></svg>;
   return <svg viewBox="0 0 24 24" className="shop-chip-svg" {...p} strokeLinecap="round"><rect x="4" y="5" width="16" height="14" rx="2.4"/><path d="M8 9h8M8 12h8M8 15h5"/></svg>;
 }
 
-function IconSearch() {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
-}
-function IconPlus() {
-  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
-}
-function IconArrow() {
-  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>;
-}
+function IconPlus() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>; }
+function IconArrow(){ return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>; }
+function IconSearch(){ return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>; }
 
+/* ════════════════════════════════════════
+   COMPONENT
+════════════════════════════════════════ */
 const Shop = () => {
-  const [params, setParams] = useSearchParams();
-  const [requestModalOpen, setRequestModalOpen] = useState(false);
+  const [params, setParams]           = useSearchParams();
+  const [requestModalOpen, setRequest]= useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sortOpen, setSortOpen]       = useState(false);
 
-  const deptParam     = normalizeDept(params.get("dept"));
-  const kindParam     = normalizeKind(params.get("kind"));
+  /* ── URL params ── */
   const shopParam     = normalizeShop(params.get("shop"));
   const rawSlot       = params.get("slot");
   const slotParam     = rawSlot ? normalizeHomeFilter(rawSlot) : null;
@@ -62,8 +79,8 @@ const Shop = () => {
   const stockParam    = params.get("stock") === "1";
   const featuredParam = params.get("featured") === "1";
 
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [sortOpen,    setSortOpen]    = useState(false);
+  /* active category = which NAV_CATEGORY query matches current ?q= */
+  const activeCatKey = NAV_CATEGORIES.find(c => c.query === qParam)?.key || null;
 
   useEffect(() => {
     document.body.style.overflow = (filtersOpen || sortOpen) ? "hidden" : "";
@@ -73,33 +90,24 @@ const Shop = () => {
   const [draft, setDraft] = useState(() => ({
     sort:sortParam, min:minParam??"", max:maxParam??"", stock:stockParam, featured:featuredParam,
   }));
-
   useEffect(() => {
     setDraft({ sort:sortParam, min:minParam??"", max:maxParam??"", stock:stockParam, featured:featuredParam });
   }, [sortParam, minParam, maxParam, stockParam, featuredParam]);
 
   const closePanels = () => { setFiltersOpen(false); setSortOpen(false); };
 
-  const setDept = (dept) => {
-    const next = new URLSearchParams(params);
-    if (!dept) { next.delete("dept"); next.delete("kind"); setParams(next); return; }
-    next.set("dept", dept);
-    const cur = normalizeKind(next.get("kind"));
-    if (!cur) { const def = DEFAULT_KIND_BY_DEPT[dept]; if (def) next.set("kind", def); }
-    setParams(next);
-  };
-  const setKind     = (kind) => { const n=new URLSearchParams(params); if(!kind)n.delete("kind");else n.set("kind",kind); setParams(n); };
-  const setShop     = (shop) => { const n=new URLSearchParams(params); if(!shop)n.delete("shop");else n.set("shop",shop); setParams(n); };
-  const setSlot     = (slot) => { const n=new URLSearchParams(params); if(!slot)n.delete("slot");else n.set("slot",slot); setParams(n); };
-  const clearSearch = () => { const n=new URLSearchParams(params); n.delete("q"); setParams(n); };
-  const resetSortOnly  = () => { const n=new URLSearchParams(params); n.delete("sort"); setParams(n); };
-  const resetPriceOnly = () => { const n=new URLSearchParams(params); n.delete("min"); n.delete("max"); setParams(n); };
-  const toggleStock    = (v) => { const n=new URLSearchParams(params); if(v)n.set("stock","1");else n.delete("stock"); setParams(n); };
-  const toggleFeatured = (v) => { const n=new URLSearchParams(params); if(v)n.set("featured","1");else n.delete("featured"); setParams(n); };
+  /* ── Setters ── */
+  const setShop  = (shop)  => { const n=new URLSearchParams(params); if(!shop)n.delete("shop"); else n.set("shop",shop); setParams(n); };
+  const setQ     = (val)   => { const n=new URLSearchParams(params); if(!val)n.delete("q"); else n.set("q",val); setParams(n); };
+  const clearSearch = ()   => { const n=new URLSearchParams(params); n.delete("q"); setParams(n); };
+  const resetSortOnly  = ()=> { const n=new URLSearchParams(params); n.delete("sort"); setParams(n); };
+  const resetPriceOnly = ()=> { const n=new URLSearchParams(params); n.delete("min"); n.delete("max"); setParams(n); };
+  const toggleStock    = (v)=>{ const n=new URLSearchParams(params); if(v)n.set("stock","1"); else n.delete("stock"); setParams(n); };
+  const toggleFeatured = (v)=>{ const n=new URLSearchParams(params); if(v)n.set("featured","1"); else n.delete("featured"); setParams(n); };
 
   const clearAll = () => {
     const n = new URLSearchParams(params);
-    ["dept","kind","shop","slot","sort","min","max","stock","featured","q"].forEach(k => n.delete(k));
+    ["shop","slot","sort","min","max","stock","featured","q"].forEach(k => n.delete(k));
     setParams(n); closePanels();
   };
   const openSort = () => {
@@ -108,13 +116,13 @@ const Shop = () => {
   };
   const applySort = () => {
     const next = new URLSearchParams(params);
-    if (!draft.sort || draft.sort === "new") next.delete("sort"); else next.set("sort", draft.sort);
-    const min = draft.min === "" ? null : Number(draft.min);
-    const max = draft.max === "" ? null : Number(draft.max);
-    if (min!=null && !Number.isNaN(min) && min>=0) next.set("min",String(min)); else next.delete("min");
-    if (max!=null && !Number.isNaN(max) && max>=0) next.set("max",String(max)); else next.delete("max");
-    if (draft.stock)    next.set("stock","1");    else next.delete("stock");
-    if (draft.featured) next.set("featured","1"); else next.delete("featured");
+    if (!draft.sort || draft.sort==="new") next.delete("sort"); else next.set("sort",draft.sort);
+    const min = draft.min===""?null:Number(draft.min);
+    const max = draft.max===""?null:Number(draft.max);
+    if(min!=null&&!Number.isNaN(min)&&min>=0)next.set("min",String(min));else next.delete("min");
+    if(max!=null&&!Number.isNaN(max)&&max>=0)next.set("max",String(max));else next.delete("max");
+    if(draft.stock)next.set("stock","1");else next.delete("stock");
+    if(draft.featured)next.set("featured","1");else next.delete("featured");
     setParams(next); setSortOpen(false);
   };
   const clearSortPanel = () => {
@@ -124,53 +132,51 @@ const Shop = () => {
     setParams(n); setSortOpen(false);
   };
 
-  const hasActiveFilters = !!deptParam || !!kindParam || !!shopParam || !!slotParam || !!qParam;
-  const hasActiveSort    = sortParam !== "new" || stockParam || featuredParam || minParam != null || maxParam != null;
+  const hasActiveFilters = !!activeCatKey || !!shopParam || !!slotParam || !!qParam;
+  const hasActiveSort    = sortParam!=="new" || stockParam || featuredParam || minParam!=null || maxParam!=null;
 
   const activePills = useMemo(() => {
     const pills = [];
-    if (shopParam)   pills.push({ key:`shop:${shopParam}`,  label:SHOP_TITLE_MAP[shopParam]||getLabel(SHOPS,shopParam)||"Shop", onRemove:()=>setShop(null) });
-    if (slotParam)   pills.push({ key:`slot:${slotParam}`,  label:getLabel(HOME_FILTER_OPTIONS,slotParam)||slotParam,           onRemove:()=>setSlot(null) });
-    if (deptParam)   pills.push({ key:`dept:${deptParam}`,  label:getLabel(DEPARTMENTS,deptParam)||deptParam,                   onRemove:()=>setDept(null) });
-    if (kindParam)   pills.push({ key:`kind:${kindParam}`,  label:getLabel(KINDS,kindParam)||kindParam,                         onRemove:()=>setKind(null) });
-    if (qParam)      pills.push({ key:`q:${qParam}`,        label:`Search: ${qParam}`,                                         onRemove:()=>clearSearch() });
-    if (sortParam!=="new") pills.push({ key:`sort:${sortParam}`, label:sortParam==="price-asc"?"Price: Low → High":sortParam==="price-desc"?"Price: High → Low":"Newest", onRemove:()=>resetSortOnly() });
-    if (minParam!=null||maxParam!=null) pills.push({ key:"price-range", label:`GHS ${minParam??0} – ${maxParam??"∞"}`, onRemove:()=>resetPriceOnly() });
-    if (stockParam)    pills.push({ key:"stock",    label:"In stock",  onRemove:()=>toggleStock(false) });
-    if (featuredParam) pills.push({ key:"featured", label:"Featured",  onRemove:()=>toggleFeatured(false) });
+    if (shopParam)   pills.push({ key:`shop:${shopParam}`, label:SHOPS.find(s=>s.key===shopParam)?.label||"Shop", onRemove:()=>setShop(null) });
+    if (activeCatKey) pills.push({ key:`cat:${activeCatKey}`, label:NAV_CATEGORIES.find(c=>c.key===activeCatKey)?.label||qParam, onRemove:()=>clearSearch() });
+    else if (qParam) pills.push({ key:`q:${qParam}`, label:`Search: ${qParam}`, onRemove:()=>clearSearch() });
+    if(sortParam!=="new") pills.push({ key:`sort:${sortParam}`, label:sortParam==="price-asc"?"Price: Low → High":"Price: High → Low", onRemove:()=>resetSortOnly() });
+    if(minParam!=null||maxParam!=null) pills.push({ key:"price-range", label:`GHS ${minParam??0} – ${maxParam??"∞"}`, onRemove:()=>resetPriceOnly() });
+    if(stockParam)    pills.push({ key:"stock",    label:"In stock",  onRemove:()=>toggleStock(false) });
+    if(featuredParam) pills.push({ key:"featured", label:"Featured",  onRemove:()=>toggleFeatured(false) });
     return pills;
-  }, [shopParam,slotParam,deptParam,kindParam,qParam,sortParam,minParam,maxParam,stockParam,featuredParam]);
+  }, [shopParam,activeCatKey,qParam,sortParam,minParam,maxParam,stockParam,featuredParam]);
 
   const filter = useMemo(() => ({
-    dept:deptParam||null, kind:kindParam||null, shop:shopParam||null, slot:slotParam||null,
+    dept:null, kind:null,
+    shop:shopParam||null, slot:slotParam||null,
     q:qParam||"",
     priceMin:minParam!=null&&!Number.isNaN(minParam)?minParam:null,
     priceMax:maxParam!=null&&!Number.isNaN(maxParam)?maxParam:null,
     inStockOnly:stockParam, featuredOnly:featuredParam, sort:sortParam,
-  }), [deptParam,kindParam,shopParam,slotParam,qParam,minParam,maxParam,stockParam,featuredParam,sortParam]);
-
-  const isSearching = !!qParam;
+  }), [shopParam,slotParam,qParam,minParam,maxParam,stockParam,featuredParam,sortParam]);
 
   return (
     <div className="shop-page">
 
-      {(filtersOpen || sortOpen) && (
+      {(filtersOpen||sortOpen) && (
         <button type="button" className="shop-panel-overlay" aria-label="Close panel" onClick={closePanels}/>
       )}
 
       <div className="shop-layout">
 
-        {/* ── Sidebar ── */}
-        <aside className={`shop-sidebar${filtersOpen ? " sidebar-open" : ""}`} aria-label="Filters">
+        {/* ════════════════ SIDEBAR ════════════════ */}
+        <aside className={`shop-sidebar${filtersOpen?" sidebar-open":""}`} aria-label="Filters">
           <div className="shop-sidebar-inner">
 
             <div className="shop-sidebar-head">
               <span className="shop-sidebar-title">Filters</span>
               <div className="shop-sidebar-head-actions">
-                {(hasActiveFilters || hasActiveSort) && (
+                {(hasActiveFilters||hasActiveSort) && (
                   <button type="button" className="shop-panel-action" onClick={clearAll}>Clear all</button>
                 )}
-                <button type="button" className="shop-sidebar-close-btn" onClick={() => setFiltersOpen(false)} aria-label="Close filters">
+                <button type="button" className="shop-sidebar-close-btn"
+                  onClick={() => setFiltersOpen(false)} aria-label="Close filters">
                   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                     <path d="M18 6L6 18M6 6l12 12"/>
                   </svg>
@@ -180,53 +186,50 @@ const Shop = () => {
 
             <div className="shop-sidebar-scroll">
 
+              {/* ── Store ── */}
               <div className="shop-sidebar-section">
                 <div className="shop-sidebar-label">Store</div>
                 <div className="shop-sidebar-list">
-                  <button type="button" className={!shopParam ? "sidebar-item active":"sidebar-item"} onClick={() => setShop(null)}>
+                  <button type="button" className={!shopParam?"sidebar-item active":"sidebar-item"} onClick={() => setShop(null)}>
                     <svg viewBox="0 0 24 24" className="shop-chip-svg" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="4" y="5" width="16" height="14" rx="2.4"/><path d="M8 9h8M8 12h8M8 15h5"/></svg>
                     All stores
                   </button>
                   {SHOP_FILTER_OPTIONS.map(shop => (
-                    <button key={shop.key} type="button" className={shopParam===shop.key?"sidebar-item active":"sidebar-item"} onClick={() => setShop(shop.key)}>
+                    <button key={shop.key} type="button"
+                      className={shopParam===shop.key?"sidebar-item active":"sidebar-item"}
+                      onClick={() => setShop(shop.key)}>
                       <ShopIcon shopKey={shop.key}/>{shop.label}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="shop-sidebar-section">
-                <div className="shop-sidebar-label">Category</div>
-                <div className="shop-sidebar-list">
-                  <button type="button" className={!slotParam?"sidebar-item active":"sidebar-item"} onClick={() => setSlot(null)}>All categories</button>
-                  {HOME_SLOT_OPTIONS.map(slot => (
-                    <button key={slot.key} type="button" className={slotParam===slot.key?"sidebar-item active":"sidebar-item"} onClick={() => setSlot(slot.key)}>{slot.label}</button>
-                  ))}
-                </div>
-              </div>
+              <div className="shop-sidebar-divider"/>
 
+              {/* ── Browse (same categories as header) ── */}
               <div className="shop-sidebar-section">
-                <div className="shop-sidebar-label">Department</div>
+                <div className="shop-sidebar-label">Browse</div>
                 <div className="shop-sidebar-list">
-                  <button type="button" className={!deptParam?"sidebar-item active":"sidebar-item"} onClick={() => setDept(null)}>All</button>
-                  {DEPARTMENTS.map(dept => (
-                    <button key={dept.key} type="button" className={deptParam===dept.key?"sidebar-item active":"sidebar-item"} onClick={() => setDept(dept.key)}>{dept.label}</button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="shop-sidebar-section">
-                <div className="shop-sidebar-label">Type</div>
-                <div className="shop-sidebar-list">
-                  <button type="button" className={!kindParam?"sidebar-item active":"sidebar-item"} onClick={() => setKind(null)}>All types</button>
-                  {KINDS.map(kind => (
-                    <button key={kind.key} type="button" className={kindParam===kind.key?"sidebar-item active":"sidebar-item"} onClick={() => setKind(kind.key)}>{kind.label}</button>
+                  <button type="button"
+                    className={!activeCatKey&&!qParam?"sidebar-item active":"sidebar-item"}
+                    onClick={() => clearSearch()}>
+                    <svg viewBox="0 0 24 24" className="shop-chip-svg" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    All products
+                  </button>
+                  {NAV_CATEGORIES.map(cat => (
+                    <button key={cat.key} type="button"
+                      className={activeCatKey===cat.key?"sidebar-item active":"sidebar-item"}
+                      onClick={() => setQ(cat.query)}>
+                      {CAT_ICONS[cat.key]}
+                      {cat.label}
+                    </button>
                   ))}
                 </div>
               </div>
 
               <div className="shop-sidebar-divider"/>
 
+              {/* ── Sort ── */}
               <div className="shop-sidebar-section">
                 <div className="shop-sidebar-label">Sort by</div>
                 <div className="shop-radio">
@@ -239,6 +242,7 @@ const Shop = () => {
                 </div>
               </div>
 
+              {/* ── Price range ── */}
               <div className="shop-sidebar-section">
                 <div className="shop-sidebar-label">Price range (GHS)</div>
                 <div className="shop-range">
@@ -250,9 +254,10 @@ const Shop = () => {
                 <label className="shop-toggle"><input type="checkbox" checked={draft.featured} onChange={e => setDraft(p=>({...p,featured:e.target.checked}))}/>Featured only</label>
               </div>
 
+              {/* ── Request product ── */}
               <div className="shop-sidebar-section">
-                <div className="shop-sidebar-divider" style={{ margin:"0 0 14px" }}/>
-                <button type="button" className="shop-sidebar-request-btn" onClick={() => setRequestModalOpen(true)}>
+                <div className="shop-sidebar-divider" style={{margin:"0 0 14px"}}/>
+                <button type="button" className="shop-sidebar-request-btn" onClick={() => setRequest(true)}>
                   <span className="shop-sidebar-request-icon"><IconPlus/></span>
                   <span className="shop-sidebar-request-text">
                     <span className="shop-sidebar-request-label">Can't find it?</span>
@@ -272,18 +277,20 @@ const Shop = () => {
           </div>
         </aside>
 
-        {/* ── Main ── */}
+        {/* ════════════════ MAIN ════════════════ */}
         <div className="shop-main">
 
+          {/* Banner */}
           <div className="shop-banner-wrap">
             <div className="shop-banner">
-              <img src={shopBanner} alt="Beme Market banner" className="shop-banner-img" onError={e => { e.currentTarget.style.display="none"; }}/>
+              <img src={shopBanner} alt="Beme Market banner" className="shop-banner-img"
+                onError={e => { e.currentTarget.style.display="none"; }}/>
               <div className="shop-banner-overlay"/>
               <div className="shop-banner-content">
                 <span className="shop-banner-badge">Hot deals</span>
                 <h2 className="shop-banner-title">Up to 50% off</h2>
                 <p className="shop-banner-sub">Limited time — fashion, tech &amp; more</p>
-                <button className="shop-banner-btn" onClick={() => setShop(null)}>
+                <button className="shop-banner-btn" onClick={() => clearSearch()}>
                   Shop now
                   <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                 </button>
@@ -291,9 +298,27 @@ const Shop = () => {
             </div>
           </div>
 
+          {/* ── Category chips row (below banner, desktop) ── */}
+          <div className="shop-cat-chips">
+            <button
+              className={`shop-cat-chip${!activeCatKey&&!qParam?" shop-cat-chip--active":""}`}
+              type="button" onClick={() => clearSearch()}>
+              All
+            </button>
+            {NAV_CATEGORIES.map(cat => (
+              <button key={cat.key}
+                className={`shop-cat-chip${activeCatKey===cat.key?" shop-cat-chip--active":""}`}
+                type="button" onClick={() => setQ(cat.query)}>
+                {CAT_ICONS[cat.key]}
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
           {/* Mobile controls */}
           <div className="shop-controls">
-            <button className="shop-control-btn" type="button" onClick={() => { setFiltersOpen(o => !o); setSortOpen(false); }} aria-expanded={filtersOpen}>
+            <button className="shop-control-btn" type="button"
+              onClick={() => { setFiltersOpen(o=>!o); setSortOpen(false); }} aria-expanded={filtersOpen}>
               <span className="shop-control-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" className="shop-svg"><path d="M4 7h10M18 7h2M4 17h6M14 17h6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M14 5v4M10 15v4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>
               </span>
@@ -308,11 +333,13 @@ const Shop = () => {
             </button>
           </div>
 
+          {/* Active pills */}
           {activePills.length > 0 && (
             <div className="shop-active-pills-wrap">
               <div className="shop-active-pills">
                 {activePills.map(pill => (
-                  <button key={pill.key} type="button" className="shop-active-pill" onClick={pill.onRemove} aria-label={`Remove ${pill.label}`}>
+                  <button key={pill.key} type="button" className="shop-active-pill"
+                    onClick={pill.onRemove} aria-label={`Remove ${pill.label}`}>
                     <span>{pill.label}</span>
                     <span className="shop-active-pill-x">×</span>
                   </button>
@@ -322,7 +349,8 @@ const Shop = () => {
             </div>
           )}
 
-          {isSearching && (
+          {/* Search request banner */}
+          {qParam && !activeCatKey && (
             <div className="shop-request-banner">
               <div className="shop-request-banner-left">
                 <div className="shop-request-banner-icon"><IconSearch/></div>
@@ -331,7 +359,7 @@ const Shop = () => {
                   <p className="shop-request-banner-sub">Submit a request and we'll source it for you</p>
                 </div>
               </div>
-              <button type="button" className="shop-request-banner-btn" onClick={() => setRequestModalOpen(true)}>
+              <button type="button" className="shop-request-banner-btn" onClick={() => setRequest(true)}>
                 <IconPlus/> Request it
               </button>
             </div>
@@ -346,7 +374,7 @@ const Shop = () => {
           <div className="shop-request-strip">
             <div className="shop-request-strip-inner">
               <p className="shop-request-strip-text">Looking for something specific?</p>
-              <button type="button" className="shop-request-strip-btn" onClick={() => setRequestModalOpen(true)}>
+              <button type="button" className="shop-request-strip-btn" onClick={() => setRequest(true)}>
                 Request a product <IconArrow/>
               </button>
             </div>
@@ -356,7 +384,7 @@ const Shop = () => {
       </div>
 
       {/* Sort panel */}
-      <div className={`shop-panel shop-panel--sort${sortOpen ? " open" : ""}`} aria-hidden={!sortOpen}>
+      <div className={`shop-panel shop-panel--sort${sortOpen?" open":""}`} aria-hidden={!sortOpen}>
         <div className="shop-panel-inner">
           <div className="shop-panel-head">
             <span className="shop-panel-title">Sort &amp; Price</span>
@@ -369,7 +397,7 @@ const Shop = () => {
             <div className="shop-panel-section">
               <div className="shop-panel-label">Sort</div>
               <div className="shop-radio">
-                {[["new","Dynamic"],["price-asc","Price: Low to High"],["price-desc","Price: High to Low"]].map(([v,l]) => (
+                {[["new","Dynamic"],["price-asc","Price: Low to High"],["price-desc","Price: High to Low"]].map(([v,l])=>(
                   <label key={v} className="shop-radio-item"><input type="radio" name="panel-sort" checked={draft.sort===v} onChange={() => setDraft(p=>({...p,sort:v}))}/>{l}</label>
                 ))}
               </div>
@@ -392,7 +420,7 @@ const Shop = () => {
         </div>
       </div>
 
-      {requestModalOpen && <ProductRequestModal onClose={() => setRequestModalOpen(false)}/>}
+      {requestModalOpen && <ProductRequestModal onClose={() => setRequest(false)}/>}
 
     </div>
   );

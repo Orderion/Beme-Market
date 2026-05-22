@@ -12,6 +12,7 @@
   font-family: var(--font-main, "Nunito", system-ui, sans-serif);
   color: var(--text);
   animation: shop-fade-in 0.28s ease both;
+  overflow-x: hidden;
 }
 @keyframes shop-fade-in {
   from { opacity: 0; transform: translateY(8px); }
@@ -25,6 +26,8 @@
   display: flex;
   align-items: flex-start;
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 /* ════════════════════════════════════════
@@ -797,7 +800,7 @@ body.dark .shop-btn.ghost { border-color: rgba(255,255,255,0.08); }
    DESKTOP (≥ 1024px)
 ════════════════════════════════════════ */
 @media (min-width: 1024px) {
-  .shop-page        { padding-left: 64px; }
+  .shop-page        { padding-left: 0; }  /* sidebar handles the left layout */
   .shop-banner      { height: 220px; }
   .shop-banner-title { font-size: 28px; }
   .shop-banner-sub  { font-size: 13px; }
@@ -809,7 +812,7 @@ body.dark .shop-btn.ghost { border-color: rgba(255,255,255,0.08); }
 }
 
 @media (min-width: 1280px) {
-  .shop-page        { padding-left: 72px; }
+  .shop-page        { padding-left: 0; }
   .shop-banner      { height: 256px; }
   .shop-banner-title { font-size: 32px; }
 }
@@ -824,4 +827,53 @@ body.dark .shop-btn.ghost { border-color: rgba(255,255,255,0.08); }
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* ════════════════════════════════════════
+   CATEGORY CHIPS ROW (below banner, desktop)
+   Mirrors the header NAV_CATEGORIES
+════════════════════════════════════════ */
+.shop-cat-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex-wrap: nowrap;
+}
+.shop-cat-chips::-webkit-scrollbar { display: none; }
+
+.shop-cat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 100px;
+  border: 1.5px solid rgba(0,0,0,0.09);
+  background: var(--card);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: border-color 0.13s, background 0.13s, color 0.13s;
+  touch-action: manipulation;
+}
+body.dark .shop-cat-chip { border-color: rgba(255,255,255,0.09); }
+.shop-cat-chip:hover { border-color: var(--grtheme); color: var(--grtheme); background: rgba(4,110,242,0.04); }
+.shop-cat-chip--active {
+  border-color: var(--grtheme);
+  background: var(--grtheme);
+  color: #fff;
+}
+.shop-cat-chip--active:hover { background: var(--grtheme); color: #fff; }
+.shop-cat-chip .shop-chip-svg { width: 12px; height: 12px; }
+
+
+@media (max-width: 1023px) {
+  .shop-cat-chips { display: none; }
 }
