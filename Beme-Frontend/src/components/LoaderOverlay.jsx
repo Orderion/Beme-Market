@@ -1,118 +1,189 @@
-import { useEffect, useState, useRef } from "react";
+/* ============================================================
+   FILE: src/components/LoaderOverlay.jsx
+   Blob loader — colored morphing blob + orbiting dot
+   Colors + icons cycle through product categories.
+   Phrases cycle below the animation.
+   Fully dark/light mode aware via CSS vars.
+   Props:
+     show | isVisible  — boolean, controls visibility
+     subtext           — brand text (default "Beme Market")
+     label             — override the cycling phrase (e.g. on checkout)
+============================================================ */
+import { useEffect, useState } from "react";
 import "./LoaderOverlay.css";
 
-/* ─── Stroke-based SVG icons — all currentColor ─── */
-const IconShirt = () => (
-  <svg viewBox="0 0 32 28" fill="none" stroke="currentColor" strokeWidth="2"
-       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M12 2C13 4.5 14.5 5.5 16 5.5C17.5 5.5 19 4.5 20 2L30 8.5L26 13.5V26H6V13.5L2 8.5Z"/>
-  </svg>
-);
-const IconBall = () => (
-  <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="2"
-       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="14" cy="14" r="12"/>
-    <path d="M14 5V11M9.5 7.8L14 11M18.5 7.8L14 11"/>
-    <path d="M5.5 17L14 11L22.5 17"/>
-    <path d="M5.5 17L7.5 22.5M22.5 17L20.5 22.5M7.5 22.5H20.5"/>
-  </svg>
-);
-const IconShoe = () => (
-  <svg viewBox="0 0 36 22" fill="none" stroke="currentColor" strokeWidth="2"
-       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M2 15.5C2 15.5 4 7.5 10.5 6H19L26 3C31 1.5 34.5 4.5 34.5 9.5L34.5 14C28 19 18 19.5 10 19.5H5.5C3.5 19.5 2 17.5 2 15.5Z"/>
-    <path d="M13 6L16 11.5M19 6L19 11.5" strokeWidth="1.4"/>
-  </svg>
-);
-const IconController = () => (
-  <svg viewBox="0 0 36 22" fill="none" stroke="currentColor" strokeWidth="2"
-       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <rect x="2" y="4" width="32" height="15" rx="7.5"/>
-    <line x1="7.5" y1="8.5" x2="7.5" y2="13.5"/>
-    <line x1="5" y1="11" x2="10" y2="11"/>
-    <circle cx="24.5" cy="9.5"  r="1.5" fill="currentColor" stroke="none"/>
-    <circle cx="27.5" cy="12.5" r="1.5" fill="currentColor" stroke="none"/>
-    <circle cx="21.5" cy="12.5" r="1.5" fill="currentColor" stroke="none"/>
-  </svg>
-);
-const IconCart = () => (
-  <svg viewBox="0 0 52 46" fill="none" stroke="currentColor" strokeWidth="2.2"
-       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M2 3H10L19 33H40L47 13H15"/>
-    <circle cx="22" cy="40.5" r="3.5" fill="currentColor" stroke="none"/>
-    <circle cx="37" cy="40.5" r="3.5" fill="currentColor" stroke="none"/>
-  </svg>
-);
+/* ── Cycle config: color → icon key ── */
+const CYCLES = [
+  { color: "#F5C400", icon: "shirt"      },
+  { color: "#8BC400", icon: "headphones" },
+  { color: "#E84040", icon: "sneaker"    },
+  { color: "#2BBFD9", icon: "phone"      },
+  { color: "#FF8C00", icon: "shirt"      },
+  { color: "#E8408C", icon: "sneaker"    },
+];
 
-/* ─── Animated tick dots (CSS-driven) ─── */
-function TickDots() {
+/* ── Rotating phrases ── */
+const PHRASES = [
+  "Preparing your marketplace...",
+  "Ghana's best online market",
+  "Finding the best deals for you",
+  "Your favourite sellers are ready",
+  "Fast delivery across all regions",
+  "Connecting buyers & sellers safely",
+  "The marketplace made for Ghana",
+  "Securing your experience...",
+];
+
+/* ════════════════════════════════════════
+   SVG ICONS  — white stroke, size flexible
+════════════════════════════════════════ */
+function ShirtIcon() {
   return (
-    <span className="ldr-dots" aria-hidden="true">
-      <span className="ldr-dot ldr-dot--1"/>
-      <span className="ldr-dot ldr-dot--2"/>
-      <span className="ldr-dot ldr-dot--3"/>
-    </span>
+    <svg viewBox="0 0 32 28" fill="none" stroke="white" strokeWidth="1.9"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 2C13 4.5 14.5 5.5 16 5.5C17.5 5.5 19 4.5 20 2L30 8.5L26 13.5V26H6V13.5L2 8.5Z"/>
+    </svg>
+  );
+}
+function HeadphonesIcon() {
+  return (
+    <svg viewBox="0 0 28 24" fill="none" stroke="white" strokeWidth="1.9"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 13a11 11 0 0 1 22 0"/>
+      <rect x="1.5" y="12" width="5" height="9" rx="2.5"/>
+      <rect x="21.5" y="12" width="5" height="9" rx="2.5"/>
+    </svg>
+  );
+}
+function SneakerIcon() {
+  return (
+    <svg viewBox="0 0 36 22" fill="none" stroke="white" strokeWidth="1.9"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 15.5C2 15.5 4 7.5 10.5 6H19L26 3C31 1.5 34.5 4.5 34.5 9.5L34.5 14C28 19 18 19.5 10 19.5H5.5C3.5 19.5 2 17.5 2 15.5Z"/>
+      <path d="M13 6L16 11.5M19 6L19 11.5" strokeWidth="1.5"/>
+    </svg>
+  );
+}
+function PhoneIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.9"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="5" y="2" width="14" height="20" rx="3"/>
+      <circle cx="12" cy="18.5" r="1.1" fill="white" stroke="none"/>
+    </svg>
   );
 }
 
-/* ─── Main export ─── */
+const ICON_MAP = {
+  shirt:      <ShirtIcon/>,
+  headphones: <HeadphonesIcon/>,
+  sneaker:    <SneakerIcon/>,
+  phone:      <PhoneIcon/>,
+};
+
+/* ════════════════════════════════════════
+   MAIN COMPONENT
+════════════════════════════════════════ */
 export default function LoaderOverlay({
   show,
   isVisible,
-  label = "Loading",
-  subtext = "Beme Market",
+  label    = "",
+  subtext  = "Beme Market",
 }) {
   const visible = typeof isVisible !== "undefined" ? isVisible : show;
-  const [render, setRender] = useState(false);
-  const observerRef = useRef(null);
 
-  useEffect(() => {
-    const check = () => {};
-    observerRef.current = new MutationObserver(check);
-    observerRef.current.observe(document.body, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observerRef.current?.disconnect();
-  }, []);
+  const [render,       setRender]       = useState(false);
+  const [cycleIdx,     setCycleIdx]     = useState(0);
+  const [phraseIdx,    setPhraseIdx]    = useState(0);
+  const [iconVisible,  setIconVisible]  = useState(true);
+  const [phraseIn,     setPhraseIn]     = useState(true);
 
+  /* Mount/unmount with fade-out delay */
   useEffect(() => {
     let t;
     if (visible) {
       setRender(true);
     } else {
-      t = setTimeout(() => setRender(false), 420);
+      t = setTimeout(() => setRender(false), 400);
     }
     return () => clearTimeout(t);
   }, [visible]);
 
+  /* Color + icon cycle — every 2.2s */
+  useEffect(() => {
+    if (!visible) return;
+    const id = setInterval(() => {
+      setIconVisible(false);
+      setTimeout(() => {
+        setCycleIdx(i => (i + 1) % CYCLES.length);
+        setIconVisible(true);
+      }, 240);
+    }, 2200);
+    return () => clearInterval(id);
+  }, [visible]);
+
+  /* Phrase cycle — every 2.8s (only when no fixed label) */
+  useEffect(() => {
+    if (!visible || label) return;
+    const id = setInterval(() => {
+      setPhraseIn(false);
+      setTimeout(() => {
+        setPhraseIdx(i => (i + 1) % PHRASES.length);
+        setPhraseIn(true);
+      }, 380);
+    }, 2800);
+    return () => clearInterval(id);
+  }, [visible, label]);
+
   if (!render) return null;
+
+  const { color, icon } = CYCLES[cycleIdx];
+  const displayPhrase   = label || PHRASES[phraseIdx];
 
   return (
     <div
-      className={`loader-overlay${visible ? " show" : ""}`}
+      className={`ldr-overlay${visible ? " ldr-overlay--show" : ""}`}
       role="status"
       aria-live="polite"
       aria-busy={visible}
       aria-label={`${subtext} loading`}
     >
-      <div className="loader-overlay-backdrop" />
+      <div className="ldr-backdrop"/>
 
-      <div className="loader-overlay-center">
-        {/* Cart + falling items scene */}
-        <div className="ldr-scene" aria-hidden="true">
-          <span className="ldr-item ldr-item--shirt"><IconShirt /></span>
-          <span className="ldr-item ldr-item--ball"><IconBall /></span>
-          <span className="ldr-item ldr-item--shoe"><IconShoe /></span>
-          <span className="ldr-item ldr-item--ctrl"><IconController /></span>
-          <span className="ldr-cart"><IconCart /></span>
+      <div className="ldr-center">
+
+        {/* ── Stage: morphing blob + orbiting dot ── */}
+        <div className="ldr-stage" aria-hidden="true">
+
+          <div
+            className="ldr-blob"
+            style={{ background: color }}
+          >
+            <span className={`ldr-icon${iconVisible ? "" : " ldr-icon--out"}`}>
+              {ICON_MAP[icon]}
+            </span>
+          </div>
+
+          <div
+            className="ldr-dot"
+            style={{ background: color }}
+          />
+
         </div>
 
-        {/* Brand + dots */}
+        {/* ── Caption: brand + phrase + dots ── */}
         <div className="ldr-caption">
-          <span className="ldr-caption-text">{subtext}</span>
-          <TickDots />
+          <span className="ldr-brand">{subtext}</span>
+          <span className={`ldr-phrase${phraseIn ? "" : " ldr-phrase--out"}`}>
+            {displayPhrase}
+          </span>
+          <span className="ldr-tick-dots" aria-hidden="true">
+            <span className="ldr-td ldr-td--1"/>
+            <span className="ldr-td ldr-td--2"/>
+            <span className="ldr-td ldr-td--3"/>
+          </span>
         </div>
+
       </div>
     </div>
   );
