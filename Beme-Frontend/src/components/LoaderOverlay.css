@@ -1,10 +1,11 @@
-/* ============================================
-   LoaderOverlay.css — Premium cart drop loader
-   Monochrome · Stroke icons · Spring physics
-============================================ */
+/* ============================================================
+   FILE: src/components/LoaderOverlay.css
+   Blob loader — morphing blob + orbiting dot
+   Matches LoaderOverlay.jsx
+============================================================ */
 
-/* ── Overlay ── */
-.loader-overlay {
+/* ── Full-screen overlay ── */
+.ldr-overlay {
   position: fixed;
   inset: 0;
   z-index: 9999;
@@ -13,214 +14,204 @@
   justify-content: center;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.28s ease, visibility 0.28s ease;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
-.loader-overlay.show {
+.ldr-overlay--show {
   opacity: 1;
   visibility: visible;
 }
 
-/* ── Backdrop ── */
-.loader-overlay-backdrop {
+/* ── Background ── */
+.ldr-backdrop {
   position: absolute;
   inset: 0;
   background: var(--bg, #ffffff);
   transition: background 0.4s ease;
 }
-body.dark .loader-overlay-backdrop {
-  background: var(--bg, #111111);
+body.dark .ldr-backdrop {
+  background: var(--bg, #0f0f0f);
 }
 
 /* ── Center stack ── */
-.loader-overlay-center {
+.ldr-center {
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 28px;
-  animation: ldr-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  gap: 32px;
+  animation: ldr-enter 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes ldr-enter {
   from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0);    }
 }
 
-/* ══════════════════════════════════════
-   SCENE — items + cart
-   130 × 148px canvas. Cart anchored bottom.
-   Items scattered above, converge to cart.
-══════════════════════════════════════ */
-.ldr-scene {
+/* ════════════════════════════════════════
+   STAGE — blob + dot share this space
+════════════════════════════════════════ */
+.ldr-stage {
   position: relative;
-  width: 130px;
-  height: 148px;
-  /* All SVG strokes inherit this color */
-  color: var(--text, #111111);
-  transition: color 0.4s ease;
-}
-body.dark .ldr-scene {
-  color: var(--text, #f0f0f0);
+  width: 220px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* ── Cart — fixed at bottom, smaller ── */
-.ldr-cart {
+/* ════════════════════════════════════════
+   BLOB — morphing colored circle
+════════════════════════════════════════ */
+.ldr-blob {
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
   position: absolute;
-  bottom: 0;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  width: 50px;
-  opacity: 0.9;
-  transform-origin: center bottom;
-  animation: ldr-cart-squish 2.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
-  will-change: transform;
-}
-@keyframes ldr-cart-squish {
-  0%,  50%  { transform: translateX(-50%) scaleY(1) scaleX(1); }
-  58%        { transform: translateX(-50%) scaleY(0.88) scaleX(1.06); }
-  64%        { transform: translateX(-50%) scaleY(1.04) scaleX(0.98); }
-  72%, 100%  { transform: translateX(-50%) scaleY(1) scaleX(1); }
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: border-radius, transform;
+  /* color transition when cycle changes */
+  transition: background 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+  /* continuous shape morph */
+  animation: ldr-blob-morph 3.4s ease-in-out infinite;
 }
 
-/* ── Shared item base ── */
-.ldr-item {
-  position: absolute;
-  display: block;
-  opacity: 0;
-  will-change: transform, opacity;
-  transform-origin: center center;
+@keyframes ldr-blob-morph {
+  0%,  100% { border-radius: 50%; }
+  18%        { border-radius: 62% 38% 56% 44% / 44% 56% 46% 54%; }
+  36%        { border-radius: 50%; }
+  54%        { border-radius: 44% 56% 44% 56% / 60% 40% 56% 44%; }
+  72%        { border-radius: 56% 44% 50% 50% / 44% 56% 50% 50%; }
+  90%        { border-radius: 50%; }
 }
 
-/* ══════════════════════════════════════
-   INDIVIDUAL ITEMS
-   Each starts at its own scatter position,
-   rotates slightly, falls and shrinks into cart.
-   Animation cycle: 2.8s with per-item stagger.
+/* ── Icon inside blob ── */
+.ldr-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  transition: opacity 0.22s ease;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+.ldr-icon--out { opacity: 0; }
+.ldr-icon svg  { width: 100%; height: 100%; display: block; }
 
-   Cart center ≈ (65px from left, 125px from top).
-   Items converge there as they enter the cart.
-══════════════════════════════════════ */
-
-/* ── Shirt — top left ── */
-.ldr-item--shirt {
+/* ════════════════════════════════════════
+   ORBITING DOT
+════════════════════════════════════════ */
+.ldr-dot {
   width: 24px;
-  top: 12px;
-  left: 14px;
-  animation: ldr-fall-shirt 2.8s cubic-bezier(0.4, 0, 0.6, 1) 0ms infinite;
-}
-@keyframes ldr-fall-shirt {
-  0%   { transform: translate(0,   0)    rotate(-8deg) scale(1);    opacity: 0;    }
-  8%   { transform: translate(0,   0)    rotate(-8deg) scale(1);    opacity: 0.78; }
-  50%  { transform: translate(34px, 94px) rotate(-2deg) scale(0.72); opacity: 0.65; }
-  60%  { transform: translate(37px,108px) rotate( 0deg) scale(0.18); opacity: 0;    }
-  60.1%{ transform: translate(0,   0)    rotate(-8deg) scale(1);    opacity: 0;    }
-  100% { transform: translate(0,   0)    rotate(-8deg) scale(1);    opacity: 0;    }
-}
-
-/* ── Ball — top right ── */
-.ldr-item--ball {
-  width: 22px;
-  top: 6px;
-  right: 12px;
-  animation: ldr-fall-ball 2.8s cubic-bezier(0.4, 0, 0.6, 1) 90ms infinite;
-}
-@keyframes ldr-fall-ball {
-  0%   { transform: translate(0,    0)    scale(1);    opacity: 0;    }
-  8%   { transform: translate(0,    0)    scale(1);    opacity: 0.78; }
-  50%  { transform: translate(-34px, 98px) scale(0.68); opacity: 0.65; }
-  60%  { transform: translate(-37px,112px) scale(0.16); opacity: 0;    }
-  60.1%{ transform: translate(0,    0)    scale(1);    opacity: 0;    }
-  100% { transform: translate(0,    0)    scale(1);    opacity: 0;    }
+  height: 24px;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: -12px 0 0 -12px;
+  will-change: transform;
+  /* color transition matches blob */
+  transition: background 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: ldr-dot-orbit 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-/* ── Shoe — mid left ── */
-.ldr-item--shoe {
-  width: 26px;
-  top: 52px;
-  left: 8px;
-  animation: ldr-fall-shoe 2.8s cubic-bezier(0.4, 0, 0.6, 1) 50ms infinite;
-}
-@keyframes ldr-fall-shoe {
-  0%   { transform: translate(0,   0)   rotate(6deg)  scale(1);    opacity: 0;    }
-  8%   { transform: translate(0,   0)   rotate(6deg)  scale(1);    opacity: 0.75; }
-  50%  { transform: translate(41px, 55px) rotate(1deg) scale(0.7);  opacity: 0.62; }
-  60%  { transform: translate(44px, 65px) rotate(0deg) scale(0.15); opacity: 0;    }
-  60.1%{ transform: translate(0,   0)   rotate(6deg)  scale(1);    opacity: 0;    }
-  100% { transform: translate(0,   0)   rotate(6deg)  scale(1);    opacity: 0;    }
+@keyframes ldr-dot-orbit {
+  0%   { transform: translate( 60px, -24px) scale(1);    }
+  12%  { transform: translate( 68px,  18px) scale(0.90); }
+  25%  { transform: translate( 32px,  65px) scale(0.84); }
+  37%  { transform: translate(-18px,  68px) scale(0.90); }
+  50%  { transform: translate(-62px,  18px) scale(0.95); }
+  62%  { transform: translate(-60px, -30px) scale(0.90); }
+  75%  { transform: translate(-16px, -68px) scale(0.84); }
+  87%  { transform: translate( 36px, -58px) scale(0.90); }
+  100% { transform: translate( 60px, -24px) scale(1);    }
 }
 
-/* ── Controller — mid right ── */
-.ldr-item--ctrl {
-  width: 26px;
-  top: 48px;
-  right: 6px;
-  animation: ldr-fall-ctrl 2.8s cubic-bezier(0.4, 0, 0.6, 1) 140ms infinite;
-}
-@keyframes ldr-fall-ctrl {
-  0%   { transform: translate(0,    0)    rotate(-5deg) scale(1);    opacity: 0;    }
-  8%   { transform: translate(0,    0)    rotate(-5deg) scale(1);    opacity: 0.75; }
-  50%  { transform: translate(-42px, 58px) rotate(-1deg) scale(0.7);  opacity: 0.62; }
-  60%  { transform: translate(-45px, 68px) rotate( 0deg) scale(0.14); opacity: 0;    }
-  60.1%{ transform: translate(0,    0)    rotate(-5deg) scale(1);    opacity: 0;    }
-  100% { transform: translate(0,    0)    rotate(-5deg) scale(1);    opacity: 0;    }
-}
-
-/* ══════════════════════════════════════
-   CAPTION — faint brand + tick dots
-══════════════════════════════════════ */
+/* ════════════════════════════════════════
+   CAPTION — brand + phrase + dots
+════════════════════════════════════════ */
 .ldr-caption {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 6px;
 }
 
-.ldr-caption-text {
-  font-family: var(--font-main, "Manrope", system-ui, sans-serif);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+/* "Beme Market" — always visible, bold */
+.ldr-brand {
+  font-family: var(--font-main, "Nunito", system-ui, sans-serif);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
   color: var(--text, #111111);
-  opacity: 0.18;
   transition: color 0.4s ease;
   user-select: none;
 }
-body.dark .ldr-caption-text {
-  color: var(--text, #f0f0f0);
+body.dark .ldr-brand { color: var(--text, #f0f0f0); }
+
+/* Rotating phrase — fades in/out */
+.ldr-phrase {
+  font-family: var(--font-main, "Nunito", system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted, #aaaaaa);
+  text-align: center;
+  max-width: 260px;
+  min-height: 16px;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.34s ease, transform 0.34s ease, color 0.4s ease;
+  user-select: none;
+}
+body.dark .ldr-phrase { color: var(--muted, #555555); }
+.ldr-phrase--out {
+  opacity: 0;
+  transform: translateY(5px);
 }
 
-/* Tick dots — pure CSS, no JS needed */
-.ldr-dots {
+/* Tick dots */
+.ldr-tick-dots {
   display: flex;
-  gap: 4px;
+  gap: 5px;
   align-items: center;
+  margin-top: 2px;
 }
-.ldr-dot {
-  width: 3px;
-  height: 3px;
+.ldr-td {
+  width: 3.5px;
+  height: 3.5px;
   border-radius: 50%;
   background: var(--text, #111111);
-  opacity: 0.15;
+  opacity: 0.14;
   transition: background 0.4s ease;
-  animation: ldr-dot-tick 1.4s ease-in-out infinite;
+  animation: ldr-td-pulse 1.5s ease-in-out infinite;
 }
-body.dark .ldr-dot {
-  background: var(--text, #f0f0f0);
-}
-.ldr-dot--1 { animation-delay: 0ms;   }
-.ldr-dot--2 { animation-delay: 200ms; }
-.ldr-dot--3 { animation-delay: 400ms; }
+body.dark .ldr-td { background: var(--text, #f0f0f0); }
+.ldr-td--1 { animation-delay:   0ms; }
+.ldr-td--2 { animation-delay: 200ms; }
+.ldr-td--3 { animation-delay: 400ms; }
 
-@keyframes ldr-dot-tick {
-  0%, 60%, 100% { opacity: 0.15; transform: scale(1);   }
-  30%            { opacity: 0.6;  transform: scale(1.5); }
+@keyframes ldr-td-pulse {
+  0%, 60%, 100% { opacity: 0.14; transform: scale(1);   }
+  30%            { opacity: 0.7;  transform: scale(1.65); }
 }
 
-/* ── Reduced motion ── */
+/* ════════════════════════════════════════
+   REDUCED MOTION
+════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
-  .ldr-item, .ldr-cart, .ldr-dot, .loader-overlay-center {
-    animation: none !important;
-  }
-  .ldr-item { opacity: 0.45; }
-  .ldr-dot  { opacity: 0.35; }
+  .ldr-blob,
+  .ldr-dot,
+  .ldr-td,
+  .ldr-center { animation: none !important; }
+  .ldr-dot    { transform: translate(55px, -20px); }
+  .ldr-icon,
+  .ldr-phrase { transition: none !important; }
 }
