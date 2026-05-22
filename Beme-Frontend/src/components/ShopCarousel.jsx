@@ -98,21 +98,19 @@ function GlitchOverlay() {
   );
 }
 
-/* Pause icon SVG */
 function PauseIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
-      <rect x="2" y="1" width="3" height="10" rx="1"/>
-      <rect x="7" y="1" width="3" height="10" rx="1"/>
+    <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor" aria-hidden="true">
+      <rect x="1.5" y="1" width="3" height="9" rx="1"/>
+      <rect x="6.5" y="1" width="3" height="9" rx="1"/>
     </svg>
   );
 }
 
-/* Play icon SVG */
 function PlayIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
-      <path d="M3 1.5l7 4.5-7 4.5V1.5z"/>
+    <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor" aria-hidden="true">
+      <path d="M2.5 1.2l7 4.3-7 4.3V1.2z"/>
     </svg>
   );
 }
@@ -135,13 +133,12 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
   const pauseTimer    = useRef(null);
   const isPaused      = useRef(false);
 
-  /* Active shops sorted by order */
   const activeShops = useMemo(() =>
     [...shops].filter(s => s.active !== false).sort((a,b) => (a.order??0)-(b.order??0)),
     [shops]
   );
 
-  /* Slide to a given index by shifting the track with translateX */
+  /* Slide track by translateX */
   const slideTo = useCallback((idx) => {
     const el = trackRef.current;
     if (!el) return;
@@ -154,8 +151,7 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
     slideTo(idx);
   }, [slideTo]);
 
-  /* Sync track on mount */
-  useEffect(() => { slideTo(activeIndex); }, []); // eslint-disable-line
+  useEffect(() => { slideTo(0); }, []); // eslint-disable-line
 
   /* Auto-play */
   const startAutoPlay = useCallback(() => {
@@ -177,44 +173,36 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
     return () => { clearInterval(autoPlayTimer.current); clearTimeout(pauseTimer.current); };
   }, [startAutoPlay]);
 
-  /* Pause with timeout resume */
-  const pauseAutoPlay = useCallback(() => {
+  const pauseTemporarily = useCallback(() => {
     isPaused.current = true;
-    setPaused(true);
     clearTimeout(pauseTimer.current);
     pauseTimer.current = setTimeout(() => {
-      isPaused.current = false;
-      setPaused(false);
+      if (!paused) {
+        isPaused.current = false;
+      }
     }, 6000);
-  }, []);
+  }, [paused]);
 
   const togglePause = useCallback(() => {
-    if (isPaused.current) {
-      isPaused.current = false;
-      setPaused(false);
-      clearTimeout(pauseTimer.current);
-    } else {
-      isPaused.current = true;
-      setPaused(true);
-      clearTimeout(pauseTimer.current);
-    }
+    const next = !isPaused.current;
+    isPaused.current = next;
+    setPaused(next);
+    clearTimeout(pauseTimer.current);
   }, []);
 
   const handlePrev = useCallback(() => {
-    pauseAutoPlay();
-    const next = (activeIndex - 1 + activeShops.length) % activeShops.length;
-    goTo(next);
-  }, [activeIndex, activeShops.length, goTo, pauseAutoPlay]);
+    pauseTemporarily();
+    goTo((activeIndex - 1 + activeShops.length) % activeShops.length);
+  }, [activeIndex, activeShops.length, goTo, pauseTemporarily]);
 
   const handleNext = useCallback(() => {
-    pauseAutoPlay();
-    const next = (activeIndex + 1) % activeShops.length;
-    goTo(next);
-  }, [activeIndex, activeShops.length, goTo, pauseAutoPlay]);
+    pauseTemporarily();
+    goTo((activeIndex + 1) % activeShops.length);
+  }, [activeIndex, activeShops.length, goTo, pauseTemporarily]);
 
   if (!activeShops.length) return null;
 
-  /* ── Card renderer (no heart button) ── */
+  /* ── Card renderer — no heart ── */
   const renderCard = (shop, isVisible, animKey) => {
     const theme  = shop.theme || "none";
     const cardBg = shop.cardBg || THEME_BG[theme] || "#1E3D2A";
@@ -224,26 +212,38 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
         className={`sc-card sc-theme-${theme}${isVisible ? " sc-card--visible" : ""}`}
         style={{ background: cardBg }}
         onClick={() => shop.onClick?.()}
-        role="button" tabIndex={0}
+        role="button"
+        tabIndex={0}
         aria-label={shop.ariaLabel || shop.title}
         onKeyDown={e => e.key === "Enter" && shop.onClick?.()}
       >
         {(shop.imageUrl || shop.image) && (
           <div className="sc-bg-image-wrap">
-            <img src={shop.imageUrl || shop.image} alt="" className="sc-bg-image" loading="lazy" draggable={false}/>
+            <img
+              src={shop.imageUrl || shop.image}
+              alt=""
+              className="sc-bg-image"
+              loading="lazy"
+              draggable={false}
+            />
             <div className="sc-bg-gradient"/>
           </div>
         )}
+
         <div className="sc-inner">
           <div className="sc-content">
             {shop.chip && <span className="sc-badge">{shop.chip}</span>}
             <h3 className="sc-title">{shop.title}</h3>
             <p className="sc-subtitle">{shop.subtitle || "Premium curated shop"}</p>
-            <button className="sc-btn" onClick={e => { e.stopPropagation(); shop.onClick?.(); }}>
+            <button
+              className="sc-btn"
+              onClick={e => { e.stopPropagation(); shop.onClick?.(); }}
+            >
               {btnText} →
             </button>
           </div>
         </div>
+
         {theme==="fashion"     && <CurtainOverlay color={cardBg}/>}
         {theme==="kente"       && <div className="sc-kente-wrap" key={`kente-${animKey}`}><KenteSVG/></div>}
         {theme==="bestsellers" && isVisible && <StampOverlay key={`stamp-${animKey}`}/>}
@@ -257,11 +257,11 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
     <div className="sc-root">
       <div className="sc-wrapper">
 
-        {/* ── Single-card track (CSS translateX driven) ── */}
+        {/* Single-card sliding track */}
         <div
           ref={trackRef}
           className="sc-track"
-          style={{ transition: "transform 0.42s cubic-bezier(0.25, 0.46, 0.45, 0.94)" }}
+          style={{ transition: "transform 0.44s cubic-bezier(0.25, 0.46, 0.45, 0.94)" }}
         >
           {activeShops.map((shop, i) => (
             <div key={shop.id} className="sc-card-wrap">
@@ -270,14 +270,33 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
           ))}
         </div>
 
-        {/* ── Bottom nav bar: ‹  1 / 5  ›  ⏸ ── */}
+        {/* ── Nav: ‹  1/6  ›  ⏸  — overlaid on banner bottom-right ── */}
         {activeShops.length > 1 && (
           <div className="sc-bottom-nav" role="group" aria-label="Carousel navigation">
-            <button className="sc-nav-btn" onClick={handlePrev} aria-label="Previous slide">‹</button>
-            <span className="sc-counter" aria-live="polite" aria-atomic="true">
+            <button
+              className="sc-nav-btn"
+              onClick={handlePrev}
+              aria-label="Previous slide"
+            >
+              ‹
+            </button>
+
+            <span
+              className="sc-counter"
+              aria-live="polite"
+              aria-atomic="true"
+            >
               {activeIndex + 1} / {activeShops.length}
             </span>
-            <button className="sc-nav-btn" onClick={handleNext} aria-label="Next slide">›</button>
+
+            <button
+              className="sc-nav-btn"
+              onClick={handleNext}
+              aria-label="Next slide"
+            >
+              ›
+            </button>
+
             <button
               className="sc-pause-btn"
               onClick={togglePause}
