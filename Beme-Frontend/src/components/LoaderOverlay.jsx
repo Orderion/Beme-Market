@@ -1,28 +1,27 @@
 /* ============================================================
    FILE: src/components/LoaderOverlay.jsx
-   Blob loader — colored morphing blob + orbiting dot
-   Colors + icons cycle through product categories.
-   Phrases cycle below the animation.
-   Fully dark/light mode aware via CSS vars.
-   Props:
-     show | isVisible  — boolean, controls visibility
-     subtext           — brand text (default "Beme Market")
-     label             — override the cycling phrase (e.g. on checkout)
+   Blob loader — colored morphing blob + smooth orbiting dot
+   - Color + icon cycles every 0.5s, starting from blue
+   - Dot orbits in a perfect smooth circle (no stop/go)
+   - Dark/light mode via CSS vars
 ============================================================ */
 import { useEffect, useState } from "react";
 import "./LoaderOverlay.css";
 
-/* ── Cycle config: color → icon key ── */
+/* ── Cycles: start from blue, change every 500ms ── */
 const CYCLES = [
-  { color: "#F5C400", icon: "shirt"      },
-  { color: "#8BC400", icon: "headphones" },
-  { color: "#E84040", icon: "sneaker"    },
-  { color: "#2BBFD9", icon: "phone"      },
-  { color: "#FF8C00", icon: "shirt"      },
-  { color: "#E8408C", icon: "sneaker"    },
+  { color: "#2BBFD9", icon: "phone"      }, // blue   ← start
+  { color: "#F5C400", icon: "shirt"      }, // yellow
+  { color: "#8BC400", icon: "headphones" }, // lime
+  { color: "#E84040", icon: "sneaker"    }, // red
+  { color: "#FF8C00", icon: "shirt"      }, // orange
+  { color: "#E8408C", icon: "sneaker"    }, // pink
+  { color: "#046EF2", icon: "phone"      }, // deep blue
+  { color: "#8BC400", icon: "headphones" }, // lime
+  { color: "#F5C400", icon: "shirt"      }, // yellow
+  { color: "#E84040", icon: "sneaker"    }, // coral
 ];
 
-/* ── Rotating phrases ── */
 const PHRASES = [
   "Preparing your marketplace...",
   "Ghana's best online market",
@@ -34,9 +33,7 @@ const PHRASES = [
   "Securing your experience...",
 ];
 
-/* ════════════════════════════════════════
-   SVG ICONS  — white stroke, size flexible
-════════════════════════════════════════ */
+/* ── Icons ── */
 function ShirtIcon() {
   return (
     <svg viewBox="0 0 32 28" fill="none" stroke="white" strokeWidth="1.9"
@@ -87,29 +84,26 @@ const ICON_MAP = {
 export default function LoaderOverlay({
   show,
   isVisible,
-  label    = "",
-  subtext  = "Beme Market",
+  label   = "",
+  subtext = "Beme Market",
 }) {
   const visible = typeof isVisible !== "undefined" ? isVisible : show;
 
-  const [render,       setRender]       = useState(false);
-  const [cycleIdx,     setCycleIdx]     = useState(0);
-  const [phraseIdx,    setPhraseIdx]    = useState(0);
-  const [iconVisible,  setIconVisible]  = useState(true);
-  const [phraseIn,     setPhraseIn]     = useState(true);
+  const [render,      setRender]      = useState(false);
+  const [cycleIdx,    setCycleIdx]    = useState(0);
+  const [phraseIdx,   setPhraseIdx]   = useState(0);
+  const [iconVisible, setIconVisible] = useState(true);
+  const [phraseIn,    setPhraseIn]    = useState(true);
 
-  /* Mount/unmount with fade-out delay */
+  /* Mount / unmount with exit-animation delay */
   useEffect(() => {
     let t;
-    if (visible) {
-      setRender(true);
-    } else {
-      t = setTimeout(() => setRender(false), 400);
-    }
+    if (visible) { setRender(true); }
+    else         { t = setTimeout(() => setRender(false), 400); }
     return () => clearTimeout(t);
   }, [visible]);
 
-  /* Color + icon cycle — every 2.2s */
+  /* Color + icon — every 500ms */
   useEffect(() => {
     if (!visible) return;
     const id = setInterval(() => {
@@ -117,12 +111,12 @@ export default function LoaderOverlay({
       setTimeout(() => {
         setCycleIdx(i => (i + 1) % CYCLES.length);
         setIconVisible(true);
-      }, 240);
-    }, 2200);
+      }, 120); // fast crossfade
+    }, 500);
     return () => clearInterval(id);
   }, [visible]);
 
-  /* Phrase cycle — every 2.8s (only when no fixed label) */
+  /* Phrase — every 2.8s */
   useEffect(() => {
     if (!visible || label) return;
     const id = setInterval(() => {
@@ -130,7 +124,7 @@ export default function LoaderOverlay({
       setTimeout(() => {
         setPhraseIdx(i => (i + 1) % PHRASES.length);
         setPhraseIn(true);
-      }, 380);
+      }, 340);
     }, 2800);
     return () => clearInterval(id);
   }, [visible, label]);
@@ -138,7 +132,6 @@ export default function LoaderOverlay({
   if (!render) return null;
 
   const { color, icon } = CYCLES[cycleIdx];
-  const displayPhrase   = label || PHRASES[phraseIdx];
 
   return (
     <div
@@ -152,30 +145,21 @@ export default function LoaderOverlay({
 
       <div className="ldr-center">
 
-        {/* ── Stage: morphing blob + orbiting dot ── */}
+        {/* Stage */}
         <div className="ldr-stage" aria-hidden="true">
-
-          <div
-            className="ldr-blob"
-            style={{ background: color }}
-          >
+          <div className="ldr-blob" style={{ background: color }}>
             <span className={`ldr-icon${iconVisible ? "" : " ldr-icon--out"}`}>
               {ICON_MAP[icon]}
             </span>
           </div>
-
-          <div
-            className="ldr-dot"
-            style={{ background: color }}
-          />
-
+          <div className="ldr-dot" style={{ background: color }}/>
         </div>
 
-        {/* ── Caption: brand + phrase + dots ── */}
+        {/* Caption */}
         <div className="ldr-caption">
           <span className="ldr-brand">{subtext}</span>
           <span className={`ldr-phrase${phraseIn ? "" : " ldr-phrase--out"}`}>
-            {displayPhrase}
+            {label || PHRASES[phraseIdx]}
           </span>
           <span className="ldr-tick-dots" aria-hidden="true">
             <span className="ldr-td ldr-td--1"/>

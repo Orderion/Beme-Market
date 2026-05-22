@@ -1,10 +1,11 @@
 /* ============================================================
    FILE: src/components/LoaderOverlay.css
-   Blob loader — morphing blob + orbiting dot
-   Matches LoaderOverlay.jsx
+   - Dot orbits in a perfect circle using linear timing (no stop/go)
+   - Color transitions at 0.3s to keep up with 0.5s cycle
+   - Blob morphs shape continuously
 ============================================================ */
 
-/* ── Full-screen overlay ── */
+/* ── Overlay ── */
 .ldr-overlay {
   position: fixed;
   inset: 0;
@@ -21,7 +22,7 @@
   visibility: visible;
 }
 
-/* ── Background ── */
+/* ── Backdrop ── */
 .ldr-backdrop {
   position: absolute;
   inset: 0;
@@ -40,7 +41,7 @@ body.dark .ldr-backdrop {
   flex-direction: column;
   align-items: center;
   gap: 32px;
-  animation: ldr-enter 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ldr-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes ldr-enter {
   from { opacity: 0; transform: translateY(10px); }
@@ -48,7 +49,7 @@ body.dark .ldr-backdrop {
 }
 
 /* ════════════════════════════════════════
-   STAGE — blob + dot share this space
+   STAGE
 ════════════════════════════════════════ */
 .ldr-stage {
   position: relative;
@@ -60,7 +61,7 @@ body.dark .ldr-backdrop {
 }
 
 /* ════════════════════════════════════════
-   BLOB — morphing colored circle
+   BLOB
 ════════════════════════════════════════ */
 .ldr-blob {
   width: 86px;
@@ -73,20 +74,18 @@ body.dark .ldr-backdrop {
   display: flex;
   align-items: center;
   justify-content: center;
-  will-change: border-radius, transform;
-  /* color transition when cycle changes */
-  transition: background 0.65s cubic-bezier(0.4, 0, 0.2, 1);
-  /* continuous shape morph */
+  /* fast color swap to keep up with 500ms cycle */
+  transition: background 0.28s ease;
+  will-change: border-radius;
   animation: ldr-blob-morph 3.4s ease-in-out infinite;
 }
 
 @keyframes ldr-blob-morph {
   0%,  100% { border-radius: 50%; }
-  18%        { border-radius: 62% 38% 56% 44% / 44% 56% 46% 54%; }
-  36%        { border-radius: 50%; }
-  54%        { border-radius: 44% 56% 44% 56% / 60% 40% 56% 44%; }
-  72%        { border-radius: 56% 44% 50% 50% / 44% 56% 50% 50%; }
-  90%        { border-radius: 50%; }
+  20%        { border-radius: 64% 36% 56% 44% / 44% 56% 46% 54%; }
+  40%        { border-radius: 50%; }
+  60%        { border-radius: 44% 56% 44% 56% / 60% 40% 56% 44%; }
+  80%        { border-radius: 50%; }
 }
 
 /* ── Icon inside blob ── */
@@ -97,7 +96,8 @@ body.dark .ldr-backdrop {
   align-items: center;
   justify-content: center;
   opacity: 1;
-  transition: opacity 0.22s ease;
+  /* fast icon crossfade */
+  transition: opacity 0.12s ease;
   pointer-events: none;
   flex-shrink: 0;
 }
@@ -106,6 +106,21 @@ body.dark .ldr-backdrop {
 
 /* ════════════════════════════════════════
    ORBITING DOT
+   
+   Uses LINEAR timing so it moves at a
+   perfectly constant speed — no stop/go.
+   
+   Keyframes are 8 evenly-spaced points on a
+   circle of radius 62px, spaced 45° apart:
+     angle 0°   → ( 62,   0)
+     angle 45°  → ( 44,  44)   62 × cos/sin 45° ≈ 43.8
+     angle 90°  → (  0,  62)
+     angle 135° → (-44,  44)
+     angle 180° → (-62,   0)
+     angle 225° → (-44, -44)
+     angle 270° → (  0, -62)
+     angle 315° → ( 44, -44)
+     angle 360° → ( 62,   0)  ← same as 0°, seamless loop
 ════════════════════════════════════════ */
 .ldr-dot {
   width: 24px;
@@ -115,26 +130,27 @@ body.dark .ldr-backdrop {
   top: 50%;
   left: 50%;
   margin: -12px 0 0 -12px;
+  /* fast color swap, matches blob */
+  transition: background 0.28s ease;
   will-change: transform;
-  /* color transition matches blob */
-  transition: background 0.65s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: ldr-dot-orbit 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  /* LINEAR = constant angular velocity = smooth circle */
+  animation: ldr-dot-orbit 1.8s linear infinite;
 }
 
 @keyframes ldr-dot-orbit {
-  0%   { transform: translate( 60px, -24px) scale(1);    }
-  12%  { transform: translate( 68px,  18px) scale(0.90); }
-  25%  { transform: translate( 32px,  65px) scale(0.84); }
-  37%  { transform: translate(-18px,  68px) scale(0.90); }
-  50%  { transform: translate(-62px,  18px) scale(0.95); }
-  62%  { transform: translate(-60px, -30px) scale(0.90); }
-  75%  { transform: translate(-16px, -68px) scale(0.84); }
-  87%  { transform: translate( 36px, -58px) scale(0.90); }
-  100% { transform: translate( 60px, -24px) scale(1);    }
+  0%      { transform: translate( 62px,   0px); }
+  12.5%   { transform: translate( 44px,  44px); }
+  25%     { transform: translate(  0px,  62px); }
+  37.5%   { transform: translate(-44px,  44px); }
+  50%     { transform: translate(-62px,   0px); }
+  62.5%   { transform: translate(-44px, -44px); }
+  75%     { transform: translate(  0px, -62px); }
+  87.5%   { transform: translate( 44px, -44px); }
+  100%    { transform: translate( 62px,   0px); }
 }
 
 /* ════════════════════════════════════════
-   CAPTION — brand + phrase + dots
+   CAPTION
 ════════════════════════════════════════ */
 .ldr-caption {
   display: flex;
@@ -143,7 +159,6 @@ body.dark .ldr-backdrop {
   gap: 6px;
 }
 
-/* "Beme Market" — always visible, bold */
 .ldr-brand {
   font-family: var(--font-main, "Nunito", system-ui, sans-serif);
   font-size: 16px;
@@ -155,7 +170,6 @@ body.dark .ldr-backdrop {
 }
 body.dark .ldr-brand { color: var(--text, #f0f0f0); }
 
-/* Rotating phrase — fades in/out */
 .ldr-phrase {
   font-family: var(--font-main, "Nunito", system-ui, sans-serif);
   font-size: 11px;
@@ -168,14 +182,11 @@ body.dark .ldr-brand { color: var(--text, #f0f0f0); }
   min-height: 16px;
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 0.34s ease, transform 0.34s ease, color 0.4s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease, color 0.4s ease;
   user-select: none;
 }
 body.dark .ldr-phrase { color: var(--muted, #555555); }
-.ldr-phrase--out {
-  opacity: 0;
-  transform: translateY(5px);
-}
+.ldr-phrase--out { opacity: 0; transform: translateY(5px); }
 
 /* Tick dots */
 .ldr-tick-dots {
@@ -199,19 +210,13 @@ body.dark .ldr-td { background: var(--text, #f0f0f0); }
 .ldr-td--3 { animation-delay: 400ms; }
 
 @keyframes ldr-td-pulse {
-  0%, 60%, 100% { opacity: 0.14; transform: scale(1);   }
+  0%, 60%, 100% { opacity: 0.14; transform: scale(1);    }
   30%            { opacity: 0.7;  transform: scale(1.65); }
 }
 
-/* ════════════════════════════════════════
-   REDUCED MOTION
-════════════════════════════════════════ */
+/* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
-  .ldr-blob,
-  .ldr-dot,
-  .ldr-td,
-  .ldr-center { animation: none !important; }
+  .ldr-blob, .ldr-dot, .ldr-td, .ldr-center { animation: none !important; }
   .ldr-dot    { transform: translate(55px, -20px); }
-  .ldr-icon,
-  .ldr-phrase { transition: none !important; }
+  .ldr-icon, .ldr-phrase { transition: none !important; }
 }
