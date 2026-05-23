@@ -8,11 +8,62 @@ const crypto                 = require("crypto");
 const ALGORITHM   = "aes-256-gcm";
 const SECRET_OPTS = { secrets: ["TOTP_ENCRYPTION_KEY"] };
 
-/* ── Lazy authenticator — required inside handler, not at module load ── */
-function getAuth() {
-  const { authenticator } = require("otplib");
-  authenticator.options = { window: 1 };
-  return authenticator;
+/* ── TOTP helpers (no otplib — pure crypto, works on any Node version) ── */
+function base32Decode(str) {
+  const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = 0, val = 0;
+  const out = [];
+  const s = str.replace(/=+$/, "").toUpperCase();
+  for (let i = 0; i < s.length; i++) {
+    val = (val << 5) | alpha.indexOf(s[i]);
+    bits += 5;
+    if (bits >= 8) { bits -= 8; out.push((val >> bits) & 0xff); }
+  }
+  return Buffer.from(out);
+}
+
+function base32Encode(buf) {
+  const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = 0, val = 0, out = "";
+  for (let i = 0; i < buf.length; i++) {
+    val = (val << 8) | buf[i];
+    bits += 8;
+    while (bits >= 5) { bits -= 5; out += alpha[(val >> bits) & 31]; }
+  }
+  if (bits > 0) out += alpha[(val << (5 - bits)) & 31];
+  return out;
+}
+
+function generateSecret(byteLen = 20) {
+  return base32Encode(crypto.randomBytes(byteLen));
+}
+
+function generateTOTP(secretB32, window = 0) {
+  const key     = base32Decode(secretB32);
+  const counter = Math.floor(Date.now() / 1000 / 30) + window;
+  const buf     = Buffer.alloc(8);
+  buf.writeUInt32BE(Math.floor(counter / 0x100000000), 0);
+  buf.writeUInt32BE(counter >>> 0, 4);
+  const hmac  = crypto.createHmac("sha1", key).update(buf).digest();
+  const offset = hmac[hmac.length - 1] & 0xf;
+  const code  = ((hmac[offset] & 0x7f) << 24 |
+                  hmac[offset+1] << 16 |
+                  hmac[offset+2] << 8  |
+                  hmac[offset+3]) % 1_000_000;
+  return String(code).padStart(6, "0");
+}
+
+function verifyCode(secretB32, token) {
+  const t = String(token).trim();
+  for (const w of [-1, 0, 1]) {
+    if (generateTOTP(secretB32, w) === t) return true;
+  }
+  return false;
+}
+
+function keyuri(email, issuer, secret) {
+  return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(email)}` +
+         `?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
 }
 
 /* ── Encryption ── */
@@ -44,12 +95,10 @@ function decrypt(payload) {
 exports.setupTOTP = onCall(SECRET_OPTS, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
 
-  const auth  = getAuth();
-  const uid   = request.auth.uid;
-  const email = request.auth.token.email || uid;
-
-  const secret  = auth.generateSecret(20);
-  const otpauth = auth.keyuri(email, "Beme Market", secret);
+  const uid    = request.auth.uid;
+  const email  = request.auth.token.email || uid;
+  const secret = generateSecret(20);
+  const otpauth = keyuri(email, "Beme Market", secret);
 
   await admin.firestore().collection("users").doc(uid).set({
     mfa: { pendingSecret: encrypt(secret), enabled: false },
@@ -80,7 +129,7 @@ exports.enableTOTP = onCall(SECRET_OPTS, async (request) => {
   try { secret = decrypt(data.mfa.pendingSecret); }
   catch { throw new HttpsError("internal", "Could not read stored secret. Start setup again."); }
 
-  if (!getAuth().verify({ token: code.trim(), secret }))
+  if (!verifyCode(secret, code))
     throw new HttpsError("invalid-argument", "Code is incorrect or expired. Try again.");
 
   await admin.firestore().collection("users").doc(uid).set({
@@ -116,9 +165,7 @@ exports.verifyTOTP = onCall(SECRET_OPTS, async (request) => {
   try { secret = decrypt(data.mfa.secret); }
   catch { throw new HttpsError("internal", "Could not verify code. Contact support."); }
 
-  const isValid = getAuth().verify({ token: code.trim(), secret });
-
-  if (!isValid) {
+  if (!verifyCode(secret, code)) {
     console.warn(`[totp] Invalid code uid=${uid}`);
     return { valid: false, error: "Incorrect code. Check your authenticator app and try again." };
   }
@@ -148,7 +195,7 @@ exports.disableTOTP = onCall(SECRET_OPTS, async (request) => {
   try { secret = decrypt(data.mfa.secret); }
   catch { throw new HttpsError("internal", "Could not verify code."); }
 
-  if (!getAuth().verify({ token: code.trim(), secret }))
+  if (!verifyCode(secret, code))
     throw new HttpsError("invalid-argument", "Incorrect code. MFA not disabled.");
 
   await admin.firestore().collection("users").doc(uid).set({
