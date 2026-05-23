@@ -3,11 +3,17 @@
 ================================================================ */
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin                  = require("firebase-admin");
-const authenticator          = require("otplib/authenticator");   // ← direct path, always works
 const crypto                 = require("crypto");
 
-const ALGORITHM  = "aes-256-gcm";
+const ALGORITHM   = "aes-256-gcm";
 const SECRET_OPTS = { secrets: ["TOTP_ENCRYPTION_KEY"] };
+
+/* ── Lazy authenticator — required inside handler, not at module load ── */
+function getAuth() {
+  const { authenticator } = require("otplib");
+  authenticator.options = { window: 1 };
+  return authenticator;
+}
 
 /* ── Encryption ── */
 function getKey() {
@@ -38,12 +44,12 @@ function decrypt(payload) {
 exports.setupTOTP = onCall(SECRET_OPTS, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
 
+  const auth  = getAuth();
   const uid   = request.auth.uid;
   const email = request.auth.token.email || uid;
 
-  authenticator.options = { window: 1 };
-  const secret  = authenticator.generateSecret(20);
-  const otpauth = authenticator.keyuri(email, "Beme Market", secret);
+  const secret  = auth.generateSecret(20);
+  const otpauth = auth.keyuri(email, "Beme Market", secret);
 
   await admin.firestore().collection("users").doc(uid).set({
     mfa: { pendingSecret: encrypt(secret), enabled: false },
@@ -74,8 +80,7 @@ exports.enableTOTP = onCall(SECRET_OPTS, async (request) => {
   try { secret = decrypt(data.mfa.pendingSecret); }
   catch { throw new HttpsError("internal", "Could not read stored secret. Start setup again."); }
 
-  authenticator.options = { window: 1 };
-  if (!authenticator.verify({ token: code.trim(), secret }))
+  if (!getAuth().verify({ token: code.trim(), secret }))
     throw new HttpsError("invalid-argument", "Code is incorrect or expired. Try again.");
 
   await admin.firestore().collection("users").doc(uid).set({
@@ -111,8 +116,7 @@ exports.verifyTOTP = onCall(SECRET_OPTS, async (request) => {
   try { secret = decrypt(data.mfa.secret); }
   catch { throw new HttpsError("internal", "Could not verify code. Contact support."); }
 
-  authenticator.options = { window: 1 };
-  const isValid = authenticator.verify({ token: code.trim(), secret });
+  const isValid = getAuth().verify({ token: code.trim(), secret });
 
   if (!isValid) {
     console.warn(`[totp] Invalid code uid=${uid}`);
@@ -144,8 +148,7 @@ exports.disableTOTP = onCall(SECRET_OPTS, async (request) => {
   try { secret = decrypt(data.mfa.secret); }
   catch { throw new HttpsError("internal", "Could not verify code."); }
 
-  authenticator.options = { window: 1 };
-  if (!authenticator.verify({ token: code.trim(), secret }))
+  if (!getAuth().verify({ token: code.trim(), secret }))
     throw new HttpsError("invalid-argument", "Incorrect code. MFA not disabled.");
 
   await admin.firestore().collection("users").doc(uid).set({
