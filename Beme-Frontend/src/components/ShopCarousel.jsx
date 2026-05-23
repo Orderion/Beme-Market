@@ -109,16 +109,20 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
   const [animKeys,    setAnimKeys]    = useState({ 0: 1 });
   const [paused,      setPaused]      = useState(false);
 
+  // trackRef points to the inner flex row, viewportRef to the clipping div
   const trackRef      = useRef(null);
   const autoPlayTimer = useRef(null);
   const pauseTimer    = useRef(null);
   const isPaused      = useRef(false);
 
   const activeShops = useMemo(() =>
-    [...shops].filter(s => s.active !== false).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [...shops]
+      .filter(s => s.active !== false)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
     [shops]
   );
 
+  /* Move track to show card at idx */
   const slideTo = useCallback((idx) => {
     const el = trackRef.current;
     if (!el) return;
@@ -131,9 +135,12 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
     slideTo(idx);
   }, [slideTo]);
 
-  // Sync track position on mount
-  useEffect(() => { slideTo(0); }, []); // eslint-disable-line
+  /* Set initial position after mount */
+  useEffect(() => {
+    slideTo(0);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* Auto-play */
   const startAutoPlay = useCallback(() => {
     if (!autoPlay || activeShops.length <= 1) return;
     clearInterval(autoPlayTimer.current);
@@ -156,13 +163,11 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
     };
   }, [startAutoPlay]);
 
-  // Pause for 6s then resume (used when user clicks prev/next)
+  /* Briefly pause then resume after manual navigation */
   const pauseTemporarily = useCallback(() => {
     isPaused.current = true;
     clearTimeout(pauseTimer.current);
     pauseTimer.current = setTimeout(() => {
-      if (!isPaused.current) return;
-      // only auto-resume if not manually paused
       setPaused(p => {
         if (!p) isPaused.current = false;
         return p;
@@ -189,10 +194,12 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
 
   if (!activeShops.length) return null;
 
+  /* ── Render a single card ── */
   const renderCard = (shop, isVisible, animKey) => {
     const theme  = shop.theme || "none";
-    const cardBg = shop.cardBg || THEME_BG[theme] || "#1E3D2A";
+    const cardBg = shop.cardBg || THEME_BG[theme] || "#1a1a2e";
     const btnText = shop.buttonText || "Shop Now";
+
     return (
       <div
         className={`sc-card sc-theme-${theme}${isVisible ? " sc-card--visible" : ""}`}
@@ -203,13 +210,21 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
         aria-label={shop.ariaLabel || shop.title}
         onKeyDown={e => e.key === "Enter" && shop.onClick?.()}
       >
+        {/* Background image */}
         {(shop.imageUrl || shop.image) && (
           <div className="sc-bg-image-wrap">
-            <img src={shop.imageUrl || shop.image} alt="" className="sc-bg-image" loading="lazy" draggable={false} />
+            <img
+              src={shop.imageUrl || shop.image}
+              alt=""
+              className="sc-bg-image"
+              loading="lazy"
+              draggable={false}
+            />
             <div className="sc-bg-gradient" />
           </div>
         )}
 
+        {/* Centered text content */}
         <div className="sc-inner">
           <div className="sc-content">
             {shop.chip && <span className="sc-badge">{shop.chip}</span>}
@@ -225,6 +240,7 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
           </div>
         </div>
 
+        {/* Overlay animations */}
         {theme === "fashion"     && <CurtainOverlay color={cardBg} />}
         {theme === "kente"       && <div className="sc-kente-wrap" key={`kente-${animKey}`}><KenteSVG /></div>}
         {theme === "bestsellers" && isVisible && <StampOverlay key={`stamp-${animKey}`} />}
@@ -238,20 +254,26 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
     <div className="sc-root">
       <div className="sc-wrapper">
 
-        {/* Sliding track */}
-        <div
-          ref={trackRef}
-          className="sc-track"
-          style={{ transition: "transform 0.44s cubic-bezier(0.25, 0.46, 0.45, 0.94)" }}
-        >
-          {activeShops.map((shop, i) => (
-            <div key={shop.id} className="sc-card-wrap">
-              {renderCard(shop, i === activeIndex, animKeys[i] || 0)}
-            </div>
-          ))}
+        {/* ── Viewport clips overflow, border-radius lives here ── */}
+        <div className="sc-viewport">
+
+          {/* ── Track: flex row of all cards, slides via transform ── */}
+          <div
+            ref={trackRef}
+            className="sc-track"
+            style={{
+              transition: "transform 0.44s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+            }}
+          >
+            {activeShops.map((shop, i) => (
+              <div key={shop.id} className="sc-card-wrap">
+                {renderCard(shop, i === activeIndex, animKeys[i] || 0)}
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* ── Nav overlay — bottom-right of banner ── */}
+        {/* ── Nav bar: BELOW the card, right-aligned ── */}
         {activeShops.length > 1 && (
           <div className="sc-bottom-nav" role="group" aria-label="Carousel controls">
 
@@ -281,15 +303,13 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
               type="button"
               className="sc-pause-btn"
               onClick={togglePause}
-              aria-label={paused ? "Play slideshow" : "Pause slideshow"}
+              aria-label={paused ? "Play" : "Pause"}
             >
               {paused ? (
-                /* Play triangle */
                 <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor" aria-hidden="true">
                   <path d="M1 1l8 5-8 5V1z"/>
                 </svg>
               ) : (
-                /* Pause bars */
                 <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor" aria-hidden="true">
                   <rect x="1" y="1" width="3" height="10" rx="1"/>
                   <rect x="6" y="1" width="3" height="10" rx="1"/>
