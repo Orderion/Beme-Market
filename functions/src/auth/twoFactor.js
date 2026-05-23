@@ -9,7 +9,8 @@
 ================================================================ */
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin                  = require("firebase-admin");
-const { authenticator }      = require("otplib");
+const otplib                 = require("otplib");
+const authenticator          = otplib.authenticator;
 const crypto                 = require("crypto");
 
 const ALGORITHM = "aes-256-gcm";
@@ -43,10 +44,6 @@ function decrypt(payload) {
   return dec;
 }
 
-/* ── TOTP options ── */
-// window:1 accepts 1 step before/after current (handles slight clock drift)
-authenticator.options = { window: 1 };
-
 /* ════════════════════════════════════════════════════════════
    setupTOTP
    Called when seller opens the "Set up Authenticator" screen.
@@ -62,12 +59,10 @@ exports.setupTOTP = onCall(async (request) => {
   const uid   = request.auth.uid;
   const email = request.auth.token.email || uid;
 
-  // Generate new TOTP secret
-  const secret   = authenticator.generateSecret(20); // 20 bytes → 32-char base32
+  const secret   = authenticator.generateSecret(20);
   const otpauth  = authenticator.keyuri(email, "Beme Market", secret);
   const db       = admin.firestore();
 
-  // Store as pending — MFA is NOT enabled until enableTOTP is called
   await db.collection("users").doc(uid).set({
     mfa: {
       pendingSecret: encrypt(secret),
@@ -76,13 +71,12 @@ exports.setupTOTP = onCall(async (request) => {
   }, { merge: true });
 
   console.log(`[totp] setupTOTP called for uid=${uid}`);
-  return { otpauth, secret }; // secret shown once so seller can type it manually
+  return { otpauth, secret };
 });
 
 /* ════════════════════════════════════════════════════════════
    enableTOTP
-   Seller has scanned the QR code and typed their first code.
-   Verifies it, then promotes pendingSecret → live secret
+   Verifies first code then promotes pendingSecret → live secret
    and sets mfa.enabled = true.
 ════════════════════════════════════════════════════════════ */
 exports.enableTOTP = onCall(async (request) => {
@@ -95,8 +89,8 @@ exports.enableTOTP = onCall(async (request) => {
     throw new HttpsError("invalid-argument", "A 6-digit code is required.");
   }
 
-  const uid = request.auth.uid;
-  const db  = admin.firestore();
+  const uid  = request.auth.uid;
+  const db   = admin.firestore();
   const snap = await db.collection("users").doc(uid).get();
   const data = snap.data();
 
@@ -111,12 +105,12 @@ exports.enableTOTP = onCall(async (request) => {
     throw new HttpsError("internal", "Could not read stored secret. Start setup again.");
   }
 
+  authenticator.options = { window: 1 };
   const isValid = authenticator.verify({ token: code.trim(), secret });
   if (!isValid) {
     throw new HttpsError("invalid-argument", "Code is incorrect or expired. Try again.");
   }
 
-  // Promote to live — delete pendingSecret, store real encrypted secret
   await db.collection("users").doc(uid).set({
     mfa: {
       secret:        encrypt(secret),
@@ -134,8 +128,6 @@ exports.enableTOTP = onCall(async (request) => {
    verifyTOTP
    Called during login after password auth succeeds.
    Returns { valid: true } or { valid: false, error: "..." }.
-   Does NOT throw on wrong code — just returns valid:false
-   so the frontend can show a nice message without a full error.
 ════════════════════════════════════════════════════════════ */
 exports.verifyTOTP = onCall(async (request) => {
   if (!request.auth) {
@@ -153,7 +145,6 @@ exports.verifyTOTP = onCall(async (request) => {
   const data = snap.data();
 
   if (!data?.mfa?.enabled || !data?.mfa?.secret) {
-    // MFA not enabled — let login proceed (shouldn't normally be called)
     return { valid: true };
   }
 
@@ -164,6 +155,7 @@ exports.verifyTOTP = onCall(async (request) => {
     throw new HttpsError("internal", "Could not verify code. Contact support.");
   }
 
+  authenticator.options = { window: 1 };
   const isValid = authenticator.verify({ token: code.trim(), secret });
 
   if (!isValid) {
@@ -177,8 +169,7 @@ exports.verifyTOTP = onCall(async (request) => {
 
 /* ════════════════════════════════════════════════════════════
    disableTOTP
-   Seller turns off MFA from their security settings.
-   Requires them to verify one last code before disabling.
+   Requires one last valid code before disabling.
 ════════════════════════════════════════════════════════════ */
 exports.disableTOTP = onCall(async (request) => {
   if (!request.auth) {
@@ -206,6 +197,7 @@ exports.disableTOTP = onCall(async (request) => {
     throw new HttpsError("internal", "Could not verify code.");
   }
 
+  authenticator.options = { window: 1 };
   const isValid = authenticator.verify({ token: code.trim(), secret });
   if (!isValid) {
     throw new HttpsError("invalid-argument", "Incorrect code. MFA not disabled.");
@@ -213,9 +205,9 @@ exports.disableTOTP = onCall(async (request) => {
 
   await db.collection("users").doc(uid).set({
     mfa: {
-      enabled:     false,
-      secret:      admin.firestore.FieldValue.delete(),
-      disabledAt:  admin.firestore.FieldValue.serverTimestamp(),
+      enabled:    false,
+      secret:     admin.firestore.FieldValue.delete(),
+      disabledAt: admin.firestore.FieldValue.serverTimestamp(),
     },
   }, { merge: true });
 
