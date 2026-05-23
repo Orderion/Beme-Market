@@ -19,6 +19,7 @@ import DashboardSubscription from "./dashboard/DashboardSubscription";
 import DashboardVerification from "./dashboard/DashboardVerification";
 import DashboardAppearance   from "./dashboard/DashboardAppearance";
 import DashboardWithdrawals  from "./dashboard/DashboardWithdrawals";
+import DashboardSecurity     from "./dashboard/DashboardSecurity";   // ← NEW
 const DashboardDelivery = React.lazy(() =>
   import("./dashboard/DashboardDelivery")
     .then(mod => mod)
@@ -56,6 +57,7 @@ const ICONS = {
   close:    "M18 6L6 18 M6 6l12 12",
   external: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6 M15 3h6v6 M10 14L21 3",
   bell:     "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0",
+  lock:     "M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z M7 11V7a5 5 0 0 1 10 0v4",
 };
 
 /* ── Nav config ── */
@@ -71,6 +73,7 @@ const NAV = [
   { id: "appearance",   icon: "paint",     label: "Store Design" },
   { id: "delivery",     icon: "delivery",  label: "Delivery"     },
   { id: "verification", icon: "shield",    label: "Verification" },
+  { id: "security",     icon: "lock",      label: "Security"     }, // ← NEW
   { id: "subscription", icon: "star",      label: "Subscription" },
 ];
 
@@ -163,8 +166,8 @@ export default function SellerDashboard() {
   const { isSeller, isSellerActive, shop, subscriptionPlan, storeId, loading: sellerLoading } = useSellerAuth();
   const { totalUnread } = useChat();
 
-  const [mobileOpen,   setMobileOpen]   = useState(false);
-  const [accessGranted, setAccessGranted] = useState(false); // firestore fallback check
+  const [mobileOpen,    setMobileOpen]    = useState(false);
+  const [accessGranted, setAccessGranted] = useState(false);
 
   const activeTab = params.get("tab") || "home";
 
@@ -173,17 +176,15 @@ export default function SellerDashboard() {
     window.scrollTo({ top: 0 });
   }, [setParams]);
 
-  // ── Auth guard ─────────────────────────────────────────────────────────────
+  // ── Auth guard ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (authLoading || sellerLoading) return;
 
-    // 1. Not logged in → send to login
     if (!user) {
       navigate("/login?redirect=/seller-dashboard", { replace: true });
       return;
     }
 
-    // 2. Fast-pass checks (synchronous)
     const appliedUid  = localStorage.getItem("beme_seller_applied");
     const justApplied = appliedUid && appliedUid === user.uid;
     const isAdminUser = role === "super_admin" || role === "admin";
@@ -195,24 +196,16 @@ export default function SellerDashboard() {
       return;
     }
 
-    // 3. Last-resort: check Firestore storeApplications doc
-    //    If user went through onboarding but localStorage was cleared,
-    //    this lets them back in and re-sets the flag.
     getDoc(doc(db, "storeApplications", user.uid))
       .then((snap) => {
         if (snap.exists()) {
-          // They started onboarding — grant access and restore flag
           localStorage.setItem("beme_seller_applied", user.uid);
           setAccessGranted(true);
         } else {
-          // Truly never started onboarding
           navigate("/get-a-store", { replace: true });
         }
       })
-      .catch(() => {
-        // On error, don't lock them out — let them in with limited state
-        setAccessGranted(true);
-      });
+      .catch(() => { setAccessGranted(true); });
 
   }, [user, isSeller, role, profile, authLoading, sellerLoading, navigate]);
 
@@ -224,7 +217,6 @@ export default function SellerDashboard() {
     );
   }
 
-  // Still running the storeApplications check — show loader
   const appliedUid  = localStorage.getItem("beme_seller_applied");
   const justApplied = appliedUid && user && appliedUid === user.uid;
   const isAdminUser = role === "super_admin" || role === "admin";
@@ -242,11 +234,18 @@ export default function SellerDashboard() {
   }
 
   const TAB_TITLES = {
-    home: "Analytics", products: "Products", orders: "Orders",
-    customers: "Customers", chat: "Messages", marketing: "Marketing",
-    analytics: "Analytics Pro", withdrawals: "Withdrawals",
-    appearance: "Store Design", verification: "Verification",
-    delivery: "Delivery Settings",
+    home:         "Analytics",
+    products:     "Products",
+    orders:       "Orders",
+    customers:    "Customers",
+    chat:         "Messages",
+    marketing:    "Marketing",
+    analytics:    "Analytics Pro",
+    withdrawals:  "Withdrawals",
+    appearance:   "Store Design",
+    verification: "Verification",
+    delivery:     "Delivery Settings",
+    security:     "Security",           // ← NEW
     subscription: "Subscription",
   };
 
@@ -261,7 +260,12 @@ export default function SellerDashboard() {
     withdrawals:  <DashboardWithdrawals />,
     appearance:   <DashboardAppearance />,
     verification: <DashboardVerification />,
-    delivery:     <Suspense fallback={<div style={{padding:32,color:"#9CA3AF",fontSize:14}}>Loading…</div>}><DashboardDelivery /></Suspense>,
+    delivery:     (
+      <Suspense fallback={<div style={{ padding: 32, color: "#9CA3AF", fontSize: 14 }}>Loading…</div>}>
+        <DashboardDelivery />
+      </Suspense>
+    ),
+    security:     <DashboardSecurity />,   // ← NEW
     subscription: <DashboardSubscription />,
   };
 
@@ -270,12 +274,10 @@ export default function SellerDashboard() {
 
   return (
     <div className="sd-root">
-      {/* Mobile overlay */}
       {mobileOpen && (
         <div className="sd-overlay" onClick={() => setMobileOpen(false)} />
       )}
 
-      {/* Sidebar */}
       <aside className={`sd-sidebar ${mobileOpen ? "mobile-open" : ""}`}>
         <Sidebar
           activeTab={activeTab}
@@ -289,9 +291,7 @@ export default function SellerDashboard() {
         />
       </aside>
 
-      {/* Main */}
       <div className="sd-main">
-        {/* Topbar */}
         <header className="sd-topbar">
           <div className="sd-topbar-left">
             <button className="sd-hamburger" onClick={() => setMobileOpen(true)}>
@@ -310,7 +310,6 @@ export default function SellerDashboard() {
           </div>
         </header>
 
-        {/* Page content */}
         <div className="sd-content">
           {PAGE_MAP[activeTab] || <DashboardHome />}
         </div>
