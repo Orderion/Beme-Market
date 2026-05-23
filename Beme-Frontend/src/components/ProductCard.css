@@ -22,7 +22,7 @@
   flex-direction: column;
   height: 100%;
   background: var(--card, #ffffff);
-  border: 1px solid var(--border, rgba(0, 0, 0, 0.8));
+  border: 1px solid var(--border, rgba(4,110,242,0.15));
   border-radius: 20px;
   box-shadow:
     0 2px 8px rgba(17, 17, 17, 0.05),
@@ -48,7 +48,7 @@
 
 body.dark .p-card {
   background: var(--card, #1a1a1a);
-  border-color: var(--border, rgba(255, 255, 255, 0.8));
+  border-color: var(--border, rgba(4,110,242,0.15));
   box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.28),
     0 1px 3px rgba(0, 0, 0, 0.18);
