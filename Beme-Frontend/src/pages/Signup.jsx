@@ -12,53 +12,30 @@ function isValidEmail(v) {
 
 /* ════════════════════════════════════════
    PASSWORD STRENGTH ENGINE
-   Returns: { score: 0-4, label, color, width, tips }
+   4 requirements — all must pass for Strong
 ════════════════════════════════════════ */
+const REQUIREMENTS = [
+  { key: "length",  label: "At least 8 characters",        test: (p) => p.length >= 8           },
+  { key: "upper",   label: "One uppercase letter (A-Z)",   test: (p) => /[A-Z]/.test(p)         },
+  { key: "number",  label: "One number (0-9)",              test: (p) => /[0-9]/.test(p)         },
+  { key: "symbol",  label: "One symbol (!@#$...)",          test: (p) => /[^a-zA-Z0-9]/.test(p) },
+];
+
 function getPasswordStrength(password) {
-  if (!password) return { score: 0, label: "", color: "", width: 0, tips: [] };
+  if (!password) return { score: 0, label: "", color: "", reqs: [] };
 
-  let score = 0;
-  const tips = [];
-
-  // Length checks
-  if (password.length >= 8)  score++;
-  else tips.push("Use at least 8 characters");
-
-  if (password.length >= 12) score++;
-
-  // Character variety
-  const hasLower   = /[a-z]/.test(password);
-  const hasUpper   = /[A-Z]/.test(password);
-  const hasDigit   = /[0-9]/.test(password);
-  const hasSpecial = /[^a-zA-Z0-9]/.test(password);
-
-  const variety = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
-  if (variety >= 3) score++;
-  else {
-    if (!hasUpper)   tips.push("Add uppercase letters");
-    if (!hasDigit)   tips.push("Add numbers");
-    if (!hasSpecial) tips.push("Add symbols (!@#$...)");
-  }
-
-  // Common patterns penalty
-  const common = ["password","123456","qwerty","abc123","letmein","beme","market","ghana"];
-  if (common.some(p => password.toLowerCase().includes(p))) {
-    score = Math.max(0, score - 1);
-    tips.push("Avoid common words");
-  }
-
-  // Cap at 4
-  score = Math.min(4, score);
+  const reqs = REQUIREMENTS.map((r) => ({ ...r, passed: r.test(password) }));
+  const score = reqs.filter((r) => r.passed).length;
 
   const levels = [
-    { label: "",          color: "",          width: 0   },
-    { label: "Weak",      color: "#EF4444",   width: 25  },
-    { label: "Fair",      color: "#F97316",   width: 50  },
-    { label: "Good",      color: "#EAB308",   width: 75  },
-    { label: "Strong",    color: "#22C55E",   width: 100 },
+    { label: "",       color: ""        },
+    { label: "Weak",   color: "#EF4444" },
+    { label: "Fair",   color: "#F97316" },
+    { label: "Good",   color: "#EAB308" },
+    { label: "Strong", color: "#22C55E" },
   ];
 
-  return { score, tips, ...levels[score] };
+  return { score, reqs, ...levels[score] };
 }
 
 /* ── Icons ── */
@@ -93,7 +70,6 @@ function GoogleLogo() {
     </svg>
   );
 }
-
 function SignupIllustration() {
   return (
     <svg viewBox="0 0 460 500" fill="none" xmlns="http://www.w3.org/2000/svg"
@@ -105,11 +81,10 @@ function SignupIllustration() {
       <circle cx="60"  cy="110" r="20"  fill="#046EF2" opacity="0.08"/>
       <circle cx="400" cy="390" r="28"  fill="#046EF2" opacity="0.07"/>
       <rect x="100" y="140" width="260" height="220" rx="20" fill="white"
-            style={{filter: 'drop-shadow(0 12px 40px rgba(4,110,242,0.14))'}}>
+            style={{filter:"drop-shadow(0 12px 40px rgba(4,110,242,0.14))"}}>
       </rect>
       <rect x="100" y="140" width="260" height="220" rx="20" stroke="#EBF2FF" strokeWidth="1"/>
       <rect x="100" y="140" width="260" height="8" rx="4" fill="#046EF2"/>
-      <rect x="100" y="144" width="260" height="4" fill="#046EF2"/>
       <circle cx="230" cy="188" r="32" fill="#EBF2FF"/>
       <circle cx="230" cy="180" r="12" fill="#046EF2" opacity="0.3"/>
       <ellipse cx="230" cy="204" rx="18" ry="10" fill="#046EF2" opacity="0.2"/>
@@ -119,57 +94,26 @@ function SignupIllustration() {
       <line x1="254" y1="160" x2="254" y2="172" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
       <line x1="248" y1="166" x2="260" y2="166" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
       <rect x="130" y="230" width="200" height="10" rx="5" fill="#EBF2FF"/>
-      <rect x="148" y="246" width="164" height="7" rx="3.5" fill="#F0F4FF"/>
       <rect x="120" y="264" width="220" height="18" rx="6" fill="#F8FAFF" stroke="#E2E8F0" strokeWidth="1"/>
-      <rect x="126" y="269" width="80" height="7" rx="3.5" fill="#CBD5E1"/>
       <rect x="120" y="288" width="220" height="18" rx="6" fill="#F8FAFF" stroke="#046EF2" strokeWidth="1.2"/>
-      <rect x="126" y="293" width="60" height="7" rx="3.5" fill="#CBD5E1"/>
       <rect x="120" y="312" width="220" height="22" rx="8" fill="#046EF2"/>
       <rect x="162" y="318" width="136" height="9" rx="4.5" fill="white" opacity="0.4"/>
       <rect x="20" y="180" width="78" height="56" rx="12" fill="white"
-            style={{filter: 'drop-shadow(0 6px 20px rgba(4,110,242,0.13))'}}>
+            style={{filter:"drop-shadow(0 6px 20px rgba(4,110,242,0.13))"}}>
         <animate attributeName="y" values="180;174;180" dur="3.2s" repeatCount="indefinite"/>
       </rect>
       <circle cx="42" cy="197" r="10" fill="#EBF2FF"/>
       <text x="38" y="201" fontSize="9" fill="#046EF2" fontFamily="system-ui" fontWeight="700">%</text>
       <rect x="30" y="211" width="52" height="7" rx="3.5" fill="#046EF2" opacity="0.7"/>
-      <rect x="36" y="222" width="40" height="5" rx="2.5" fill="#EBF2FF"/>
       <rect x="362" y="200" width="78" height="56" rx="12" fill="white"
-            style={{filter: 'drop-shadow(0 6px 20px rgba(4,110,242,0.13))'}}>
+            style={{filter:"drop-shadow(0 6px 20px rgba(4,110,242,0.13))"}}>
         <animate attributeName="y" values="200;194;200" dur="4s" repeatCount="indefinite"/>
       </rect>
       <circle cx="384" cy="217" r="10" fill="#EBF2FF"/>
-      <rect x="379" y="213" width="10" height="7" rx="1" fill="#046EF2" opacity="0.6"/>
-      <path d="M389 215 l5 0 l3 4 l0 3 l-8 0 Z" fill="#046EF2" opacity="0.4"/>
-      <circle cx="381" cy="222" r="2" fill="#046EF2"/>
-      <circle cx="393" cy="222" r="2" fill="#046EF2"/>
       <rect x="370" y="231" width="52" height="7" rx="3.5" fill="#046EF2" opacity="0.7"/>
-      <rect x="376" y="242" width="40" height="5" rx="2.5" fill="#EBF2FF"/>
-      <rect x="20" y="308" width="78" height="56" rx="12" fill="white"
-            style={{filter: 'drop-shadow(0 6px 20px rgba(4,110,242,0.13))'}}>
-        <animate attributeName="y" values="308;302;308" dur="3.8s" repeatCount="indefinite"/>
-      </rect>
-      <circle cx="42" cy="325" r="10" fill="#EBF2FF"/>
-      <path d="M38 322 L38 326 Q38 330 42 332 Q46 330 46 326 L46 322 L38 322Z" fill="#046EF2" opacity="0.5"/>
-      <polyline points="39.5,326.5 41.5,328.5 44.5,324" stroke="white" strokeWidth="1.2"
-                fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-      <rect x="30" y="339" width="52" height="7" rx="3.5" fill="#046EF2" opacity="0.7"/>
-      <rect x="36" y="350" width="40" height="5" rx="2.5" fill="#EBF2FF"/>
-      <rect x="362" y="310" width="78" height="56" rx="12" fill="white"
-            style={{filter: 'drop-shadow(0 6px 20px rgba(4,110,242,0.13))'}}>
-        <animate attributeName="y" values="310;304;310" dur="4.4s" repeatCount="indefinite"/>
-      </rect>
-      <circle cx="384" cy="327" r="10" fill="#EBF2FF"/>
-      <path d="M384 319 L385.5 323 L390 323 L386.5 325.5 L388 330 L384 327.5 L380 330 L381.5 325.5 L378 323 L382.5 323 Z"
-            fill="#046EF2" opacity="0.5"/>
-      <rect x="370" y="341" width="52" height="7" rx="3.5" fill="#046EF2" opacity="0.7"/>
-      <rect x="376" y="352" width="40" height="5" rx="2.5" fill="#EBF2FF"/>
       <g opacity="0.35">
         <path d="M432 240 L434 247 L442 247 L436 252 L438 260 L432 256 L426 260 L428 252 L422 247 L430 247 Z" fill="#046EF2">
           <animate attributeName="opacity" values="0.35;0.65;0.35" dur="3.4s" repeatCount="indefinite"/>
-        </path>
-        <path d="M42 254 L44 260 L50 260 L45.5 264 L47 270 L42 267 L37 270 L38.5 264 L34 260 L40 260 Z" fill="#046EF2">
-          <animate attributeName="opacity" values="0.3;0.6;0.3" dur="4.2s" repeatCount="indefinite"/>
         </path>
       </g>
     </svg>
@@ -177,42 +121,56 @@ function SignupIllustration() {
 }
 
 /* ════════════════════════════════════════
-   PASSWORD STRENGTH BAR COMPONENT
+   PASSWORD STRENGTH UI
 ════════════════════════════════════════ */
 function PasswordStrengthBar({ password }) {
-  const strength = useMemo(() => getPasswordStrength(password), [password]);
+  const { score, label, color, reqs } = useMemo(() => getPasswordStrength(password), [password]);
 
   if (!password) return null;
 
   return (
     <div className="auth-strength">
-      {/* 4-segment bar */}
+      {/* 4-segment bar — one segment per requirement */}
       <div className="auth-strength-bar" aria-hidden="true">
         {[1, 2, 3, 4].map((seg) => (
           <div
             key={seg}
             className="auth-strength-seg"
-            style={{
-              background: strength.score >= seg ? strength.color : undefined,
-              opacity: strength.score >= seg ? 1 : undefined,
-            }}
+            style={{ background: score >= seg ? color : undefined, opacity: score >= seg ? 1 : undefined }}
           />
         ))}
       </div>
 
-      {/* Label + tips row */}
-      <div className="auth-strength-meta">
-        {strength.label && (
-          <span className="auth-strength-label" style={{ color: strength.color }}>
-            {strength.label}
+      {/* Strength label */}
+      {label && (
+        <div className="auth-strength-meta">
+          <span className="auth-strength-label" style={{ color }}>
+            {label}
           </span>
-        )}
-        {strength.tips.length > 0 && strength.score < 4 && (
-          <span className="auth-strength-tip">
-            {strength.tips[0]}
-          </span>
-        )}
-      </div>
+          {score < 4 && (
+            <span className="auth-strength-tip">
+              {4 - score} requirement{4 - score !== 1 ? "s" : ""} remaining
+            </span>
+          )}
+          {score === 4 && (
+            <span className="auth-strength-tip" style={{ color: "#22C55E" }}>
+              Great password!
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Requirements checklist — shows all 4, greyed when passed */}
+      <ul className="auth-req-list" aria-label="Password requirements">
+        {reqs.map((r) => (
+          <li key={r.key} className={`auth-req-item${r.passed ? " auth-req-item--ok" : ""}`}>
+            <span className="auth-req-icon" aria-hidden="true">
+              {r.passed ? "✓" : "○"}
+            </span>
+            {r.label}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -230,31 +188,28 @@ export default function Signup() {
   const [showPass,      setShowPass]      = useState(false);
   const [showConfirm,   setShowConfirm]   = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-
   const [loading,       setLoading]       = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [err,           setErr]           = useState("");
 
-  const strength   = useMemo(() => getPasswordStrength(password), [password]);
-  const isStrong   = strength.score >= 4;  // must be Strong to submit
-  const anyLoading = loading || googleLoading;
-
-  // Passwords match check (only show when confirmPass has value)
+  const strength       = useMemo(() => getPasswordStrength(password), [password]);
+  const isStrong       = strength.score === 4;
+  const anyLoading     = loading || googleLoading;
   const passwordsMatch = !confirmPass || password === confirmPass;
+  const canSubmit      = isStrong && passwordsMatch && !anyLoading;
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr("");
-
     const emailTrim = email.trim();
     const passTrim  = password.trim();
     const confTrim  = confirmPass.trim();
 
-    if (!emailTrim || !passTrim)  { setErr("Enter your email and password.");                  return; }
-    if (!isValidEmail(emailTrim)) { setErr("Enter a valid email address.");                    return; }
-    if (!isStrong)                { setErr("Please use a stronger password before continuing."); return; }
-    if (passTrim !== confTrim)    { setErr("Passwords don't match. Please check and retry."); return; }
-    if (!agreedToTerms)           { setErr("Please agree to the terms to continue.");          return; }
+    if (!emailTrim || !passTrim)  { setErr("Enter your email and password.");                   return; }
+    if (!isValidEmail(emailTrim)) { setErr("Enter a valid email address.");                     return; }
+    if (!isStrong)                { setErr("Please meet all password requirements first.");      return; }
+    if (passTrim !== confTrim)    { setErr("Passwords don't match. Please check and retry.");   return; }
+    if (!agreedToTerms)           { setErr("Please agree to the terms to continue.");           return; }
 
     setLoading(true);
     try {
@@ -264,7 +219,7 @@ export default function Signup() {
       if (auth.currentUser) { navigate("/verify-email", { replace: true }); return; }
       const code = e?.code || "";
       if (code.includes("auth/email-already-in-use")) setErr("An account with this email already exists. Log in instead.");
-      else if (code.includes("auth/weak-password"))   setErr("Password too weak. Use at least 6 characters.");
+      else if (code.includes("auth/weak-password"))   setErr("Password too weak. Use at least 8 characters.");
       else if (code.includes("auth/invalid-email"))   setErr("Invalid email address.");
       else setErr("Signup failed. Please try again.");
     } finally { setLoading(false); }
@@ -301,8 +256,6 @@ export default function Signup() {
 
   return (
     <div className="auth-page">
-
-      {/* ── Left — illustration ── */}
       <div className="auth-visual">
         <SignupIllustration />
         <div className="auth-visual-caption">
@@ -311,13 +264,10 @@ export default function Signup() {
         </div>
       </div>
 
-      {/* ── Right — form ── */}
       <div className="auth-panel">
-
         <Link to="/" className="auth-logo">
           <div className="auth-logo-mark">
-            <img src="/Favicon-white.PNG" alt="" width="22" height="22"
-              style={{ objectFit: "contain" }} />
+            <img src="/Favicon-white.PNG" alt="" width="22" height="22" style={{ objectFit: "contain" }} />
           </div>
           <span className="auth-logo-name">Beme Market</span>
         </Link>
@@ -325,10 +275,8 @@ export default function Signup() {
         <h1 className="auth-heading">Create your account</h1>
         <p className="auth-subheading">Join thousands of shoppers across Ghana.</p>
 
-        {/* Google */}
         <div style={{ marginBottom: 16 }}>
-          <button className="auth-btn-social" onClick={handleGoogle}
-            disabled={anyLoading} type="button">
+          <button className="auth-btn-social" onClick={handleGoogle} disabled={anyLoading} type="button">
             {googleLoading ? <Spinner dark /> : <GoogleLogo />}
             Continue with Google
           </button>
@@ -348,13 +296,13 @@ export default function Signup() {
             </div>
           </div>
 
-          {/* Password + strength indicator */}
+          {/* Password + live requirements checklist */}
           <div className="auth-field">
             <label className="auth-label" htmlFor="su-pass">Password</label>
             <div className="auth-input-wrap">
               <input id="su-pass" className="auth-input"
                 type={showPass ? "text" : "password"}
-                placeholder="Min. 8 characters" value={password}
+                placeholder="Create a strong password" value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="new-password" disabled={anyLoading} />
               <button type="button" className="auth-eye"
@@ -363,7 +311,6 @@ export default function Signup() {
                 <EyeIcon open={showPass} />
               </button>
             </div>
-            {/* Strength bar — appears as soon as user starts typing */}
             <PasswordStrengthBar password={password} />
           </div>
 
@@ -383,16 +330,11 @@ export default function Signup() {
                 <EyeIcon open={showConfirm} />
               </button>
             </div>
-            {/* Mismatch hint */}
             {confirmPass && !passwordsMatch && (
-              <span className="auth-field-hint auth-field-hint--error">
-                Passwords don't match
-              </span>
+              <span className="auth-field-hint auth-field-hint--error">Passwords don't match</span>
             )}
             {confirmPass && passwordsMatch && (
-              <span className="auth-field-hint auth-field-hint--ok">
-                Passwords match
-              </span>
+              <span className="auth-field-hint auth-field-hint--ok">Passwords match ✓</span>
             )}
           </div>
 
@@ -411,9 +353,7 @@ export default function Signup() {
 
           {err && <div className="auth-alert auth-alert--error" role="alert">{err}</div>}
 
-          {/* Button disabled until password is Strong */}
-          <button className="auth-btn-primary" type="submit"
-            disabled={anyLoading || !isStrong || !passwordsMatch}>
+          <button className="auth-btn-primary" type="submit" disabled={!canSubmit}>
             {loading ? <><Spinner /> Creating account…</> : "Create account"}
           </button>
 
@@ -436,7 +376,6 @@ export default function Signup() {
           <Link className="auth-link" to="/terms">Terms</Link> and{" "}
           <Link className="auth-link" to="/privacy">Privacy Policy</Link>.
         </p>
-
       </div>
     </div>
   );
