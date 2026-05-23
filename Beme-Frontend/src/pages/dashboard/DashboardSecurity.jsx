@@ -314,7 +314,7 @@ export default function DashboardSecurity() {
                   </p>
                 </details>
 
-                <p style={styles.instructionText} style={{ marginTop: 24 }}>
+                <p style={{ ...styles.instructionText, marginTop: 24 }}>
                   <strong>Step 2:</strong> Enter the 6-digit code your app shows now.
                 </p>
 
