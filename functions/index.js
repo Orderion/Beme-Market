@@ -1,18 +1,20 @@
+/* ================================================================
+   FILE: functions/index.js
+   — keeps all existing email verification logic unchanged —
+   — adds TOTP (Google Authenticator) callable exports —
+================================================================ */
 const { setGlobalOptions }  = require("firebase-functions/v2");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const { auth }               = require("firebase-functions/v1");   // auth.user().onCreate is v1 only
+const { auth }               = require("firebase-functions/v1");
 const admin                  = require("firebase-admin");
 const nodemailer             = require("nodemailer");
 
 admin.initializeApp();
 
-// Apply max instances to all v2 functions
 setGlobalOptions({ maxInstances: 10 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TRANSPORTER
-// Credentials come from functions/.env (loaded automatically by Firebase CLI).
-// Never hardcode secrets here.
 // ─────────────────────────────────────────────────────────────────────────────
 let _transporter = null;
 
@@ -32,7 +34,6 @@ function getTransporter() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EMAIL TEMPLATE
-// Branded neo-brutalist email matching Beme Market's design.
 // ─────────────────────────────────────────────────────────────────────────────
 function buildVerificationEmail(link, name) {
   const safeName = name || "there";
@@ -57,7 +58,6 @@ function buildVerificationEmail(link, name) {
                       border:2px solid #111111;
                       box-shadow:5px 5px 0 0 #111111;">
 
-          <!-- Banner -->
           <tr>
             <td style="background:#111111;padding:14px 24px;text-align:center;">
               <span style="color:#FCFAF2;font-size:10px;font-weight:900;
@@ -67,7 +67,6 @@ function buildVerificationEmail(link, name) {
             </td>
           </tr>
 
-          <!-- Brand -->
           <tr>
             <td style="padding:36px 32px 0;text-align:center;">
               <h1 style="margin:0;font-size:34px;font-weight:900;
@@ -79,7 +78,6 @@ function buildVerificationEmail(link, name) {
             </td>
           </tr>
 
-          <!-- Body -->
           <tr>
             <td style="padding:24px 32px 0;">
               <h2 style="margin:0 0 14px;font-size:20px;font-weight:900;color:#111111;">
@@ -96,7 +94,6 @@ function buildVerificationEmail(link, name) {
             </td>
           </tr>
 
-          <!-- CTA -->
           <tr>
             <td style="padding:0 32px 28px;">
               <table cellpadding="0" cellspacing="0" border="0" width="100%">
@@ -117,7 +114,6 @@ function buildVerificationEmail(link, name) {
             </td>
           </tr>
 
-          <!-- Expiry notice -->
           <tr>
             <td style="padding:0 32px 24px;">
               <table cellpadding="0" cellspacing="0" border="0" width="100%"
@@ -133,7 +129,6 @@ function buildVerificationEmail(link, name) {
             </td>
           </tr>
 
-          <!-- Fallback link -->
           <tr>
             <td style="padding:0 32px 28px;">
               <p style="margin:0;font-size:11px;color:#888888;line-height:1.7;">
@@ -145,7 +140,6 @@ function buildVerificationEmail(link, name) {
             </td>
           </tr>
 
-          <!-- Footer -->
           <tr>
             <td style="background:#FCFAF2;border-top:2px solid #111111;padding:16px 32px;">
               <p style="margin:0;font-size:11px;color:#888888;line-height:1.7;">
@@ -191,8 +185,7 @@ async function dispatchVerificationEmail(email, displayName) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TRIGGER — fires on every new user signup (v1 auth trigger)
-// Sends the branded Brevo verification email automatically.
+// TRIGGER — fires on every new user signup
 // ─────────────────────────────────────────────────────────────────────────────
 exports.sendVerificationOnSignup = auth.user().onCreate(async (user) => {
   if (!user.email || user.emailVerified) return null;
@@ -208,11 +201,9 @@ exports.sendVerificationOnSignup = auth.user().onCreate(async (user) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CALLABLE — resend verification email on demand (v2 callable)
-// Called from VerifyEmail.jsx when the user clicks "Resend".
+// CALLABLE — resend verification email on demand
 // ─────────────────────────────────────────────────────────────────────────────
 exports.resendVerificationEmail = onCall(async (request) => {
-  // Must be signed in
   if (!request.auth) {
     throw new HttpsError(
       "unauthenticated",
@@ -231,17 +222,11 @@ exports.resendVerificationEmail = onCall(async (request) => {
   }
 
   if (userRecord.emailVerified) {
-    throw new HttpsError(
-      "already-exists",
-      "This email address is already verified."
-    );
+    throw new HttpsError("already-exists", "This email address is already verified.");
   }
 
   if (!userRecord.email) {
-    throw new HttpsError(
-      "failed-precondition",
-      "No email address is associated with this account."
-    );
+    throw new HttpsError("failed-precondition", "No email address is associated with this account.");
   }
 
   try {
@@ -250,9 +235,22 @@ exports.resendVerificationEmail = onCall(async (request) => {
     return { success: true };
   } catch (err) {
     console.error(`[resend] Failed for ${userRecord.email}:`, err);
-    throw new HttpsError(
-      "internal",
-      "Failed to send the verification email. Please try again."
-    );
+    throw new HttpsError("internal", "Failed to send the verification email. Please try again.");
   }
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TOTP / MFA — Google Authenticator support
+// Exported from: functions/src/auth/twoFactor.js
+// ─────────────────────────────────────────────────────────────────────────────
+const {
+  setupTOTP,
+  enableTOTP,
+  verifyTOTP,
+  disableTOTP,
+} = require("./src/auth/twoFactor");
+
+exports.setupTOTP   = setupTOTP;
+exports.enableTOTP  = enableTOTP;
+exports.verifyTOTP  = verifyTOTP;
+exports.disableTOTP = disableTOTP;
