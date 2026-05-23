@@ -68,7 +68,7 @@ function keyuri(email, issuer, secret) {
 
 /* ── Encryption ── */
 function getKey() {
-  const key = process.env.TOTP_ENCRYPTION_KEY;
+  const key = process.env.TOTP_ENCRYPTION_KEY || process.env.TOTP_KEY;
   if (!key || key.length !== 64) throw new Error("TOTP_ENCRYPTION_KEY missing or invalid.");
   return Buffer.from(key, "hex");
 }
