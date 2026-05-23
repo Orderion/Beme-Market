@@ -1,12 +1,11 @@
 /* ============================================================
-   FILE: src/pages/Login.jsx
+   FILE: Beme-Frontend/src/pages/Login.jsx
    AUTH: Email/password + Google sign-in
-   SECURITY ADDITIONS:
+   SECURITY:
      - Failed attempt tracking (warn at 3, lock at 5)
      - 30s lockout with countdown after 5 failures
-     - MFA/TOTP verification step for enrolled sellers
+     - MFA/TOTP verification via Firebase Callable (not REST)
      - Secure error messages (no email enumeration)
-     - Automatic lockout clears on success
 ============================================================ */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -18,15 +17,15 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
+import { verifyTOTP } from "../services/twoFactorService";
 import "./Auth.css";
 
 /* ── constants ── */
-const RESET_COOLDOWN_MS    = 60_000;   // 60s between password reset requests
-const MAX_FAILED_ATTEMPTS  = 5;        // lockout after this many failures
-const WARN_AFTER_ATTEMPTS  = 3;        // show warning after this many failures
-const LOCKOUT_DURATION_MS  = 30_000;   // 30s lockout
-const MFA_CODE_LENGTH      = 6;
-const API_BASE             = import.meta.env.VITE_API_URL || "";
+const RESET_COOLDOWN_MS   = 60_000;
+const MAX_FAILED_ATTEMPTS = 5;
+const WARN_AFTER_ATTEMPTS = 3;
+const LOCKOUT_DURATION_MS = 30_000;
+const MFA_CODE_LENGTH     = 6;
 
 /* ── helpers ── */
 function isValidEmail(v) {
@@ -170,12 +169,11 @@ function LoginIllustration() {
 
 /* ══════════════════════════════════════
    MFA VERIFICATION SCREEN
-   Shown after successful password auth
-   when the user has TOTP enrolled
+   Calls verifyTOTP Firebase callable — no REST endpoint needed.
 ══════════════════════════════════════ */
 function MfaScreen({ onVerify, onCancel, loading, error }) {
   const [digits, setDigits] = useState(Array(MFA_CODE_LENGTH).fill(""));
-  const refs    = useRef([]);
+  const refs = useRef([]);
 
   const handleDigit = (i, val) => {
     const cleaned = val.replace(/\D/g, "").slice(-1);
@@ -187,10 +185,8 @@ function MfaScreen({ onVerify, onCancel, loading, error }) {
   };
 
   const handleKey = (i, e) => {
-    if (e.key === "Backspace" && !digits[i] && i > 0) {
-      refs.current[i - 1]?.focus();
-    }
-    if (e.key === "ArrowLeft"  && i > 0)                refs.current[i - 1]?.focus();
+    if (e.key === "Backspace" && !digits[i] && i > 0) refs.current[i - 1]?.focus();
+    if (e.key === "ArrowLeft"  && i > 0)               refs.current[i - 1]?.focus();
     if (e.key === "ArrowRight" && i < MFA_CODE_LENGTH - 1) refs.current[i + 1]?.focus();
   };
 
@@ -206,9 +202,7 @@ function MfaScreen({ onVerify, onCancel, loading, error }) {
 
   return (
     <div className="auth-mfa">
-      <div className="auth-mfa__icon">
-        <PhoneIcon />
-      </div>
+      <div className="auth-mfa__icon"><PhoneIcon /></div>
       <h2 className="auth-mfa__title">Two-step verification</h2>
       <p className="auth-mfa__sub">
         Open your authenticator app and enter the 6-digit code for
@@ -285,7 +279,7 @@ export default function Login() {
 
   /* ── MFA state ── */
   const [mfaRequired, setMfaRequired] = useState(false);
-  const [mfaUser,     setMfaUser]     = useState(null);   // Firebase user, pre-MFA
+  const [mfaUser,     setMfaUser]     = useState(null);
   const [mfaLoading,  setMfaLoading]  = useState(false);
   const [mfaError,    setMfaError]    = useState("");
 
@@ -295,7 +289,7 @@ export default function Login() {
     const tick = setInterval(() => {
       const rem = lockedUntil - Date.now();
       if (rem <= 0) { setLockCountdown(0); clearInterval(tick); }
-      else          { setLockCountdown(formatSecs(rem));        }
+      else          { setLockCountdown(formatSecs(rem)); }
     }, 250);
     return () => clearInterval(tick);
   }, [lockedUntil]);
@@ -321,41 +315,38 @@ export default function Login() {
     navigate(redirectTo, { replace: true });
   }, [navigate, redirectTo]);
 
-  /* ── MFA verification ── */
+  /* ── MFA verification — uses Firebase callable, not REST ── */
   const handleMfaVerify = useCallback(async (code) => {
     if (!mfaUser || mfaLoading) return;
-    setMfaLoading(true); setMfaError("");
-    try {
-      /* Call your Render/Cloud-Function backend to validate the TOTP code.
-         The endpoint receives the Firebase ID token (proof of auth) + the
-         6-digit code. It validates against the stored encrypted secret.
-         Returns: { valid: true } or { valid: false, error: "..." }        */
-      const idToken = await mfaUser.getIdToken();
-      const res     = await fetch(`${API_BASE}/api/auth/validate-mfa`, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json",
-                   "Authorization": `Bearer ${idToken}` },
-        body:    JSON.stringify({ code }),
-      });
-      const data = await res.json().catch(() => ({}));
+    setMfaLoading(true);
+    setMfaError("");
 
-      if (!res.ok || !data.valid) {
-        setMfaError(data.error || "Incorrect code. Try again.");
-        setMfaLoading(false); return;
+    try {
+      // verifyTOTP calls the Firebase callable function directly
+      // No REST endpoint, no Render server needed for auth
+      const result = await verifyTOTP(code);
+
+      if (!result.valid) {
+        setMfaError(result.error || "Incorrect code. Try again.");
+        setMfaLoading(false);
+        return;
       }
 
-      /* Code accepted — proceed with login */
+      // Code accepted — complete login
       await completeLogin(mfaUser);
     } catch (e) {
       console.error("MFA verify error:", e);
       setMfaError("Verification failed. Check your connection and try again.");
-    } finally { setMfaLoading(false); }
+    } finally {
+      setMfaLoading(false);
+    }
   }, [mfaUser, mfaLoading, completeLogin]);
 
   const cancelMfa = useCallback(() => {
-    /* Sign them back out — they haven't completed MFA */
     auth.signOut().catch(() => {});
-    setMfaRequired(false); setMfaUser(null); setMfaError("");
+    setMfaRequired(false);
+    setMfaUser(null);
+    setMfaError("");
   }, []);
 
   /* ── Email / password sign in ── */
@@ -381,18 +372,16 @@ export default function Login() {
         navigate("/verify-email", { replace: true }); return;
       }
 
-      /* Reset failed counter on success */
       setFailedAttempts(0); setLockedUntil(0); setLockCountdown(0);
 
-      /* Check if this user has MFA enrolled */
+      // Check if MFA is enabled for this user
       let mfaEnabled = false;
       try {
-        const snap    = await getDoc(doc(db, "users", cred.user.uid));
-        mfaEnabled    = snap.data()?.mfa?.enabled === true;
+        const snap = await getDoc(doc(db, "users", cred.user.uid));
+        mfaEnabled  = snap.data()?.mfa?.enabled === true;
       } catch (_) {}
 
       if (mfaEnabled) {
-        /* Pause here — require TOTP before navigating */
         setMfaUser(cred.user);
         setMfaRequired(true);
         setLoading(false);
@@ -408,7 +397,6 @@ export default function Login() {
       if (code.includes("auth/invalid-credential") ||
           code.includes("auth/user-not-found")     ||
           code.includes("auth/wrong-password")) {
-        /* Increment failed counter */
         const next = failedAttempts + 1;
         setFailedAttempts(next);
 
@@ -488,7 +476,6 @@ export default function Login() {
       setMsg("Password reset email sent — check your inbox.");
     } catch (e) {
       const code = e?.code || "";
-      /* Never reveal whether an account exists */
       if (code === "auth/user-not-found") {
         setLastResetAt(Date.now());
         setMsg("If an account exists for this email, a reset link has been sent.");
@@ -502,7 +489,7 @@ export default function Login() {
     } finally { setResetLoading(false); }
   };
 
-  /* ── Render: MFA screen takes over when required ── */
+  /* ── Render: MFA screen ── */
   if (mfaRequired) {
     return (
       <div className="auth-page">
@@ -535,8 +522,6 @@ export default function Login() {
   /* ── Render: normal login form ── */
   return (
     <div className="auth-page">
-
-      {/* ── Left panel — form ── */}
       <div className="auth-panel">
 
         <Link to="/" className="auth-logo">
@@ -550,7 +535,6 @@ export default function Login() {
         <h1 className="auth-heading">Welcome back</h1>
         <p className="auth-subheading">Sign in to your account to continue.</p>
 
-        {/* Lockout banner */}
         {isLocked && (
           <div className="auth-lock-banner" role="alert">
             <LockIcon />
@@ -561,7 +545,6 @@ export default function Login() {
           </div>
         )}
 
-        {/* Failed attempt warning (before lockout) */}
         {!isLocked && failedAttempts >= WARN_AFTER_ATTEMPTS && failedAttempts < MAX_FAILED_ATTEMPTS && (
           <div className="auth-attempts-warn" role="alert">
             <ShieldIcon />
@@ -572,7 +555,6 @@ export default function Login() {
           </div>
         )}
 
-        {/* Google */}
         <div style={{ marginBottom: 16 }}>
           <button className="auth-btn-social" onClick={handleGoogle}
             disabled={anyLoading || isLocked} type="button">
@@ -664,7 +646,6 @@ export default function Login() {
         </p>
       </div>
 
-      {/* ── Right — illustration ── */}
       <div className="auth-visual">
         <LoginIllustration/>
         <div className="auth-visual-caption">
@@ -672,7 +653,6 @@ export default function Login() {
           <p>Sign in to unlock exclusive deals, track your orders, and save your favourite items.</p>
         </div>
       </div>
-
     </div>
   );
 }
