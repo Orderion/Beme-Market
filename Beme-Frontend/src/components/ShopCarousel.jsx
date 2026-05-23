@@ -254,10 +254,10 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
     <div className="sc-root">
       <div className="sc-wrapper">
 
-        {/* ── Viewport clips overflow, border-radius lives here ── */}
+        {/* ── Viewport clips overflow, border-radius lives here, nav overlays inside ── */}
         <div className="sc-viewport">
 
-          {/* ── Track: flex row of all cards, slides via transform ── */}
+          {/* Track: flex row of all cards, slides via transform */}
           <div
             ref={trackRef}
             className="sc-track"
@@ -271,54 +271,26 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
               </div>
             ))}
           </div>
+
+          {/* Nav: inside viewport, absolute bottom-right over the card */}
+          {activeShops.length > 1 && (
+            <div className="sc-bottom-nav" role="group" aria-label="Carousel controls">
+              <button type="button" className="sc-nav-btn" onClick={handlePrev} aria-label="Previous slide">‹</button>
+              <span className="sc-counter" aria-live="polite" aria-atomic="true">
+                {activeIndex + 1} / {activeShops.length}
+              </span>
+              <button type="button" className="sc-nav-btn" onClick={handleNext} aria-label="Next slide">›</button>
+              <button type="button" className="sc-pause-btn" onClick={togglePause} aria-label={paused ? "Play" : "Pause"}>
+                {paused ? (
+                  <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor" aria-hidden="true"><path d="M1 1l8 5-8 5V1z"/></svg>
+                ) : (
+                  <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor" aria-hidden="true"><rect x="1" y="1" width="3" height="10" rx="1"/><rect x="6" y="1" width="3" height="10" rx="1"/></svg>
+                )}
+              </button>
+            </div>
+          )}
+
         </div>
-
-        {/* ── Nav bar: BELOW the card, right-aligned ── */}
-        {activeShops.length > 1 && (
-          <div className="sc-bottom-nav" role="group" aria-label="Carousel controls">
-
-            <button
-              type="button"
-              className="sc-nav-btn"
-              onClick={handlePrev}
-              aria-label="Previous slide"
-            >
-              ‹
-            </button>
-
-            <span className="sc-counter" aria-live="polite" aria-atomic="true">
-              {activeIndex + 1} / {activeShops.length}
-            </span>
-
-            <button
-              type="button"
-              className="sc-nav-btn"
-              onClick={handleNext}
-              aria-label="Next slide"
-            >
-              ›
-            </button>
-
-            <button
-              type="button"
-              className="sc-pause-btn"
-              onClick={togglePause}
-              aria-label={paused ? "Play" : "Pause"}
-            >
-              {paused ? (
-                <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor" aria-hidden="true">
-                  <path d="M1 1l8 5-8 5V1z"/>
-                </svg>
-              ) : (
-                <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor" aria-hidden="true">
-                  <rect x="1" y="1" width="3" height="10" rx="1"/>
-                  <rect x="6" y="1" width="3" height="10" rx="1"/>
-                </svg>
-              )}
-            </button>
-
-          </div>
-        )}
 
       </div>
     </div>
