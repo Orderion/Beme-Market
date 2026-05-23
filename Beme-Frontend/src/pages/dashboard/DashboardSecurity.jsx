@@ -7,6 +7,7 @@
      - Disable requires one last valid code
 ================================================================ */
 import { useEffect, useRef, useState } from "react";
+// qrcode package renders QR codes to canvas without any external API calls
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import {
@@ -18,17 +19,42 @@ import {
 /* ── constants ── */
 const CODE_LENGTH = 6;
 
-/* ── QR code via Google Charts API (no extra package) ── */
+/* ── QR code rendered inline via qrcode library (no external API) ── */
 function QRCode({ value, size = 200 }) {
-  const encoded = encodeURIComponent(value);
-  const src = `https://chart.googleapis.com/chart?cht=qr&chs=${size}x${size}&chl=${encoded}&choe=UTF-8`;
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!value || !canvasRef.current) return;
+
+    // Dynamically import qrcode to avoid SSR issues
+    import("qrcode").then((QRLib) => {
+      const QR = QRLib.default || QRLib;
+      QR.toCanvas(canvasRef.current, value, {
+        width: size,
+        margin: 2,
+        color: { dark: "#111111", light: "#ffffff" },
+      }).catch(console.error);
+    }).catch(() => {
+      // Fallback: try the API approach
+      const ctx = canvasRef.current?.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#f0f4ff";
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = "#666";
+        ctx.font = "12px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillText("Use manual entry below", size / 2, size / 2);
+      }
+    });
+  }, [value, size]);
+
   return (
-    <img
-      src={src}
-      alt="Scan this QR code with your authenticator app"
+    <canvas
+      ref={canvasRef}
       width={size}
       height={size}
-      style={{ borderRadius: 12, border: "2px solid var(--soft, #f0f4ff)" }}
+      style={{ borderRadius: 12, border: "2px solid var(--soft, #f0f4ff)", display: "block" }}
+      aria-label="Scan this QR code with your authenticator app"
     />
   );
 }
