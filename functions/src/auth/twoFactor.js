@@ -6,7 +6,7 @@ const admin                  = require("firebase-admin");
 const crypto                 = require("crypto");
 
 const ALGORITHM   = "aes-256-gcm";
-const SECRET_OPTS = { secrets: ["TOTP_ENCRYPTION_KEY"] };
+
 
 /* ── TOTP helpers (no otplib — pure crypto, works on any Node version) ── */
 function base32Decode(str) {
@@ -92,7 +92,7 @@ function decrypt(payload) {
 /* ════════════════════════
    setupTOTP
 ════════════════════════ */
-exports.setupTOTP = onCall(SECRET_OPTS, async (request) => {
+exports.setupTOTP = onCall( async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
 
   const uid    = request.auth.uid;
@@ -111,7 +111,7 @@ exports.setupTOTP = onCall(SECRET_OPTS, async (request) => {
 /* ════════════════════════
    enableTOTP
 ════════════════════════ */
-exports.enableTOTP = onCall(SECRET_OPTS, async (request) => {
+exports.enableTOTP = onCall( async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
 
   const { code } = request.data;
@@ -148,7 +148,7 @@ exports.enableTOTP = onCall(SECRET_OPTS, async (request) => {
 /* ════════════════════════
    verifyTOTP
 ════════════════════════ */
-exports.verifyTOTP = onCall(SECRET_OPTS, async (request) => {
+exports.verifyTOTP = onCall( async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
 
   const { code } = request.data;
@@ -177,7 +177,7 @@ exports.verifyTOTP = onCall(SECRET_OPTS, async (request) => {
 /* ════════════════════════
    disableTOTP
 ════════════════════════ */
-exports.disableTOTP = onCall(SECRET_OPTS, async (request) => {
+exports.disableTOTP = onCall( async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
 
   const { code } = request.data;
