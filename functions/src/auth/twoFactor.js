@@ -1,11 +1,6 @@
 /* ================================================================
    FILE: functions/src/auth/twoFactor.js
    TOTP (Google Authenticator) setup + verification
-   All secrets are AES-256-GCM encrypted before storing in Firestore.
-   Requires:
-     - npm install otplib          (in functions/)
-     - firebase functions:secrets:set TOTP_ENCRYPTION_KEY
-       → generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ================================================================ */
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin                  = require("firebase-admin");
@@ -15,11 +10,14 @@ const crypto                 = require("crypto");
 
 const ALGORITHM = "aes-256-gcm";
 
+/* ── Secret options — tells Firebase to inject TOTP_ENCRYPTION_KEY ── */
+const SECRET_OPTS = { secrets: ["TOTP_ENCRYPTION_KEY"] };
+
 /* ── Encryption helpers ── */
 function getKey() {
   const key = process.env.TOTP_ENCRYPTION_KEY;
   if (!key || key.length !== 64) {
-    throw new Error("TOTP_ENCRYPTION_KEY must be a 64-char hex string (32 bytes).");
+    throw new Error("TOTP_ENCRYPTION_KEY missing or invalid.");
   }
   return Buffer.from(key, "hex");
 }
@@ -44,14 +42,10 @@ function decrypt(payload) {
   return dec;
 }
 
-/* ════════════════════════════════════════════════════════════
+/* ════════════════════════
    setupTOTP
-   Called when seller opens the "Set up Authenticator" screen.
-   Generates a fresh secret, stores it encrypted as "pending"
-   (not live until they verify one code), returns the otpauth
-   URL so the frontend can render a QR code.
-════════════════════════════════════════════════════════════ */
-exports.setupTOTP = onCall(async (request) => {
+════════════════════════ */
+exports.setupTOTP = onCall(SECRET_OPTS, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be signed in.");
   }
@@ -59,9 +53,9 @@ exports.setupTOTP = onCall(async (request) => {
   const uid   = request.auth.uid;
   const email = request.auth.token.email || uid;
 
-  const secret   = authenticator.generateSecret(20);
-  const otpauth  = authenticator.keyuri(email, "Beme Market", secret);
-  const db       = admin.firestore();
+  const secret  = authenticator.generateSecret(20);
+  const otpauth = authenticator.keyuri(email, "Beme Market", secret);
+  const db      = admin.firestore();
 
   await db.collection("users").doc(uid).set({
     mfa: {
@@ -70,16 +64,14 @@ exports.setupTOTP = onCall(async (request) => {
     },
   }, { merge: true });
 
-  console.log(`[totp] setupTOTP called for uid=${uid}`);
+  console.log(`[totp] setupTOTP for uid=${uid}`);
   return { otpauth, secret };
 });
 
-/* ════════════════════════════════════════════════════════════
+/* ════════════════════════
    enableTOTP
-   Verifies first code then promotes pendingSecret → live secret
-   and sets mfa.enabled = true.
-════════════════════════════════════════════════════════════ */
-exports.enableTOTP = onCall(async (request) => {
+════════════════════════ */
+exports.enableTOTP = onCall(SECRET_OPTS, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be signed in.");
   }
@@ -124,12 +116,10 @@ exports.enableTOTP = onCall(async (request) => {
   return { success: true };
 });
 
-/* ════════════════════════════════════════════════════════════
+/* ════════════════════════
    verifyTOTP
-   Called during login after password auth succeeds.
-   Returns { valid: true } or { valid: false, error: "..." }.
-════════════════════════════════════════════════════════════ */
-exports.verifyTOTP = onCall(async (request) => {
+════════════════════════ */
+exports.verifyTOTP = onCall(SECRET_OPTS, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be signed in.");
   }
@@ -159,7 +149,7 @@ exports.verifyTOTP = onCall(async (request) => {
   const isValid = authenticator.verify({ token: code.trim(), secret });
 
   if (!isValid) {
-    console.warn(`[totp] Invalid code attempt for uid=${uid}`);
+    console.warn(`[totp] Invalid code for uid=${uid}`);
     return { valid: false, error: "Incorrect code. Check your authenticator app and try again." };
   }
 
@@ -167,11 +157,10 @@ exports.verifyTOTP = onCall(async (request) => {
   return { valid: true };
 });
 
-/* ════════════════════════════════════════════════════════════
+/* ════════════════════════
    disableTOTP
-   Requires one last valid code before disabling.
-════════════════════════════════════════════════════════════ */
-exports.disableTOTP = onCall(async (request) => {
+════════════════════════ */
+exports.disableTOTP = onCall(SECRET_OPTS, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Must be signed in.");
   }
