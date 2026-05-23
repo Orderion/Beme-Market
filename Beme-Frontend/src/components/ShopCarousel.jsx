@@ -91,27 +91,8 @@ function GlitchOverlay() {
       <div className="sc-gl sc-gl-y"/><div className="sc-gl sc-gl-g"/>
       <div className="sc-glbar sc-glbar-1"/><div className="sc-glbar sc-glbar-2"/>
       <div className="sc-glbar sc-glbar-3"/><div className="sc-glbar sc-glbar-4"/>
-      <div className="sc-gl-flicker"/>
-      <div className="sc-gl-noise"/>
-      <div className="sc-scanlines"/>
+      <div className="sc-gl-flicker"/><div className="sc-gl-noise"/><div className="sc-scanlines"/>
     </div>
-  );
-}
-
-function PauseIcon() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor" aria-hidden="true">
-      <rect x="1.5" y="1" width="3" height="9" rx="1"/>
-      <rect x="6.5" y="1" width="3" height="9" rx="1"/>
-    </svg>
-  );
-}
-
-function PlayIcon() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor" aria-hidden="true">
-      <path d="M2.5 1.2l7 4.3-7 4.3V1.2z"/>
-    </svg>
   );
 }
 
@@ -134,11 +115,10 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
   const isPaused      = useRef(false);
 
   const activeShops = useMemo(() =>
-    [...shops].filter(s => s.active !== false).sort((a,b) => (a.order??0)-(b.order??0)),
+    [...shops].filter(s => s.active !== false).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
     [shops]
   );
 
-  /* Slide track by translateX */
   const slideTo = useCallback((idx) => {
     const el = trackRef.current;
     if (!el) return;
@@ -147,13 +127,13 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
 
   const goTo = useCallback((idx) => {
     setActiveIndex(idx);
-    setAnimKeys(k => ({ ...k, [idx]: (k[idx]||0)+1 }));
+    setAnimKeys(k => ({ ...k, [idx]: (k[idx] || 0) + 1 }));
     slideTo(idx);
   }, [slideTo]);
 
+  // Sync track position on mount
   useEffect(() => { slideTo(0); }, []); // eslint-disable-line
 
-  /* Auto-play */
   const startAutoPlay = useCallback(() => {
     if (!autoPlay || activeShops.length <= 1) return;
     clearInterval(autoPlayTimer.current);
@@ -161,7 +141,7 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
       if (isPaused.current) return;
       setActiveIndex(prev => {
         const next = (prev + 1) % activeShops.length;
-        setAnimKeys(k => ({ ...k, [next]: (k[next]||0)+1 }));
+        setAnimKeys(k => ({ ...k, [next]: (k[next] || 0) + 1 }));
         requestAnimationFrame(() => slideTo(next));
         return next;
       });
@@ -170,18 +150,25 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
 
   useEffect(() => {
     startAutoPlay();
-    return () => { clearInterval(autoPlayTimer.current); clearTimeout(pauseTimer.current); };
+    return () => {
+      clearInterval(autoPlayTimer.current);
+      clearTimeout(pauseTimer.current);
+    };
   }, [startAutoPlay]);
 
+  // Pause for 6s then resume (used when user clicks prev/next)
   const pauseTemporarily = useCallback(() => {
     isPaused.current = true;
     clearTimeout(pauseTimer.current);
     pauseTimer.current = setTimeout(() => {
-      if (!paused) {
-        isPaused.current = false;
-      }
+      if (!isPaused.current) return;
+      // only auto-resume if not manually paused
+      setPaused(p => {
+        if (!p) isPaused.current = false;
+        return p;
+      });
     }, 6000);
-  }, [paused]);
+  }, []);
 
   const togglePause = useCallback(() => {
     const next = !isPaused.current;
@@ -202,7 +189,6 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
 
   if (!activeShops.length) return null;
 
-  /* ── Card renderer — no heart ── */
   const renderCard = (shop, isVisible, animKey) => {
     const theme  = shop.theme || "none";
     const cardBg = shop.cardBg || THEME_BG[theme] || "#1E3D2A";
@@ -219,14 +205,8 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
       >
         {(shop.imageUrl || shop.image) && (
           <div className="sc-bg-image-wrap">
-            <img
-              src={shop.imageUrl || shop.image}
-              alt=""
-              className="sc-bg-image"
-              loading="lazy"
-              draggable={false}
-            />
-            <div className="sc-bg-gradient"/>
+            <img src={shop.imageUrl || shop.image} alt="" className="sc-bg-image" loading="lazy" draggable={false} />
+            <div className="sc-bg-gradient" />
           </div>
         )}
 
@@ -236,6 +216,7 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
             <h3 className="sc-title">{shop.title}</h3>
             <p className="sc-subtitle">{shop.subtitle || "Premium curated shop"}</p>
             <button
+              type="button"
               className="sc-btn"
               onClick={e => { e.stopPropagation(); shop.onClick?.(); }}
             >
@@ -244,11 +225,11 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
           </div>
         </div>
 
-        {theme==="fashion"     && <CurtainOverlay color={cardBg}/>}
-        {theme==="kente"       && <div className="sc-kente-wrap" key={`kente-${animKey}`}><KenteSVG/></div>}
-        {theme==="bestsellers" && isVisible && <StampOverlay key={`stamp-${animKey}`}/>}
-        {theme==="scents"      && isVisible && <SprayOverlay key={`spray-${animKey}`}/>}
-        {theme==="gadgets"     && isVisible && <GlitchOverlay key={`glitch-${animKey}`}/>}
+        {theme === "fashion"     && <CurtainOverlay color={cardBg} />}
+        {theme === "kente"       && <div className="sc-kente-wrap" key={`kente-${animKey}`}><KenteSVG /></div>}
+        {theme === "bestsellers" && isVisible && <StampOverlay key={`stamp-${animKey}`} />}
+        {theme === "scents"      && isVisible && <SprayOverlay key={`spray-${animKey}`} />}
+        {theme === "gadgets"     && isVisible && <GlitchOverlay key={`glitch-${animKey}`} />}
       </div>
     );
   };
@@ -257,7 +238,7 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
     <div className="sc-root">
       <div className="sc-wrapper">
 
-        {/* Single-card sliding track */}
+        {/* Sliding track */}
         <div
           ref={trackRef}
           className="sc-track"
@@ -270,10 +251,12 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
           ))}
         </div>
 
-        {/* ── Nav: ‹  1/6  ›  ⏸  — overlaid on banner bottom-right ── */}
+        {/* ── Nav overlay — bottom-right of banner ── */}
         {activeShops.length > 1 && (
-          <div className="sc-bottom-nav" role="group" aria-label="Carousel navigation">
+          <div className="sc-bottom-nav" role="group" aria-label="Carousel controls">
+
             <button
+              type="button"
               className="sc-nav-btn"
               onClick={handlePrev}
               aria-label="Previous slide"
@@ -281,15 +264,12 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
               ‹
             </button>
 
-            <span
-              className="sc-counter"
-              aria-live="polite"
-              aria-atomic="true"
-            >
+            <span className="sc-counter" aria-live="polite" aria-atomic="true">
               {activeIndex + 1} / {activeShops.length}
             </span>
 
             <button
+              type="button"
               className="sc-nav-btn"
               onClick={handleNext}
               aria-label="Next slide"
@@ -298,12 +278,25 @@ export default function ShopCarousel({ shops = [], autoPlay = true, interval = 3
             </button>
 
             <button
+              type="button"
               className="sc-pause-btn"
               onClick={togglePause}
               aria-label={paused ? "Play slideshow" : "Pause slideshow"}
             >
-              {paused ? <PlayIcon /> : <PauseIcon />}
+              {paused ? (
+                /* Play triangle */
+                <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor" aria-hidden="true">
+                  <path d="M1 1l8 5-8 5V1z"/>
+                </svg>
+              ) : (
+                /* Pause bars */
+                <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor" aria-hidden="true">
+                  <rect x="1" y="1" width="3" height="10" rx="1"/>
+                  <rect x="6" y="1" width="3" height="10" rx="1"/>
+                </svg>
+              )}
             </button>
+
           </div>
         )}
 
