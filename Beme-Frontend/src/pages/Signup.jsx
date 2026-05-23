@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { addDoc, collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import "./Auth.css";
@@ -10,6 +10,58 @@ function isValidEmail(v) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || "").trim());
 }
 
+/* ════════════════════════════════════════
+   PASSWORD STRENGTH ENGINE
+   Returns: { score: 0-4, label, color, width, tips }
+════════════════════════════════════════ */
+function getPasswordStrength(password) {
+  if (!password) return { score: 0, label: "", color: "", width: 0, tips: [] };
+
+  let score = 0;
+  const tips = [];
+
+  // Length checks
+  if (password.length >= 8)  score++;
+  else tips.push("Use at least 8 characters");
+
+  if (password.length >= 12) score++;
+
+  // Character variety
+  const hasLower   = /[a-z]/.test(password);
+  const hasUpper   = /[A-Z]/.test(password);
+  const hasDigit   = /[0-9]/.test(password);
+  const hasSpecial = /[^a-zA-Z0-9]/.test(password);
+
+  const variety = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
+  if (variety >= 3) score++;
+  else {
+    if (!hasUpper)   tips.push("Add uppercase letters");
+    if (!hasDigit)   tips.push("Add numbers");
+    if (!hasSpecial) tips.push("Add symbols (!@#$...)");
+  }
+
+  // Common patterns penalty
+  const common = ["password","123456","qwerty","abc123","letmein","beme","market","ghana"];
+  if (common.some(p => password.toLowerCase().includes(p))) {
+    score = Math.max(0, score - 1);
+    tips.push("Avoid common words");
+  }
+
+  // Cap at 4
+  score = Math.min(4, score);
+
+  const levels = [
+    { label: "",          color: "",          width: 0   },
+    { label: "Weak",      color: "#EF4444",   width: 25  },
+    { label: "Fair",      color: "#F97316",   width: 50  },
+    { label: "Good",      color: "#EAB308",   width: 75  },
+    { label: "Strong",    color: "#22C55E",   width: 100 },
+  ];
+
+  return { score, tips, ...levels[score] };
+}
+
+/* ── Icons ── */
 function EyeIcon({ open }) {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -20,7 +72,6 @@ function EyeIcon({ open }) {
     </svg>
   );
 }
-
 function CheckIcon() {
   return (
     <svg width="10" height="10" viewBox="0 0 12 12" fill="none" aria-hidden="true">
@@ -29,11 +80,9 @@ function CheckIcon() {
     </svg>
   );
 }
-
 function Spinner({ dark }) {
   return <span className={`auth-spinner${dark ? " auth-spinner--dark" : ""}`} aria-hidden="true" />;
 }
-
 function GoogleLogo() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
@@ -123,16 +172,54 @@ function SignupIllustration() {
           <animate attributeName="opacity" values="0.3;0.6;0.3" dur="4.2s" repeatCount="indefinite"/>
         </path>
       </g>
-      <circle cx="84"  cy="160" r="5" fill="#046EF2" opacity="0.18"/>
-      <circle cx="96"  cy="150" r="3" fill="#046EF2" opacity="0.13"/>
-      <circle cx="376" cy="168" r="5" fill="#046EF2" opacity="0.18"/>
-      <circle cx="388" cy="158" r="3" fill="#046EF2" opacity="0.13"/>
-      <circle cx="76"  cy="378" r="4" fill="#046EF2" opacity="0.15"/>
-      <circle cx="386" cy="382" r="5" fill="#046EF2" opacity="0.15"/>
     </svg>
   );
 }
 
+/* ════════════════════════════════════════
+   PASSWORD STRENGTH BAR COMPONENT
+════════════════════════════════════════ */
+function PasswordStrengthBar({ password }) {
+  const strength = useMemo(() => getPasswordStrength(password), [password]);
+
+  if (!password) return null;
+
+  return (
+    <div className="auth-strength">
+      {/* 4-segment bar */}
+      <div className="auth-strength-bar" aria-hidden="true">
+        {[1, 2, 3, 4].map((seg) => (
+          <div
+            key={seg}
+            className="auth-strength-seg"
+            style={{
+              background: strength.score >= seg ? strength.color : undefined,
+              opacity: strength.score >= seg ? 1 : undefined,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Label + tips row */}
+      <div className="auth-strength-meta">
+        {strength.label && (
+          <span className="auth-strength-label" style={{ color: strength.color }}>
+            {strength.label}
+          </span>
+        )}
+        {strength.tips.length > 0 && strength.score < 4 && (
+          <span className="auth-strength-tip">
+            {strength.tips[0]}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════
+   MAIN COMPONENT
+════════════════════════════════════════ */
 export default function Signup() {
   const navigate   = useNavigate();
   const { signup } = useAuth();
@@ -148,19 +235,27 @@ export default function Signup() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [err,           setErr]           = useState("");
 
+  const strength   = useMemo(() => getPasswordStrength(password), [password]);
+  const isStrong   = strength.score >= 4;  // must be Strong to submit
   const anyLoading = loading || googleLoading;
+
+  // Passwords match check (only show when confirmPass has value)
+  const passwordsMatch = !confirmPass || password === confirmPass;
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr("");
+
     const emailTrim = email.trim();
     const passTrim  = password.trim();
     const confTrim  = confirmPass.trim();
+
     if (!emailTrim || !passTrim)  { setErr("Enter your email and password.");                  return; }
     if (!isValidEmail(emailTrim)) { setErr("Enter a valid email address.");                    return; }
-    if (passTrim.length < 6)      { setErr("Password must be at least 6 characters.");         return; }
+    if (!isStrong)                { setErr("Please use a stronger password before continuing."); return; }
     if (passTrim !== confTrim)    { setErr("Passwords don't match. Please check and retry."); return; }
     if (!agreedToTerms)           { setErr("Please agree to the terms to continue.");          return; }
+
     setLoading(true);
     try {
       await signup(emailTrim, passTrim);
@@ -221,9 +316,9 @@ export default function Signup() {
 
         <Link to="/" className="auth-logo">
           <div className="auth-logo-mark">
-           <img src="/Favicon-white.PNG" alt="" width="22" height="22"
-            style={{ objectFit: "contain" }} />
-           </div>
+            <img src="/Favicon-white.PNG" alt="" width="22" height="22"
+              style={{ objectFit: "contain" }} />
+          </div>
           <span className="auth-logo-name">Beme Market</span>
         </Link>
 
@@ -253,12 +348,13 @@ export default function Signup() {
             </div>
           </div>
 
+          {/* Password + strength indicator */}
           <div className="auth-field">
             <label className="auth-label" htmlFor="su-pass">Password</label>
             <div className="auth-input-wrap">
               <input id="su-pass" className="auth-input"
                 type={showPass ? "text" : "password"}
-                placeholder="Min. 6 characters" value={password}
+                placeholder="Min. 8 characters" value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="new-password" disabled={anyLoading} />
               <button type="button" className="auth-eye"
@@ -267,12 +363,16 @@ export default function Signup() {
                 <EyeIcon open={showPass} />
               </button>
             </div>
+            {/* Strength bar — appears as soon as user starts typing */}
+            <PasswordStrengthBar password={password} />
           </div>
 
+          {/* Confirm password */}
           <div className="auth-field">
             <label className="auth-label" htmlFor="su-confirm">Confirm password</label>
             <div className="auth-input-wrap">
-              <input id="su-confirm" className="auth-input"
+              <input id="su-confirm"
+                className={`auth-input${confirmPass && !passwordsMatch ? " auth-input--error" : ""}`}
                 type={showConfirm ? "text" : "password"}
                 placeholder="Re-enter your password" value={confirmPass}
                 onChange={(e) => setConfirmPass(e.target.value)}
@@ -283,6 +383,17 @@ export default function Signup() {
                 <EyeIcon open={showConfirm} />
               </button>
             </div>
+            {/* Mismatch hint */}
+            {confirmPass && !passwordsMatch && (
+              <span className="auth-field-hint auth-field-hint--error">
+                Passwords don't match
+              </span>
+            )}
+            {confirmPass && passwordsMatch && (
+              <span className="auth-field-hint auth-field-hint--ok">
+                Passwords match
+              </span>
+            )}
           </div>
 
           <div className="auth-check-row">
@@ -300,7 +411,9 @@ export default function Signup() {
 
           {err && <div className="auth-alert auth-alert--error" role="alert">{err}</div>}
 
-          <button className="auth-btn-primary" type="submit" disabled={anyLoading}>
+          {/* Button disabled until password is Strong */}
+          <button className="auth-btn-primary" type="submit"
+            disabled={anyLoading || !isStrong || !passwordsMatch}>
             {loading ? <><Spinner /> Creating account…</> : "Create account"}
           </button>
 

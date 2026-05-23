@@ -553,6 +553,73 @@ body.dark .auth-otp-digit--filled {
   line-height: 1.55;
   max-width: 290px;
 }
+/* ════════════════════════════════════════
+   PASSWORD STRENGTH INDICATOR
+════════════════════════════════════════ */
+.auth-strength {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* 4-segment track */
+.auth-strength-bar {
+  display: flex;
+  gap: 4px;
+  height: 4px;
+}
+
+.auth-strength-seg {
+  flex: 1;
+  height: 4px;
+  border-radius: 99px;
+  background: rgba(17,17,17,0.1);
+  opacity: 0.35;
+  transition: background 0.25s, opacity 0.25s;
+}
+
+body.dark .auth-strength-seg {
+  background: rgba(252,250,242,0.12);
+}
+
+/* Label + tip row */
+.auth-strength-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.auth-strength-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition: color 0.25s;
+}
+
+.auth-strength-tip {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  text-align: right;
+}
+
+/* ── Confirm password match hints ── */
+.auth-field-hint {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+  display: block;
+}
+.auth-field-hint--error { color: #EF4444; }
+.auth-field-hint--ok    { color: #22C55E; }
+
+/* ── Error border on confirm input ── */
+.auth-input--error {
+  border-color: #EF4444 !important;
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.1) !important;
+}
 
 /* ════════════════════════════════════════
    VERIFY EMAIL — centered layout
