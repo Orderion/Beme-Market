@@ -1,11 +1,12 @@
 /* ============================================================
    FILE: Beme-Frontend/src/pages/Login.jsx
    AUTH: Email/password + Google sign-in
-   SECURITY:
-     - Failed attempt tracking (warn at 3, lock at 5)
-     - 30s lockout with countdown after 5 failures
-     - MFA/TOTP verification via Firebase Callable (not REST)
-     - Secure error messages (no email enumeration)
+   FIXES:
+     - completeLogin no longer redirects existing users to
+       /onboarding just because onboardingComplete is missing.
+       Only truly new users (no Firestore doc) go to onboarding.
+     - MFA verification uses Firebase callable (no REST endpoint)
+     - Failed attempt tracking + lockout unchanged
 ============================================================ */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -169,7 +170,6 @@ function LoginIllustration() {
 
 /* ══════════════════════════════════════
    MFA VERIFICATION SCREEN
-   Calls verifyTOTP Firebase callable — no REST endpoint needed.
 ══════════════════════════════════════ */
 function MfaScreen({ onVerify, onCancel, loading, error }) {
   const [digits, setDigits] = useState(Array(MFA_CODE_LENGTH).fill(""));
@@ -183,13 +183,11 @@ function MfaScreen({ onVerify, onCancel, loading, error }) {
     if (cleaned && i < MFA_CODE_LENGTH - 1) refs.current[i + 1]?.focus();
     if (next.every(d => d !== "")) onVerify(next.join(""));
   };
-
   const handleKey = (i, e) => {
     if (e.key === "Backspace" && !digits[i] && i > 0) refs.current[i - 1]?.focus();
     if (e.key === "ArrowLeft"  && i > 0)               refs.current[i - 1]?.focus();
     if (e.key === "ArrowRight" && i < MFA_CODE_LENGTH - 1) refs.current[i + 1]?.focus();
   };
-
   const handlePaste = (e) => {
     e.preventDefault();
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, MFA_CODE_LENGTH);
@@ -208,38 +206,24 @@ function MfaScreen({ onVerify, onCancel, loading, error }) {
         Open your authenticator app and enter the 6-digit code for
         <strong> Beme Market</strong>.
       </p>
-
       <div className="auth-otp-row" onPaste={handlePaste}>
         {digits.map((d, i) => (
-          <input
-            key={i}
-            ref={el => refs.current[i] = el}
+          <input key={i} ref={el => refs.current[i] = el}
             className={`auth-otp-digit${d ? " auth-otp-digit--filled" : ""}`}
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={1}
-            value={d}
-            onChange={e => handleDigit(i, e.target.value)}
-            onKeyDown={e => handleKey(i, e)}
-            autoComplete="one-time-code"
-            autoFocus={i === 0}
-            disabled={loading}
-            aria-label={`Digit ${i + 1}`}
-          />
+            type="text" inputMode="numeric" pattern="[0-9]*" maxLength={1}
+            value={d} onChange={e => handleDigit(i, e.target.value)}
+            onKeyDown={e => handleKey(i, e)} autoComplete="one-time-code"
+            autoFocus={i === 0} disabled={loading} aria-label={`Digit ${i + 1}`}/>
         ))}
       </div>
-
       {error && (
         <div className="auth-alert auth-alert--error" role="alert" style={{ marginTop: 12, width: "100%" }}>
           {error}
         </div>
       )}
-
       <p className="auth-mfa__hint">
         The code refreshes every 30 seconds. Make sure your phone clock is accurate.
       </p>
-
       <button type="button" className="auth-btn-ghost" onClick={onCancel}
         disabled={loading} style={{ marginTop: 8 }}>
         {loading ? <><Spinner dark /> Verifying…</> : "Use a different account"}
@@ -256,34 +240,24 @@ export default function Login() {
   const location   = useLocation();
   const redirectTo = location.state?.from || "/";
 
-  /* ── Form state ── */
   const [email,      setEmail]      = useState("");
   const [password,   setPassword]   = useState("");
   const [showPass,   setShowPass]   = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-
-  /* ── Loading ── */
   const [loading,       setLoading]       = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [resetLoading,  setResetLoading]  = useState(false);
   const [lastResetAt,   setLastResetAt]   = useState(0);
-
-  /* ── Messages ── */
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
-
-  /* ── Security: failed attempts + lockout ── */
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockedUntil,    setLockedUntil]    = useState(0);
   const [lockCountdown,  setLockCountdown]  = useState(0);
-
-  /* ── MFA state ── */
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaUser,     setMfaUser]     = useState(null);
   const [mfaLoading,  setMfaLoading]  = useState(false);
   const [mfaError,    setMfaError]    = useState("");
 
-  /* ── Lockout countdown ticker ── */
   useEffect(() => {
     if (lockedUntil <= Date.now()) return;
     const tick = setInterval(() => {
@@ -303,107 +277,86 @@ export default function Login() {
 
   const anyLoading = loading || googleLoading || resetLoading || mfaLoading;
 
-  /* ── Complete login after all checks pass ── */
+  /* ────────────────────────────────────────────────────────────────
+     FIX: completeLogin no longer bounces existing users to /onboarding
+     because their doc lacks `onboardingComplete`.
+     Rule: only redirect to /onboarding if the doc does NOT exist
+     (brand-new user whose Cloud Function hasn't created the doc yet).
+  ──────────────────────────────────────────────────────────────── */
   const completeLogin = useCallback(async (user) => {
     try {
       const snap = await getDoc(doc(db, "users", user.uid));
-      if (!snap.exists() || !snap.data()?.onboardingComplete) {
-        navigate("/onboarding", { replace: true }); return;
+      if (!snap.exists()) {
+        // Truly new user — no Firestore doc yet
+        navigate("/onboarding", { replace: true });
+        return;
       }
-    } catch (_) {}
+      // Doc exists → user is established, go to their intended destination
+    } catch (_) {
+      // On Firestore error, still proceed — don't block login
+    }
     setFailedAttempts(0);
     navigate(redirectTo, { replace: true });
   }, [navigate, redirectTo]);
 
-  /* ── MFA verification — uses Firebase callable, not REST ── */
+  /* MFA verification */
   const handleMfaVerify = useCallback(async (code) => {
     if (!mfaUser || mfaLoading) return;
-    setMfaLoading(true);
-    setMfaError("");
-
+    setMfaLoading(true); setMfaError("");
     try {
-      // verifyTOTP calls the Firebase callable function directly
-      // No REST endpoint, no Render server needed for auth
       const result = await verifyTOTP(code);
-
       if (!result.valid) {
         setMfaError(result.error || "Incorrect code. Try again.");
-        setMfaLoading(false);
-        return;
+        setMfaLoading(false); return;
       }
-
-      // Code accepted — complete login
       await completeLogin(mfaUser);
     } catch (e) {
       console.error("MFA verify error:", e);
       setMfaError("Verification failed. Check your connection and try again.");
-    } finally {
-      setMfaLoading(false);
-    }
+    } finally { setMfaLoading(false); }
   }, [mfaUser, mfaLoading, completeLogin]);
 
   const cancelMfa = useCallback(() => {
     auth.signOut().catch(() => {});
-    setMfaRequired(false);
-    setMfaUser(null);
-    setMfaError("");
+    setMfaRequired(false); setMfaUser(null); setMfaError("");
   }, []);
 
-  /* ── Email / password sign in ── */
+  /* Email/password sign in */
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr(""); setMsg("");
-
-    if (isLocked) {
-      setErr(`Account temporarily locked. Try again in ${lockCountdown}s.`);
-      return;
-    }
-
+    if (isLocked) { setErr(`Account temporarily locked. Try again in ${lockCountdown}s.`); return; }
     const emailTrim = normalizeEmail(email);
     const passTrim  = String(password || "").trim();
     if (!emailTrim || !passTrim)  { setErr("Enter your email and password."); return; }
     if (!isValidEmail(emailTrim)) { setErr("Enter a valid email address.");   return; }
-
     setLoading(true);
     try {
       const cred = await signInWithEmailAndPassword(auth, emailTrim, passTrim);
-
       if (!cred.user.emailVerified) {
         navigate("/verify-email", { replace: true }); return;
       }
-
       setFailedAttempts(0); setLockedUntil(0); setLockCountdown(0);
-
-      // Check if MFA is enabled for this user
       let mfaEnabled = false;
       try {
         const snap = await getDoc(doc(db, "users", cred.user.uid));
         mfaEnabled  = snap.data()?.mfa?.enabled === true;
       } catch (_) {}
-
       if (mfaEnabled) {
-        setMfaUser(cred.user);
-        setMfaRequired(true);
-        setLoading(false);
-        return;
+        setMfaUser(cred.user); setMfaRequired(true); setLoading(false); return;
       }
-
       await completeLogin(cred.user);
-
     } catch (e) {
       const code = e?.code || "";
       let message = "Sign in failed. Try again.";
-
       if (code.includes("auth/invalid-credential") ||
           code.includes("auth/user-not-found")     ||
           code.includes("auth/wrong-password")) {
         const next = failedAttempts + 1;
         setFailedAttempts(next);
-
         if (next >= MAX_FAILED_ATTEMPTS) {
           const until = Date.now() + LOCKOUT_DURATION_MS;
-          setLockedUntil(until);
-          setLockCountdown(formatSecs(LOCKOUT_DURATION_MS));
+          setLockedUntil(until); setLockCountdown(formatSecs(LOCKOUT_DURATION_MS));
           message = `Too many failed attempts. Account locked for ${formatSecs(LOCKOUT_DURATION_MS)} seconds.`;
         } else {
           const remaining = MAX_FAILED_ATTEMPTS - next;
@@ -416,21 +369,18 @@ export default function Login() {
       } else if (code.includes("auth/invalid-email")) {
         message = "Invalid email address.";
       }
-
       setErr(message);
     } finally { setLoading(false); }
   };
 
-  /* ── Google sign in ── */
+  /* Google sign in */
   const handleGoogle = async () => {
-    setErr(""); setMsg("");
-    setGoogleLoading(true);
+    setErr(""); setMsg(""); setGoogleLoading(true);
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
       const result = await signInWithPopup(auth, provider);
       const isNew  = result.additionalUserInfo?.isNewUser;
-
       if (isNew) {
         try {
           await setDoc(doc(db, "users", result.user.uid), {
@@ -444,34 +394,26 @@ export default function Login() {
         } catch (_) {}
         navigate("/onboarding", { replace: true }); return;
       }
-
       await completeLogin(result.user);
     } catch (e) {
       const code = e?.code || "";
-      if (code === "auth/popup-closed-by-user" ||
-          code === "auth/cancelled-popup-request") return;
+      if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") return;
       setErr("Google sign-in failed. Try again.");
     } finally { setGoogleLoading(false); }
   };
 
-  /* ── Forgot password ── */
+  /* Forgot password */
   const onForgot = async () => {
     if (anyLoading) return;
     setErr(""); setMsg("");
     const emailTrim = normalizeEmail(email);
     if (!emailTrim)               { setErr("Enter your email address first.");    return; }
     if (!isValidEmail(emailTrim)) { setErr("Enter a valid email address first."); return; }
-
     const cooldownRem = RESET_COOLDOWN_MS - (Date.now() - lastResetAt);
-    if (cooldownRem > 0) {
-      setErr(`Wait ${Math.ceil(cooldownRem / 1000)}s before trying again.`); return;
-    }
-
+    if (cooldownRem > 0) { setErr(`Wait ${Math.ceil(cooldownRem / 1000)}s before trying again.`); return; }
     setResetLoading(true);
     try {
-      await sendPasswordResetEmail(auth, emailTrim, {
-        url: `${window.location.origin}/login`,
-      });
+      await sendPasswordResetEmail(auth, emailTrim, { url: `${window.location.origin}/login` });
       setLastResetAt(Date.now());
       setMsg("Password reset email sent — check your inbox.");
     } catch (e) {
@@ -489,24 +431,18 @@ export default function Login() {
     } finally { setResetLoading(false); }
   };
 
-  /* ── Render: MFA screen ── */
+  /* MFA screen */
   if (mfaRequired) {
     return (
       <div className="auth-page">
         <div className="auth-panel auth-panel--centered">
           <Link to="/" className="auth-logo">
             <div className="auth-logo-mark">
-              <img src="/Favicon-white.PNG" alt="" width="22" height="22"
-                style={{ objectFit: "contain" }}/>
+              <img src="/Favicon-white.PNG" alt="" width="22" height="22" style={{ objectFit: "contain" }}/>
             </div>
             <span className="auth-logo-name">Beme Market</span>
           </Link>
-          <MfaScreen
-            onVerify={handleMfaVerify}
-            onCancel={cancelMfa}
-            loading={mfaLoading}
-            error={mfaError}
-          />
+          <MfaScreen onVerify={handleMfaVerify} onCancel={cancelMfa} loading={mfaLoading} error={mfaError}/>
         </div>
         <div className="auth-visual">
           <LoginIllustration />
@@ -519,15 +455,13 @@ export default function Login() {
     );
   }
 
-  /* ── Render: normal login form ── */
+  /* Main login form */
   return (
     <div className="auth-page">
       <div className="auth-panel">
-
         <Link to="/" className="auth-logo">
           <div className="auth-logo-mark">
-            <img src="/Favicon-white.PNG" alt="" width="22" height="22"
-              style={{ objectFit: "contain" }}/>
+            <img src="/Favicon-white.PNG" alt="" width="22" height="22" style={{ objectFit: "contain" }}/>
           </div>
           <span className="auth-logo-name">Beme Market</span>
         </Link>
@@ -566,7 +500,6 @@ export default function Login() {
         <div className="auth-divider">or</div>
 
         <form className="auth-form" onSubmit={onSubmit} noValidate>
-
           <div className="auth-field">
             <label className="auth-label" htmlFor="l-email">Email address</label>
             <div className="auth-input-wrap">
@@ -605,31 +538,21 @@ export default function Login() {
             </div>
             <button type="button" className="auth-forgot"
               onClick={onForgot} disabled={anyLoading || isLocked}>
-              {resetLoading
-                ? "Sending…"
-                : resetCooldownLeft > 0
-                ? `Retry in ${resetCooldownLeft}s`
-                : "Forgot password?"}
+              {resetLoading ? "Sending…" : resetCooldownLeft > 0 ? `Retry in ${resetCooldownLeft}s` : "Forgot password?"}
             </button>
           </div>
 
           {err && <div className="auth-alert auth-alert--error" role="alert">{err}</div>}
           {msg && <div className="auth-alert auth-alert--ok"    role="status">{msg}</div>}
 
-          <button className="auth-btn-primary" type="submit"
-            disabled={anyLoading || isLocked}>
-            {loading
-              ? <><Spinner/> Signing in…</>
-              : isLocked
-              ? `Locked · ${lockCountdown}s`
-              : "Sign in"}
+          <button className="auth-btn-primary" type="submit" disabled={anyLoading || isLocked}>
+            {loading ? <><Spinner/> Signing in…</> : isLocked ? `Locked · ${lockCountdown}s` : "Sign in"}
           </button>
 
           <button type="button" className="auth-btn-ghost"
             onClick={() => navigate("/checkout")} disabled={anyLoading || isLocked}>
             Continue as guest
           </button>
-
         </form>
 
         <div className="auth-footer">
