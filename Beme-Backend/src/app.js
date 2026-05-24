@@ -11,7 +11,7 @@ import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import paystackRoutes from "./routes/paystack.js";
 import adminReviewRoutes from "./routes/adminReview.js";
-import aiRoutes from "./routes/aiRoutes.js";   // ← NEW
+import aiRoutes from "./routes/aiRoutes.js";
 
 dotenv.config();
 
@@ -21,7 +21,10 @@ app.set("trust proxy", 1);
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  "https://bememarket.store",
+  "https://www.bememarket.store",
   "http://localhost:5173",
+  "http://localhost:5174",
 ].filter(Boolean);
 
 /* ===============================
@@ -67,13 +70,13 @@ app.get("/health", (_req, res) => {
    API ROUTES
 ================================ */
 
-app.use("/api/auth",    authRoutes);
-app.use("/api/ai",      aiRoutes);          // ← NEW
+app.use("/api/auth",     authRoutes);
+app.use("/api/ai",       aiRoutes);
 app.use("/api/products", productRoutes);
-app.use("/api/cart",    cartRoutes);
-app.use("/api/orders",  orderRoutes);
+app.use("/api/cart",     cartRoutes);
+app.use("/api/orders",   orderRoutes);
 app.use("/api/paystack", paystackRoutes);
-app.use("/api/admin",   adminReviewRoutes);
+app.use("/api/admin",    adminReviewRoutes);
 
 /* ===============================
    404 HANDLER
