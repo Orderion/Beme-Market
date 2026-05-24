@@ -4,6 +4,9 @@ import { collection, query, where, getDocs, orderBy, limit, Timestamp } from "fi
 import { db } from "../../firebase";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
 import { useAuth } from "../../context/AuthContext";
+import TutorialOverlay from "../../components/ai/TutorialOverlay";
+import { TUTORIAL_STEPS } from "../../components/ai/tutorialSteps";
+import { useTutorial } from "../../hooks/useTutorial";
 
 function fmtMoney(n) {
   const v = Number(n||0);
@@ -116,6 +119,7 @@ function Tip({active,payload,label}) {
 }
 
 export default function DashboardHome() {
+  const { showTutorial, markSeen } = useTutorial("home");
   const {user}                         = useAuth();
   const {shop,storeId,subscriptionPlan} = useSellerAuth();
   const [orders,    setOrders]    = useState([]);
@@ -307,6 +311,13 @@ export default function DashboardHome() {
           </div>
         </div>
       )}
+    {showTutorial && (
+      <TutorialOverlay
+        steps={TUTORIAL_STEPS.home}
+        onFinish={markSeen}
+        pageTitle="Dashboard Home"
+      />
+    )}
     </div>
   );
 }

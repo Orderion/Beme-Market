@@ -1,5 +1,8 @@
 import { useSellerAuth } from "../../hooks/useSellerAuth";
 import { MARKETING_ICONS } from "../../components/icons/SellerIcons";
+import TutorialOverlay from "../../components/ai/TutorialOverlay";
+import { TUTORIAL_STEPS } from "../../components/ai/tutorialSteps";
+import { useTutorial } from "../../hooks/useTutorial";
 
 const TOOLS = [
   { id: "flash",    label: "Flash Sales",    desc: "Create time-limited sales with a countdown timer.",      plan: "standard" },
@@ -22,6 +25,7 @@ const ICON_COLORS = {
 };
 
 export default function DashboardMarketing() {
+  const { showTutorial, markSeen } = useTutorial("marketing");
   const { subscriptionPlan } = useSellerAuth();
 
   const canAccess = (plan) =>
@@ -109,6 +113,13 @@ export default function DashboardMarketing() {
           );
         })}
       </div>
+    {showTutorial && (
+      <TutorialOverlay
+        steps={TUTORIAL_STEPS.marketing}
+        onFinish={markSeen}
+        pageTitle="Marketing"
+      />
+    )}
     </div>
   );
 }

@@ -1,5 +1,8 @@
 import { useStoreAnalytics } from "../../hooks/useStoreAnalytics";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import TutorialOverlay from "../../components/ai/TutorialOverlay";
+import { TUTORIAL_STEPS } from "../../components/ai/tutorialSteps";
+import { useTutorial } from "../../hooks/useTutorial";
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -16,6 +19,7 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 export default function DashboardAnalytics() {
+  const { showTutorial, markSeen } = useTutorial("analytics");
   const { weekSeries, weekRevenue, weekOrders, weekVisitors, loading } = useStoreAnalytics();
 
   const totals = [
@@ -108,6 +112,13 @@ export default function DashboardAnalytics() {
           )}
         </div>
       </div>
+    {showTutorial && (
+      <TutorialOverlay
+        steps={TUTORIAL_STEPS.analytics}
+        onFinish={markSeen}
+        pageTitle="Analytics"
+      />
+    )}
     </div>
   );
 }

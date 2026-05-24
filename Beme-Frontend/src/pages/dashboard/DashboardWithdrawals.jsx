@@ -5,6 +5,9 @@ import { useState } from "react";
 import { useWithdrawals } from "../../hooks/useWithdrawals";
 import { PAYOUT_METHODS, MIN_WITHDRAWAL } from "../../services/payoutService";
 import { IconWallet } from "../../components/icons/SellerIcons";
+import TutorialOverlay from "../../components/ai/TutorialOverlay";
+import { TUTORIAL_STEPS } from "../../components/ai/tutorialSteps";
+import { useTutorial } from "../../hooks/useTutorial";
 
 const STATUS_BADGE = { pending:"sd-badge-yellow", processing:"sd-badge-blue", approved:"sd-badge-blue", completed:"sd-badge-green", rejected:"sd-badge-red" };
 
@@ -185,6 +188,13 @@ export function DashboardWithdrawals() {
           </div>
         </div>
       )}
+    {showTutorial && (
+      <TutorialOverlay
+        steps={TUTORIAL_STEPS.withdrawals}
+        onFinish={markSeen}
+        pageTitle="Withdrawals"
+      />
+    )}
     </div>
   );
 }

@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
 import { getSellerOrders } from "../../services/storeService";
+import TutorialOverlay from "../../components/ai/TutorialOverlay";
+import { TUTORIAL_STEPS } from "../../components/ai/tutorialSteps";
+import { useTutorial } from "../../hooks/useTutorial";
 
 export default function DashboardCustomers() {
+  const { showTutorial, markSeen } = useTutorial("customers");
   const { storeId } = useSellerAuth();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading]     = useState(true);
@@ -71,7 +75,13 @@ export default function DashboardCustomers() {
             )
         }
       </div>
+    {showTutorial && (
+      <TutorialOverlay
+        steps={TUTORIAL_STEPS.customers}
+        onFinish={markSeen}
+        pageTitle="Customers"
+      />
+    )}
     </div>
   );
 }
-

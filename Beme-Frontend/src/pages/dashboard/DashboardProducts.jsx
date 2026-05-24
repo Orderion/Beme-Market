@@ -5,6 +5,9 @@ import { db } from "../../firebase";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
 import { useAuth } from "../../context/AuthContext";
 import { getSellerProducts, deleteSellerProduct } from "../../services/storeService";
+import TutorialOverlay from "../../components/ai/TutorialOverlay";
+import { TUTORIAL_STEPS } from "../../components/ai/tutorialSteps";
+import { useTutorial } from "../../hooks/useTutorial";
 
 function Ico({ d, size = 16, color = "currentColor" }) {
   return (
@@ -133,6 +136,7 @@ function ProductRow({ product, onEdit, onDelete, deleting }) {
 // ───────────────────────────────────────────────────────────────────────────
 
 export default function DashboardProducts() {
+  const { showTutorial, markSeen } = useTutorial("products");
   const navigate = useNavigate();
   const { user } = useAuth();
   const { storeId, subscriptionPlan, planLimits } = useSellerAuth();
@@ -347,6 +351,13 @@ export default function DashboardProducts() {
           onConfirm={confirmDelete}
           onCancel={() => setConfirmProd(null)}/>
       )}
+    {showTutorial && (
+      <TutorialOverlay
+        steps={TUTORIAL_STEPS.products}
+        onFinish={markSeen}
+        pageTitle="Products"
+      />
+    )}
     </div>
   );
 }

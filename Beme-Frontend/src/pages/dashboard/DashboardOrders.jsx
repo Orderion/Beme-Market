@@ -4,6 +4,9 @@
 import { useState, useEffect } from "react";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
 import { getSellerOrders } from "../../services/storeService";
+import TutorialOverlay from "../../components/ai/TutorialOverlay";
+import { TUTORIAL_STEPS } from "../../components/ai/tutorialSteps";
+import { useTutorial } from "../../hooks/useTutorial";
 
 const STATUS_TABS = ["all","pending","processing","delivered","cancelled"];
 const BADGE = { delivered:"sd-badge-green", processing:"sd-badge-blue", pending:"sd-badge-yellow", cancelled:"sd-badge-red" };
@@ -27,6 +30,7 @@ function EmptyOrders() {
 }
 
 export default function DashboardOrders() {
+  const { showTutorial, markSeen } = useTutorial("orders");
   const { storeId } = useSellerAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -81,7 +85,13 @@ export default function DashboardOrders() {
           )
         }
       </div>
+    {showTutorial && (
+      <TutorialOverlay
+        steps={TUTORIAL_STEPS.orders}
+        onFinish={markSeen}
+        pageTitle="Orders"
+      />
+    )}
     </div>
   );
 }
-
