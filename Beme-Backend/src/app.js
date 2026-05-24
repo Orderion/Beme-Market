@@ -11,6 +11,7 @@ import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import paystackRoutes from "./routes/paystack.js";
 import adminReviewRoutes from "./routes/adminReview.js";
+import aiRoutes from "./routes/aiRoutes.js";   // ← NEW
 
 dotenv.config();
 
@@ -31,11 +32,7 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
+      if (allowedOrigins.includes(origin)) return callback(null, true);
       return callback(new Error("Not allowed by CORS"));
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -70,13 +67,13 @@ app.get("/health", (_req, res) => {
    API ROUTES
 ================================ */
 
-app.use("/api/auth", authRoutes);
-app.use('/api/ai', aiRoutes);
+app.use("/api/auth",    authRoutes);
+app.use("/api/ai",      aiRoutes);          // ← NEW
 app.use("/api/products", productRoutes);
-app.use("/api/cart", cartRoutes);
-app.use("/api/orders", orderRoutes);
+app.use("/api/cart",    cartRoutes);
+app.use("/api/orders",  orderRoutes);
 app.use("/api/paystack", paystackRoutes);
-app.use("/api/admin", adminReviewRoutes);
+app.use("/api/admin",   adminReviewRoutes);
 
 /* ===============================
    404 HANDLER
@@ -100,7 +97,6 @@ app.use((err, _req, res, next) => {
       message: "CORS blocked this origin",
     });
   }
-
   return errorHandler(err, _req, res, next);
 });
 
