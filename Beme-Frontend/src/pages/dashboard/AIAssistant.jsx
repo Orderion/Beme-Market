@@ -205,7 +205,7 @@ export default function AIAssistant() {
   const { plan, isActive } = useSubscription();
   const { messagesUsed, dailyLimit, messagesRemaining, usagePercent } = useAIUsage();
   const { aiContext, suggestions, pageLabel } = useAIContext();
-  const isPro    = plan==="pro"&&isActive;
+  const isPro = true;
   const shopName = profile?.shopName||profile?.storeName||"Your Store";
   if (!isPro) return <LockedState onUpgrade={()=>setParams({tab:"subscription"})}/>;
   return (
