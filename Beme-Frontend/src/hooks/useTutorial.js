@@ -2,14 +2,14 @@ import { useState, useEffect, useCallback } from "react";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
-import { useSubscription } from "./useSubscription";
 
 export function useTutorial(pageKey) {
-  const { user }           = useAuth();
-  const { plan, isActive } = useSubscription();
+  const { user, subscriptionPlan } = useAuth(); // ← use auth, not useSubscription
   const [seen,    setSeen]    = useState(true);
   const [loading, setLoading] = useState(true);
-  const isPro = plan === "pro" && isActive;
+
+  // Use plan from auth context — already loaded, no extra Firestore read
+  const isPro = subscriptionPlan === "pro";
 
   useEffect(() => {
     if (!user?.uid || !isPro || !pageKey) { setLoading(false); return; }

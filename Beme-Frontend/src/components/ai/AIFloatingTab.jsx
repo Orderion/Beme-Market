@@ -1,22 +1,22 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { useSubscription } from "../../hooks/useSubscription";
 import { useAIUsage } from "../../hooks/useAIUsage";
 import { useAIChat } from "../../hooks/useAIChat";
 import { useAIContext } from "../../hooks/useAIContext";
 import AIMessage, { TypingIndicator } from "./AIMessage";
 
 export default function AIFloatingTab() {
-  const { profile }        = useAuth();
-  const { plan, isActive } = useSubscription();
+  const { profile, subscriptionPlan } = useAuth();  // ← use auth, not useSubscription
   const { messagesUsed, dailyLimit, isAtLimit } = useAIUsage();
   const { aiContext, suggestions, pageLabel }   = useAIContext();
   const [, setParams] = useSearchParams();
   const [open,  setOpen]  = useState(false);
   const [input, setInput] = useState("");
   const bottomRef = useRef(null);
-  const isPro = plan === "pro" && isActive;
+
+  // Use auth context plan — already loaded, no extra Firestore call
+  const isPro = subscriptionPlan === "pro";
 
   const { messages, isTyping, error, sendMessage, setInput: setChatInput } = useAIChat({ aiContext, onLimitReached:()=>{} });
   useEffect(()=>{ setChatInput(input); },[input,setChatInput]);
