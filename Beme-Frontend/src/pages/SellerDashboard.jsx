@@ -269,6 +269,7 @@ export default function SellerDashboard() {
       </Suspense>
     ),
     security:     <DashboardSecurity />,   // ← NEW
+    "ai-assistant": <DashboardAIAssistant />,
     subscription: <DashboardSubscription />,
   };
 
