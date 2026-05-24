@@ -21,10 +21,6 @@ import DashboardAppearance   from "./dashboard/DashboardAppearance";
 import DashboardWithdrawals  from "./dashboard/DashboardWithdrawals";
 import DashboardSecurity     from "./dashboard/DashboardSecurity";   // ← NEW
 import DashboardAIAssistant  from "./dashboard/AIAssistant";
-import AIFloatingTab    from "../components/ai/AIFloatingTab";
-import TutorialOverlay  from "../components/ai/TutorialOverlay";
-import { TUTORIAL_STEPS } from "../components/ai/tutorialSteps";
-import { useTutorial }   from "../hooks/useTutorial";
 const DashboardDelivery = React.lazy(() =>
   import("./dashboard/DashboardDelivery")
     .then(mod => mod)
@@ -102,25 +98,20 @@ function Sidebar({ activeTab, onNav, shop, plan, chatUnread, onClose, isMobile, 
     <>
       {/* Brand */}
       <div className="sd-brand">
-        <div className="sd-brand-icon">{planInitial}  <AIFloatingTab />
-    </div>
+        <div className="sd-brand-icon">{planInitial}</div>
         <div className="sd-brand-info">
-          <div className="sd-brand-name">{shop?.shopName || "My Store"}  <AIFloatingTab />
-    </div>
+          <div className="sd-brand-name">{shop?.shopName || "My Store"}</div>
           <div className="sd-brand-plan">
             <div className="sd-plan-dot" style={{ background: planColor }} />
             {plan?.charAt(0).toUpperCase() + plan?.slice(1)} Plan
-            <AIFloatingTab />
-    </div>
-          <AIFloatingTab />
-    </div>
+          </div>
+        </div>
         {isMobile && (
           <button className="sd-hamburger" onClick={onClose} style={{ marginLeft: "auto" }}>
             <Icon path={ICONS.close} size={18} />
           </button>
         )}
-        <AIFloatingTab />
-    </div>
+      </div>
 
       {/* Nav */}
       <nav className="sd-nav">
@@ -160,15 +151,12 @@ function Sidebar({ activeTab, onNav, shop, plan, chatUnread, onClose, isMobile, 
 
       {/* Support card */}
       <div className="sd-support">
-        <div className="sd-support-title">Need help?  <AIFloatingTab />
-    </div>
-        <div className="sd-support-text">Feel free to contact our support team anytime.  <AIFloatingTab />
-    </div>
+        <div className="sd-support-title">Need help?</div>
+        <div className="sd-support-text">Feel free to contact our support team anytime.</div>
         <button className="sd-support-btn" onClick={() => navigate("/support")}>
           Get support
         </button>
-        <AIFloatingTab />
-    </div>
+      </div>
     </>
   );
 }
@@ -227,10 +215,8 @@ export default function SellerDashboard() {
   if (authLoading || sellerLoading) {
     return (
       <div className="sd-root" style={{ alignItems: "center", justifyContent: "center" }}>
-        <div style={{ fontSize: 14, color: "#8B8FA8" }}>Loading your dashboard…  <AIFloatingTab />
-    </div>
-        <AIFloatingTab />
-    </div>
+        <div style={{ fontSize: 14, color: "#8B8FA8" }}>Loading your dashboard…</div>
+      </div>
     );
   }
 
@@ -245,10 +231,8 @@ export default function SellerDashboard() {
   if (!hasImmediateAccess && !accessGranted) {
     return (
       <div className="sd-root" style={{ alignItems: "center", justifyContent: "center" }}>
-        <div style={{ fontSize: 14, color: "#8B8FA8" }}>Checking access…  <AIFloatingTab />
-    </div>
-        <AIFloatingTab />
-    </div>
+        <div style={{ fontSize: 14, color: "#8B8FA8" }}>Checking access…</div>
+      </div>
     );
   }
 
@@ -317,10 +301,8 @@ export default function SellerDashboard() {
             <button className="sd-hamburger" onClick={() => setMobileOpen(true)}>
               <Icon path={ICONS.menu} size={22} color="#8B8FA8" />
             </button>
-            <div className="sd-topbar-title">{TAB_TITLES[activeTab] || "Dashboard"}  <AIFloatingTab />
-    </div>
-            <AIFloatingTab />
-    </div>
+            <div className="sd-topbar-title">{TAB_TITLES[activeTab] || "Dashboard"}</div>
+          </div>
           <div className="sd-topbar-right">
             <span className="sd-topbar-date">
               <Icon path="M8 2v3 M16 2v3 M3 10h18 M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" size={13} color="#8B8FA8" />
@@ -329,17 +311,13 @@ export default function SellerDashboard() {
             <button className="sd-avatar-btn" title={user?.displayName || user?.email}>
               {(user?.displayName || user?.email || "S")[0].toUpperCase()}
             </button>
-            <AIFloatingTab />
-    </div>
+          </div>
         </header>
 
         <div className="sd-content">
           {PAGE_MAP[activeTab] || <DashboardHome />}
-          <AIFloatingTab />
-    </div>
-        <AIFloatingTab />
-    </div>
-      <AIFloatingTab />
+        </div>
+      </div>
     </div>
   );
 }
