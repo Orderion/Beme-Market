@@ -10,6 +10,7 @@ import { MARKETPLACE_CATEGORIES } from "../../constants/catalog";
 import { useSubscription } from "../../hooks/useSubscription";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://beme-market-1.onrender.com";
+import { incrementUsage } from "../../services/aiUsageService";
 
 function Ico({ d, size = 18 }) {
   return (
@@ -139,19 +140,21 @@ export default function DashboardProductDetail() {
     setAiWriting(true);
     setAiGenerated(null);
     try {
-      const prompt = `Write an optimized product listing for a Ghanaian e-commerce seller on Beme Market.
+      const prompt = `You are writing a product listing for a seller on Beme Market, a Ghanaian e-commerce platform.
 
 Product name: ${form.name}
 Category: ${form.category || "General"}
 Price: GHS ${form.price || "?"}
 
-Generate:
-1. A compelling product DESCRIPTION (3-4 sentences, benefit-focused, mentions quality and why Ghanaian buyers will love it)
-2. An SEO TITLE (under 60 characters, keyword-rich)
+Write TWO things:
 
-Format your response EXACTLY like this:
-DESCRIPTION: [the description here]
-SEO_TITLE: [the title here]`;
+1. DESCRIPTION: Write 3-4 natural sentences that sell the product. Sound like a real seller, not an AI. No asterisks, no bullet points, no markdown, no hashtags. Just plain conversational text that highlights quality, benefits, and why Ghanaian buyers will love it.
+
+2. SEO_TITLE: Write ONLY the product title. Max 60 characters. No explanation, no extra text. Just the title itself.
+
+Reply in this exact format:
+DESCRIPTION: [plain text description here]
+SEO_TITLE: [just the title text here, nothing else]`;
 
       const res = await fetch(`${API_URL}/api/ai/chat`, {
         method: "POST",
@@ -171,6 +174,8 @@ SEO_TITLE: [the title here]`;
       const title = titleMatch?.[1]?.trim() || form.name;
 
       setAiGenerated({ description: desc, title });
+      // Count toward daily usage
+      if (user?.uid) incrementUsage(user.uid).catch(() => {});
     } catch (e) {
       console.error("[AI Write]", e);
       alert("AI is temporarily unavailable. Please try again.");
@@ -181,11 +186,16 @@ SEO_TITLE: [the title here]`;
 
   const applyAIContent = (field) => {
     if (!aiGenerated) return;
-    if (field === "description") upd("description")({ target: { value: aiGenerated.description } });
-    if (field === "title")       upd("name")({ target: { value: aiGenerated.title } });
+    if (field === "description") {
+      setForm(f => ({ ...f, description: aiGenerated.description }));
+      setAiGenerated(null);
+    }
+    if (field === "title") {
+      setForm(f => ({ ...f, name: aiGenerated.title }));
+      setAiGenerated(null);
+    }
     if (field === "both") {
-      upd("description")({ target: { value: aiGenerated.description } });
-      upd("name")({ target: { value: aiGenerated.title } });
+      setForm(f => ({ ...f, description: aiGenerated.description, name: aiGenerated.title }));
       setAiGenerated(null);
     }
   };

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://beme-market-1.onrender.com";
+import { incrementUsage } from "../../services/aiUsageService";
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -32,7 +33,7 @@ export default function DashboardAnalytics() {
       setAiLoading(true);
       try {
         const conversion = weekVisitors > 0 ? ((weekOrders / weekVisitors) * 100).toFixed(1) : "0";
-        const prompt = `Analyse this Beme Market seller's weekly analytics and give a 2-sentence plain English summary, then 1 specific actionable tip. Be direct and helpful.
+        const prompt = `Analyse this Beme Market seller's weekly analytics. No asterisks, no markdown, no bullet points. Plain conversational English only. Give a 2-sentence summary then 1 specific actionable tip.
 
 Weekly data:
 - Revenue: GHS ${Number(weekRevenue || 0).toFixed(2)}
@@ -56,6 +57,8 @@ TIP: [1 specific action they can take today]`;
         const text = data.content || "";
         const summaryMatch = text.match(/SUMMARY:\s*([\s\S]*?)(?=TIP:|$)/i);
         const tipMatch     = text.match(/TIP:\s*([\s\S]*?)$/i);
+        const uid = auth?.currentUser?.uid;
+        if (uid) incrementUsage(uid).catch(() => {});
         setAiSummary({
           summary: summaryMatch?.[1]?.trim() || text,
           tip:     tipMatch?.[1]?.trim() || null,

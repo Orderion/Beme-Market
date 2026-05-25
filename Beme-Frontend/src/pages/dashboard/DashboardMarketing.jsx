@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://beme-market-1.onrender.com";
+import { incrementUsage } from "../../services/aiUsageService";
 
 const TOOLS = [
   { id: "flash",    label: "Flash Sales",    desc: "Create time-limited sales with a countdown timer.",      plan: "standard" },
@@ -42,10 +43,10 @@ export default function DashboardMarketing() {
     setGenerating(true); setCaptions(null);
     try {
       const platformMap = {
-        instagram: "Instagram (engaging, emojis, hashtags, 150 chars max)",
-        tiktok:    "TikTok (trendy, hooky, short, with trending hashtags)",
-        whatsapp:  "WhatsApp Status (casual, conversational, direct CTA, no hashtags)",
-        all:       "Instagram, TikTok, AND WhatsApp Status (3 separate captions)"
+        instagram: "Instagram — natural, conversational, 1-2 emojis, 3-5 relevant hashtags at end, 150 chars max. No asterisks, no markdown.",
+        tiktok:    "TikTok — punchy opening line, trendy but natural, 3-5 hashtags at end. No asterisks, no markdown.",
+        whatsapp:  "WhatsApp Status — casual, friendly, sounds like a real person texting. Direct CTA. No hashtags, no asterisks, no markdown.",
+        all:       "Instagram, TikTok, AND WhatsApp Status — 3 separate natural captions. No asterisks, no markdown, no explanations."
       };
       const res = await fetch(`${API_URL}/api/ai/chat`, {
         method: "POST",
@@ -65,6 +66,10 @@ WHATSAPP: [caption]` : `Write 1 caption ready to post. Just the caption text, no
       });
       const data = await res.json();
       const text = data.content || "";
+      // Count toward daily usage
+      const { auth } = await import("../../firebase");
+      const uid = auth?.currentUser?.uid;
+      if (uid) incrementUsage(uid).catch(() => {});
       if (captionStyle === "all") {
         const ig = text.match(/INSTAGRAM:\s*([\s\S]*?)(?=TIKTOK:|$)/i)?.[1]?.trim();
         const tt = text.match(/TIKTOK:\s*([\s\S]*?)(?=WHATSAPP:|$)/i)?.[1]?.trim();
