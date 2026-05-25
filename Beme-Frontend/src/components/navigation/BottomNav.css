@@ -1,131 +1,122 @@
 /* =============================================
-   BOTTOM NAV — Clean Floating Pill
-   Soft shadow · Rounded card · Thin icons
-   Active = bold top bar + bold label
+   BOTTOM NAV — Dark Floating Pill
+   Theme-aware: uses body.dark from index.css
+   Icons only · No labels · Unread badge
 ============================================= */
 
-/* ── Floating pill ── */
+/* ── Pill — follows theme via CSS variables from index.css ── */
 .bottom-nav {
   position: fixed;
-  bottom: 16px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%) translateY(0);
-  width: calc(100% - 32px);
-  max-width: 480px;
-  height: 68px;
-  background: #ffffff;
-  border-radius: 22px;
+  width: auto;
+  height: 60px;
+  background: var(--card);                          /* #fff light / #1A1A18 dark */
+  border-radius: 999px;
   box-shadow:
-    0 4px 28px rgba(0, 0, 0, 0.10),
-    0 1px 6px  rgba(0, 0, 0, 0.06);
+    0 8px 32px rgba(0, 0, 0, 0.10),
+    0 2px 8px  rgba(0, 0, 0, 0.06);
   z-index: 999;
-  transition: transform 0.34s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 0.34s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.3s ease,
+    box-shadow 0.3s ease;
   will-change: transform;
+  padding: 0 6px;
+}
+
+/* Dark mode — card is #1A1A18, stronger shadow to lift from bg */
+body.dark .bottom-nav {
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.55),
+    0 2px 8px  rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.07);
 }
 
 .bottom-nav--hidden {
-  transform: translateX(-50%) translateY(calc(100% + 28px));
+  transform: translateX(-50%) translateY(calc(100% + 32px));
 }
 
-/* ── Inner flex row ── */
+/* ── Inner row ── */
 .bn-inner {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   height: 100%;
-  padding: 0 8px;
+  gap: 4px;
 }
 
 /* ── Each tab ── */
 .bn-item {
-  flex: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  width: 52px;
+  height: 44px;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0 4px 6px;
+  padding: 0;
+  border-radius: 999px;
   position: relative;
   -webkit-tap-highlight-color: transparent;
-  transition: opacity 0.12s;
+  transition: background 0.15s ease, transform 0.1s ease;
 }
 
 .bn-item:active {
-  opacity: 0.55;
+  transform: scale(0.9);
 }
 
-/* ── Active top bar ── */
-.bn-top-bar {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 28px;
-  height: 2.5px;
-  border-radius: 0 0 4px 4px;
-  background: transparent;
-  transition: background 0.18s ease;
+/* Active tab — subtle tint using theme accent */
+.bn-item.active {
+  background: rgba(4, 110, 242, 0.08);
 }
 
-.bn-item.active .bn-top-bar {
-  background: #111111;
+body.dark .bn-item.active {
+  background: rgba(4, 110, 242, 0.14);
 }
 
-/* ── Icon ── */
+/* ── Icon wrapper ── */
 .bn-icon-wrap {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 24px;
+  height: 24px;
 }
 
+/* ── SVG icon — uses --muted (inactive) and --text (active) ── */
 .bn-svg {
   width: 22px;
   height: 22px;
-  color: #C0C0C0;
+  color: var(--muted);                              /* dim in both themes */
   transition: color 0.15s ease;
   display: block;
 }
 
 .bn-item.active .bn-svg {
-  color: #111111;
+  color: var(--grtheme);                            /* blue accent when active */
 }
 
-/* ── Label ── */
-.bn-label {
-  font-size: 10px;
-  font-weight: 500;
-  font-family: 'SF Pro Text', -apple-system, 'Helvetica Neue', sans-serif;
-  letter-spacing: 0.01em;
-  color: #C0C0C0;
-  line-height: 1;
-  transition: color 0.15s ease, font-weight 0.15s ease;
-}
-
-.bn-item.active .bn-label {
-  color: #111111;
-  font-weight: 700;
-}
-
-/* ── Wishlist / account badge ── */
+/* ── Unread badge ── */
 .bn-badge {
   position: absolute;
-  top: -6px;
-  right: -8px;
-  min-width: 15px;
-  height: 15px;
-  padding: 0 3px;
+  top: -5px;
+  right: -7px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
   border-radius: 999px;
-  background: #111111;
+  background: var(--grtheme);
   color: #fff;
-  font-size: 8px;
-  font-weight: 700;
-  font-family: 'SF Pro Text', -apple-system, 'Helvetica Neue', sans-serif;
-  line-height: 15px;
+  font-size: 9px;
+  font-weight: 800;
+  font-family: "Nunito", -apple-system, sans-serif;
+  line-height: 16px;
   text-align: center;
   pointer-events: none;
+  border: 1.5px solid var(--card);                 /* matches pill bg */
   animation: bn-badge-pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
@@ -134,19 +125,18 @@
   to   { transform: scale(1); opacity: 1; }
 }
 
-
-/* ── Back-to-top button ── */
+/* ── Back-to-top ── */
 .bn-back-top {
   position: fixed;
-  right: 16px;
-  bottom: 100px;
+  right: 18px;
+  bottom: 96px;
   z-index: 1000;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 999px;
-  border: 1.5px solid rgba(0, 0, 0, 0.10);
-  background: #ffffff;
-  color: #333333;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: var(--card);
+  color: var(--text);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
   display: flex;
   align-items: center;
@@ -159,9 +149,13 @@
     opacity 0.22s ease,
     transform 0.28s cubic-bezier(0.34, 1.1, 0.64, 1),
     bottom 0.34s cubic-bezier(0.4, 0, 0.2, 1),
-    background 0.13s;
-  will-change: transform, opacity;
+    background 0.3s ease;
   -webkit-tap-highlight-color: transparent;
+}
+
+body.dark .bn-back-top {
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 .bn-back-top--visible {
@@ -171,18 +165,16 @@
 }
 
 .bn-back-top--nav-hidden {
-  bottom: 20px;
+  bottom: 24px;
 }
 
 .bn-back-top:active {
-  background: #f2f2f2;
-  transform: scale(0.94);
+  transform: scale(0.92);
 }
 
-
-/* ── Safe area ── */
+/* ── Safe area for page content ── */
 body {
-  padding-bottom: 100px;
+  padding-bottom: 96px;
 }
 
 /* ── Hide on desktop ── */
@@ -190,5 +182,17 @@ body {
   .bottom-nav,
   .bn-back-top {
     display: none !important;
+  }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .bottom-nav,
+  .bn-item,
+  .bn-back-top,
+  .bn-svg,
+  .bn-badge {
+    transition: none !important;
+    animation: none !important;
   }
 }

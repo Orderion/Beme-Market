@@ -6,7 +6,6 @@ import {
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { db } from "../firebase";
-import ChatModal from "../components/ChatModal";
 
 /* ─── helpers ─── */
 function fmtMoney(n) {
@@ -122,7 +121,6 @@ export default function StoreFront() {
   const [follCount,   setFollCount]   = useState(0);
   const [tab,         setTab]         = useState("products");
   const [currentUser, setCurrentUser] = useState(null);
-  const [showChat,    setShowChat]    = useState(false);
 
   /* Auth */
   useEffect(() => {
@@ -232,9 +230,9 @@ export default function StoreFront() {
     } else if (pref === "website" && shop?.website) {
       window.open(shop.website, "_blank");
     } else {
-      // Beme Market Chat
+      // Beme Market Chat — navigate to messages page
       if (!currentUser) { navigate(`/login?redirect=/store/${storeSlug}`); return; }
-      setShowChat(true);
+      navigate(`/messages?shop=${shop?.id}`);
     }
   };
 
@@ -541,14 +539,6 @@ export default function StoreFront() {
           </div>
         </div>
       </div>
-
-      {/* Chat modal */}
-      {showChat && shop && (
-        <ChatModal
-          shop={shop}
-          onClose={() => setShowChat(false)}
-        />
-      )}
 
       <style>{`
         @keyframes sf-pulse { 0%,100%{opacity:.45} 50%{opacity:.85} }

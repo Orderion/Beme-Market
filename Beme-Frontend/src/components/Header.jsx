@@ -134,6 +134,13 @@ function SetIconUser() {
     </svg>
   );
 }
+function SetIconMessages() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+  );
+}
 function SetIconLogout() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
@@ -759,6 +766,9 @@ export default function Header({ onMenu, onCart }) {
         </button>
         <button className="hdr-set-item" onClick={() => settingsNav("/orders")} type="button">
           <span className="hdr-set-item-icon"><SetIconOrders /></span>Orders
+        </button>
+        <button className="hdr-set-item" onClick={() => settingsNav("/messages")} type="button">
+          <span className="hdr-set-item-icon"><SetIconMessages /></span>Messages
         </button>
         <hr className="hdr-set-divider" />
         <div className="hdr-set-label">Account</div>

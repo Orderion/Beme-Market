@@ -570,7 +570,6 @@ body.dark .hdr-settings-dropdown { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4); }
   padding: 11px 14px;
   background: none;
   border: none;
-  border-bottom: 1px solid var(--border);
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
@@ -580,7 +579,6 @@ body.dark .hdr-settings-dropdown { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4); }
   transition: background 100ms ease, color 100ms ease;
 }
 
-.hdr-set-item:last-of-type { border-bottom: none; }
 .hdr-set-item:hover        { background: rgba(4, 110, 242, 0.05); color: var(--grtheme); }
 .hdr-set-item:active       { background: rgba(4, 110, 242, 0.08); }
 .hdr-set-item--danger      { color: #d94f4f !important; }
