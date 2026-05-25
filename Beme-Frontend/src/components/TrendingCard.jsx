@@ -80,19 +80,12 @@ function getItemAbroadDeliveryFee(product) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
-function BagIcon() {
+function CartIcon() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      className="tc-cart-svg"
-      aria-hidden="true"
-      focusable="false"
-      fill="none"
-    >
-      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M16 10a4 4 0 01-8 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <circle cx="9" cy="21" r="1"/>
+      <circle cx="20" cy="21" r="1"/>
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
     </svg>
   );
 }
@@ -139,13 +132,22 @@ export default function TrendingCard({ product }) {
 
   const priceRaw = product?.price;
   const oldPriceRaw = product?.oldPrice;
-  const price = priceRaw !== undefined && priceRaw !== null && priceRaw !== "" ? Number(priceRaw) : null;
-  const oldPrice = oldPriceRaw !== undefined && oldPriceRaw !== null && oldPriceRaw !== "" ? Number(oldPriceRaw) : null;
+  const price =
+    priceRaw !== undefined && priceRaw !== null && priceRaw !== ""
+      ? Number(priceRaw) : null;
+  const oldPrice =
+    oldPriceRaw !== undefined && oldPriceRaw !== null && oldPriceRaw !== ""
+      ? Number(oldPriceRaw) : null;
 
   const customizations = useMemo(() => normalizeCustomizations(product?.customizations), [product]);
 
   const hasDiscount = price !== null && oldPrice !== null && oldPrice > price;
   const discountPct = hasDiscount ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
+
+  const formatMoney = (n) => {
+    if (n === null || Number.isNaN(n)) return "";
+    return `GHS ${n.toFixed(2)}`;
+  };
 
   const showCardPopupMsg = (message) => {
     setCardPopup(message);
@@ -156,12 +158,7 @@ export default function TrendingCard({ product }) {
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (!inStock) {
-      showCardPopupMsg("Out of stock");
-      return;
-    }
-
+    if (!inStock) { showCardPopupMsg("This item is currently out of stock."); return; }
     try {
       addToCart({
         id, name,
@@ -170,61 +167,34 @@ export default function TrendingCard({ product }) {
         optionPriceTotal: 0,
         oldPrice: oldPrice !== null && Number.isFinite(oldPrice) ? oldPrice : null,
         image: activeImage || images[0] || "",
-        images,
-        qty: 1,
+        images, qty: 1,
         shop: normalizeShop(product?.shop),
         homeSlot: normalizeHomeSlot(product?.homeSlot || "others"),
-        selectedOptions: {},
-        selectedOptionsLabel: "",
-        selectedOptionDetails: [],
-        customizations,
-        shippingSource,
-        shipsFromAbroad,
-        abroadDeliveryFee,
-        inStock,
-        stock,
-        productId: id,
+        selectedOptions: {}, selectedOptionsLabel: "",
+        selectedOptionDetails: [], customizations,
+        shippingSource, shipsFromAbroad, abroadDeliveryFee,
+        inStock, stock, productId: id,
       });
-
       setCartPopupItem({ name, price, image: activeImage || images[0] || "" });
       setShowCartPopup(true);
       setCardPopup("");
     } catch (error) {
       console.error("TrendingCard addToCart error:", error);
-      showCardPopupMsg("Unable to add item to cart.");
+      showCardPopupMsg("Unable to add this item to cart right now.");
     }
   };
 
-  const goPrevImage = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (imageCount <= 1) return;
-    setActiveImageIndex((prev) => (prev - 1 + imageCount) % imageCount);
-  };
+  const goPrevImage = (e) => { e.preventDefault(); e.stopPropagation(); if (imageCount <= 1) return; setActiveImageIndex((prev) => (prev - 1 + imageCount) % imageCount); };
+  const goNextImage = (e) => { e.preventDefault(); e.stopPropagation(); if (imageCount <= 1) return; setActiveImageIndex((prev) => (prev + 1) % imageCount); };
 
-  const goNextImage = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (imageCount <= 1) return;
-    setActiveImageIndex((prev) => (prev + 1) % imageCount);
-  };
-
-  const handleTouchStart = (e) => {
-    if (imageCount <= 1) return;
-    touchStartXRef.current = e.touches[0].clientX;
-    touchDeltaXRef.current = 0;
-  };
-  const handleTouchMove = (e) => {
-    if (imageCount <= 1 || touchStartXRef.current === null) return;
-    touchDeltaXRef.current = e.touches[0].clientX - touchStartXRef.current;
-  };
-  const handleTouchEnd = () => {
+  const handleTouchStart = (e) => { if (imageCount <= 1) return; touchStartXRef.current = e.touches[0].clientX; touchDeltaXRef.current = 0; };
+  const handleTouchMove  = (e) => { if (imageCount <= 1 || touchStartXRef.current === null) return; touchDeltaXRef.current = e.touches[0].clientX - touchStartXRef.current; };
+  const handleTouchEnd   = () => {
     if (imageCount <= 1 || touchStartXRef.current === null) return;
     const deltaX = touchDeltaXRef.current;
     if (deltaX <= -36) setActiveImageIndex((prev) => (prev + 1) % imageCount);
     else if (deltaX >= 36) setActiveImageIndex((prev) => (prev - 1 + imageCount) % imageCount);
-    touchStartXRef.current = null;
-    touchDeltaXRef.current = 0;
+    touchStartXRef.current = null; touchDeltaXRef.current = 0;
   };
 
   const Wrapper = id ? Link : "div";
@@ -246,66 +216,55 @@ export default function TrendingCard({ product }) {
           >
             {activeImage ? (
               <>
-                <div className="tc-media-frame">
+                <div className="tc-img-wrap">
                   <img className="tc-img" src={activeImage} alt={name} loading="lazy" />
                 </div>
 
-                {/* Overlay badges — top-left stack */}
+                {/* Badges */}
                 <div className="tc-badges">
-                  {!inStock && (
-                    <span className="tc-badge tc-badge--soldout">Sold out</span>
-                  )}
-                  {isRestocked && inStock && (
-                    <span className="tc-badge tc-badge--restocked">Restocked</span>
-                  )}
-                  {hasDiscount && inStock && (
-                    <span className="tc-badge tc-badge--sale">Sale</span>
-                  )}
+                  {!inStock && <span className="tc-badge tc-badge--out">Sold out</span>}
+                  {isRestocked && inStock && <span className="tc-badge tc-badge--restocked">Restocked</span>}
+                  {hasDiscount && inStock && <span className="tc-badge tc-badge--sale">Sale</span>}
                 </div>
 
-                {/* Discount % pill — top-right */}
+                {/* Discount % — top right */}
                 {hasDiscount && inStock && (
                   <span className="tc-discount-pill">−{discountPct}%</span>
                 )}
 
-                {/* Add to cart — bottom-right */}
+                {/* Cart button — bottom right, hover reveal */}
                 <button
-                  className={`tc-cart-btn ${!inStock ? "tc-cart-btn--disabled" : ""}`}
+                  className={`tc-cart-btn${!inStock ? " tc-cart-btn--disabled" : ""}`}
                   onClick={handleAddToCart}
                   aria-label={inStock ? "Add to cart" : "Out of stock"}
                   type="button"
                   disabled={!inStock}
                 >
-                  <BagIcon />
+                  <CartIcon />
                 </button>
 
-                {/* Image nav */}
+                {/* Image nav arrows */}
                 {imageCount > 1 && (
                   <>
                     <button className="tc-nav tc-nav--prev" type="button" aria-label="Previous image" onClick={goPrevImage}>‹</button>
                     <button className="tc-nav tc-nav--next" type="button" aria-label="Next image" onClick={goNextImage}>›</button>
                     <div className="tc-dots">
                       {images.map((_, index) => (
-                        <span
-                          key={index}
-                          className={`tc-dot ${index === activeImageIndex ? "tc-dot--active" : ""}`}
-                        />
+                        <span key={index} className={`tc-dot${index === activeImageIndex ? " tc-dot--active" : ""}`} />
                       ))}
                     </div>
                   </>
                 )}
               </>
             ) : (
-              <div className="tc-img tc-img--empty">No image</div>
+              <div className="tc-img-wrap tc-img-wrap--empty">No image</div>
             )}
           </div>
 
-          {/* Card body — name only, no price */}
+          {/* Card body */}
           <div className="tc-body">
-            {cardPopup && (
-              <div className="tc-popup" role="alert">{cardPopup}</div>
-            )}
-            <h3 className="tc-name">{name}</h3>
+            {cardPopup && <div className="tc-popup" role="alert">{cardPopup}</div>}
+            <p className="tc-name">{name}</p>
           </div>
 
         </div>
@@ -314,24 +273,27 @@ export default function TrendingCard({ product }) {
       {/* Cart confirmation popup */}
       {showCartPopup && cartPopupItem &&
         createPortal(
-          <div className="cart-popup">
-            <div className="cart-popup__close-wrap">
-              <button className="cart-popup__close" onClick={() => setShowCartPopup(false)} aria-label="Close">×</button>
+          <div className="tc-cart-popup">
+            <div className="tc-cart-popup__close-wrap">
+              <button className="tc-cart-popup__close" onClick={() => setShowCartPopup(false)} aria-label="Close">×</button>
             </div>
-            <div className="cart-popup__header">
-              <div className="cart-popup__thumb">
+            <div className="tc-cart-popup__header">
+              <div className="tc-cart-popup__thumb">
                 {cartPopupItem.image && <img src={cartPopupItem.image} alt={cartPopupItem.name} />}
               </div>
-              <div className="cart-popup__info">
-                <span className="cart-popup__label">Added to cart</span>
-                <p className="cart-popup__name">{cartPopupItem.name}</p>
+              <div className="tc-cart-popup__info">
+                <span className="tc-cart-popup__label">Added to cart</span>
+                <p className="tc-cart-popup__name">{cartPopupItem.name}</p>
+                {cartPopupItem.price !== null && (
+                  <p className="tc-cart-popup__price">{formatMoney(cartPopupItem.price)}</p>
+                )}
               </div>
             </div>
-            <div className="cart-popup__divider" />
-            <p className="cart-popup__thanks">Ready to checkout or keep browsing?</p>
-            <div className="cart-popup__actions">
-              <button className="cart-popup__btn cart-popup__btn--ghost" onClick={() => setShowCartPopup(false)}>Continue</button>
-              <button className="cart-popup__btn cart-popup__btn--primary" onClick={() => { setShowCartPopup(false); navigate("/cart"); }}>Checkout</button>
+            <div className="tc-cart-popup__divider" />
+            <p className="tc-cart-popup__thanks">Ready to checkout or keep browsing?</p>
+            <div className="tc-cart-popup__actions">
+              <button className="tc-cart-popup__btn tc-cart-popup__btn--ghost" onClick={() => setShowCartPopup(false)}>Continue</button>
+              <button className="tc-cart-popup__btn tc-cart-popup__btn--primary" onClick={() => { setShowCartPopup(false); navigate("/cart"); }}>Checkout</button>
             </div>
           </div>,
           document.body
