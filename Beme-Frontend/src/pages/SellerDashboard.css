@@ -46,7 +46,7 @@
 .sd-sidebar {
   width: var(--sb-width);
   background: var(--white);
-  border-right: 1px solid var(--border);
+  border-right: 1px solid rgba(0,0,0,0.07);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -66,22 +66,63 @@
 /* ── Topbar sidebar toggle (Paystack style) ── */
 .sd-toggle-btn-topbar {
   display: none;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--white);
+  border: none;
+  background: transparent;
   color: var(--text-muted);
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   flex-shrink: 0;
+  position: relative;
 }
 
 .sd-toggle-btn-topbar:hover {
   background: var(--bg);
   color: var(--text-primary);
+}
+
+/* Tooltip on hover */
+.sd-toggle-btn-topbar::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 999;
+  font-family: var(--font);
+}
+
+.sd-toggle-btn-topbar::before {
+  content: "";
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: #111;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 999;
+}
+
+.sd-toggle-btn-topbar:hover::after,
+.sd-toggle-btn-topbar:hover::before {
+  opacity: 1;
 }
 
 @media (min-width: 769px) {
