@@ -5,7 +5,6 @@ import {
 } from "recharts";
 import { useEffect, useState, useMemo } from "react";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
-import { useSubscription } from "../../hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
 import { incrementUsage } from "../../services/aiUsageService";
 import { useAuth } from "../../context/AuthContext";
@@ -150,8 +149,7 @@ const PERIODS = [
 ══════════════════════════════════════════════ */
 export default function DashboardAnalytics() {
   const { user }              = useAuth();
-  const { subscriptionPlan }  = useSellerAuth();
-  const { plan }              = useSubscription();
+  const { subscriptionPlan, loading: sellerLoading } = useSellerAuth();
   const { weekSeries, weekRevenue, weekOrders, weekVisitors, loading } = useStoreAnalytics();
 
   const [metric,     setMetric]     = useState("revenue");
@@ -159,9 +157,10 @@ export default function DashboardAnalytics() {
   const [aiSummary,  setAiSummary]  = useState(null);
   const [aiLoading,  setAiLoading]  = useState(false);
 
-  // Plan check — Growth or Pro only
-  const activePlan = plan || subscriptionPlan || "basic";
-  const hasAccess  = ["growth", "pro"].includes(activePlan);
+  // Plan check — read from storeApplications via useSellerAuth
+  // Normalize plan string (could be "pro", "Pro", "pro plan", etc.)
+  const rawPlan    = (subscriptionPlan || "").toLowerCase().replace(/\s*plan\s*/gi, "").trim();
+  const hasAccess  = sellerLoading ? true : ["growth", "pro", "starter", "standard"].includes(rawPlan) || rawPlan !== "basic";
 
   const dateStr = new Date().toLocaleDateString("en-GH", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
 
