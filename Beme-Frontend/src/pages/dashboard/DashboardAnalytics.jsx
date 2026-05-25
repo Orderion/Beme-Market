@@ -1,8 +1,9 @@
 import { useStoreAnalytics } from "../../hooks/useStoreAnalytics";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import TutorialOverlay from "../../components/ai/TutorialOverlay";
-import { TUTORIAL_STEPS } from "../../components/ai/tutorialSteps";
-import { useTutorial } from "../../hooks/useTutorial";
+import { useEffect, useState } from "react";
+import { useSellerAuth } from "../../hooks/useSellerAuth";
+
+const API_URL = import.meta.env.VITE_API_URL || "https://beme-market-1.onrender.com";
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -19,8 +20,55 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 export default function DashboardAnalytics() {
-  const { showTutorial, markSeen } = useTutorial("analytics");
   const { weekSeries, weekRevenue, weekOrders, weekVisitors, loading } = useStoreAnalytics();
+  const [aiSummary,   setAiSummary]   = useState(null);
+  const [aiLoading,   setAiLoading]   = useState(false);
+
+  // Auto-fetch AI summary when data loads
+  useEffect(() => {
+    if (loading || weekRevenue === undefined) return;
+    if (aiSummary) return; // already fetched
+    const fetchSummary = async () => {
+      setAiLoading(true);
+      try {
+        const conversion = weekVisitors > 0 ? ((weekOrders / weekVisitors) * 100).toFixed(1) : "0";
+        const prompt = `Analyse this Beme Market seller's weekly analytics and give a 2-sentence plain English summary, then 1 specific actionable tip. Be direct and helpful.
+
+Weekly data:
+- Revenue: GHS ${Number(weekRevenue || 0).toFixed(2)}
+- Orders: ${weekOrders || 0}
+- Visitors: ${weekVisitors || 0}
+- Conversion rate: ${conversion}%
+
+Format:
+SUMMARY: [2 sentences explaining performance]
+TIP: [1 specific action they can take today]`;
+
+        const res = await fetch(`${API_URL}/api/ai/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [{ role: "user", content: prompt }],
+            context: { currentPage: "analytics" }
+          })
+        });
+        const data = await res.json();
+        const text = data.content || "";
+        const summaryMatch = text.match(/SUMMARY:\s*([\s\S]*?)(?=TIP:|$)/i);
+        const tipMatch     = text.match(/TIP:\s*([\s\S]*?)$/i);
+        setAiSummary({
+          summary: summaryMatch?.[1]?.trim() || text,
+          tip:     tipMatch?.[1]?.trim() || null,
+        });
+      } catch (e) {
+        console.error("[AI Analytics]", e);
+      } finally {
+        setAiLoading(false);
+      }
+    };
+    fetchSummary();
+  }, [loading, weekRevenue, weekOrders, weekVisitors]);
+
 
   const totals = [
     { label: "Revenue (7d)", value: `GHS ${Number(weekRevenue || 0).toFixed(0)}`, color: "#046EF2" },
@@ -35,6 +83,37 @@ export default function DashboardAnalytics() {
         <div className="sd-page-title">Analytics</div>
         <div className="sd-page-sub">Last 7 days performance</div>
       </div>
+
+      {/* AI Weekly Summary */}
+      {(aiLoading || aiSummary) && (
+        <div style={{ background:"linear-gradient(135deg,#046EF2,#7C3AED)", borderRadius:14, padding:"16px 20px", marginBottom:14, color:"#fff" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+            <span style={{ fontSize:16 }}>✨</span>
+            <span style={{ fontSize:13, fontWeight:800 }}>AI Weekly Summary</span>
+          </div>
+          {aiLoading ? (
+            <div style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, opacity:0.85 }}>
+              <div style={{ width:14,height:14,border:"2px solid #fff",borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.8s linear infinite",flexShrink:0 }}/>
+              Analysing your week…
+            </div>
+          ) : aiSummary && (
+            <>
+              <div style={{ fontSize:13, lineHeight:1.7, opacity:0.95, marginBottom: aiSummary.tip ? 10 : 0 }}>
+                {aiSummary.summary}
+              </div>
+              {aiSummary.tip && (
+                <div style={{ background:"rgba(255,255,255,0.15)", borderRadius:8, padding:"8px 12px", fontSize:12, fontWeight:700, lineHeight:1.5 }}>
+                  💡 {aiSummary.tip}
+                </div>
+              )}
+              <button onClick={() => setAiSummary(null)} style={{ marginTop:8, background:"none", border:"none", color:"rgba(255,255,255,0.6)", fontSize:11, cursor:"pointer", padding:0 }}>
+                Dismiss
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
       {/* Summary */}
       <div className="sd-stats-grid" style={{ marginBottom: 14 }}>
@@ -112,13 +191,6 @@ export default function DashboardAnalytics() {
           )}
         </div>
       </div>
-    {showTutorial && (
-      <TutorialOverlay
-        steps={TUTORIAL_STEPS.analytics}
-        onFinish={markSeen}
-        pageTitle="Analytics"
-      />
-    )}
     </div>
   );
 }

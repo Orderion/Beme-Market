@@ -7,6 +7,9 @@ import { useSellerAuth } from "../../hooks/useSellerAuth";
 import { getProductById, addSellerProduct, updateSellerProduct } from "../../services/storeService";
 import { uploadImageToCloudinary, validateImageFile } from "../../lib/cloudinary";
 import { MARKETPLACE_CATEGORIES } from "../../constants/catalog";
+import { useSubscription } from "../../hooks/useSubscription";
+
+const API_URL = import.meta.env.VITE_API_URL || "https://beme-market-1.onrender.com";
 
 function Ico({ d, size = 18 }) {
   return (
@@ -124,6 +127,69 @@ export default function DashboardProductDetail() {
   const { storeId, shop, subscriptionPlan, planLimits } = useSellerAuth();
 
   const [form,         setForm]         = useState({ ...EMPTY_FORM });
+
+  // AI description writer
+  const [aiWriting,     setAiWriting]     = useState(false);
+  const [aiGenerated,   setAiGenerated]   = useState(null);
+  const { subscriptionPlan: subPlan } = useSubscription();
+  const isProSeller = subPlan === "pro" || subscriptionPlan === "pro";
+
+  const handleAIWrite = async () => {
+    if (!form.name.trim()) { alert("Enter a product title first so the AI knows what to write about."); return; }
+    setAiWriting(true);
+    setAiGenerated(null);
+    try {
+      const prompt = `Write an optimized product listing for a Ghanaian e-commerce seller on Beme Market.
+
+Product name: ${form.name}
+Category: ${form.category || "General"}
+Price: GHS ${form.price || "?"}
+
+Generate:
+1. A compelling product DESCRIPTION (3-4 sentences, benefit-focused, mentions quality and why Ghanaian buyers will love it)
+2. An SEO TITLE (under 60 characters, keyword-rich)
+
+Format your response EXACTLY like this:
+DESCRIPTION: [the description here]
+SEO_TITLE: [the title here]`;
+
+      const res = await fetch(`${API_URL}/api/ai/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: prompt }],
+          context: { currentPage: "products", shopName: shop?.shopName || "Store" }
+        })
+      });
+      const data = await res.json();
+      const text = data.content || "";
+
+      const descMatch = text.match(/DESCRIPTION:\s*([\s\S]*?)(?=SEO_TITLE:|$)/i);
+      const titleMatch = text.match(/SEO_TITLE:\s*([\s\S]*?)$/i);
+
+      const desc  = descMatch?.[1]?.trim()  || text;
+      const title = titleMatch?.[1]?.trim() || form.name;
+
+      setAiGenerated({ description: desc, title });
+    } catch (e) {
+      console.error("[AI Write]", e);
+      alert("AI is temporarily unavailable. Please try again.");
+    } finally {
+      setAiWriting(false);
+    }
+  };
+
+  const applyAIContent = (field) => {
+    if (!aiGenerated) return;
+    if (field === "description") upd("description")({ target: { value: aiGenerated.description } });
+    if (field === "title")       upd("name")({ target: { value: aiGenerated.title } });
+    if (field === "both") {
+      upd("description")({ target: { value: aiGenerated.description } });
+      upd("name")({ target: { value: aiGenerated.title } });
+      setAiGenerated(null);
+    }
+  };
+
   const [allProducts,  setAllProducts]  = useState([]);
   const [loading,      setLoading]      = useState(!isNew);
   const [saving,       setSaving]       = useState(false);
@@ -280,8 +346,67 @@ export default function DashboardProductDetail() {
                 <input className="sd-input" type="text" value={form.name} onChange={upd("name")} placeholder="e.g. Ankara Mini Dress — Red Print" maxLength={120}/>
               </div>
               <div className="sd-form-group" style={{ marginBottom:0 }}>
-                <label className="sd-label">Description</label>
-                <textarea className="sd-input sd-textarea" value={form.description} onChange={upd("description")} placeholder="Describe your product…" rows={5} style={{ resize:"vertical" }}/>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:7 }}>
+                  <label className="sd-label" style={{ margin:0 }}>Description</label>
+                  {isProSeller && (
+                    <button type="button" onClick={handleAIWrite} disabled={aiWriting}
+                      style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 10px",
+                        borderRadius:8, border:"1px solid #bfdbfe", background:"#eff6ff",
+                        color:"#046EF2", fontSize:11, fontWeight:700, cursor:aiWriting?"wait":"pointer",
+                        fontFamily:"inherit", transition:"all 0.15s" }}>
+                      {aiWriting ? (
+                        <><div style={{ width:10,height:10,border:"2px solid #046EF2",borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.8s linear infinite" }}/> Writing…</>
+                      ) : <>✨ Write with AI</>}
+                    </button>
+                  )}
+                </div>
+                <textarea className="sd-input sd-textarea" value={form.description} onChange={upd("description")} placeholder="Describe your product… or tap ✨ Write with AI" rows={5} style={{ resize:"vertical" }}/>
+
+                {/* AI Generated Preview */}
+                {aiGenerated && (
+                  <div style={{ marginTop:10, padding:"14px 16px", background:"#f0fdf4", borderRadius:10, border:"1px solid #86efac" }}>
+                    <div style={{ fontSize:11, fontWeight:800, color:"#16a34a", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.06em" }}>
+                      ✨ AI Generated — review and apply
+                    </div>
+
+                    <div style={{ marginBottom:10 }}>
+                      <div style={{ fontSize:11, fontWeight:700, color:"#6b7280", marginBottom:4 }}>SEO TITLE</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:"#111", background:"#fff", padding:"8px 12px", borderRadius:7, border:"1px solid #e5e7eb", lineHeight:1.5 }}>
+                        {aiGenerated.title}
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom:14 }}>
+                      <div style={{ fontSize:11, fontWeight:700, color:"#6b7280", marginBottom:4 }}>DESCRIPTION</div>
+                      <div style={{ fontSize:13, color:"#374151", background:"#fff", padding:"10px 12px", borderRadius:7, border:"1px solid #e5e7eb", lineHeight:1.6 }}>
+                        {aiGenerated.description}
+                      </div>
+                    </div>
+
+                    <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                      <button type="button" onClick={() => applyAIContent("both")}
+                        style={{ padding:"8px 16px", borderRadius:8, border:"none", background:"#16a34a", color:"#fff", fontSize:12, fontWeight:800, cursor:"pointer", fontFamily:"inherit" }}>
+                        ✓ Apply Both
+                      </button>
+                      <button type="button" onClick={() => applyAIContent("description")}
+                        style={{ padding:"8px 14px", borderRadius:8, border:"1px solid #e5e7eb", background:"#fff", color:"#374151", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                        Description only
+                      </button>
+                      <button type="button" onClick={() => applyAIContent("title")}
+                        style={{ padding:"8px 14px", borderRadius:8, border:"1px solid #e5e7eb", background:"#fff", color:"#374151", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                        Title only
+                      </button>
+                      <button type="button" onClick={() => { setAiGenerated(null); handleAIWrite(); }}
+                        style={{ padding:"8px 14px", borderRadius:8, border:"1px solid #bfdbfe", background:"#eff6ff", color:"#046EF2", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                        ↺ Regenerate
+                      </button>
+                      <button type="button" onClick={() => setAiGenerated(null)}
+                        style={{ padding:"8px 12px", borderRadius:8, border:"none", background:"none", color:"#9ca3af", fontSize:12, cursor:"pointer" }}>
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -505,7 +630,7 @@ export default function DashboardProductDetail() {
         .sd-label{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#9CA3AF;margin-bottom:7px;}
         .sd-input{width:100%;padding:11px 14px;border-radius:8px;border:1.5px solid rgba(0,0,0,0.1);background:#fff;color:#111;font-size:14px;font-weight:600;font-family:inherit;outline:none;transition:border-color 0.15s;box-sizing:border-box;}
         .sd-input:focus{border-color:#046EF2;box-shadow:0 0 0 3px rgba(4,110,242,0.08);}
-        .sd-textarea{resize:vertical;min-height:100px;line-height:1.6;}
+        .sd-textarea{resize:vertical;min-height:100px;line-height:1.6;} @keyframes spin{to{transform:rotate(360deg)}}
         .sd-select{appearance:none;cursor:pointer;}
       `}</style>
     </div>

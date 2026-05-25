@@ -1,8 +1,11 @@
 import { useSellerAuth } from "../../hooks/useSellerAuth";
 import { MARKETING_ICONS } from "../../components/icons/SellerIcons";
-import TutorialOverlay from "../../components/ai/TutorialOverlay";
-import { TUTORIAL_STEPS } from "../../components/ai/tutorialSteps";
-import { useTutorial } from "../../hooks/useTutorial";
+import { useState } from "react";
+import { useSellerAuth } from "../../hooks/useSellerAuth";
+import { getSellerProducts } from "../../services/storeService";
+import { useAuth } from "../../context/AuthContext";
+
+const API_URL = import.meta.env.VITE_API_URL || "https://beme-market-1.onrender.com";
 
 const TOOLS = [
   { id: "flash",    label: "Flash Sales",    desc: "Create time-limited sales with a countdown timer.",      plan: "standard" },
@@ -25,11 +28,59 @@ const ICON_COLORS = {
 };
 
 export default function DashboardMarketing() {
-  const { showTutorial, markSeen } = useTutorial("marketing");
-  const { subscriptionPlan } = useSellerAuth();
+  const { subscriptionPlan, storeId } = useSellerAuth();
+  const { user } = useAuth();
+  const [showCaption,   setShowCaption]   = useState(false);
+  const [captionProduct,setCaptionProduct]= useState("");
+  const [captionStyle,  setCaptionStyle]  = useState("instagram");
+  const [generating,    setGenerating]    = useState(false);
+  const [captions,      setCaptions]      = useState(null);
 
   const canAccess = (plan) =>
     (PLAN_TIER[subscriptionPlan] || 0) >= (PLAN_TIER[plan] || 0);
+
+  const generateCaptions = async () => {
+    if (!captionProduct.trim()) { alert("Enter a product name first."); return; }
+    setGenerating(true); setCaptions(null);
+    try {
+      const platformMap = {
+        instagram: "Instagram (engaging, emojis, hashtags, 150 chars max)",
+        tiktok:    "TikTok (trendy, hooky, short, with trending hashtags)",
+        whatsapp:  "WhatsApp Status (casual, conversational, direct CTA, no hashtags)",
+        all:       "Instagram, TikTok, AND WhatsApp Status (3 separate captions)"
+      };
+      const res = await fetch(`${API_URL}/api/ai/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: `Write marketing captions for a Ghanaian seller on Beme Market.
+
+Product: ${captionProduct}
+Platform: ${platformMap[captionStyle]}
+
+${captionStyle === "all" ? `Write 3 captions. Format exactly:
+INSTAGRAM: [caption]
+TIKTOK: [caption]
+WHATSAPP: [caption]` : `Write 1 caption ready to post. Just the caption text, nothing else.`}` }],
+          context: { currentPage: "marketing" }
+        })
+      });
+      const data = await res.json();
+      const text = data.content || "";
+      if (captionStyle === "all") {
+        const ig = text.match(/INSTAGRAM:\s*([\s\S]*?)(?=TIKTOK:|$)/i)?.[1]?.trim();
+        const tt = text.match(/TIKTOK:\s*([\s\S]*?)(?=WHATSAPP:|$)/i)?.[1]?.trim();
+        const wa = text.match(/WHATSAPP:\s*([\s\S]*?)$/i)?.[1]?.trim();
+        setCaptions({ instagram: ig, tiktok: tt, whatsapp: wa });
+      } else {
+        setCaptions({ [captionStyle]: text.trim() });
+      }
+    } catch (e) {
+      console.error(e);
+      alert("AI is temporarily unavailable. Please try again.");
+    } finally { setGenerating(false); }
+  };
+
 
   return (
     <div style={{ background: "#fff" }}>
@@ -37,6 +88,73 @@ export default function DashboardMarketing() {
         <div className="sd-page-title">Marketing</div>
         <div className="sd-page-sub">Grow your store with promotional tools</div>
       </div>
+
+      {/* AI Caption Generator */}
+      <div style={{ background:"#fff", borderRadius:14, border:"1px solid #e5e7eb", padding:"18px 20px", marginBottom:16 }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <span style={{ fontSize:20 }}>✨</span>
+            <div>
+              <div style={{ fontSize:15, fontWeight:800, color:"#111" }}>AI Caption Generator</div>
+              <div style={{ fontSize:12, color:"#9ca3af", fontWeight:600 }}>Create ready-to-post captions for any product</div>
+            </div>
+          </div>
+          {!canAccess("pro") && (
+            <span style={{ fontSize:10, fontWeight:700, padding:"3px 8px", borderRadius:20, background:"#f3f4f6", color:"#6b7280", border:"1px solid #e5e7eb" }}>PRO</span>
+          )}
+        </div>
+
+        {canAccess("pro") ? (
+          <div>
+            <div style={{ display:"flex", gap:10, marginBottom:12, flexWrap:"wrap" }}>
+              <input value={captionProduct} onChange={e=>setCaptionProduct(e.target.value)}
+                placeholder="Enter product name e.g. Ankara Mini Dress"
+                style={{ flex:1, minWidth:200, height:40, padding:"0 12px", border:"1.5px solid #e5e7eb", borderRadius:9, fontSize:13, fontWeight:600, outline:"none", fontFamily:"Nunito,sans-serif", color:"#111", background:"#f8f9fb" }}
+                onFocus={e=>{e.target.style.borderColor="#046EF2";e.target.style.boxShadow="0 0 0 3px rgba(4,110,242,0.10)";}}
+                onBlur={e=>{e.target.style.borderColor="#e5e7eb";e.target.style.boxShadow="none";}}
+                onKeyDown={e=>e.key==="Enter"&&generateCaptions()}
+              />
+              <select value={captionStyle} onChange={e=>setCaptionStyle(e.target.value)}
+                style={{ height:40, padding:"0 12px", border:"1.5px solid #e5e7eb", borderRadius:9, fontSize:13, fontWeight:600, outline:"none", fontFamily:"Nunito,sans-serif", color:"#111", background:"#f8f9fb", cursor:"pointer" }}>
+                <option value="instagram">Instagram</option>
+                <option value="tiktok">TikTok</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="all">All 3 platforms</option>
+              </select>
+              <button onClick={generateCaptions} disabled={generating || !captionProduct.trim()}
+                style={{ height:40, padding:"0 18px", borderRadius:9, border:"none", background:generating||!captionProduct.trim()?"#f0f0f0":"#046EF2", color:generating||!captionProduct.trim()?"#9ca3af":"#fff", fontSize:13, fontWeight:800, cursor:generating||!captionProduct.trim()?"not-allowed":"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", gap:6, transition:"all 0.15s" }}>
+                {generating ? <><div style={{ width:12,height:12,border:"2px solid currentColor",borderTopColor:"transparent",borderRadius:"50%",animation:"mkt-spin 0.8s linear infinite" }}/> Writing…</> : "✨ Generate"}
+              </button>
+            </div>
+
+            {captions && (
+              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                {Object.entries(captions).map(([platform, text]) => text && (
+                  <div key={platform} style={{ background:"#f8f9fb", borderRadius:10, border:"1px solid #e5e7eb", padding:"12px 14px" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+                      <span style={{ fontSize:11, fontWeight:800, color:"#046EF2", textTransform:"uppercase", letterSpacing:"0.06em" }}>
+                        {platform === "instagram" ? "📸 Instagram" : platform === "tiktok" ? "📱 TikTok" : "💬 WhatsApp"}
+                      </span>
+                      <button onClick={() => { navigator.clipboard.writeText(text); }}
+                        style={{ fontSize:11, fontWeight:700, color:"#6b7280", background:"#fff", border:"1px solid #e5e7eb", borderRadius:6, padding:"3px 8px", cursor:"pointer" }}>
+                        Copy
+                      </button>
+                    </div>
+                    <div style={{ fontSize:13, color:"#374151", lineHeight:1.6, fontWeight:600, whiteSpace:"pre-wrap" }}>{text}</div>
+                  </div>
+                ))}
+                <button onClick={()=>{setCaptions(null);generateCaptions();}} style={{ alignSelf:"flex-start", fontSize:12, color:"#046EF2", background:"none", border:"none", cursor:"pointer", fontWeight:700, padding:0 }}>↺ Regenerate</button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ fontSize:13, color:"#9ca3af", fontWeight:600 }}>
+            Upgrade to Pro to unlock the AI Caption Generator.
+          </div>
+        )}
+      </div>
+
+      <style>{`@keyframes mkt-spin{to{transform:rotate(360deg)}}`}</style>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
         {TOOLS.map((t) => {
@@ -113,13 +231,6 @@ export default function DashboardMarketing() {
           );
         })}
       </div>
-    {showTutorial && (
-      <TutorialOverlay
-        steps={TUTORIAL_STEPS.marketing}
-        onFinish={markSeen}
-        pageTitle="Marketing"
-      />
-    )}
     </div>
   );
 }
