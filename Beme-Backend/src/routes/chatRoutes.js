@@ -29,9 +29,28 @@ router.post("/auto-reply", async (req, res) => {
   const { chatId, sellerId, shopId, shopName, planId, message, productName } = req.body;
   if (!chatId || !sellerId || !message) return;
 
-  const db    = getFirestore();
-  const plan  = String(planId || "basic").toLowerCase();
-  const limit = PLAN_LIMITS[plan] ?? 0;
+  const db = getFirestore();
+
+  // Fetch seller's real plan from Firestore — don't trust client-sent planId
+  let plan = "starter"; // default to starter so auto-reply works
+  try {
+    // Try storeApplications first (most reliable)
+    const appSnap = await db.collection("storeApplications").doc(sellerId).get();
+    if (appSnap.exists) {
+      plan = String(appSnap.data().planId || "starter").toLowerCase();
+    } else {
+      // Fallback: try shops doc
+      const shopSnap = await db.collection("shops").doc(shopId || sellerId).get();
+      if (shopSnap.exists) {
+        plan = String(shopSnap.data().planId || "starter").toLowerCase();
+      }
+    }
+  } catch (e) {
+    console.log("[chatRoutes] plan fetch failed, defaulting to starter:", e.message);
+  }
+
+  const limit = PLAN_LIMITS[plan] ?? 1000;
+  console.log(`[chatRoutes] seller ${sellerId} plan: ${plan}, limit: ${limit}`);
 
   // Basic plan = no auto-replies
   if (limit === 0) return;
@@ -112,16 +131,14 @@ router.post("/auto-reply", async (req, res) => {
     let productContext = "";
     if (productName) {
       try {
-        const { getDocs, collection, query, where, limit: fsLimit } = await import("firebase-admin/firestore");
-        const productsRef = db.collection("Products");
-        const pSnap = await productsRef
+        const pSnap = await db.collection("Products")
           .where("name", "==", productName)
           .where("sellerId", "==", sellerId)
           .limit(1)
           .get();
         if (!pSnap.empty) {
           const p = pSnap.docs[0].data();
-          productContext = `\n\nProduct the customer is asking about:\n- Name: ${p.name || productName}\n- Price: GHS ${p.price || "?"} \n- Description: ${(p.description || "").slice(0, 200)}\n- In Stock: ${p.inStock !== false ? "Yes" : "No"}`;
+          productContext = `\n\nProduct the customer is asking about:\n- Name: ${p.name || productName}\n- Price: GHS ${p.price || "?"}\n- Description: ${(p.description || "").slice(0, 200)}\n- In Stock: ${p.inStock !== false ? "Yes" : "No"}`;
         } else {
           productContext = `\n\nCustomer is asking about: ${productName}`;
         }
