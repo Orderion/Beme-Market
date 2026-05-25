@@ -11,7 +11,8 @@ import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import paystackRoutes from "./routes/paystack.js";
 import adminReviewRoutes from "./routes/adminReview.js";
-import aiRoutes from "./routes/aiRoutes.js";
+import aiRoutes  from "./routes/aiRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 
 dotenv.config();
 
@@ -72,6 +73,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/api/auth",     authRoutes);
 app.use("/api/ai",       aiRoutes);
+app.use("/api/chat",     chatRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart",     cartRoutes);
 app.use("/api/orders",   orderRoutes);

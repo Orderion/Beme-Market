@@ -11,6 +11,7 @@ import { useCart } from "../context/CartContext";
 import { SHOPS, HOME_FILTER_OPTIONS } from "../constants/catalog";
 import { useWishlist } from "../hooks/useWishlist";
 import WishlistModal from "../components/WishlistModal";
+import ChatModal from "../components/ChatModal";
 import "./ProductDetails.css";
 
 /* ─── helpers ─── */

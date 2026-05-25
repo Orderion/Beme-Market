@@ -101,47 +101,71 @@ function Preview({ form }) {
   const letter = (form.shopName || "S").charAt(0).toUpperCase();
   const social = [
     form.whatsapp  && { l: "WhatsApp",  c: "#25D366" },
-    form.instagram && { l: "Instagram",  c: "#E1306C" },
-    form.tiktok    && { l: "TikTok",     c: "#111" },
-    form.website   && { l: "Website",    c: "#046EF2" },
+    form.instagram && { l: "Instagram", c: "#E1306C" },
+    form.tiktok    && { l: "TikTok",    c: "#111"    },
+    form.website   && { l: "Website",   c: "#046EF2" },
   ].filter(Boolean);
+
   return (
-    <div style={{ border: "1px solid rgba(0,0,0,0.1)", borderRadius: 14, overflow: "hidden", background: "#fff" }}>
-      <div style={{ height: 80, position: "relative", overflow: "hidden",
-        background: form.bannerUrl ? "transparent" : "linear-gradient(135deg,#111,#333)" }}>
-        {form.bannerUrl && <img src={form.bannerUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,transparent 40%,rgba(0,0,0,0.3))" }} />
-      </div>
-      <div style={{ padding: "0 14px 14px" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 10, marginTop: -24 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, border: "2.5px solid #fff",
-            overflow: "hidden", flexShrink: 0, background: form.logoUrl ? "transparent" : "#111",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 18, fontWeight: 900, color: "#fff" }}>
-            {form.logoUrl ? <img src={form.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : letter}
-          </div>
-          <div style={{ flex: 1, paddingBottom: 4, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 900, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {form.shopName || "Your Store Name"}
-            </div>
-            {form.description && (
-              <div style={{ fontSize: 11, color: "#9CA3AF", overflow: "hidden",
-                display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", marginTop: 2 }}>
-                {form.description}
-              </div>
-            )}
-          </div>
+    <div style={{ border: "1px solid rgba(0,0,0,0.1)", borderRadius: 14, overflow: "hidden",
+      background: "var(--bg,#F7F8FA)", fontFamily: "var(--font-main,'Nunito',sans-serif)" }}>
+
+      {/* Banner — exact match to StoreFront */}
+      <div style={{ position: "relative", height: 100, overflow: "hidden",
+        background: form.bannerUrl ? "transparent" : "linear-gradient(135deg,#046EF2 0%,#1e3a8a 100%)" }}>
+        {form.bannerUrl && (
+          <img src={form.bannerUrl} alt=""
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+        )}
+        <div style={{ position: "absolute", inset: 0,
+          background: "linear-gradient(to bottom,rgba(0,0,0,0) 40%,rgba(0,0,0,0.45) 100%)" }} />
+
+        {/* Logo overlapping banner — exact same layout as StoreFront */}
+        <div style={{ position: "absolute", bottom: -20, left: 12, zIndex: 3,
+          width: 48, height: 48, borderRadius: 12,
+          border: "2.5px solid #fff",
+          background: form.logoUrl ? "transparent" : "#046EF2",
+          overflow: "hidden", boxShadow: "0 3px 12px rgba(0,0,0,0.2)",
+          display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {form.logoUrl
+            ? <img src={form.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <span style={{ fontSize: 18, fontWeight: 900, color: "#fff" }}>{letter}</span>
+          }
         </div>
-        {social.length > 0 && (
-          <div style={{ display: "flex", gap: 5, marginTop: 10, flexWrap: "wrap" }}>
-            {social.map(s => (
-              <span key={s.l} style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px",
-                borderRadius: 100, background: `${s.c}12`, color: s.c, border: `1px solid ${s.c}25` }}>
-                {s.l}
-              </span>
-            ))}
+      </div>
+
+      {/* Identity — exact same padding/structure as StoreFront */}
+      <div style={{ padding: "28px 12px 10px" }}>
+        <div style={{ fontSize: 14, fontWeight: 900, color: "var(--text,#111)",
+          letterSpacing: "-0.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {form.shopName || "Your Store Name"}
+        </div>
+        {form.description && (
+          <div style={{ fontSize: 11, color: "var(--muted,#9CA3AF)", marginTop: 2,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {form.description}
           </div>
         )}
+
+        {/* Action buttons row — mirrors StoreFront */}
+        <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+          <div style={{ padding: "5px 12px", borderRadius: 100, fontSize: 10, fontWeight: 800,
+            border: "1.5px solid rgba(0,0,0,0.12)", background: "#fff", color: "#111" }}>
+            Follow
+          </div>
+          {form.chatPreference === "beme" && (
+            <div style={{ padding: "5px 12px", borderRadius: 100, fontSize: 10, fontWeight: 800,
+              border: "1.5px solid rgba(0,0,0,0.12)", background: "#fff", color: "#111" }}>
+              💬 Chat
+            </div>
+          )}
+          {social.map(s => (
+            <span key={s.l} style={{ padding: "5px 10px", borderRadius: 100, fontSize: 10,
+              fontWeight: 700, background: `${s.c}12`, color: s.c, border: `1px solid ${s.c}25` }}>
+              {s.l}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );
