@@ -1,66 +1,86 @@
-// src/services/analyticsService.js
-import {
-  doc, collection, getDocs, setDoc, updateDoc, increment,
-  query, orderBy, limit, serverTimestamp,
-} from "firebase/firestore";
 import { db } from "../firebase";
+import {
+  doc, setDoc, updateDoc, increment,
+  serverTimestamp, collection, addDoc, deleteDoc,
+} from "firebase/firestore";
 
-function todayKey() {
-  return new Date().toISOString().slice(0, 10);
+const todayKey = () => new Date().toISOString().split("T")[0];
+
+/* ── Track store visit ── */
+export async function trackStoreVisit(shopId, userId = null) {
+  if (!shopId) return;
+  try {
+    const date = todayKey();
+    const ref  = doc(db, "sellerAnalytics", shopId, "daily", date);
+    await setDoc(ref, {
+      date,
+      shopId,
+      visits:   increment(1),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  } catch (e) {
+    // Silently fail — never break the UI for tracking
+  }
 }
 
-/**
- * recordProductView — increments the daily visitor count for a shop.
- * Call this when a user views a seller's product.
- */
-export async function recordProductView(shopId) {
-  if (!shopId) return;
-  const key     = todayKey();
-  const dayRef  = doc(db, "sellerAnalytics", shopId, "daily", key);
+/* ── Track product view ── */
+export async function trackProductView(productId, shopId, userId = null) {
+  if (!productId || !shopId) return;
   try {
-    await updateDoc(dayRef, {
-      visitors: increment(1),
+    const date = todayKey();
+    // Increment daily store analytics
+    const storeRef = doc(db, "sellerAnalytics", shopId, "daily", date);
+    await setDoc(storeRef, {
+      date,
+      shopId,
       productViews: increment(1),
-    });
-  } catch {
-    await setDoc(dayRef, {
-      date: key, visitors: 1, productViews: 1,
-      revenue: 0, orders: 0, createdAt: serverTimestamp(),
+      updatedAt:    serverTimestamp(),
     }, { merge: true });
-  }
+
+    // Increment per-product view counter
+    const prodRef = doc(db, "productAnalytics", productId);
+    await setDoc(prodRef, {
+      productId,
+      shopId,
+      totalViews: increment(1),
+      lastViewed: serverTimestamp(),
+    }, { merge: true });
+  } catch (e) {}
 }
 
-/**
- * recordSale — called after a successful order that includes seller products.
- */
-export async function recordSale(shopId, amount, orderCount = 1) {
-  if (!shopId) return;
-  const key    = todayKey();
-  const dayRef = doc(db, "sellerAnalytics", shopId, "daily", key);
+/* ── Track add to cart ── */
+export async function trackAddToCart(productId, shopId) {
+  if (!productId || !shopId) return;
   try {
-    await updateDoc(dayRef, {
-      revenue: increment(amount),
-      orders:  increment(orderCount),
-    });
-  } catch {
-    await setDoc(dayRef, {
-      date: key, revenue: amount, orders: orderCount,
-      visitors: 0, productViews: 0, createdAt: serverTimestamp(),
+    const date    = todayKey();
+    const storeRef = doc(db, "sellerAnalytics", shopId, "daily", date);
+    await setDoc(storeRef, {
+      date,
+      shopId,
+      addToCartEvents: increment(1),
+      updatedAt:       serverTimestamp(),
     }, { merge: true });
-  }
+  } catch (e) {}
 }
 
-/**
- * getAnalyticsSummary — fetches last N days of analytics for a shop.
- */
-export async function getAnalyticsSummary(shopId, days = 30) {
-  const snap = await getDocs(
-    query(
-      collection(db, "sellerAnalytics", shopId, "daily"),
-      orderBy("__name__", "desc"),
-      limit(days)
-    )
-  );
-  return snap.docs.map((d) => ({ date: d.id, ...d.data() }));
+/* ── Live presence — who is on the store right now ── */
+export async function setStorePresence(shopId, sessionId) {
+  if (!shopId || !sessionId) return null;
+  try {
+    const ref = doc(db, "storePresence", shopId, "visitors", sessionId);
+    await setDoc(ref, {
+      sessionId,
+      shopId,
+      enteredAt: serverTimestamp(),
+      page:      "store",
+    });
+    return ref;
+  } catch (e) { return null; }
 }
 
+export async function clearStorePresence(shopId, sessionId) {
+  if (!shopId || !sessionId) return;
+  try {
+    await deleteDoc(doc(db, "storePresence", shopId, "visitors", sessionId));
+  } catch (e) {}
+}
