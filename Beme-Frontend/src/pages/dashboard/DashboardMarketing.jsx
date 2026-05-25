@@ -1,8 +1,6 @@
 import { useSellerAuth } from "../../hooks/useSellerAuth";
 import { MARKETING_ICONS } from "../../components/icons/SellerIcons";
 import { useState } from "react";
-import { useSellerAuth } from "../../hooks/useSellerAuth";
-import { getSellerProducts } from "../../services/storeService";
 import { useAuth } from "../../context/AuthContext";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://beme-market-1.onrender.com";
