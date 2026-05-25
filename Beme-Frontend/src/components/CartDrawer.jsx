@@ -78,14 +78,14 @@ async function fetchRecommendedProducts(cartItemIds) {
 
   try {
     const snap = await getDocs(
-      query(collection(db, "products"), where("inStock", "!=", false), limit(MAX_FETCH))
+      query(collection(db, "Products"), where("inStock", "!=", false), limit(MAX_FETCH))
     );
     const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     return shuffle(clientFilter(docs)).slice(0, MAX_SHOW).map(normalize);
   } catch (_) {}
 
   try {
-    const snap = await getDocs(query(collection(db, "products"), limit(MAX_FETCH)));
+    const snap = await getDocs(query(collection(db, "Products"), limit(MAX_FETCH)));
     const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     return shuffle(clientFilter(docs)).slice(0, MAX_SHOW).map(normalize);
   } catch (err) {
