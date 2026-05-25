@@ -505,12 +505,6 @@ function ReviewsSection({ productId }) {
       .catch((e) => console.error("Reviews fetch:", e))
       .finally(() => setReviewsLoading(false));
   }, [productId]);
-  /* Track product view */
-  useEffect(() => {
-    if (product?.id) trackProductView(product.id, product?.shop || product?.sellerId, user?.uid).catch(() => {});
-  }, [product?.id]);
-
-  useEffect(() => { setFormRating(0); setFormComment(""); setFormName(""); setFormError(""); setFormSuccess(false); setShowAll(false); setHelpfulSet(new Set()); }, [productId]);
   const ratingCounts = useMemo(() => { const c={1:0,2:0,3:0,4:0,5:0}; reviews.forEach((r)=>{const n=Math.round(Number(r.rating)); if(n>=1&&n<=5)c[n]++;}); return c; }, [reviews]);
   const avgRating = useMemo(() => { if(!reviews.length)return 0; return reviews.reduce((s,r)=>s+(Number(r.rating)||0),0)/reviews.length; }, [reviews]);
   const handleSubmit = async () => {
