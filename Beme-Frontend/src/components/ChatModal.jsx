@@ -16,22 +16,6 @@ function fmtTime(ts) {
   return d.toLocaleTimeString("en-GH", { hour: "2-digit", minute: "2-digit" });
 }
 
-function Ico({ d, size = 16, color = "currentColor" }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      {d.split("|").map((seg, i) => <path key={i} d={seg} />)}
-    </svg>
-  );
-}
-
-const IC = {
-  close:  "M18 6L6 18|M6 6l12 12",
-  send:   "M22 2L11 13|M22 2L15 22l-4-9-9-4 22-7z",
-  chat:   "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z",
-  check:  "M20 6L9 17l-5-5",
-};
-
 const QUICK_CHIPS = [
   "Is this available?",
   "What sizes do you have?",
@@ -40,16 +24,16 @@ const QUICK_CHIPS = [
 ];
 
 /**
- * ChatModal
- * A floating drawer that lets customers chat with a seller.
+ * ChatModal — clean panel modal matching the seller dashboard Messages style.
+ * Opens from Chat Seller button on product page.
  *
  * Props:
- *   shop        — { id, shopName, logoUrl, ownerId, planId, chatPreference, whatsapp }
- *   product     — optional { id, name } for context
- *   onClose     — callback to close the modal
+ *   shop     — { id, shopName, logoUrl, ownerId, planId, whatsapp }
+ *   product  — optional { id, name }
+ *   onClose  — close callback
  */
 export default function ChatModal({ shop, product, onClose }) {
-  const navigate   = useNavigate();
+  const navigate  = useNavigate();
   const [user,     setUser]     = useState(null);
   const [chatId,   setChatId]   = useState(null);
   const [messages, setMessages] = useState([]);
@@ -61,11 +45,9 @@ export default function ChatModal({ shop, product, onClose }) {
   const inputRef   = useRef(null);
   const unsubRef   = useRef(null);
 
-  const sellerId  = shop?.ownerId || shop?.id;
-  const shopId    = shop?.id;
-  const shopName  = shop?.shopName || "Store";
-  const planId    = shop?.planId || "basic";
-  const hasChat   = ["starter", "growth", "pro"].includes(planId);
+  const sellerId = shop?.ownerId || shop?.id;
+  const shopName = shop?.shopName || "Store";
+  const shopId   = shop?.id;
 
   /* Auth */
   useEffect(() => {
@@ -75,11 +57,9 @@ export default function ChatModal({ shop, product, onClose }) {
     return unsub;
   }, []);
 
-  /* Init chat once we have a user */
+  /* Init chat */
   useEffect(() => {
     if (!user || !sellerId) { setLoading(false); return; }
-    if (!hasChat) { setLoading(false); return; }
-
     const init = async () => {
       setLoading(true);
       try {
@@ -93,14 +73,13 @@ export default function ChatModal({ shop, product, onClose }) {
         setChatId(chat.id);
         await markChatRead(chat.id, "customer");
       } catch (e) {
-        console.error("[ChatModal] init:", e);
-        setError("Could not connect to chat. Please try again.");
+        setError("Could not connect. Please try again.");
       } finally {
         setLoading(false);
       }
     };
     init();
-  }, [user?.uid, sellerId, hasChat]);
+  }, [user?.uid, sellerId]);
 
   /* Subscribe to messages */
   useEffect(() => {
@@ -118,31 +97,21 @@ export default function ChatModal({ shop, product, onClose }) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /* Focus input on open */
+  /* Focus input */
   useEffect(() => {
-    setTimeout(() => inputRef.current?.focus(), 200);
+    setTimeout(() => inputRef.current?.focus(), 150);
   }, [chatId]);
 
-  /* Trigger AI auto-reply on the backend */
-  const triggerAutoReply = useCallback(async (chatIdVal, customerMsg) => {
+  /* Trigger AI auto-reply */
+  const triggerAutoReply = useCallback(async (cId, msg) => {
     try {
       await fetch(`${API_URL}/api/chat/auto-reply`, {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
-          chatId:    chatIdVal,
-          sellerId,
-          shopId,
-          shopName,
-          planId,
-          message:   customerMsg,
-          productName: product?.name || null,
-        }),
+        body: JSON.stringify({ chatId: cId, sellerId, shopId, shopName, planId: shop?.planId || "basic", message: msg, productName: product?.name || null }),
       });
-    } catch (e) {
-      console.error("[ChatModal] auto-reply trigger:", e);
-    }
-  }, [sellerId, shopId, shopName, planId, product]);
+    } catch {}
+  }, [sellerId, shopId, shopName, shop?.planId, product]);
 
   const handleSend = async (text) => {
     const msg = (text || input).trim();
@@ -152,207 +121,187 @@ export default function ChatModal({ shop, product, onClose }) {
     setError("");
     try {
       await sendMessage({ chatId, senderId: user.uid, text: msg, senderRole: "customer" });
-      // Trigger AI auto-reply (non-blocking)
       triggerAutoReply(chatId, msg);
-    } catch (e) {
-      console.error("[ChatModal] send:", e);
-      setError("Failed to send. Please try again.");
+    } catch {
+      setError("Failed to send. Try again.");
     } finally {
       setSending(false);
       inputRef.current?.focus();
     }
   };
 
-  const handleKey = (e) => {
+  const handleKey = e => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
-  };
-
-  /* Redirect to login */
-  const handleLoginPrompt = () => {
-    onClose();
-    navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
-  };
-
-  /* WhatsApp fallback */
-  const handleWhatsApp = () => {
-    if (shop?.whatsapp) {
-      const num = shop.whatsapp.replace(/\D/g, "");
-      const text = product ? `Hi! I'm interested in your product: ${product.name}` : `Hi! I found your store on Beme Market.`;
-      window.open(`https://wa.me/${num}?text=${encodeURIComponent(text)}`, "_blank");
-    }
   };
 
   const initials = shopName.charAt(0).toUpperCase();
 
+  /* Prevent body scroll */
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
   return (
     <>
       {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{
-          position:   "fixed", inset: 0,
-          background: "rgba(0,0,0,0.35)",
-          backdropFilter: "blur(2px)",
-          zIndex:     1000,
-          animation:  "cm-fade-in 0.2s ease",
-        }}
-      />
+      <div onClick={onClose} style={{
+        position: "fixed", inset: 0,
+        background: "rgba(0,0,0,0.45)",
+        backdropFilter: "blur(3px)",
+        zIndex: 2000,
+        animation: "cm-fade 0.2s ease",
+      }} />
 
-      {/* Drawer */}
+      {/* Modal panel */}
       <div style={{
         position:      "fixed",
-        bottom:        0, right: 0,
-        width:         "min(420px, 100vw)",
-        height:        "min(600px, 100vh)",
+        top:           "50%",
+        left:          "50%",
+        transform:     "translate(-50%, -50%)",
+        width:         "min(520px, calc(100vw - 32px))",
+        height:        "min(640px, calc(100vh - 48px))",
         background:    "#fff",
-        borderRadius:  "16px 0 0 0",
-        zIndex:        1001,
+        borderRadius:  16,
+        zIndex:        2001,
         display:       "flex",
         flexDirection: "column",
-        boxShadow:     "-8px 0 40px rgba(0,0,0,0.15)",
-        animation:     "cm-slide-up 0.25s cubic-bezier(0.22,1,0.36,1)",
+        boxShadow:     "0 24px 64px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.08)",
+        animation:     "cm-scale 0.22s cubic-bezier(0.22,1,0.36,1)",
         fontFamily:    "var(--font-main,'Nunito',sans-serif)",
+        overflow:      "hidden",
       }}>
 
-        {/* Header */}
+        {/* ── Header ── */}
         <div style={{
-          padding:      "14px 16px",
-          borderBottom: "1px solid #f0f0f0",
+          padding:      "14px 18px",
+          borderBottom: "1px solid rgba(0,0,0,0.08)",
           display:      "flex",
           alignItems:   "center",
-          gap:          10,
+          gap:          12,
           flexShrink:   0,
+          background:   "#fff",
         }}>
-          {/* Store avatar */}
+          {/* Avatar */}
           <div style={{
-            width: 38, height: 38, borderRadius: "50%",
-            overflow: "hidden", flexShrink: 0,
-            background: shop?.logoUrl ? "transparent" : "#046EF2",
+            width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
+            overflow: "hidden",
+            background: shop?.logoUrl ? "transparent" : "rgba(4,110,242,0.10)",
+            border: "1.5px solid rgba(4,110,242,0.15)",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             {shop?.logoUrl
               ? <img src={shop.logoUrl} alt={shopName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              : <span style={{ color: "#fff", fontSize: 16, fontWeight: 900 }}>{initials}</span>
+              : <span style={{ fontSize: 16, fontWeight: 900, color: "#046EF2" }}>{initials}</span>
             }
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#111", letterSpacing: "-0.01em" }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#111", letterSpacing: "-0.01em" }}>
               {shopName}
             </div>
             {product && (
-              <div style={{ fontSize: 11, color: "#9ca3af", fontWeight: 600, overflow: "hidden",
-                textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600,
+                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 Re: {product.name}
               </div>
             )}
+            <div style={{ fontSize: 11, color: "#22C55E", display: "flex", alignItems: "center", gap: 4, marginTop: 1 }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E" }} />
+              Online
+            </div>
           </div>
 
+          {/* Close */}
           <button onClick={onClose} style={{
             width: 32, height: 32, borderRadius: "50%",
-            border: "none", background: "#f5f5f5",
+            border: "none", background: "rgba(0,0,0,0.06)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", color: "#9ca3af", flexShrink: 0,
-          }}>
-            <Ico d={IC.close} size={14} />
+            cursor: "pointer", color: "#9CA3AF", flexShrink: 0, fontSize: 18, lineHeight: 1,
+            transition: "background 0.15s",
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(0,0,0,0.1)"}
+            onMouseLeave={e => e.currentTarget.style.background = "rgba(0,0,0,0.06)"}
+          >
+            ×
           </button>
         </div>
 
-        {/* Content */}
+        {/* ── Body ── */}
         {!user ? (
           /* Not logged in */
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
-            justifyContent: "center", padding: 32, textAlign: "center" }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>
-              <Ico d={IC.chat} size={40} color="rgba(0,0,0,0.12)" />
-            </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>💬</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: "#111", marginBottom: 8 }}>
               Sign in to chat
             </div>
-            <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 20, lineHeight: 1.6 }}>
-              Create a free account to message sellers and track your orders.
+            <div style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 20, lineHeight: 1.6 }}>
+              Create a free account to message sellers directly.
             </div>
-            <button onClick={handleLoginPrompt} style={{
-              padding: "11px 28px", borderRadius: 10, border: "none",
-              background: "#046EF2", color: "#fff", fontSize: 14, fontWeight: 800,
-              cursor: "pointer", fontFamily: "inherit",
-            }}>
+            <button onClick={() => { onClose(); navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`); }}
+              style={{ padding: "11px 28px", borderRadius: 10, border: "none",
+                background: "#046EF2", color: "#fff", fontSize: 14, fontWeight: 800,
+                cursor: "pointer", fontFamily: "inherit" }}>
               Sign in / Sign up
             </button>
             {shop?.whatsapp && (
-              <button onClick={handleWhatsApp} style={{
-                marginTop: 10, padding: "11px 28px", borderRadius: 10,
-                border: "1.5px solid #e5e7eb", background: "#fff",
-                color: "#111", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-              }}>
-                Message via WhatsApp instead
-              </button>
-            )}
-          </div>
-        ) : !hasChat ? (
-          /* Plan doesn't support chat */
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
-            justifyContent: "center", padding: 32, textAlign: "center" }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#111", marginBottom: 8 }}>
-              Beme Market Chat not available
-            </div>
-            <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 20, lineHeight: 1.6 }}>
-              This seller hasn't enabled Beme Market Chat yet.
-            </div>
-            {shop?.whatsapp && (
-              <button onClick={handleWhatsApp} style={{
-                padding: "11px 28px", borderRadius: 10, border: "none",
-                background: "#25D366", color: "#fff", fontSize: 14, fontWeight: 800,
-                cursor: "pointer", fontFamily: "inherit",
-              }}>
-                Message on WhatsApp
+              <button onClick={() => { const n = shop.whatsapp.replace(/\D/g,""); window.open(`https://wa.me/${n}`, "_blank"); }}
+                style={{ marginTop: 10, padding: "11px 28px", borderRadius: 10,
+                  border: "1.5px solid #e5e7eb", background: "#fff",
+                  color: "#111", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                WhatsApp instead
               </button>
             )}
           </div>
         ) : loading ? (
           /* Loading */
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ width: 24, height: 24, border: "2.5px solid #046EF2",
-              borderTopColor: "transparent", borderRadius: "50%",
+            <div style={{ width: 28, height: 28, border: "3px solid rgba(4,110,242,0.2)",
+              borderTopColor: "#046EF2", borderRadius: "50%",
               animation: "cm-spin 0.8s linear infinite" }} />
           </div>
         ) : (
-          /* Chat UI */
           <>
-            {/* Messages */}
+            {/* Messages area */}
             <div style={{
-              flex: 1, overflowY: "auto", padding: "12px 14px",
-              display: "flex", flexDirection: "column", gap: 4,
-              scrollbarWidth: "thin",
+              flex: 1, overflowY: "auto", padding: "16px 18px",
+              display: "flex", flexDirection: "column", gap: 6,
+              scrollbarWidth: "thin", scrollbarColor: "rgba(0,0,0,0.1) transparent",
             }}>
-              {/* Intro message */}
+
+              {/* Empty state with chips */}
               {messages.length === 0 && (
-                <div style={{ textAlign: "center", padding: "20px 0" }}>
-                  <div style={{ width: 48, height: 48, borderRadius: "50%", margin: "0 auto 10px",
-                    overflow: "hidden", background: shop?.logoUrl ? "transparent" : "#046EF2",
+                <div style={{ display: "flex", flexDirection: "column",
+                  alignItems: "center", justifyContent: "center",
+                  flex: 1, padding: "20px 0", textAlign: "center" }}>
+                  <div style={{ width: 52, height: 52, borderRadius: "50%", marginBottom: 12,
+                    overflow: "hidden",
+                    background: shop?.logoUrl ? "transparent" : "rgba(4,110,242,0.08)",
+                    border: "2px solid rgba(4,110,242,0.12)",
                     display: "flex", alignItems: "center", justifyContent: "center" }}>
                     {shop?.logoUrl
                       ? <img src={shop.logoUrl} alt={shopName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      : <span style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>{initials}</span>
+                      : <span style={{ fontSize: 20, fontWeight: 900, color: "#046EF2" }}>{initials}</span>
                     }
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#111", marginBottom: 4 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#111", marginBottom: 4 }}>
                     Chat with {shopName}
                   </div>
-                  <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 14, lineHeight: 1.5 }}>
-                    Ask about products, delivery, or anything else.
+                  <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 18, lineHeight: 1.6 }}>
+                    Ask about availability, delivery, sizing or anything else.
                   </div>
                   {/* Quick chips */}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
                     {QUICK_CHIPS.map(chip => (
                       <button key={chip} onClick={() => handleSend(chip)} style={{
-                        padding: "6px 12px", borderRadius: 20,
-                        border: "1px solid #e5e7eb", background: "#f8f9fb",
+                        padding: "7px 14px", borderRadius: 20,
+                        border: "1.5px solid rgba(0,0,0,0.10)", background: "#f8f9fb",
                         color: "#374151", fontSize: 12, fontWeight: 600,
                         cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
                       }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor="#046EF2"; e.currentTarget.style.color="#046EF2"; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor="#e5e7eb"; e.currentTarget.style.color="#374151"; }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor="#046EF2"; e.currentTarget.style.color="#046EF2"; e.currentTarget.style.background="#eff6ff"; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor="rgba(0,0,0,0.10)"; e.currentTarget.style.color="#374151"; e.currentTarget.style.background="#f8f9fb"; }}
                       >
                         {chip}
                       </button>
@@ -365,32 +314,32 @@ export default function ChatModal({ shop, product, onClose }) {
               {messages.map(m => {
                 const isMe = m.senderId === user?.uid;
                 return (
-                  <div key={m.id} style={{
-                    display:       "flex",
-                    flexDirection: isMe ? "row-reverse" : "row",
-                    alignItems:    "flex-end",
-                    gap:           6,
-                    marginBottom:  2,
-                  }}>
+                  <div key={m.id}>
                     <div style={{
-                      maxWidth:     "75%",
-                      padding:      "9px 13px",
-                      borderRadius: isMe ? "14px 14px 3px 14px" : "14px 14px 14px 3px",
-                      background:   isMe ? "#046EF2" : "#f4f4f4",
-                      color:        isMe ? "#fff" : "#111",
-                      fontSize:     13, fontWeight: 500, lineHeight: 1.5,
-                      position:     "relative",
+                      display:       "flex",
+                      justifyContent: isMe ? "flex-end" : "flex-start",
                     }}>
-                      {m.text}
-                      {m.isAiReply && (
-                        <span style={{
-                          display: "inline-block", marginLeft: 6,
-                          fontSize: 9, opacity: 0.7,
-                          verticalAlign: "middle",
-                        }}>✨ AI</span>
-                      )}
+                      <div style={{
+                        maxWidth:     "72%",
+                        padding:      "10px 14px",
+                        borderRadius: isMe ? "14px 14px 3px 14px" : "14px 14px 14px 3px",
+                        background:   isMe ? "#111" : "#f4f4f4",
+                        color:        isMe ? "#fff" : "#111",
+                        fontSize:     13,
+                        fontWeight:   500,
+                        lineHeight:   1.55,
+                      }}>
+                        {m.text}
+                        {m.isAiReply && (
+                          <span style={{ fontSize: 9, opacity: 0.6, marginLeft: 6 }}>✨ AI</span>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 10, color: "#d1d5db", fontWeight: 500, flexShrink: 0, marginBottom: 2 }}>
+                    <div style={{
+                      fontSize: 10, color: "#C0C0C0", fontWeight: 500,
+                      textAlign: isMe ? "right" : "left",
+                      marginTop: 3, paddingLeft: isMe ? 0 : 4, paddingRight: isMe ? 4 : 0,
+                    }}>
                       {fmtTime(m.createdAt)}
                     </div>
                   </div>
@@ -406,13 +355,14 @@ export default function ChatModal({ shop, product, onClose }) {
               <div ref={bottomRef} />
             </div>
 
-            {/* Input */}
+            {/* Input row */}
             <div style={{
-              padding:    "10px 12px",
-              borderTop:  "1px solid #f0f0f0",
+              padding:    "12px 18px",
+              borderTop:  "1px solid rgba(0,0,0,0.08)",
               flexShrink: 0,
+              background: "#fff",
             }}>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <input
                   ref={inputRef}
                   value={input}
@@ -421,41 +371,34 @@ export default function ChatModal({ shop, product, onClose }) {
                   placeholder="Type a message…"
                   disabled={sending}
                   style={{
-                    flex:        1,
-                    height:      40,
-                    background:  "#f8f9fb",
-                    border:      "1.5px solid #e5e7eb",
-                    borderRadius: 10,
-                    color:       "#111",
-                    fontSize:    13,
-                    fontWeight:  600,
-                    padding:     "0 12px",
-                    outline:     "none",
-                    fontFamily:  "Nunito,sans-serif",
-                    transition:  "border-color 0.15s",
+                    flex: 1, height: 44, background: "#f8f9fb",
+                    border: "1.5px solid rgba(0,0,0,0.10)", borderRadius: 10,
+                    color: "#111", fontSize: 13, fontWeight: 600,
+                    padding: "0 14px", outline: "none",
+                    fontFamily: "Nunito,sans-serif", transition: "border-color 0.15s",
                   }}
-                  onFocus={e => { e.target.style.borderColor = "#046EF2"; e.target.style.boxShadow = "0 0 0 3px rgba(4,110,242,0.10)"; }}
-                  onBlur={e =>  { e.target.style.borderColor = "#e5e7eb"; e.target.style.boxShadow = "none"; }}
+                  onFocus={e  => { e.target.style.borderColor = "#046EF2"; e.target.style.boxShadow = "0 0 0 3px rgba(4,110,242,0.10)"; }}
+                  onBlur={e   => { e.target.style.borderColor = "rgba(0,0,0,0.10)"; e.target.style.boxShadow = "none"; }}
                 />
                 <button
                   onClick={() => handleSend()}
                   disabled={!input.trim() || sending}
                   style={{
-                    width:        38, height: 38,
-                    borderRadius: 10, border: "none",
-                    background:   input.trim() && !sending ? "#046EF2" : "#f0f0f0",
-                    color:        input.trim() && !sending ? "#fff" : "#9ca3af",
-                    display:      "flex", alignItems: "center", justifyContent: "center",
+                    padding:      "0 20px",
+                    height:       44,
+                    borderRadius: 10,
+                    border:       "none",
+                    background:   input.trim() && !sending ? "#111" : "#f0f0f0",
+                    color:        input.trim() && !sending ? "#fff" : "#9CA3AF",
+                    fontSize:     13,
+                    fontWeight:   800,
                     cursor:       input.trim() && !sending ? "pointer" : "not-allowed",
-                    flexShrink:   0, transition: "all 0.15s",
+                    fontFamily:   "inherit",
+                    transition:   "all 0.15s",
+                    flexShrink:   0,
                   }}
                 >
-                  {sending
-                    ? <div style={{ width: 14, height: 14, border: "2px solid currentColor",
-                        borderTopColor: "transparent", borderRadius: "50%",
-                        animation: "cm-spin 0.8s linear infinite" }} />
-                    : <Ico d={IC.send} size={14} />
-                  }
+                  {sending ? "…" : "Send"}
                 </button>
               </div>
             </div>
@@ -464,12 +407,9 @@ export default function ChatModal({ shop, product, onClose }) {
       </div>
 
       <style>{`
-        @keyframes cm-fade-in  { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes cm-slide-up { from { transform: translateY(24px); opacity: 0 } to { transform: none; opacity: 1 } }
-        @keyframes cm-spin     { to { transform: rotate(360deg) } }
-        @media (max-width: 480px) {
-          /* Full screen on mobile */
-        }
+        @keyframes cm-fade  { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes cm-scale { from { opacity: 0; transform: translate(-50%,-50%) scale(0.94) } to { opacity: 1; transform: translate(-50%,-50%) scale(1) } }
+        @keyframes cm-spin  { to { transform: rotate(360deg) } }
       `}</style>
     </>
   );

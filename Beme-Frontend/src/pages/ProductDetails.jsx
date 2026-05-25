@@ -378,8 +378,8 @@ function SellerInfoPanel({ shopId, sellerId }) {
           onClick={() => setShowChat(true)}>
           <ChatIcon/> Chat Seller
         </button>
-        {showChat && <ChatModal shop={shop2} onClose={() => setShowChat(false)} />}
       </div>
+        {showChat && shop2 && <ChatModal shop={shop2} onClose={() => setShowChat(false)} />}
 
       {/* More from this store */}
       {moreProducts.length > 1 && (
