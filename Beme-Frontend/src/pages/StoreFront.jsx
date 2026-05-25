@@ -196,6 +196,11 @@ export default function StoreFront() {
     run();
   }, [shop?.id, shop?.ownerId]);
 
+  /* Track store visit */
+  useEffect(() => {
+    if (shop?.id) trackStoreVisit(shop.id, currentUser?.uid).catch(() => {});
+  }, [shop?.id]);
+
   /* Follow / unfollow */
   const handleFollow = async () => {
     if (!currentUser) { navigate("/login"); return; }
@@ -225,14 +230,13 @@ export default function StoreFront() {
   const handleChat = () => {
     const pref = shop?.chatPreference || "beme";
     if (pref === "whatsapp" && shop?.whatsapp) {
-      const num  = shop.whatsapp.replace(/\D/g, "");
+      const num = shop.whatsapp.replace(/\D/g, "");
       window.open(`https://wa.me/${num}`, "_blank");
     } else if (pref === "website" && shop?.website) {
       window.open(shop.website, "_blank");
     } else {
-      // Beme Market Chat — navigate to messages page
       if (!currentUser) { navigate(`/login?redirect=/store/${storeSlug}`); return; }
-      navigate(`/messages?shop=${shop?.id}`);
+      navigate(`/messages?shop=${shop?.id}&seller=${shop?.ownerId}`);
     }
   };
 
@@ -413,7 +417,7 @@ export default function StoreFront() {
                 </button>
               )}
 
-              {hasChat && !isOwnStore && (
+              {!isOwnStore && (
                 <button type="button" onClick={handleChat}
                   style={{
                     padding: "9px 20px", borderRadius: 100,
