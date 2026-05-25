@@ -53,6 +53,7 @@
   height: 100vh;
   overflow: hidden;
   transition: width 0.25s cubic-bezier(0.22,1,0.36,1);
+  position: relative;
   z-index: 50;
   position: relative;
 }
@@ -62,34 +63,29 @@
   width: var(--sb-collapsed);
 }
 
-/* ── Toggle button (top-left corner) ── */
-.sd-toggle-btn {
-  position: absolute;
-  top: 14px;
-  right: -14px;
-  width: 28px;
-  height: 28px;
-  background: var(--white);
-  border: 1px solid var(--border);
+/* ── Topbar sidebar toggle (Paystack style) ── */
+.sd-toggle-btn-topbar {
+  display: none;
+  width: 34px;
+  height: 34px;
   border-radius: 8px;
-  display: flex;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-muted);
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 60;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-  transition: background 0.15s, transform 0.2s;
-  color: var(--text-muted);
+  transition: background 0.15s, color 0.15s;
   flex-shrink: 0;
 }
 
-.sd-toggle-btn:hover {
+.sd-toggle-btn-topbar:hover {
   background: var(--bg);
   color: var(--text-primary);
 }
 
-.sd-sidebar.collapsed .sd-toggle-btn {
-  transform: rotate(180deg);
+@media (min-width: 769px) {
+  .sd-toggle-btn-topbar { display: flex; }
 }
 
 /* ── Brand header ── */

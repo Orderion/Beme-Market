@@ -97,13 +97,6 @@ function Sidebar({ activeTab, onNav, shop, plan, chatUnread, onClose, isMobile, 
 
   return (
     <>
-      {!isMobile && (
-        <button className="sd-toggle-btn" onClick={onToggle} title={collapsed ? "Expand" : "Collapse"}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 18l-6-6 6-6"/>
-          </svg>
-        </button>
-      )}
       <div className="sd-brand">
         <div className="sd-brand-icon">{planInitial}</div>
         <div className="sd-brand-info">
@@ -302,8 +295,18 @@ export default function SellerDashboard() {
       <div className="sd-main">
         <header className="sd-topbar">
           <div className="sd-topbar-left">
+            {/* Mobile hamburger */}
             <button className="sd-hamburger" onClick={() => setMobileOpen(true)}>
               <Icon path={ICONS.menu} size={22} color="#8B8FA8" />
+            </button>
+            {/* Desktop sidebar toggle */}
+            <button className="sd-toggle-btn-topbar" onClick={() => setCollapsed(c => !c)}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <path d="M9 3v18"/>
+              </svg>
             </button>
             <div className="sd-topbar-title">{TAB_TITLES[activeTab] || "Dashboard"}</div>
           </div>
