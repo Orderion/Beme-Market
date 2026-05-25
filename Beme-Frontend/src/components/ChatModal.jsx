@@ -144,30 +144,28 @@ export default function ChatModal({ shop, product, onClose }) {
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Thin backdrop — no blur */}
       <div onClick={onClose} style={{
-        position: "fixed", inset: 0,
-        background: "rgba(0,0,0,0.45)",
-        backdropFilter: "blur(3px)",
-        zIndex: 2000,
-        animation: "cm-fade 0.2s ease",
+        position:   "fixed", inset: 0,
+        background: "rgba(0,0,0,0.18)",
+        zIndex:     2000,
+        animation:  "cm-fade 0.2s ease",
       }} />
 
-      {/* Modal panel */}
+      {/* Panel — slides in from right like AI Copilot */}
       <div style={{
         position:      "fixed",
-        top:           "50%",
-        left:          "50%",
-        transform:     "translate(-50%, -50%)",
-        width:         "min(520px, calc(100vw - 32px))",
-        height:        "min(640px, calc(100vh - 48px))",
+        top:           0,
+        right:         0,
+        bottom:        0,
+        width:         "min(420px, 100vw)",
         background:    "#fff",
-        borderRadius:  16,
+        borderRadius:  "16px 0 0 16px",
         zIndex:        2001,
         display:       "flex",
         flexDirection: "column",
-        boxShadow:     "0 24px 64px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.08)",
-        animation:     "cm-scale 0.22s cubic-bezier(0.22,1,0.36,1)",
+        boxShadow:     "-8px 0 48px rgba(0,0,0,0.12), -2px 0 8px rgba(0,0,0,0.06)",
+        animation:     "cm-slide-in 0.32s cubic-bezier(0.22,1,0.36,1)",
         fontFamily:    "var(--font-main,'Nunito',sans-serif)",
         overflow:      "hidden",
       }}>
@@ -407,9 +405,9 @@ export default function ChatModal({ shop, product, onClose }) {
       </div>
 
       <style>{`
-        @keyframes cm-fade  { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes cm-scale { from { opacity: 0; transform: translate(-50%,-50%) scale(0.94) } to { opacity: 1; transform: translate(-50%,-50%) scale(1) } }
-        @keyframes cm-spin  { to { transform: rotate(360deg) } }
+        @keyframes cm-fade     { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes cm-slide-in { from { transform: translateX(100%) } to { transform: translateX(0) } }
+        @keyframes cm-spin     { to { transform: rotate(360deg) } }
       `}</style>
     </>
   );
