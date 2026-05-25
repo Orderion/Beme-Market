@@ -108,60 +108,66 @@ function Preview({ form }) {
 
   return (
     <div style={{ border: "1px solid rgba(0,0,0,0.1)", borderRadius: 14, overflow: "hidden",
-      background: "var(--bg,#F7F8FA)", fontFamily: "var(--font-main,'Nunito',sans-serif)" }}>
+      background: "#F7F8FA", fontFamily: "'Nunito',sans-serif" }}>
 
-      {/* Banner — exact match to StoreFront */}
-      <div style={{ position: "relative", height: 100, overflow: "hidden",
+      {/* ── Banner — exact same as StoreFront ── */}
+      <div style={{ position: "relative", height: 110, overflow: "hidden",
         background: form.bannerUrl ? "transparent" : "linear-gradient(135deg,#046EF2 0%,#1e3a8a 100%)" }}>
         {form.bannerUrl && (
           <img src={form.bannerUrl} alt=""
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
         )}
         <div style={{ position: "absolute", inset: 0,
-          background: "linear-gradient(to bottom,rgba(0,0,0,0) 40%,rgba(0,0,0,0.45) 100%)" }} />
+          background: "linear-gradient(to bottom,rgba(0,0,0,0) 30%,rgba(0,0,0,0.5) 100%)" }} />
 
-        {/* Logo overlapping banner — exact same layout as StoreFront */}
-        <div style={{ position: "absolute", bottom: -20, left: 12, zIndex: 3,
-          width: 48, height: 48, borderRadius: 12,
-          border: "2.5px solid #fff",
+        {/* Circular logo overlapping banner bottom-left — same as live StoreFront */}
+        <div style={{
+          position: "absolute", bottom: -22, left: 14, zIndex: 3,
+          width: 52, height: 52, borderRadius: "50%",
+          border: "3px solid #fff",
           background: form.logoUrl ? "transparent" : "#046EF2",
-          overflow: "hidden", boxShadow: "0 3px 12px rgba(0,0,0,0.2)",
-          display: "flex", alignItems: "center", justifyContent: "center" }}>
+          overflow: "hidden", boxShadow: "0 3px 10px rgba(0,0,0,0.2)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
           {form.logoUrl
             ? <img src={form.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            : <span style={{ fontSize: 18, fontWeight: 900, color: "#fff" }}>{letter}</span>
+            : <span style={{ fontSize: 20, fontWeight: 900, color: "#fff" }}>{letter}</span>
           }
         </div>
       </div>
 
-      {/* Identity — exact same padding/structure as StoreFront */}
-      <div style={{ padding: "28px 12px 10px" }}>
-        <div style={{ fontSize: 14, fontWeight: 900, color: "var(--text,#111)",
-          letterSpacing: "-0.02em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+      {/* ── Identity — same padding structure as StoreFront ── */}
+      <div style={{ padding: "30px 14px 12px", background: "#fff" }}>
+        <div style={{ fontSize: 15, fontWeight: 900, color: "#111",
+          letterSpacing: "-0.02em", marginBottom: 2,
+          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {form.shopName || "Your Store Name"}
         </div>
         {form.description && (
-          <div style={{ fontSize: 11, color: "var(--muted,#9CA3AF)", marginTop: 2,
+          <div style={{ fontSize: 11, color: "#9CA3AF", marginBottom: 8,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {form.description}
           </div>
         )}
 
-        {/* Action buttons row — mirrors StoreFront */}
-        <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+        {/* Action buttons row — mirrors live StoreFront exactly */}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           <div style={{ padding: "5px 12px", borderRadius: 100, fontSize: 10, fontWeight: 800,
-            border: "1.5px solid rgba(0,0,0,0.12)", background: "#fff", color: "#111" }}>
+            border: "1.5px solid rgba(0,0,0,0.12)", background: "#fff", color: "#111",
+            whiteSpace: "nowrap" }}>
             Follow
           </div>
-          {form.chatPreference === "beme" && (
+          {(form.chatPreference === "beme" || !form.chatPreference) && (
             <div style={{ padding: "5px 12px", borderRadius: 100, fontSize: 10, fontWeight: 800,
-              border: "1.5px solid rgba(0,0,0,0.12)", background: "#fff", color: "#111" }}>
+              border: "1.5px solid rgba(0,0,0,0.12)", background: "#fff", color: "#111",
+              display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
               💬 Chat
             </div>
           )}
           {social.map(s => (
             <span key={s.l} style={{ padding: "5px 10px", borderRadius: 100, fontSize: 10,
-              fontWeight: 700, background: `${s.c}12`, color: s.c, border: `1px solid ${s.c}25` }}>
+              fontWeight: 700, background: `${s.c}12`, color: s.c,
+              border: `1px solid ${s.c}25`, whiteSpace: "nowrap" }}>
               {s.l}
             </span>
           ))}

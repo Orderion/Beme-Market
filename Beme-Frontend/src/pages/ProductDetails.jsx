@@ -375,9 +375,10 @@ function SellerInfoPanel({ shopId, sellerId }) {
           <StoreIcon/> Visit Store
         </button>
         <button className="pd-seller-action-btn pd-seller-action-btn--primary"
-          onClick={() => navigate(`/messages?seller=${sellerId || shop2.ownerId}`)}>
+          onClick={() => setShowChat(true)}>
           <ChatIcon/> Chat Seller
         </button>
+        {showChat && <ChatModal shop={shop2} onClose={() => setShowChat(false)} />}
       </div>
 
       {/* More from this store */}
