@@ -241,6 +241,15 @@ export default function StorePlans() {
       <p className="sp-footer-note">
         All plans include Paystack payments · Secure checkout · 24/7 platform uptime
       </p>
+
+      {/* Visit Dashboard button */}
+      <div className="sp-dashboard-cta">
+        <button type="button" className="sp-dashboard-btn"
+          onClick={() => navigate("/seller-dashboard")}>
+          Visit Dashboard →
+        </button>
+        <p className="sp-dashboard-note">Already set up? Go straight to your seller dashboard.</p>
+      </div>
     </div>
   );
 }

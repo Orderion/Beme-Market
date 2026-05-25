@@ -196,9 +196,15 @@ export default function StoreFront() {
     run();
   }, [shop?.id, shop?.ownerId]);
 
-  /* Track store visit */
   useEffect(() => {
-    if (shop?.id) trackStoreVisit(shop.id, currentUser?.uid).catch(() => {});
+  }, [shop?.id]);
+
+  /* Track store visit — safe dynamic import */
+  useEffect(() => {
+    if (!shop?.id) return;
+    import("../services/analyticsService")
+      .then(({ trackStoreVisit }) => trackStoreVisit(shop.id, currentUser?.uid))
+      .catch(() => {});
   }, [shop?.id]);
 
   /* Follow / unfollow */

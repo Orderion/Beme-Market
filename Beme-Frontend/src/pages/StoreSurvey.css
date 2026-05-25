@@ -92,7 +92,9 @@
   gap: 16px;
   margin-bottom: 20px;
   padding: 20px 22px;
-  background: #0a0a1a;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.07);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
   border-radius: 16px;
   position: relative;
   overflow: hidden;
@@ -108,7 +110,7 @@
   left: -80px;
   filter: blur(60px);
   opacity: 0.7;
-  animation: orb-drift1 10s ease-in-out infinite;
+  animation: orb-drift1 28s ease-in-out infinite;
 }
 .ss-step-hero::after {
   content: "";
@@ -121,7 +123,7 @@
   right: -40px;
   filter: blur(50px);
   opacity: 0.6;
-  animation: orb-drift2 13s ease-in-out infinite;
+  animation: orb-drift2 35s ease-in-out infinite;
 }
 
 @keyframes orb-drift1 {
@@ -137,19 +139,22 @@
 .ss-step-num {
   font-size: 40px;
   font-weight: 900;
-  color: #fff;
+  background: linear-gradient(135deg, #046EF2, #7C3AED);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   letter-spacing: -0.04em;
   line-height: 1;
   flex-shrink: 0;
   position: relative;
   z-index: 1;
 }
-.ss-step-num span { font-size: 18px; color: rgba(255,255,255,0.4); margin-left: 2px; }
+.ss-step-num span { font-size: 18px; color: #d1d5db; margin-left: 2px; -webkit-text-fill-color: #d1d5db; }
 
 .ss-title {
   font-size: 20px;
   font-weight: 900;
-  color: #fff;
+  color: #111;
   letter-spacing: -0.02em;
   margin: 0 0 4px;
   position: relative;
@@ -157,7 +162,7 @@
 }
 .ss-sub {
   font-size: 13px;
-  color: rgba(255,255,255,0.6);
+  color: #9ca3af;
   margin: 0;
   font-weight: 500;
   position: relative;
