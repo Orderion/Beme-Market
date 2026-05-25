@@ -42,6 +42,13 @@ router.post("/auto-reply", async (req, res) => {
     const settings     = settingsSnap.exists ? settingsSnap.data() : {};
     if (!settings.customerAutoReplies) return; // Seller has it toggled OFF
 
+    // Check if AI is paused for this specific chat
+    const chatSnap = await db.collection("sellerChats").doc(chatId).get();
+    if (chatSnap.exists && chatSnap.data().aiPaused === true) {
+      console.log(`[chatRoutes] AI paused for chat ${chatId}`);
+      return;
+    }
+
     // 2. Check daily usage (skip check if Infinity plan)
     if (limit !== Infinity) {
       const today    = getTodayKey();
@@ -52,6 +59,23 @@ router.post("/auto-reply", async (req, res) => {
       const todayCount = (usage.date === today) ? (usage.count || 0) : 0;
       if (todayCount >= limit) {
         console.log(`[chatRoutes] auto-reply limit reached for ${sellerId} (${plan}: ${limit}/day)`);
+
+        // D — Fallback message when limit is hit (only send once per day)
+        if (todayCount === limit) {
+          await db.collection("sellerChats").doc(chatId).collection("messages").add({
+            text: "Thanks for reaching out! We'll get back to you shortly 😊",
+            senderId: sellerId,
+            senderRole: "seller",
+            isAiReply: true,
+            isFallback: true,
+            createdAt: new Date(),
+            read: false,
+          });
+          await db.collection("sellerChats").doc(chatId).set({
+            lastMessage: "Thanks for reaching out! We'll get back to you shortly 😊",
+            lastMessageAt: new Date(),
+          }, { merge: true });
+        }
         return;
       }
 
@@ -84,6 +108,28 @@ router.post("/auto-reply", async (req, res) => {
       history.push({ role: "user", content: message });
     }
 
+    // B — Smart context: fetch product details if productName provided
+    let productContext = "";
+    if (productName) {
+      try {
+        const { getDocs, collection, query, where, limit: fsLimit } = await import("firebase-admin/firestore");
+        const productsRef = db.collection("Products");
+        const pSnap = await productsRef
+          .where("name", "==", productName)
+          .where("sellerId", "==", sellerId)
+          .limit(1)
+          .get();
+        if (!pSnap.empty) {
+          const p = pSnap.docs[0].data();
+          productContext = `\n\nProduct the customer is asking about:\n- Name: ${p.name || productName}\n- Price: GHS ${p.price || "?"} \n- Description: ${(p.description || "").slice(0, 200)}\n- In Stock: ${p.inStock !== false ? "Yes" : "No"}`;
+        } else {
+          productContext = `\n\nCustomer is asking about: ${productName}`;
+        }
+      } catch {
+        productContext = `\n\nCustomer is asking about: ${productName}`;
+      }
+    }
+
     // 4. Call Claude
     const systemPrompt = `You are the friendly customer service assistant for "${shopName}", a store on Beme Market in Ghana.
 
@@ -98,7 +144,7 @@ Guidelines:
 - For availability questions: say "Yes, it's available! You can order it directly from our store."
 - Never make up specific prices or stock numbers you don't know
 - End with a helpful call to action when appropriate
-${productName ? `- The customer is asking about: ${productName}` : ""}
+${productContext}
 
 Do not use asterisks, markdown, or any special formatting. Plain conversational text only.`;
 

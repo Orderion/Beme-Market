@@ -144,17 +144,19 @@ export default function DashboardProductDetail() {
 
 Product name: ${form.name}
 Category: ${form.category || "General"}
-Price: GHS ${form.price || "?"}
+Price: ${form.price ? "GHS " + form.price : "competitively priced"}
+
+IMPORTANT: Write the listing immediately using the information above. Do NOT ask any questions. Do NOT request more details. Just write.
 
 Write TWO things:
 
-1. DESCRIPTION: Write 3-4 natural sentences that sell the product. Sound like a real seller, not an AI. No asterisks, no bullet points, no markdown, no hashtags. Just plain conversational text that highlights quality, benefits, and why Ghanaian buyers will love it.
+1. DESCRIPTION: Write 3-4 natural sentences that sell the product. Sound like a real seller, not an AI. Highlight quality, benefits, and why Ghanaian buyers will love it. No asterisks, no bullet points, no markdown, no hashtags, no questions. Plain conversational text only.
 
-2. SEO_TITLE: Write ONLY the product title. Max 60 characters. No explanation, no extra text. Just the title itself.
+2. SEO_TITLE: Write ONLY the product title. Max 60 characters. No questions, no explanation, no extra text. Just the clean title.
 
-Reply in this exact format:
-DESCRIPTION: [plain text description here]
-SEO_TITLE: [just the title text here, nothing else]`;
+Reply in this exact format with no other text:
+DESCRIPTION: [your description here]
+SEO_TITLE: [your title here]`;
 
       const res = await fetch(`${API_URL}/api/ai/chat`, {
         method: "POST",
@@ -359,15 +361,18 @@ SEO_TITLE: [just the title text here, nothing else]`;
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:7 }}>
                   <label className="sd-label" style={{ margin:0 }}>Description</label>
                   {isProSeller && (
-                    <button type="button" onClick={handleAIWrite} disabled={aiWriting}
-                      style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 10px",
-                        borderRadius:8, border:"1px solid #bfdbfe", background:"#eff6ff",
-                        color:"#046EF2", fontSize:11, fontWeight:700, cursor:aiWriting?"wait":"pointer",
-                        fontFamily:"inherit", transition:"all 0.15s" }}>
-                      {aiWriting ? (
-                        <><div style={{ width:10,height:10,border:"2px solid #046EF2",borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.8s linear infinite" }}/> Writing…</>
-                      ) : <>✨ Write with AI</>}
-                    </button>
+                    <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:3 }}>
+                      <button type="button" onClick={handleAIWrite} disabled={aiWriting}
+                        style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 10px",
+                          borderRadius:8, border:"1px solid #bfdbfe", background:"#eff6ff",
+                          color:"#046EF2", fontSize:11, fontWeight:700, cursor:aiWriting?"wait":"pointer",
+                          fontFamily:"inherit", transition:"all 0.15s" }}>
+                        {aiWriting ? (
+                          <><div style={{ width:10,height:10,border:"2px solid #046EF2",borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.8s linear infinite" }}/> Writing…</>
+                        ) : <>✨ Write with AI</>}
+                      </button>
+                      <span style={{ fontSize:9, color:"#c0c0c0", fontWeight:600 }}>Writes listings only · Questions? Use AI Copilot</span>
+                    </div>
                   )}
                 </div>
                 <textarea className="sd-input sd-textarea" value={form.description} onChange={upd("description")} placeholder="Describe your product… or tap ✨ Write with AI" rows={5} style={{ resize:"vertical" }}/>

@@ -1,9 +1,9 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useChat } from "../../hooks/useChat";
 import { useAuth } from "../../context/AuthContext";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
-
-const API_URL = import.meta.env.VITE_API_URL || "https://beme-market-1.onrender.com";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../../firebase";
 
 function fmtTime(ts) {
   if (!ts) return "";
@@ -43,62 +43,22 @@ function SelectConversationIcon() {
 
 export default function DashboardChat() {
   const { user }       = useAuth();
-  const { planLimits, shop } = useSellerAuth();
+  const { planLimits } = useSellerAuth();
   const {
     conversations, activeChat, setActiveChat, messages,
     loading, sending, totalUnread, sendMessage, markRead,
   } = useChat();
 
-  const [text,         setText]         = useState("");
-  const [aiLoading,    setAiLoading]    = useState(false);
-  const [aiSuggestion, setAiSuggestion] = useState(null);
-  const inputRef = useRef(null);
+  const [text, setText] = useState("");
 
   const handleSend = async () => {
     if (!text.trim() || sending) return;
-    try { await sendMessage(text); setText(""); setAiSuggestion(null); }
+    try { await sendMessage(text); setText(""); }
     catch { alert("Failed to send message."); }
   };
 
-  const handleSelectChat = (chatId) => {
-    setActiveChat(chatId);
-    markRead(chatId);
-    setAiSuggestion(null);
-    setText("");
-  };
-
+  const handleSelectChat = (chatId) => { setActiveChat(chatId); markRead(chatId); };
   const activeChatData  = conversations.find((c) => c.id === activeChat);
-  const lastCustomerMsg = messages.filter(m => m.senderRole !== "seller").slice(-1)[0];
-
-  // ── AI reply suggestion ────────────────────────────────────────────────────
-  const handleAISuggest = async () => {
-    if (!lastCustomerMsg?.text) return;
-    setAiLoading(true);
-    setAiSuggestion(null);
-    try {
-      const res = await fetch(`${API_URL}/api/ai/chat`, {
-        method:  "POST",
-        headers: { "Content-Type":"application/json" },
-        body: JSON.stringify({
-          messages: [{
-            role:    "user",
-            content: `A customer sent this message to my store on Beme Market: "${lastCustomerMsg.text}"\n\nWrite a short, professional, friendly reply I can send as the seller. My store name is "${shop?.shopName || "my store"}". Keep it under 3 sentences. Reply only with the message text, no explanation.`,
-          }],
-          context: { currentPage:"chat", shopName: shop?.shopName || "Store" },
-        }),
-      });
-      const data = await res.json();
-      if (data.content) {
-        setAiSuggestion(data.content);
-        setText(data.content);
-        inputRef.current?.focus();
-      }
-    } catch (e) {
-      console.error("[AI suggest]", e);
-    } finally {
-      setAiLoading(false);
-    }
-  };
 
   if (!planLimits?.hasChat) {
     return (
@@ -132,8 +92,7 @@ export default function DashboardChat() {
               : conversations.length === 0
                 ? <EmptyConversations />
                 : conversations.map((c) => (
-                  <div key={c.id} className={`sd-chat-item ${activeChat === c.id ? "active" : ""}`}
-                    onClick={() => handleSelectChat(c.id)}
+                  <div key={c.id} className={`sd-chat-item ${activeChat === c.id ? "active" : ""}`} onClick={() => handleSelectChat(c.id)}
                     style={{ borderLeft: activeChat === c.id ? "3px solid #046EF2" : "3px solid transparent", cursor:"pointer", padding:"12px 16px", display:"flex", alignItems:"center", gap:10 }}>
                     <div style={{ width:34, height:34, borderRadius:"50%", background:"rgba(4,110,242,0.08)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:13, color:"#046EF2", flexShrink:0 }}>
                       {(c.customerName || "?")[0].toUpperCase()}
@@ -162,76 +121,55 @@ export default function DashboardChat() {
                     <div style={{ width:34, height:34, borderRadius:"50%", background:"rgba(4,110,242,0.08)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:13, color:"#046EF2" }}>
                       {(activeChatData?.customerName || "?")[0].toUpperCase()}
                     </div>
-                    <div>
+                    <div style={{ flex:1 }}>
                       <div style={{ fontSize:13, fontWeight:700, color:"#111" }}>{activeChatData?.customerName || "Customer"}</div>
                       <div style={{ fontSize:11, color:"#22C55E", display:"flex", alignItems:"center", gap:4 }}>
                         <div style={{ width:6, height:6, borderRadius:"50%", background:"#22C55E" }} />
                         Online
                       </div>
                     </div>
+                    {/* Pause AI toggle */}
+                    <button onClick={togglePauseAI} title={aiPaused ? "AI is paused for this chat" : "AI is active — click to pause"}
+                      style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 10px",
+                        borderRadius:20, border:`1px solid ${aiPaused?"#f59e0b":"rgba(4,110,242,0.2)"}`,
+                        background: aiPaused?"#fffbeb":"#eff6ff",
+                        color: aiPaused?"#d97706":"#046EF2",
+                        fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s" }}>
+                      {aiPaused ? "⏸ AI Paused" : "✨ AI Active"}
+                    </button>
                   </div>
 
                   <div className="sd-chat-messages" style={{ flex:1, overflowY:"auto", padding:16, display:"flex", flexDirection:"column", gap:8 }}>
                     {messages.map((m) => (
                       <div key={m.id}>
-                        <div className={`sd-msg ${m.senderRole === "seller" ? "sd-msg-seller" : "sd-msg-customer"}`}
-                          style={{ maxWidth:"70%", padding:"10px 14px", borderRadius:12, fontSize:13, lineHeight:1.5,
-                            background: m.senderRole === "seller" ? "#111" : "#f4f4f4",
-                            color: m.senderRole === "seller" ? "#fff" : "#111",
-                            marginLeft: m.senderRole === "seller" ? "auto" : 0 }}>
-                          {m.text}
-                          {/* AI badge on auto-generated messages */}
-                          {m.isAiGenerated && (
-                            <span style={{ fontSize:10, opacity:0.7, marginLeft:6 }}>✨ AI</span>
-                          )}
-                          {m.imageUrl && <img src={m.imageUrl} alt="attachment" style={{ maxWidth:"100%", borderRadius:6, marginTop:6 }} />}
-                        </div>
-                        <div style={{ fontSize:10, color:"#8B8FA8", textAlign: m.senderRole === "seller" ? "right" : "left", marginTop:2 }}>
-                          {fmtTime(m.createdAt)}
+                        <div style={{ display:"flex", flexDirection:"column", alignItems: m.senderRole === "seller" ? "flex-end" : "flex-start" }}>
+                          <div className={`sd-msg ${m.senderRole === "seller" ? "sd-msg-seller" : "sd-msg-customer"}`}
+                            style={{ maxWidth:"70%", padding:"10px 14px", borderRadius:12, fontSize:13, lineHeight:1.5,
+                              background: m.senderRole === "seller" ? "#111" : "#f4f4f4",
+                              color: m.senderRole === "seller" ? "#fff" : "#111" }}>
+                            {m.text}
+                            {(m.isAiGenerated || m.isAiReply) && <span style={{ fontSize:10, opacity:0.7, marginLeft:6 }}>✨ AI</span>}
+                            {m.imageUrl && <img src={m.imageUrl} alt="attachment" style={{ maxWidth:"100%", borderRadius:6, marginTop:6 }} />}
+                          </div>
+                          <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:2 }}>
+                            <span style={{ fontSize:10, color:"#8B8FA8" }}>{fmtTime(m.createdAt)}</span>
+                            <button onClick={() => handleCopy(m.text, m.id)} title="Copy"
+                              style={{ background:"none", border:"none", cursor:"pointer", padding:"0 2px",
+                                fontSize:10, color: copiedId === m.id ? "#22C55E" : "#c0c0c0",
+                                fontWeight:700, fontFamily:"inherit", transition:"color 0.15s" }}>
+                              {copiedId === m.id ? "✓ Copied" : "Copy"}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
 
-                  {/* AI suggestion preview */}
-                  {aiSuggestion && (
-                    <div style={{ margin:"0 16px 8px", padding:"10px 14px", background:"#eff6ff", borderRadius:10, border:"1px solid #bfdbfe", fontSize:12, color:"#1e3a5f", fontWeight:600, lineHeight:1.5 }}>
-                      <div style={{ fontSize:10, fontWeight:700, color:"#046EF2", marginBottom:4 }}>✨ AI Suggestion — edit or send as is</div>
-                      {aiSuggestion}
-                    </div>
-                  )}
-
-                  <div className="sd-chat-input-row" style={{ padding:"12px 16px", borderTop:"1px solid rgba(0,0,0,0.08)", display:"flex", gap:8, alignItems:"flex-end" }}>
-                    {/* AI suggest button */}
-                    {lastCustomerMsg && (
-                      <button
-                        onClick={handleAISuggest}
-                        disabled={aiLoading}
-                        title="Generate AI reply"
-                        style={{
-                          height:42, width:42, borderRadius:10,
-                          border:"1px solid #e5e7eb",
-                          background: aiLoading ? "#f0f0f0" : "#eff6ff",
-                          color:"#046EF2", cursor: aiLoading ? "wait" : "pointer",
-                          display:"flex", alignItems:"center", justifyContent:"center",
-                          flexShrink:0, fontSize:16, transition:"all 0.15s",
-                        }}
-                      >
-                        {aiLoading ? (
-                          <div style={{ width:14, height:14, border:"2px solid #046EF2", borderTopColor:"transparent", borderRadius:"50%", animation:"spin 0.8s linear infinite" }}/>
-                        ) : "✨"}
-                      </button>
-                    )}
-
-                    <input
-                      ref={inputRef}
-                      className="sd-input"
-                      value={text}
-                      onChange={(e) => { setText(e.target.value); if (aiSuggestion) setAiSuggestion(null); }}
-                      placeholder="Type a message or tap ✨ for AI reply…"
+                  <div className="sd-chat-input-row" style={{ padding:"12px 16px", borderTop:"1px solid rgba(0,0,0,0.08)", display:"flex", gap:8 }}>
+                    <input className="sd-input" value={text} onChange={(e) => setText(e.target.value)}
+                      placeholder="Type a message…"
                       style={{ flex:1, height:42, padding:"0 14px", border:"1.5px solid rgba(0,0,0,0.1)", borderRadius:10, fontSize:14, outline:"none", fontFamily:"inherit" }}
-                      onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-                    />
+                      onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()} />
                     <button onClick={handleSend} disabled={sending || !text.trim()}
                       style={{ padding:"0 20px", height:42, borderRadius:10, border:"none",
                         background: "#111", color:"#fff", fontSize:13, fontWeight:800,
@@ -246,10 +184,6 @@ export default function DashboardChat() {
           </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth }         from "../../context/AuthContext";
 import { useSubscription } from "../../hooks/useSubscription";
@@ -7,6 +7,8 @@ import { useAIChat }       from "../../hooks/useAIChat";
 import { useAISettings }   from "../../hooks/useAISettings";
 import { useAIContext }    from "../../hooks/useAIContext";
 import AIMessage, { TypingIndicator } from "../../components/ai/AIMessage";
+import { db } from "../../firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 function Ico({ d, size=16, color="currentColor" }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={d}/></svg>;
@@ -159,9 +161,32 @@ function ChatPanel({ aiContext, suggestions, pageLabel, shopName }) {
   );
 }
 
-function SettingsPanel({ messagesUsed, dailyLimit, messagesRemaining, usagePercent }) {
+function SettingsPanel({ messagesUsed, dailyLimit, messagesRemaining, usagePercent, sellerId }) {
   const { settings, loading, saving, updateSetting } = useAISettings();
   const bar = usagePercent>=100?"#ef4444":usagePercent>=80?"#f59e0b":"#046EF2";
+
+  // Auto-reply daily usage
+  const [arUsage, setArUsage] = useState({ count:0, limit:1000, plan:"starter" });
+  useEffect(() => {
+    if (!sellerId) return;
+    const today = new Date().toISOString().split("T")[0];
+    getDoc(doc(db, "aiChatUsage", sellerId)).then(snap => {
+      if (snap.exists()) {
+        const d = snap.data();
+        const count = d.date === today ? (d.count || 0) : 0;
+        const limits = { basic:0, starter:1000, growth:20000, pro:Infinity };
+        const plan = d.plan || "starter";
+        setArUsage({ count, limit: limits[plan] ?? 1000, plan });
+      }
+    }).catch(() => {});
+  }, [sellerId]);
+
+  const arBar = arUsage.limit === Infinity ? "#046EF2"
+    : arUsage.count / arUsage.limit >= 1 ? "#ef4444"
+    : arUsage.count / arUsage.limit >= 0.8 ? "#f59e0b" : "#046EF2";
+  const arPct = arUsage.limit === Infinity ? 10
+    : Math.min(100, Math.round((arUsage.count / arUsage.limit) * 100));
+
   return (
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
       <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:12,padding:"18px 20px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
@@ -177,6 +202,37 @@ function SettingsPanel({ messagesUsed, dailyLimit, messagesRemaining, usagePerce
         <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}><Ico d={I.star} size={13}/><span style={{fontSize:13,fontWeight:800}}>Pro Plan Active</span></div>
         <div style={{fontSize:12,opacity:0.85,lineHeight:1.6,fontWeight:600}}>15 free messages/day + pay-as-you-go top-ups</div>
       </div>
+      {/* Customer Auto-Replies card */}
+      <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:12,padding:"18px 20px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:14}}>Customer Auto-Replies</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div>
+            <div style={{fontSize:13,fontWeight:700,color:"#111",marginBottom:2}}>AI Auto-Reply</div>
+            <div style={{fontSize:11,color:"#9ca3af",fontWeight:600}}>AI handles customer messages automatically</div>
+          </div>
+          <button onClick={()=>updateSetting("customerAutoReplies",!settings.customerAutoReplies)}
+            disabled={saving} aria-label="Toggle Auto-Reply"
+            style={{width:44,height:26,borderRadius:13,flexShrink:0,background:settings.customerAutoReplies?"#046EF2":"#e5e7eb",border:"none",cursor:saving?"not-allowed":"pointer",position:"relative",transition:"background 0.2s"}}>
+            <span style={{position:"absolute",top:3,left:settings.customerAutoReplies?20:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.15)"}}/>
+          </button>
+        </div>
+        {settings.customerAutoReplies && (
+          <div>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:6,fontSize:12,color:"#374151",fontWeight:600}}>
+              <span>{arUsage.count.toLocaleString()} replies used today</span>
+              <span style={{color:"#9ca3af"}}>{arUsage.limit===Infinity?"Unlimited":`${arUsage.limit.toLocaleString()} / day`}</span>
+            </div>
+            <div style={{height:5,background:"#f0f0f0",borderRadius:4,overflow:"hidden",marginBottom:6}}>
+              <div style={{height:"100%",width:`${arPct}%`,background:arBar,borderRadius:4,transition:"width 0.4s"}}/>
+            </div>
+            <div style={{fontSize:11,color:"#9ca3af",fontWeight:600}}>
+              {arUsage.limit===Infinity ? "Pro plan — unlimited auto-replies"
+                : `${Math.max(0, arUsage.limit - arUsage.count).toLocaleString()} remaining today · Resets at midnight`}
+            </div>
+          </div>
+        )}
+      </div>
+
       <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:12,padding:"18px 20px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
         <div style={{fontSize:11,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:3}}>AI Automations</div>
         <div style={{fontSize:12,color:"#9ca3af",marginBottom:14,fontWeight:600}}>Control which features are active</div>
@@ -201,7 +257,7 @@ function SettingsPanel({ messagesUsed, dailyLimit, messagesRemaining, usagePerce
 
 export default function AIAssistant() {
   const [,setParams]       = useSearchParams();
-  const { profile }        = useAuth();
+  const { profile, user }  = useAuth();
   const { plan, isActive } = useSubscription();
   const { messagesUsed, dailyLimit, messagesRemaining, usagePercent } = useAIUsage();
   const { aiContext, suggestions, pageLabel } = useAIContext();
@@ -230,7 +286,7 @@ export default function AIAssistant() {
           </div>
           <ChatPanel aiContext={aiContext} suggestions={suggestions} pageLabel={pageLabel} shopName={shopName}/>
         </div>
-        <SettingsPanel messagesUsed={messagesUsed} dailyLimit={dailyLimit} messagesRemaining={messagesRemaining} usagePercent={usagePercent}/>
+        <SettingsPanel messagesUsed={messagesUsed} dailyLimit={dailyLimit} messagesRemaining={messagesRemaining} usagePercent={usagePercent} sellerId={user?.uid}/>
       </div>
       <style>{`@media(max-width:768px){.ai-layout{grid-template-columns:1fr!important}}`}</style>
     </div>
