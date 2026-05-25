@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useSellerAuth } from "../hooks/useSellerAuth";
 import { saveApplicationStep } from "../services/storeService";
+import "./StoreOnboarding.css";
 
 const CAT_PATHS = {
   fashion:     "M9 3L3 7l3 2v12h12V9l3-2-6-4c0 1.66-1.34 3-3 3S9 4.66 9 3z",
@@ -22,23 +23,23 @@ const CAT_PATHS = {
 };
 
 const TYPES = [
-  { id:"fashion",     label:"Fashion & Clothing",   desc:"Clothes, outfits, accessories"    },
-  { id:"sneakers",    label:"Sneakers & Footwear",   desc:"Shoes, boots, sandals"            },
-  { id:"jewelry",     label:"Jewelry & Accessories", desc:"Rings, necklaces, bracelets"      },
-  { id:"cosmetics",   label:"Perfumes & Cosmetics",  desc:"Makeup, fragrance, skincare"      },
-  { id:"hair",        label:"Hair & Beauty",          desc:"Wigs, extensions, salons"         },
-  { id:"food",        label:"Food & Bakery",          desc:"Meals, snacks, pastries, drinks"  },
-  { id:"electronics", label:"Phones & Electronics",  desc:"Gadgets, accessories, tech"       },
-  { id:"home",        label:"Home & Living",          desc:"Furniture, decor, kitchenware"    },
-  { id:"arts",        label:"Creative Arts",          desc:"Paintings, crafts, photography"   },
-  { id:"digital",     label:"Digital Products",       desc:"Templates, ebooks, courses"       },
-  { id:"services",    label:"Services",               desc:"Repairs, cleaning, consulting"    },
-  { id:"health",      label:"Health & Fitness",       desc:"Supplements, equipment, wellness" },
-  { id:"handmade",    label:"Handmade Goods",         desc:"Kente, weaving, artisan crafts"   },
-  { id:"other",       label:"Other",                   desc:"Anything else you sell"           },
+  { id:"fashion",     label:"Fashion & Clothing",   desc:"Clothes, outfits, accessories",    color:"#F97316" },
+  { id:"sneakers",    label:"Sneakers & Footwear",   desc:"Shoes, boots, sandals",            color:"#EF4444" },
+  { id:"jewelry",     label:"Jewelry & Accessories", desc:"Rings, necklaces, bracelets",      color:"#EC4899" },
+  { id:"cosmetics",   label:"Perfumes & Cosmetics",  desc:"Makeup, fragrance, skincare",      color:"#A855F7" },
+  { id:"hair",        label:"Hair & Beauty",          desc:"Wigs, extensions, salons",         color:"#8B5CF6" },
+  { id:"food",        label:"Food & Bakery",          desc:"Meals, snacks, pastries, drinks",  color:"#F59E0B" },
+  { id:"electronics", label:"Phones & Electronics",  desc:"Gadgets, accessories, tech",       color:"#046EF2" },
+  { id:"home",        label:"Home & Living",          desc:"Furniture, decor, kitchenware",    color:"#14B8A6" },
+  { id:"arts",        label:"Creative Arts",          desc:"Paintings, crafts, photography",   color:"#F43F5E" },
+  { id:"digital",     label:"Digital Products",       desc:"Templates, ebooks, courses",       color:"#6366F1" },
+  { id:"services",    label:"Services",               desc:"Repairs, cleaning, consulting",    color:"#0EA5E9" },
+  { id:"health",      label:"Health & Fitness",       desc:"Supplements, equipment, wellness", color:"#22C55E" },
+  { id:"handmade",    label:"Handmade Goods",         desc:"Kente, weaving, artisan crafts",   color:"#D97706" },
+  { id:"other",       label:"Other",                   desc:"Anything else you sell",           color:"#6B7280" },
 ];
 
-function CatSvg({ id, size=22, color="#9CA3AF" }) {
+function CatSvg({ id, size=20, color="#9CA3AF" }) {
   const d = CAT_PATHS[id] || CAT_PATHS.other;
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
@@ -53,99 +54,88 @@ export default function StoreOnboarding() {
   const { user } = useAuth();
   const { shop, isSeller } = useSellerAuth();
   const [selected, setSelected] = useState(null);
-  const [saving, setSaving] = useState(false);
+  const [saving,   setSaving]   = useState(false);
 
-  // Block if already has store
   const appliedUid = typeof window !== "undefined" ? localStorage.getItem("beme_seller_applied") : null;
   const hasStore = !!(shop?.id || isSeller || (appliedUid && user && appliedUid === user?.uid));
-  if (user && hasStore) {
-    navigate("/get-a-store", { replace: true });
-    return null;
-  }
+  if (user && hasStore) { navigate("/get-a-store", { replace: true }); return null; }
 
   const handleContinue = async () => {
-    if (!selected) { alert("Please choose a category."); return; }
+    if (!selected) return;
     if (!user) { navigate("/login?redirect=/store-onboarding"); return; }
     setSaving(true);
     try {
       await saveApplicationStep(user.uid, 1, { businessType: selected });
       navigate("/store-survey");
-    } catch {
-      alert("Failed to save. Please try again.");
-    } finally {
-      setSaving(false);
-    }
+    } catch { alert("Failed to save. Please try again."); }
+    finally { setSaving(false); }
   };
 
-  return (
-    <div style={{ minHeight:"100vh", background:"var(--bg,#F7F8FA)", fontFamily:"var(--font-main,'Nunito',sans-serif)" }}>
+  const selectedType = TYPES.find(t => t.id === selected);
 
-      {/* Sticky top bar */}
-      <div style={{ background:"var(--card,#fff)", borderBottom:"1px solid rgba(0,0,0,0.07)",
-        padding:"14px 20px", display:"flex", alignItems:"center", gap:16,
-        position:"sticky", top:0, zIndex:50 }}>
-        <button type="button" onClick={() => navigate("/get-a-store")}
-          style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text,#333)",
-            fontSize:13, fontWeight:700, display:"flex", alignItems:"center", gap:5,
-            padding:0, fontFamily:"inherit", flexShrink:0 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
+  return (
+    <div className="so-wrap">
+
+      {/* ── Sticky header with top-right Continue ── */}
+      <div className="so-header">
+        <button className="so-back" onClick={() => navigate("/get-a-store")}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
           Back
         </button>
-        <div style={{ flex:1, height:4, background:"rgba(0,0,0,0.08)", borderRadius:2, overflow:"hidden" }}>
-          <div style={{ height:"100%", width:"25%", background:"#046EF2", borderRadius:2 }}/>
+
+        <div className="so-progress">
+          <div className="so-progress-fill" style={{ width:"25%" }}/>
         </div>
-        <span style={{ fontSize:12, fontWeight:700, color:"var(--muted,#9CA3AF)", flexShrink:0 }}>Step 1 of 4</span>
+
+        <span className="so-step-lbl">Step 1 of 4</span>
+
+        {/* ── Continue button TOP RIGHT ── */}
+        <button className="so-continue-top" onClick={handleContinue}
+          disabled={!selected || saving}>
+          {saving ? "Saving…" : "Continue →"}
+        </button>
       </div>
 
-      {/* Blue hero */}
-      <div style={{ background:"#046EF2", padding:"32px 20px 28px" }}>
-        <div style={{ maxWidth:560, margin:"0 auto" }}>
-          <h1 style={{ fontSize:28, fontWeight:900, color:"#fff", margin:"0 0 8px", letterSpacing:"-0.03em", lineHeight:1.1 }}>
-            What do you sell?
-          </h1>
-          <p style={{ fontSize:14, color:"rgba(255,255,255,0.8)", margin:0, lineHeight:1.5 }}>
+      {/* ── Gradient hero ── */}
+      <div className="so-hero">
+        <div className="so-orb so-orb-1"/>
+        <div className="so-orb so-orb-2"/>
+        <div className="so-hero-content">
+          <h1 className="so-hero-title">What do you sell?</h1>
+          <p className="so-hero-sub">
             Choose the category that best describes your business.
             You can sell across multiple categories after setup.
           </p>
         </div>
       </div>
 
-      {/* Category list */}
-      <div style={{ maxWidth:560, margin:"0 auto", padding:"20px 16px 120px" }}>
-        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+      {/* ── Category list ── */}
+      <div className="so-body">
+        <div className="so-list">
           {TYPES.map(bt => {
             const sel = selected === bt.id;
             return (
-              <button key={bt.id} type="button" onClick={() => setSelected(bt.id)}
-                style={{
-                  display:"flex", alignItems:"center", gap:14, padding:"14px 16px",
-                  borderRadius:14, border:`1.5px solid ${sel ? "#046EF2" : "rgba(0,0,0,0.08)"}`,
-                  background: sel ? "rgba(4,110,242,0.05)" : "var(--card,#fff)",
-                  cursor:"pointer", textAlign:"left", transition:"all 0.15s",
-                  boxShadow: sel ? "0 0 0 1px #046EF2" : "none",
+              <button key={bt.id} type="button"
+                className={`so-item ${sel ? "so-item--sel" : ""}`}
+                onClick={() => setSelected(bt.id)}>
+
+                <div className="so-item-icon" style={{
+                  background: sel ? `${bt.color}18` : "rgba(0,0,0,0.04)",
                 }}>
-                <div style={{ width:44, height:44, borderRadius:12, flexShrink:0,
-                  display:"flex", alignItems:"center", justifyContent:"center",
-                  background: sel ? "rgba(4,110,242,0.12)" : "rgba(0,0,0,0.05)",
-                  transition:"background 0.15s" }}>
-                  <CatSvg id={bt.id} size={22} color={sel ? "#046EF2" : "#9CA3AF"} />
+                  <CatSvg id={bt.id} size={20} color={sel ? bt.color : "#9CA3AF"}/>
                 </div>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:15, fontWeight:800, color: sel ? "#046EF2" : "var(--text,#111)",
-                    letterSpacing:"-0.01em", marginBottom:2 }}>
+
+                <div className="so-item-text">
+                  <div className="so-item-label" style={{ color: sel ? bt.color : "#111" }}>
                     {bt.label}
                   </div>
-                  <div style={{ fontSize:12, color:"var(--muted,#9CA3AF)", fontWeight:500,
-                    whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
-                    {bt.desc}
-                  </div>
+                  <div className="so-item-desc">{bt.desc}</div>
                 </div>
+
                 {sel && (
-                  <div style={{ width:22, height:22, borderRadius:"50%", background:"#046EF2",
-                    flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
+                  <div className="so-item-check">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                      stroke="#fff" strokeWidth="3.5" strokeLinecap="round">
                       <polyline points="20 6 9 17 4 12"/>
                     </svg>
                   </div>
@@ -154,31 +144,16 @@ export default function StoreOnboarding() {
             );
           })}
         </div>
-      </div>
 
-      {/* Fixed bottom CTA */}
-      <div style={{ position:"fixed", bottom:0, left:0, right:0,
-        background:"var(--card,#fff)", borderTop:"1px solid rgba(0,0,0,0.07)",
-        padding:"14px 20px", boxSizing:"border-box" }}>
-        <button type="button" onClick={handleContinue} disabled={!selected || saving}
-          style={{ width:"100%", height:52, borderRadius:12, border:"none",
-            background: selected ? "#046EF2" : "rgba(0,0,0,0.08)",
-            color: selected ? "#fff" : "var(--muted,#9CA3AF)",
-            fontSize:15, fontWeight:800, cursor: selected ? "pointer" : "not-allowed",
-            fontFamily:"inherit", transition:"all 0.2s",
-            boxShadow: selected ? "0 4px 14px rgba(4,110,242,0.35)" : "none",
-            display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
-          {saving ? "Saving…" : "Continue"}
-          {!saving && selected && (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          )}
-        </button>
+        {/* Bottom hint */}
         {selected && (
-          <p style={{ textAlign:"center", fontSize:12, color:"var(--muted,#9CA3AF)", margin:"8px 0 0", fontWeight:500 }}>
-            Selected: <strong style={{ color:"#046EF2" }}>{TYPES.find(b=>b.id===selected)?.label}</strong>
-          </p>
+          <div className="so-hint">
+            Selected: <strong style={{ color:"#046EF2" }}>{selectedType?.label}</strong>
+            {" · "}
+            <button className="so-hint-btn" onClick={handleContinue} disabled={saving}>
+              {saving ? "Saving…" : "Continue →"}
+            </button>
+          </div>
         )}
       </div>
     </div>

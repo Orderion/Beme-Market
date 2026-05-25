@@ -1,202 +1,254 @@
-/* ============================================================
-   StoreOnboarding.css — scoped to .so-root
-============================================================ */
+/* ── StoreOnboarding — Gradient + Minimal ── */
 
-.so-root {
+.so-wrap {
   min-height: 100vh;
-  background: #F8F9FF;
-  font-family: var(--font-main, "Nunito", system-ui, sans-serif);
+  background: #f5f7fa;
+  font-family: var(--font-main,"Nunito",system-ui,sans-serif);
 }
 
 /* ── Header ── */
 .so-header {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  gap: 16px;
-  padding: 14px 24px;
-  background: #fff;
-  border-bottom: 1px solid rgba(0,0,0,0.07);
   position: sticky;
   top: 0;
-  z-index: 20;
-  box-shadow: none !important;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0,0,0,0.07);
 }
 
 .so-back {
-  background: none !important;
-  border: none !important;
-  box-shadow: none !important;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
-  color: #8B8FA8;
-  padding: 6px 10px;
-  border-radius: 6px !important;
-  white-space: nowrap;
+  color: #9ca3af;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-family: inherit;
   flex-shrink: 0;
-  transform: none !important;
-  font-family: var(--font-main, "Nunito", system-ui, sans-serif);
-  transition: color 0.12s;
+  transition: color 0.15s, background 0.15s;
+  white-space: nowrap;
 }
-.so-back:hover {
-  color: #1A1D3B;
-  background: rgba(0,0,0,0.05) !important;
-  box-shadow: none !important;
-  transform: none !important;
-}
+.so-back:hover { color: #111; background: rgba(0,0,0,0.05); }
 
-.so-progress-bar {
+.so-progress {
   flex: 1;
-  height: 6px;
+  height: 5px;
   background: rgba(0,0,0,0.08);
   border-radius: 100px;
   overflow: hidden;
 }
 .so-progress-fill {
   height: 100%;
-  background: #046EF2;
+  background: linear-gradient(90deg, #046EF2, #7C3AED);
   border-radius: 100px;
   transition: width 0.4s ease;
 }
-.so-step-label {
+
+.so-step-lbl {
   font-size: 12px;
   font-weight: 700;
-  color: #8B8FA8;
+  color: #9ca3af;
   flex-shrink: 0;
 }
 
-/* ── Content ── */
-.so-content {
-  max-width: 860px;
+/* ── Top-right Continue button ── */
+.so-continue-top {
+  padding: 9px 18px;
+  background: #046EF2;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.15s, transform 0.15s;
+  box-shadow: 0 4px 14px rgba(4,110,242,0.35);
+}
+.so-continue-top:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+.so-continue-top:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+
+/* ── Gradient hero ── */
+.so-hero {
+  position: relative;
+  overflow: hidden;
+  background: #0a0a1a;
+  padding: 48px 24px 40px;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+}
+
+/* Animated orbs — holo gradient like the reference image */
+.so-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(72px);
+  pointer-events: none;
+}
+.so-orb-1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(ellipse at center, #046EF2 0%, #6366F1 45%, #7C3AED 75%, transparent 100%);
+  top: -120px;
+  left: -80px;
+  opacity: 0.75;
+  animation: orb-drift1 10s ease-in-out infinite;
+}
+.so-orb-2 {
+  width: 340px;
+  height: 340px;
+  background: radial-gradient(ellipse at center, #7C3AED 0%, #6366F1 50%, transparent 100%);
+  bottom: -100px;
+  right: 0;
+  opacity: 0.5;
+  animation: orb-drift2 13s ease-in-out infinite;
+}
+
+@keyframes orb-drift1 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%     { transform: translate(40px,-25px) scale(1.06); }
+  66%     { transform: translate(-20px,15px) scale(0.96); }
+}
+@keyframes orb-drift2 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  50%     { transform: translate(-30px,-20px) scale(1.08); }
+}
+
+.so-hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 540px;
   margin: 0 auto;
-  padding: 36px 20px 80px;
+  width: 100%;
 }
-
-.so-intro { margin-bottom: 28px; }
-
-.so-title {
-  font-family: var(--font-display, "Nunito", system-ui, sans-serif);
-  font-size: clamp(24px, 4vw, 32px);
+.so-hero-title {
+  font-size: clamp(26px,4vw,36px);
   font-weight: 900;
-  color: #111;
+  color: #fff;
   letter-spacing: -0.03em;
-  margin-bottom: 6px;
+  margin: 0 0 10px;
+  line-height: 1.1;
 }
-.so-sub {
+.so-hero-sub {
   font-size: 15px;
-  color: #6B7280;
+  color: rgba(255,255,255,0.72);
+  margin: 0;
+  line-height: 1.6;
   font-weight: 500;
 }
 
-/* ── Business type grid ── */
-.so-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-  margin-bottom: 32px;
+/* ── Body ── */
+.so-body {
+  max-width: 540px;
+  margin: 0 auto;
+  padding: 20px 16px 60px;
 }
 
-.so-card {
+.so-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 20px 14px;
-  border: 1.5px solid rgba(0,0,0,0.08);
-  border-radius: 14px;
-  background: #fff;
-  cursor: pointer;
-  position: relative;
-  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
-  box-shadow: none !important;
-  font-family: var(--font-main, "Nunito", system-ui, sans-serif);
-}
-.so-card:hover {
-  border-color: rgba(4,110,242,0.35);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.08) !important;
-}
-.so-card-selected {
-  border-color: #046EF2;
-  box-shadow: 0 0 0 3px rgba(4,110,242,0.12) !important;
+  gap: 8px;
 }
 
-.so-card-icon-wrap {
-  width: 48px;
-  height: 48px;
+/* ── Category item ── */
+.so-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(0,0,0,0.07);
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+  width: 100%;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.so-item:hover {
+  border-color: rgba(4,110,242,0.3);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  transform: translateY(-1px);
+}
+.so-item--sel {
+  border-color: #046EF2;
+  box-shadow: 0 0 0 3px rgba(4,110,242,0.12), 0 4px 16px rgba(0,0,0,0.06);
+}
+
+.so-item-icon {
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
-  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+  transition: background 0.15s;
 }
-
-.so-card-label {
-  font-size: 13px;
+.so-item-text { flex: 1; min-width: 0; }
+.so-item-label {
+  font-size: 14px;
   font-weight: 800;
-  color: #111;
-  margin-bottom: 4px;
-  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin-bottom: 2px;
+  transition: color 0.15s;
 }
-.so-card-desc {
-  font-size: 11px;
-  color: #9CA3AF;
+.so-item-desc {
+  font-size: 12px;
+  color: #9ca3af;
   font-weight: 500;
-  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-/* Checkmark badge on selected card */
-.so-card-check {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 18px;
-  height: 18px;
+.so-item-check {
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  background: #046EF2;
+  background: linear-gradient(135deg, #046EF2, #7C3AED);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
-/* ── Footer ── */
-.so-footer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.so-continue-btn {
-  padding: 14px 48px !important;
-  background: #046EF2 !important;
-  color: #fff !important;
-  border: none !important;
-  border-radius: 10px !important;
-  font-size: 15px !important;
-  font-weight: 800 !important;
-  cursor: pointer;
-  font-family: var(--font-main, "Nunito", system-ui, sans-serif) !important;
-  box-shadow: 0 4px 14px rgba(4,110,242,0.28) !important;
-  transform: none !important;
-  transition: background 0.15s, transform 0.1s, box-shadow 0.15s !important;
-}
-.so-continue-btn:hover:not(:disabled) {
-  background: #0357C7 !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 6px 20px rgba(4,110,242,0.38) !important;
-}
-.so-continue-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  transform: none !important;
-  box-shadow: none !important;
-}
-
-.so-selected-label {
+/* ── Bottom hint ── */
+.so-hint {
+  margin-top: 20px;
+  padding: 14px 18px;
+  background: rgba(4,110,242,0.05);
+  border: 1px solid rgba(4,110,242,0.15);
+  border-radius: 12px;
   font-size: 13px;
-  font-weight: 600;
+  color: #6b7280;
+  font-weight: 500;
+  text-align: center;
+}
+.so-hint-btn {
+  background: none;
+  border: none;
   color: #046EF2;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.so-hint-btn:hover { text-decoration: underline; }
+.so-hint-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (max-width: 480px) {
+  .so-step-lbl { display: none; }
 }
