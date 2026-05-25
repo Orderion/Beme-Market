@@ -205,6 +205,7 @@ function SellerInfoPanel({ shopId, sellerId }) {
   const [followerCount, setFollowerCount] = useState(0);
   const [currentUser,   setCurrentUser]   = useState(null);
   const [moreProducts,  setMoreProducts]  = useState([]);
+  const [showChat,      setShowChat]      = useState(false);
 
   useEffect(() => {
     const auth = getAuth();
