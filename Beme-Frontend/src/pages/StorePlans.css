@@ -409,3 +409,72 @@
   color: #9ca3af;
   font-weight: 500;
 }
+
+/* ── Billing toggle ── */
+.sp-billing-wrap {
+  text-align: center;
+  padding: 24px 20px 4px;
+}
+
+.sp-billing-toggle {
+  display: inline-flex;
+  background: #f1f3f5;
+  border-radius: 14px;
+  padding: 4px;
+  gap: 2px;
+}
+
+.sp-billing-btn {
+  padding: 10px 24px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.22s cubic-bezier(0.22,1,0.36,1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.sp-billing-btn--active {
+  background: #fff;
+  color: #111;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.10);
+}
+
+.sp-billing-save {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #046EF2, #7C3AED);
+  color: #fff;
+  letter-spacing: 0.02em;
+  animation: badge-pop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes badge-pop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.sp-billing-note {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #046EF2;
+  font-weight: 600;
+  animation: cd-fade 0.2s ease;
+}
+
+.sp-price-yearly {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 500;
+  margin-bottom: 4px;
+  min-height: 18px;
+}

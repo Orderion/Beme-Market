@@ -5,12 +5,17 @@ import { useSellerAuth } from "../hooks/useSellerAuth";
 import { initSubscriptionPayment, redirectToPaystack } from "../services/subscriptionService";
 import "./StorePlans.css";
 
+// Monthly prices
+const MONTHLY = { basic:0, starter:59, growth:129, pro:399 };
+// Yearly = monthly * 12 * 0.83 (17% off), rounded
+const YEARLY  = { basic:0, starter:588, growth:1284, pro:3972 };
+// Per-month equivalent when billed yearly
+const YEARLY_PM = { basic:0, starter:49, growth:107, pro:331 };
+
 const PLANS = [
   {
     id: "basic",
     name: "Basic",
-    price: 0,
-    period: "",
     tagline: "Get started for free",
     limit: "5 products",
     color: "#6B7280",
@@ -29,8 +34,6 @@ const PLANS = [
   {
     id: "starter",
     name: "Starter",
-    price: 59,
-    period: "/mo",
     tagline: "For growing sellers",
     limit: "10 products",
     color: "#046EF2",
@@ -50,8 +53,6 @@ const PLANS = [
   {
     id: "growth",
     name: "Growth",
-    price: 129,
-    period: "/mo",
     tagline: "For serious sellers",
     limit: "25 products",
     color: "#6366F1",
@@ -72,22 +73,20 @@ const PLANS = [
   {
     id: "pro",
     name: "Pro",
-    price: 399,
-    period: "/mo",
     tagline: "For power sellers",
     limit: "500 products",
     color: "#7C3AED",
     features: [
-      { label:"500 product listings",           on:true  },
-      { label:"Everything in Growth",           on:true  },
-      { label:"Beme Delivery (discounted rate)", on:true  },
-      { label:"Custom domain",                  on:true  },
-      { label:"AI product descriptions",        on:true  },
-      { label:"20 featured boosts/month",       on:true  },
-      { label:"Pro verified badge",             on:true  },
-      { label:"Unlimited AI auto-replies",      on:true  },
-      { label:"Priority support (24h response)",on:true  },
-      { label:"Early access to new features",   on:true  },
+      { label:"500 product listings",            on:true },
+      { label:"Everything in Growth",             on:true },
+      { label:"Beme Delivery (discounted rate)",  on:true },
+      { label:"Custom domain",                    on:true },
+      { label:"AI product descriptions",          on:true },
+      { label:"20 featured boosts/month",         on:true },
+      { label:"Pro verified badge",               on:true },
+      { label:"Unlimited AI auto-replies",        on:true },
+      { label:"Priority support (24h response)",  on:true },
+      { label:"Early access to new features",     on:true },
     ],
   },
 ];
@@ -113,7 +112,12 @@ export default function StorePlans() {
   const { shop, appData, subscriptionPlan } = useSellerAuth();
 
   const currentPlanId = String(appData?.planId || subscriptionPlan || shop?.planId || "basic").toLowerCase();
+  const [billing,    setBilling]    = useState("monthly"); // "monthly" | "yearly"
   const [initiating, setInitiating] = useState(null);
+  const isYearly = billing === "yearly";
+
+  const getPrice = (id) => isYearly ? YEARLY[id] : MONTHLY[id];
+  const getPerMonth = (id) => isYearly ? YEARLY_PM[id] : MONTHLY[id];
   const [err,        setErr]        = useState("");
 
   const handleSelect = async (plan) => {
@@ -125,6 +129,8 @@ export default function StorePlans() {
       const res = await initSubscriptionPayment({
         planId: plan.id, uid: user.uid,
         email: user.email, shopId: shop?.id || user.uid,
+        billing,
+        amount: getPrice(plan.id),
       });
       if (res?.isFree)                 navigate("/subscription-success?plan=" + plan.id);
       else if (res?.authorization_url) redirectToPaystack(res.authorization_url);
@@ -153,6 +159,28 @@ export default function StorePlans() {
       </div>
 
       {err && <div className="sp-err">{err}</div>}
+
+      {/* ── Billing toggle ── */}
+      <div className="sp-billing-wrap">
+        <div className="sp-billing-toggle">
+          <button
+            className={`sp-billing-btn ${!isYearly ? "sp-billing-btn--active" : ""}`}
+            onClick={() => setBilling("monthly")}>
+            Monthly
+          </button>
+          <button
+            className={`sp-billing-btn ${isYearly ? "sp-billing-btn--active" : ""}`}
+            onClick={() => setBilling("yearly")}>
+            Yearly
+            <span className="sp-billing-save">Save 17%</span>
+          </button>
+        </div>
+        {isYearly && (
+          <p className="sp-billing-note">
+            Billed annually · Pay once, save all year
+          </p>
+        )}
+      </div>
 
       {/* ── Plan cards ── */}
       <div className="sp-grid">
@@ -183,15 +211,23 @@ export default function StorePlans() {
               </div>
 
               <div className="sp-plan-price">
-                {plan.price === 0
+                {getPrice(plan.id) === 0
                   ? <span className="sp-price-amount">Free</span>
                   : <>
                       <span className="sp-price-currency">GHS</span>
-                      <span className="sp-price-amount">{plan.price}</span>
-                      <span className="sp-price-period">{plan.period}</span>
+                      <span className="sp-price-amount">{getPerMonth(plan.id)}</span>
+                      <span className="sp-price-period">/mo</span>
                     </>
                 }
               </div>
+              {isYearly && getPrice(plan.id) > 0 && (
+                <div className="sp-price-yearly">
+                  GHS {getPrice(plan.id).toLocaleString()} billed yearly
+                </div>
+              )}
+              {!isYearly && getPrice(plan.id) > 0 && (
+                <div className="sp-price-yearly" style={{ color:"transparent" }}>·</div>
+              )}
 
               <div className="sp-plan-limit">{plan.limit}</div>
 
