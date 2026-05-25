@@ -80,7 +80,7 @@ function getItemAbroadDeliveryFee(product) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
-function CartIcon() {
+function BagIcon() {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -90,21 +90,9 @@ function CartIcon() {
       focusable="false"
       fill="none"
     >
-      <path
-        d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path
-        d="M16 10a4 4 0 01-8 0"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M16 10a4 4 0 01-8 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -151,24 +139,13 @@ export default function TrendingCard({ product }) {
 
   const priceRaw = product?.price;
   const oldPriceRaw = product?.oldPrice;
-  const price =
-    priceRaw !== undefined && priceRaw !== null && priceRaw !== ""
-      ? Number(priceRaw)
-      : null;
-  const oldPrice =
-    oldPriceRaw !== undefined && oldPriceRaw !== null && oldPriceRaw !== ""
-      ? Number(oldPriceRaw)
-      : null;
+  const price = priceRaw !== undefined && priceRaw !== null && priceRaw !== "" ? Number(priceRaw) : null;
+  const oldPrice = oldPriceRaw !== undefined && oldPriceRaw !== null && oldPriceRaw !== "" ? Number(oldPriceRaw) : null;
 
   const customizations = useMemo(() => normalizeCustomizations(product?.customizations), [product]);
 
   const hasDiscount = price !== null && oldPrice !== null && oldPrice > price;
   const discountPct = hasDiscount ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
-
-  const formatMoney = (n) => {
-    if (n === null || Number.isNaN(n)) return "";
-    return `GHS ${n.toFixed(2)}`;
-  };
 
   const showCardPopupMsg = (message) => {
     setCardPopup(message);
@@ -181,7 +158,7 @@ export default function TrendingCard({ product }) {
     e.stopPropagation();
 
     if (!inStock) {
-      showCardPopupMsg("Sorry, this item is currently out of stock.");
+      showCardPopupMsg("Out of stock");
       return;
     }
 
@@ -214,7 +191,7 @@ export default function TrendingCard({ product }) {
       setCardPopup("");
     } catch (error) {
       console.error("TrendingCard addToCart error:", error);
-      showCardPopupMsg("Unable to add this item to cart right now.");
+      showCardPopupMsg("Unable to add item to cart.");
     }
   };
 
@@ -273,20 +250,25 @@ export default function TrendingCard({ product }) {
                   <img className="tc-img" src={activeImage} alt={name} loading="lazy" />
                 </div>
 
-                {/* Status badges — top left */}
+                {/* Overlay badges — top-left stack */}
                 <div className="tc-badges">
-                  {isRestocked && (
+                  {!inStock && (
+                    <span className="tc-badge tc-badge--soldout">Sold out</span>
+                  )}
+                  {isRestocked && inStock && (
                     <span className="tc-badge tc-badge--restocked">Restocked</span>
                   )}
-                  {!inStock && (
-                    <span className="tc-badge tc-badge--soldout">Sold Out</span>
-                  )}
                   {hasDiscount && inStock && (
-                    <span className="tc-badge tc-badge--discount">{discountPct}% Off</span>
+                    <span className="tc-badge tc-badge--sale">Sale</span>
                   )}
                 </div>
 
-                {/* Cart button — bottom right */}
+                {/* Discount % pill — top-right */}
+                {hasDiscount && inStock && (
+                  <span className="tc-discount-pill">−{discountPct}%</span>
+                )}
+
+                {/* Add to cart — bottom-right */}
                 <button
                   className={`tc-cart-btn ${!inStock ? "tc-cart-btn--disabled" : ""}`}
                   onClick={handleAddToCart}
@@ -294,10 +276,10 @@ export default function TrendingCard({ product }) {
                   type="button"
                   disabled={!inStock}
                 >
-                  <CartIcon />
+                  <BagIcon />
                 </button>
 
-                {/* Image nav arrows */}
+                {/* Image nav */}
                 {imageCount > 1 && (
                   <>
                     <button className="tc-nav tc-nav--prev" type="button" aria-label="Previous image" onClick={goPrevImage}>‹</button>
@@ -318,18 +300,12 @@ export default function TrendingCard({ product }) {
             )}
           </div>
 
-          {/* Card body */}
+          {/* Card body — name only, no price */}
           <div className="tc-body">
             {cardPopup && (
               <div className="tc-popup" role="alert">{cardPopup}</div>
             )}
             <h3 className="tc-name">{name}</h3>
-            {price !== null && (
-              <div className="tc-price-row">
-                {hasDiscount && <span className="tc-old">{formatMoney(oldPrice)}</span>}
-                <span className="tc-price">{formatMoney(price)}</span>
-              </div>
-            )}
           </div>
 
         </div>
@@ -349,15 +325,12 @@ export default function TrendingCard({ product }) {
               <div className="cart-popup__info">
                 <span className="cart-popup__label">Added to cart</span>
                 <p className="cart-popup__name">{cartPopupItem.name}</p>
-                {cartPopupItem.price !== null && (
-                  <p className="cart-popup__price">{formatMoney(cartPopupItem.price)}</p>
-                )}
               </div>
             </div>
             <div className="cart-popup__divider" />
-            <p className="cart-popup__thanks">Thanks for shopping with us! Ready to checkout or keep browsing?</p>
+            <p className="cart-popup__thanks">Ready to checkout or keep browsing?</p>
             <div className="cart-popup__actions">
-              <button className="cart-popup__btn cart-popup__btn--ghost" onClick={() => setShowCartPopup(false)}>Continue Shopping</button>
+              <button className="cart-popup__btn cart-popup__btn--ghost" onClick={() => setShowCartPopup(false)}>Continue</button>
               <button className="cart-popup__btn cart-popup__btn--primary" onClick={() => { setShowCartPopup(false); navigate("/cart"); }}>Checkout</button>
             </div>
           </div>,
