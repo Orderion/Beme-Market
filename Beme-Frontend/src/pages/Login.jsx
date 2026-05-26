@@ -86,22 +86,164 @@ function LoginIllustration() {
   return (
     <svg viewBox="0 0 460 500" fill="none" xmlns="http://www.w3.org/2000/svg"
          className="auth-visual-svg" aria-hidden="true">
-      <circle cx="230" cy="250" r="200" fill="#046EF2" opacity="0.04"/>
-      <circle cx="230" cy="250" r="140" fill="#046EF2" opacity="0.04"/>
-      <circle cx="70"  cy="90"  r="35"  fill="#046EF2" opacity="0.08"/>
-      <circle cx="390" cy="110" r="22"  fill="#046EF2" opacity="0.1"/>
-      <circle cx="400" cy="400" r="50"  fill="#046EF2" opacity="0.06"/>
-      <circle cx="60"  cy="390" r="30"  fill="#046EF2" opacity="0.06"/>
-      <ellipse cx="230" cy="358" rx="135" ry="8" fill="#E2E8F0" opacity="0.7"/>
-      <rect x="185" y="350" width="90" height="8" rx="3" fill="#CBD5E1"/>
-      <rect x="90" y="128" width="280" height="222" rx="14" fill="#1E293B"/>
-      <rect x="96" y="134" width="268" height="208" rx="10" fill="white"/>
-      <rect x="96" y="134" width="268" height="32" rx="10" fill="#F8FAFF"/>
-      <rect x="96" y="150" width="268" height="16" fill="#F8FAFF"/>
-      <circle cx="116" cy="150" r="5" fill="#FF5F57"/>
-      <circle cx="130" cy="150" r="5" fill="#FEBC2E"/>
-      <circle cx="144" cy="150" r="5" fill="#28C840"/>
-      <rect x="134" y="296" width="192" height="20" rx="6" fill="#046EF2"/>
+      <defs>
+        <radialGradient id="lg-orb1" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stopColor="#046EF2" stopOpacity="0.18"/>
+          <stop offset="100%" stopColor="#046EF2" stopOpacity="0"/>
+        </radialGradient>
+        <radialGradient id="lg-orb2" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stopColor="#7C3AED" stopOpacity="0.14"/>
+          <stop offset="100%" stopColor="#7C3AED" stopOpacity="0"/>
+        </radialGradient>
+        <filter id="lg-glow">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <linearGradient id="lg-btn" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stopColor="#046EF2"/>
+          <stop offset="100%" stopColor="#6366F1"/>
+        </linearGradient>
+        <linearGradient id="lg-card" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"   stopColor="#ffffff"/>
+          <stop offset="100%" stopColor="#f8faff"/>
+        </linearGradient>
+      </defs>
+
+      <style>{`
+        @keyframes lg-float    { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-10px)} }
+        @keyframes lg-float2   { 0%,100%{transform:translateY(-4px)} 50%{transform:translateY(6px)}  }
+        @keyframes lg-float3   { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-7px)}  }
+        @keyframes lg-pulse    { 0%,100%{opacity:0.12;r:200px}  50%{opacity:0.22;r:215px} }
+        @keyframes lg-pulse2   { 0%,100%{opacity:0.08;r:140px}  50%{opacity:0.16;r:155px} }
+        @keyframes lg-spin     { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        @keyframes lg-twinkle  { 0%,100%{opacity:0.2;transform:scale(0.8)} 50%{opacity:1;transform:scale(1.2)} }
+        @keyframes lg-twinkle2 { 0%,100%{opacity:0.6;transform:scale(1)}   50%{opacity:0.1;transform:scale(0.6)} }
+        @keyframes lg-bar      { 0%{width:0} 100%{width:124px} }
+        @keyframes lg-glow-pulse { 0%,100%{opacity:0.5} 50%{opacity:1} }
+        @keyframes lg-badge    { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+        @keyframes lg-shimmer  {
+          0%{background-position:-200% 0}
+          100%{background-position:200% 0}
+        }
+        .lg-browser    { animation: lg-float 5s ease-in-out infinite; transform-origin: 230px 250px; }
+        .lg-card1      { animation: lg-float2 4s ease-in-out infinite; transform-origin: 58px 258px; }
+        .lg-card2      { animation: lg-float3 6s ease-in-out infinite; transform-origin: 404px 244px; }
+        .lg-orb-big    { animation: lg-pulse 7s ease-in-out infinite; }
+        .lg-orb-med    { animation: lg-pulse2 5s ease-in-out infinite; }
+        .lg-star1      { animation: lg-twinkle 2.2s ease-in-out infinite; transform-origin: 440px 240px; }
+        .lg-star2      { animation: lg-twinkle2 3s ease-in-out infinite; transform-origin: 48px 158px; }
+        .lg-star3      { animation: lg-twinkle 4s ease-in-out 0.8s infinite; transform-origin: 400px 410px; }
+        .lg-badge      { animation: lg-badge 2.5s ease-in-out infinite; transform-origin: 388px 148px; }
+        .lg-glow       { animation: lg-glow-pulse 3s ease-in-out infinite; }
+      `}</style>
+
+      {/* Background orbs */}
+      <circle className="lg-orb-big" cx="230" cy="250" r="200" fill="url(#lg-orb1)"/>
+      <circle className="lg-orb-med" cx="230" cy="250" r="140" fill="url(#lg-orb2)"/>
+      <circle cx="60" cy="390" r="55" fill="#046EF2" opacity="0.05"/>
+      <circle cx="400" cy="110" r="40" fill="#7C3AED" opacity="0.06"/>
+
+      {/* Sparkle stars */}
+      <g className="lg-star1">
+        <path d="M440 240 L442 247 L450 247 L444 252 L446 260 L440 256 L434 260 L436 252 L430 247 L438 247 Z"
+          fill="#046EF2" opacity="0.5"/>
+      </g>
+      <g className="lg-star2">
+        <path d="M48 158 L50 164 L56 164 L51 168 L53 175 L48 172 L43 175 L45 168 L40 164 L46 164 Z"
+          fill="#7C3AED" opacity="0.55"/>
+      </g>
+      <g className="lg-star3">
+        <path d="M400 408 L401 412 L406 412 L402 415 L404 420 L400 418 L396 420 L398 415 L394 412 L399 412 Z"
+          fill="#046EF2" opacity="0.4"/>
+      </g>
+
+      {/* Ground shadow */}
+      <ellipse cx="230" cy="364" rx="128" ry="7" fill="#CBD5E1" opacity="0.5"/>
+
+      {/* ── BROWSER WINDOW (main) ── */}
+      <g className="lg-browser">
+        {/* Shell */}
+        <rect x="90" y="128" width="280" height="226" rx="16" fill="#1a1a2e"/>
+        <rect x="96" y="134" width="268" height="214" rx="12" fill="url(#lg-card)"/>
+        {/* Titlebar */}
+        <rect x="96" y="134" width="268" height="34" rx="12" fill="#F0F4FF"/>
+        <rect x="96" y="152" width="268" height="16" fill="#F0F4FF"/>
+        {/* Traffic lights */}
+        <circle cx="118" cy="151" r="5.5" fill="#FF5F57"/>
+        <circle cx="132" cy="151" r="5.5" fill="#FEBC2E"/>
+        <circle cx="146" cy="151" r="5.5" fill="#28C840"/>
+        {/* URL bar */}
+        <rect x="160" y="142" width="164" height="18" rx="9" fill="white"/>
+        <rect x="168" y="148" width="8"   height="6" rx="2" fill="#046EF2" opacity="0.6"/>
+        <rect x="180" y="149" width="80"  height="4" rx="2" fill="#CBD5E1"/>
+
+        {/* Login form inside browser */}
+        {/* Avatar */}
+        <circle cx="230" cy="200" r="18" fill="#EBF2FF"/>
+        <circle cx="230" cy="197" r="7"  fill="#046EF2" opacity="0.5"/>
+        <ellipse cx="230" cy="212" rx="12" ry="6" fill="#046EF2" opacity="0.25"/>
+
+        {/* "Sign in" label */}
+        <rect x="200" y="224" width="60" height="6" rx="3" fill="#EBF2FF"/>
+        <rect x="210" y="234" width="40" height="4" rx="2" fill="#F0F4FF"/>
+
+        {/* Email input */}
+        <rect x="134" y="244" width="192" height="18" rx="6" fill="#F8FAFF" stroke="#E2E8F0" strokeWidth="1"/>
+        <rect x="140" y="249" width="55"  height="4"  rx="2" fill="#CBD5E1"/>
+
+        {/* Password input — glowing border */}
+        <rect x="134" y="268" width="192" height="18" rx="6" fill="#F8FAFF" stroke="#046EF2" strokeWidth="1.5" className="lg-glow"/>
+        <rect x="140" y="273" width="45"  height="4"  rx="2" fill="#CBD5E1"/>
+        {/* Dots */}
+        <circle cx="260" cy="277" r="2.5" fill="#CBD5E1"/>
+        <circle cx="268" cy="277" r="2.5" fill="#CBD5E1"/>
+        <circle cx="276" cy="277" r="2.5" fill="#CBD5E1"/>
+
+        {/* Sign in button — gradient */}
+        <rect x="134" y="292" width="192" height="22" rx="7" fill="url(#lg-btn)"/>
+        <rect x="180" y="299" width="80"  height="7"  rx="3.5" fill="white" opacity="0.4"/>
+      </g>
+
+      {/* ── SECURITY CARD (left floating) ── */}
+      <g className="lg-card1">
+        <rect x="18" y="218" width="74" height="80" rx="14" fill="white" filter="url(#lg-glow)"
+          style={{filter:"drop-shadow(0 8px 24px rgba(4,110,242,0.18))"}}/>
+        <rect x="18" y="218" width="74" height="5"  rx="2" fill="#046EF2" opacity="0.7"/>
+        {/* Shield icon */}
+        <path d="M55 234 L41 239 L41 251 Q41 261 55 266 Q69 261 69 251 L69 239 Z"
+          fill="#EBF2FF" stroke="#046EF2" strokeWidth="1.5" strokeLinejoin="round"/>
+        <polyline points="47,251 52,257 63,244" stroke="#046EF2" strokeWidth="2"
+          fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+        {/* Labels */}
+        <rect x="27" y="272" width="50" height="6" rx="3" fill="#EBF2FF"/>
+        <rect x="32" y="282" width="38" height="4" rx="2" fill="#F0F4FF"/>
+      </g>
+
+      {/* ── CHECKOUT CARD (right floating) ── */}
+      <g className="lg-card2">
+        <rect x="366" y="190" width="76" height="94" rx="14" fill="white"
+          style={{filter:"drop-shadow(0 8px 24px rgba(4,110,242,0.14))"}}>
+        </rect>
+        <rect x="366" y="190" width="76" height="5" rx="2" fill="#7C3AED" opacity="0.7"/>
+        {/* Cart icon area */}
+        <rect x="374" y="204" width="60" height="34" rx="8" fill="#F5F3FF"/>
+        <circle cx="381" cy="229" r="4" fill="#7C3AED" opacity="0.5"/>
+        <circle cx="393" cy="229" r="4" fill="#7C3AED" opacity="0.5"/>
+        <path d="M376 212 L379 222 L397 222" stroke="#7C3AED" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+        {/* Price */}
+        <rect x="374" y="244" width="34" height="6" rx="3" fill="#EDE9FE"/>
+        <rect x="374" y="254" width="52" height="20" rx="6" fill="#7C3AED"/>
+        <rect x="382" y="260" width="28" height="6"  rx="3" fill="white" opacity="0.55"/>
+      </g>
+
+      {/* ── VERIFIED BADGE (top right) ── */}
+      <g className="lg-badge">
+        <circle cx="388" cy="148" r="28" fill="#EBF2FF"
+          style={{filter:"drop-shadow(0 4px 12px rgba(4,110,242,0.2))"}}/>
+        <circle cx="388" cy="148" r="20" fill="#046EF2"/>
+        <polyline points="379,148 385,154 397,140" stroke="white" strokeWidth="2.5"
+          fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      </g>
     </svg>
   );
 }

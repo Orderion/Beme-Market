@@ -81,16 +81,175 @@ function SignupIllustration() {
   return (
     <svg viewBox="0 0 460 500" fill="none" xmlns="http://www.w3.org/2000/svg"
          className="auth-visual-svg" aria-hidden="true">
-      <circle cx="230" cy="250" r="200" fill="#046EF2" opacity="0.04"/>
-      <circle cx="230" cy="250" r="140" fill="#046EF2" opacity="0.04"/>
-      <circle cx="80"  cy="400" r="40"  fill="#046EF2" opacity="0.07"/>
-      <circle cx="390" cy="100" r="30"  fill="#046EF2" opacity="0.07"/>
-      <rect x="100" y="140" width="260" height="220" rx="20" fill="white"
-            style={{filter:"drop-shadow(0 12px 40px rgba(4,110,242,0.14))"}}>
-      </rect>
-      <rect x="100" y="140" width="260" height="8" rx="4" fill="#046EF2"/>
-      <circle cx="230" cy="188" r="32" fill="#EBF2FF"/>
-      <rect x="120" y="312" width="220" height="22" rx="8" fill="#046EF2"/>
+      <defs>
+        <radialGradient id="sg-orb1" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stopColor="#046EF2" stopOpacity="0.18"/>
+          <stop offset="100%" stopColor="#046EF2" stopOpacity="0"/>
+        </radialGradient>
+        <radialGradient id="sg-orb2" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stopColor="#7C3AED" stopOpacity="0.13"/>
+          <stop offset="100%" stopColor="#7C3AED" stopOpacity="0"/>
+        </radialGradient>
+        <linearGradient id="sg-btn" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stopColor="#046EF2"/>
+          <stop offset="100%" stopColor="#6366F1"/>
+        </linearGradient>
+        <linearGradient id="sg-header" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stopColor="#046EF2"/>
+          <stop offset="50%"  stopColor="#6366F1"/>
+          <stop offset="100%" stopColor="#7C3AED"/>
+        </linearGradient>
+        <filter id="sg-shadow">
+          <feDropShadow dx="0" dy="12" stdDeviation="20" floodColor="#046EF2" floodOpacity="0.15"/>
+        </filter>
+      </defs>
+
+      <style>{`
+        @keyframes sg-float    { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-12px)} }
+        @keyframes sg-float2   { 0%,100%{transform:translateY(-5px)} 50%{transform:translateY(7px)}  }
+        @keyframes sg-float3   { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-8px)}  }
+        @keyframes sg-pulse    { 0%,100%{opacity:0.13;r:200px} 50%{opacity:0.23;r:218px} }
+        @keyframes sg-pulse2   { 0%,100%{opacity:0.08;r:135px} 50%{opacity:0.18;r:150px} }
+        @keyframes sg-twinkle  { 0%,100%{opacity:0.2;transform:scale(0.7)} 50%{opacity:1;transform:scale(1.3)} }
+        @keyframes sg-twinkle2 { 0%,100%{opacity:0.7;transform:scale(1)}   50%{opacity:0.1;transform:scale(0.5)} }
+        @keyframes sg-add-btn  { 0%,100%{transform:scale(1)}   50%{transform:scale(1.12)} }
+        @keyframes sg-check    { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.15);opacity:0.8} }
+        @keyframes sg-bar-grow {
+          0%  { stroke-dashoffset: 200 }
+          60% { stroke-dashoffset: 0   }
+          100%{ stroke-dashoffset: 0   }
+        }
+        @keyframes sg-progress {
+          0%  { width: 20px  }
+          60% { width: 140px }
+          100%{ width: 140px }
+        }
+        @keyframes sg-orbit {
+          from { transform: rotate(0deg)   translateX(115px) rotate(0deg);   }
+          to   { transform: rotate(360deg) translateX(115px) rotate(-360deg); }
+        }
+        @keyframes sg-orbit2 {
+          from { transform: rotate(180deg) translateX(90px) rotate(-180deg); }
+          to   { transform: rotate(540deg) translateX(90px) rotate(-540deg); }
+        }
+        .sg-card      { animation: sg-float 5.5s ease-in-out infinite; transform-origin: 230px 250px; }
+        .sg-panel-l   { animation: sg-float2 4s ease-in-out infinite; transform-origin: 56px 254px; }
+        .sg-panel-r   { animation: sg-float3 6.5s ease-in-out infinite; transform-origin: 404px 228px; }
+        .sg-orb-big   { animation: sg-pulse 7s ease-in-out infinite; }
+        .sg-orb-med   { animation: sg-pulse2 5s ease-in-out infinite; }
+        .sg-star1     { animation: sg-twinkle 2.4s ease-in-out infinite; transform-origin: 432px 232px; }
+        .sg-star2     { animation: sg-twinkle2 3.2s ease-in-out infinite; transform-origin: 46px 164px; }
+        .sg-star3     { animation: sg-twinkle 4.2s ease-in-out 1s infinite; transform-origin: 395px 405px; }
+        .sg-add-btn   { animation: sg-add-btn 2.2s ease-in-out infinite; transform-origin: 256px 168px; }
+        .sg-check-ok  { animation: sg-check 2.8s ease-in-out infinite; transform-origin: 385px 106px; }
+        .sg-progress  { animation: sg-progress 3s ease-out 0.5s infinite; }
+      `}</style>
+
+      {/* Background orbs */}
+      <circle className="sg-orb-big" cx="230" cy="250" r="200" fill="url(#sg-orb1)"/>
+      <circle className="sg-orb-med" cx="230" cy="250" r="135" fill="url(#sg-orb2)"/>
+      <circle cx="80"  cy="400" r="55" fill="#046EF2" opacity="0.05"/>
+      <circle cx="390" cy="100" r="40" fill="#7C3AED" opacity="0.06"/>
+
+      {/* Sparkles */}
+      <g className="sg-star1">
+        <path d="M432 232 L434 239 L442 239 L436 244 L438 252 L432 248 L426 252 L428 244 L422 239 L430 239 Z"
+          fill="#046EF2" opacity="0.55"/>
+      </g>
+      <g className="sg-star2">
+        <path d="M46 164 L48 170 L54 170 L49 174 L51 181 L46 178 L41 181 L43 174 L38 170 L44 170 Z"
+          fill="#7C3AED" opacity="0.5"/>
+      </g>
+      <g className="sg-star3">
+        <path d="M395 403 L396 407 L401 407 L397.5 410 L399 415 L395 413 L391 415 L392.5 410 L389 407 L394 407 Z"
+          fill="#6366F1" opacity="0.45"/>
+      </g>
+
+      {/* Ground shadow */}
+      <ellipse cx="230" cy="370" rx="122" ry="7" fill="#CBD5E1" opacity="0.5"/>
+
+      {/* ── MAIN SIGNUP CARD ── */}
+      <g className="sg-card">
+        {/* Card shadow + body */}
+        <rect x="100" y="138" width="260" height="224" rx="20" fill="white" filter="url(#sg-shadow)"/>
+        {/* Gradient header bar */}
+        <rect x="100" y="138" width="260" height="8"   rx="4"  fill="url(#sg-header)"/>
+        <rect x="100" y="142" width="260" height="8"   fill="white" opacity="0.1"/>
+
+        {/* Avatar circle */}
+        <circle cx="230" cy="188" r="34" fill="#EBF2FF"/>
+        <circle cx="230" cy="182" r="13" fill="#046EF2" opacity="0.35"/>
+        <ellipse cx="230" cy="200" rx="19" ry="11" fill="#046EF2" opacity="0.2"/>
+
+        {/* Name label */}
+        <rect x="175" y="230" width="110" height="7" rx="3.5" fill="#EBF2FF"/>
+        <rect x="195" y="241" width="70"  height="5" rx="2.5" fill="#F0F4FF"/>
+
+        {/* Email input */}
+        <rect x="120" y="254" width="220" height="17" rx="6" fill="#F8FAFF" stroke="#E2E8F0" strokeWidth="1"/>
+        <rect x="128" y="259" width="60"  height="4"  rx="2" fill="#CBD5E1"/>
+
+        {/* Password input */}
+        <rect x="120" y="276" width="220" height="17" rx="6" fill="#F8FAFF" stroke="#046EF2" strokeWidth="1.5"/>
+        <rect x="128" y="281" width="50"  height="4"  rx="2" fill="#CBD5E1"/>
+        <circle cx="290" cy="285" r="2.5" fill="#CBD5E1"/>
+        <circle cx="298" cy="285" r="2.5" fill="#CBD5E1"/>
+        <circle cx="306" cy="285" r="2.5" fill="#CBD5E1"/>
+
+        {/* Progress bar */}
+        <rect x="120" y="298" width="220" height="5" rx="2.5" fill="#EBF2FF"/>
+        <rect x="120" y="298" rx="2.5" height="5" fill="url(#sg-btn)" className="sg-progress"/>
+
+        {/* CTA button */}
+        <rect x="120" y="310" width="220" height="22" rx="8" fill="url(#sg-btn)"/>
+        <rect x="166" y="317" width="128" height="7"  rx="3.5" fill="white" opacity="0.35"/>
+      </g>
+
+      {/* ── LEFT PANEL — discount badge ── */}
+      <g className="sg-panel-l">
+        <rect x="18" y="214" width="78" height="80" rx="14" fill="white"
+          style={{filter:"drop-shadow(0 6px 20px rgba(4,110,242,0.14))"}}>
+        </rect>
+        <rect x="18" y="214" width="78" height="5" rx="3" fill="#046EF2" opacity="0.7"/>
+        <circle cx="57" cy="238" r="14" fill="#EBF2FF"/>
+        <text x="51" y="243" fontSize="11" fill="#046EF2" fontFamily="system-ui" fontWeight="800">%</text>
+        <rect x="27" y="258" width="52" height="7" rx="3.5" fill="#046EF2" opacity="0.7"/>
+        <rect x="32" y="269" width="42" height="5" rx="2.5" fill="#EBF2FF"/>
+        <rect x="27" y="279" width="52" height="13" rx="6" fill="#046EF2" opacity="0.1"/>
+        <rect x="35" y="283" width="36" height="5"  rx="2.5" fill="#046EF2" opacity="0.5"/>
+      </g>
+
+      {/* ── RIGHT PANEL — new product card ── */}
+      <g className="sg-panel-r">
+        <rect x="364" y="182" width="78" height="96" rx="14" fill="white"
+          style={{filter:"drop-shadow(0 6px 20px rgba(4,110,242,0.12))"}}>
+        </rect>
+        <rect x="364" y="182" width="78" height="5" rx="3" fill="#7C3AED" opacity="0.7"/>
+        {/* Product image placeholder */}
+        <rect x="372" y="194" width="62" height="38" rx="8" fill="#F5F3FF"/>
+        <circle cx="390" cy="206" r="8" fill="#EDE9FE"/>
+        <path d="M386 206 a4 4 0 0 1 8 0" stroke="#7C3AED" strokeWidth="1.2" fill="none"/>
+        <rect x="384" y="206" width="12" height="8" rx="2" fill="#7C3AED" opacity="0.7"/>
+        {/* Price */}
+        <rect x="372" y="237" width="38" height="6" rx="3" fill="#EDE9FE"/>
+        <rect x="372" y="247" width="62" height="6" rx="3" fill="#EDE9FE" opacity="0.5"/>
+        {/* Add button */}
+        <g className="sg-add-btn">
+          <rect x="372" y="258" width="62" height="16" rx="8" fill="#7C3AED"/>
+          <line x1="403" y1="262" x2="403" y2="270" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+          <line x1="399" y1="266" x2="407" y2="266" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        </g>
+      </g>
+
+      {/* ── CHECK BADGE (top right) ── */}
+      <g className="sg-check-ok">
+        <circle cx="385" cy="106" r="28" fill="#EBF2FF"
+          style={{filter:"drop-shadow(0 4px 14px rgba(4,110,242,0.22))"}}>
+        </circle>
+        <circle cx="385" cy="106" r="20" fill="#046EF2"/>
+        <polyline points="376,106 382,113 394,98" stroke="white" strokeWidth="2.8"
+          fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      </g>
     </svg>
   );
 }
