@@ -417,6 +417,7 @@ export default function Header({ onMenu, onCart }) {
   const [activeIdx,      setActiveIdx]      = useState(-1);
   const [isFocused,      setIsFocused]      = useState(false);
   const [recentSearches, setRecentSearches] = useState(() => loadRecent());
+  const [trending,       setTrending]       = useState([]);
 
   /* Settings state */
   const [settingsOpen,   setSettingsOpen]   = useState(false);
@@ -430,7 +431,9 @@ export default function Header({ onMenu, onCart }) {
   const isBar        = anim === S.BAR || anim === S.REOPEN;
   const isIcon       = anim === S.ICON;
   const isTyping     = search.trim().length > 0;
-  const showDropdown = sugOpen && isBar;
+  // On desktop (≥1024px) search bar is always visible — show dropdown without scroll
+  const isDesktopSearch = typeof window !== "undefined" && window.innerWidth >= 1024;
+  const showDropdown = sugOpen && (isBar || isDesktopSearch);
 
   const inputRef    = useRef(null);
   const wrapRef     = useRef(null);
@@ -515,6 +518,27 @@ export default function Header({ onMenu, onCart }) {
     })();
     return () => { alive = false; };
   }, [isHome]);
+
+  /* ── Fetch trending products (top 5 by createdAt) ── */
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const { orderBy } = await import("firebase/firestore");
+        const snap = await getDocs(
+          query(collection(db, "Products"), orderBy("createdAt","desc"), limit(5))
+        );
+        if (alive) {
+          setTrending(
+            snap.docs
+              .map(d => ({ id: d.id, name: String(d.data().name || "").trim() }))
+              .filter(p => p.name)
+          );
+        }
+      } catch (_) {}
+    })();
+    return () => { alive = false; };
+  }, []);
 
   /* ── Click outside → close search dropdown ── */
   useEffect(() => {
@@ -663,7 +687,9 @@ export default function Header({ onMenu, onCart }) {
 
     if (isTyping) {
       return (
-        <div className="hdr-suggestions hdr-suggestions--pinterest">
+        <>
+          <div className="hdr-sug-backdrop" onClick={() => { setSugOpen(false); setActiveIdx(-1); }} aria-hidden="true"/>
+          <div className="hdr-suggestions hdr-suggestions--pinterest">
           {loadingSugs ? (
             <div className="hdr-suggestion-empty">Loading…</div>
           ) : suggestions.length ? (
@@ -705,44 +731,70 @@ export default function Header({ onMenu, onCart }) {
               </button>
             </>
           )}
-        </div>
+          </div>
+        </>
       );
     }
 
     return (
-      <div className="hdr-suggestions">
-        <div className="hdr-sug-section-label">I&apos;M LOOKING FOR</div>
-        <div className="hdr-sug-chips">
-          {QUICK_CATEGORIES.map((cat) => (
-            <button key={cat.value} type="button" className="hdr-sug-chip"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => goToSearch(cat.value)}>
-              <ChipIcon value={cat.value} />
-              {cat.label}
-            </button>
-          ))}
-        </div>
-
-        {recentSearches.length > 0 && (
-          <>
-            <div className="hdr-sug-section-label">RECENT SEARCHES</div>
-            {recentSearches.map((term) => (
-              <div key={term} className="hdr-recent-item" role="button" tabIndex={0}
-                onClick={() => goToSearch(term)}
-                onKeyDown={(e) => e.key === "Enter" && goToSearch(term)}>
-                <div className="hdr-recent-left">
-                  <IconClock />
-                  <span className="hdr-recent-text">{term}</span>
-                </div>
-                <button type="button" className="hdr-recent-remove"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={(e) => handleRemoveRecent(e, term)}
-                  aria-label={`Remove ${term}`}>×</button>
-              </div>
+      <>
+        <div className="hdr-sug-backdrop" onClick={() => { setSugOpen(false); setActiveIdx(-1); }} aria-hidden="true"/>
+        <div className="hdr-suggestions hdr-suggestions--pinterest">
+          {/* Quick category chips */}
+          <div className="hdr-sug-section-label">BROWSE</div>
+          <div className="hdr-sug-chips">
+            {QUICK_CATEGORIES.map((cat) => (
+              <button key={cat.value} type="button" className="hdr-sug-chip"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => goToSearch(cat.value)}>
+                <ChipIcon value={cat.value} />
+                {cat.label}
+              </button>
             ))}
-          </>
-        )}
-      </div>
+          </div>
+
+          {/* Trending products */}
+          {trending.length > 0 && (
+            <>
+              <div className="hdr-sug-section-label">TRENDING NOW</div>
+              {trending.map(p => (
+                <button key={p.id} type="button" className="hdr-suggestion-item"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => goToSearch(p.name)}>
+                  <span className="hdr-sug-trend-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                      <polyline points="17 6 23 6 23 12"/>
+                    </svg>
+                  </span>
+                  <span className="hdr-sug-label">{p.name}</span>
+                </button>
+              ))}
+            </>
+          )}
+
+          {/* Recent searches */}
+          {recentSearches.length > 0 && (
+            <>
+              <div className="hdr-sug-section-label">RECENT</div>
+              {recentSearches.map((term) => (
+                <div key={term} className="hdr-recent-item" role="button" tabIndex={0}
+                  onClick={() => goToSearch(term)}
+                  onKeyDown={(e) => e.key === "Enter" && goToSearch(term)}>
+                  <div className="hdr-recent-left">
+                    <IconClock />
+                    <span className="hdr-recent-text">{term}</span>
+                  </div>
+                  <button type="button" className="hdr-recent-remove"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={(e) => handleRemoveRecent(e, term)}
+                    aria-label={`Remove ${term}`}>×</button>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      </>
     );
   };
 
