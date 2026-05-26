@@ -1,5 +1,8 @@
 import express        from "express";
 import crypto         from "crypto";
+import {
+  sendSubscriptionConfirmation,
+} from "../services/email.js";
 import { adminDb, firebaseAdmin } from "../firebaseAdmin.js";
 const FieldValue = firebaseAdmin.firestore.FieldValue;
 
@@ -176,6 +179,27 @@ router.get("/verify", async (req, res) => {
     }, { merge: true });
 
     await batch.commit();
+
+    // Send branded confirmation email (non-blocking)
+    try {
+      const sellerSnap = await adminDb.collection("storeApplications").doc(uid).get();
+      const sellerData = sellerSnap.exists ? sellerSnap.data() : {};
+      const sellerEmail= psData.data.customer?.email || sellerData.email || "";
+      const sellerName = sellerData.shopName || sellerData.sellerName || "";
+      if (sellerEmail) {
+        sendSubscriptionConfirmation({
+          email:     sellerEmail,
+          planId:    plan,
+          billing,
+          amount:    psData.data.amount / 100,
+          reference,
+          expiresAt: expiryDate.toISOString(),
+          sellerName,
+        }).catch(e => console.error("[email] sub confirm:", e.message));
+      }
+    } catch (e) {
+      console.error("[email] sub lookup failed:", e.message);
+    }
 
     res.json({
       success: true,

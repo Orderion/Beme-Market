@@ -1,7 +1,7 @@
 // Beme-Backend/src/routes/authRoutes.js
 import express from "express";
 import { firebaseAdmin } from "../firebaseAdmin.js";
-import { sendPasswordResetEmail } from "../services/email.js";
+import { sendPasswordResetEmail, sendVerificationEmail, sendWelcomeEmail } from "../services/email.js";
 
 const router = express.Router();
 const EMAIL_SEND_TIMEOUT_MS = 12000;

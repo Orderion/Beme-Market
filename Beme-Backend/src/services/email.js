@@ -1,272 +1,293 @@
-// Beme-Backend/src/services/email.js
-function getRequiredEnv(name) {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Missing required email env: ${name}`);
-  }
-  return value;
-}
+/* ─────────────────────────────────────────────────────────────
+   Beme Market — Email Service
+   Transport: Brevo SMTP via Nodemailer
+   Path: Beme-Backend/src/services/email.js
+───────────────────────────────────────────────────────────── */
+import nodemailer from "nodemailer";
+import * as T from "../templates/emailTemplates.js";
 
-function escapeHtml(value) {
-  return String(value || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function formatMoney(value) {
-  const amount = Number(value || 0);
-  return `GHS ${amount.toFixed(2)}`;
-}
-
-function getResendConfig() {
-  return {
-    apiKey: getRequiredEnv("RESEND_API_KEY"),
-    from: getRequiredEnv("RESEND_FROM"),
-  };
-}
-
-async function sendMail({ to, subject, text, html }) {
-  const { apiKey, from } = getResendConfig();
-
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
+/* ── SMTP transporter (Brevo) ── */
+let _transporter = null;
+function getTransporter() {
+  if (_transporter) return _transporter;
+  _transporter = nodemailer.createTransport({
+    host:   process.env.BREVO_SMTP_HOST || "smtp-relay.brevo.com",
+    port:   parseInt(process.env.BREVO_SMTP_PORT || "587"),
+    secure: false,
+    auth: {
+      user: process.env.BREVO_SMTP_USER,
+      pass: process.env.BREVO_SMTP_PASS,
     },
-    body: JSON.stringify({
-      from,
-      to: Array.isArray(to) ? to : [to],
+    connectionTimeout: 10000,
+    greetingTimeout:   10000,
+    socketTimeout:     15000,
+  });
+  return _transporter;
+}
+
+const FROM_NAME    = process.env.EMAIL_FROM_NAME    || "Beme Market";
+const FROM_ADDRESS = process.env.EMAIL_FROM_ADDRESS || "noreply@bememarket.store";
+const FROM         = `"${FROM_NAME}" <${FROM_ADDRESS}>`;
+const ADMIN_EMAIL  = process.env.ADMIN_EMAIL || "";
+
+/* ── Core send — never throws ── */
+async function sendMail({ to, subject, html, text, cc, replyTo }) {
+  if (!to) return;
+  try {
+    const info = await getTransporter().sendMail({
+      from: FROM,
+      to,
       subject,
       html,
-      text,
-    }),
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const message =
-      data?.message ||
-      data?.error?.message ||
-      `Resend API failed with status ${response.status}`;
-    throw new Error(message);
+      ...(text    ? { text }    : {}),
+      ...(cc      ? { cc }      : {}),
+      ...(replyTo ? { replyTo } : {}),
+    });
+    console.log(`[email] ✓ "${subject}" → ${to} (${info.messageId})`);
+    return info;
+  } catch (err) {
+    console.error(`[email] ✗ "${subject}" → ${to}:`, err.message);
+    // Never throw — email must never crash orders or payments
   }
-
-  return data;
 }
 
-export async function sendPasswordResetEmail({ email, resetLink }) {
-  const safeLink = escapeHtml(resetLink);
+async function sendToAdmin(subject, html) {
+  if (!ADMIN_EMAIL) return;
+  return sendMail({ to: ADMIN_EMAIL, subject, html });
+}
 
-  const subject = "Reset your Beme Market password";
+/* ═══════════════════════════════════════════════════════════
+   AUTH EMAILS
+═══════════════════════════════════════════════════════════ */
 
-  const text = [
-    "You requested a password reset for your Beme Market account.",
-    "",
-    "Use the link below to reset your password:",
-    resetLink,
-    "",
-    "If you did not request this, you can ignore this email.",
-  ].join("\n");
-
-  const html = `
-    <div style="margin:0;padding:32px;background:#0b0b0b;font-family:Arial,sans-serif;color:#ffffff;">
-      <div style="max-width:560px;margin:0 auto;background:#111111;border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:32px;">
-        <div style="font-size:12px;letter-spacing:0.18em;text-transform:uppercase;opacity:0.7;margin-bottom:14px;">
-          Beme Market
-        </div>
-
-        <h1 style="margin:0 0 14px;font-size:28px;line-height:1.2;color:#ffffff;">
-          Reset your password
-        </h1>
-
-        <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:rgba(255,255,255,0.82);">
-          We received a request to reset the password for <strong>${escapeHtml(
-            email
-          )}</strong>.
-        </p>
-
-        <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:rgba(255,255,255,0.82);">
-          Click the button below to choose a new password.
-        </p>
-
-        <a
-          href="${safeLink}"
-          style="display:inline-block;padding:14px 22px;border-radius:999px;background:#ffffff;color:#111111;text-decoration:none;font-weight:700;"
-        >
-          Reset password
-        </a>
-
-        <p style="margin:24px 0 0;font-size:14px;line-height:1.7;color:rgba(255,255,255,0.62);">
-          If the button does not work, copy and paste this link into your browser:
-        </p>
-
-        <p style="margin:10px 0 0;font-size:13px;line-height:1.7;word-break:break-all;color:rgba(255,255,255,0.78);">
-          ${safeLink}
-        </p>
-
-        <p style="margin:24px 0 0;font-size:14px;line-height:1.7;color:rgba(255,255,255,0.62);">
-          If you did not request this, you can safely ignore this email.
-        </p>
-      </div>
-    </div>
-  `;
-
-  await sendMail({
-    to: email,
-    subject,
-    text,
-    html,
+/* Email verification — called after signup */
+export async function sendVerificationEmail({ email, verifyLink, name }) {
+  return sendMail({
+    to:      email,
+    subject: "Verify your Beme Market email address",
+    html:    T.verifyEmailTemplate({ verifyLink, name }),
   });
 }
 
+/* Password reset — existing function kept for authRoutes.js compatibility */
+export async function sendPasswordResetEmail({ email, resetLink }) {
+  return sendMail({
+    to:      email,
+    subject: "Reset your Beme Market password",
+    html:    T.passwordResetTemplate({ resetLink, email }),
+  });
+}
+
+/* Welcome email — send after email is verified */
+export async function sendWelcomeEmail({ email, name, isSeller = false }) {
+  return sendMail({
+    to:      email,
+    subject: "Welcome to Beme Market! 🎉",
+    html:    T.welcomeTemplate({ name, isSeller }),
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ORDER EMAILS
+═══════════════════════════════════════════════════════════ */
+
+export async function sendOrderConfirmation({ order, buyerEmail }) {
+  const email = buyerEmail || order?.customer?.email;
+  if (!email) return;
+  return sendMail({
+    to:      email,
+    subject: `Order Confirmed #${(order.id||"").slice(0,8).toUpperCase()} — Beme Market`,
+    html:    T.orderConfirmationTemplate({ order }),
+  });
+}
+
+export async function sendNewOrderAlert({ order, sellerEmail, sellerName }) {
+  if (!sellerEmail) return;
+  return sendMail({
+    to:      sellerEmail,
+    subject: `New Order #${(order.id||"").slice(0,8).toUpperCase()} on your store — Beme Market`,
+    html:    T.newOrderAlertTemplate({ order, sellerName }),
+  });
+}
+
+export async function sendOrderShipped({ order, buyerEmail, trackingInfo }) {
+  const email = buyerEmail || order?.customer?.email;
+  if (!email) return;
+  return sendMail({
+    to:      email,
+    subject: "Your order is on its way! — Beme Market",
+    html:    T.orderShippedTemplate({ order, trackingInfo }),
+  });
+}
+
+export async function sendOrderDelivered({ order, buyerEmail }) {
+  const email = buyerEmail || order?.customer?.email;
+  if (!email) return;
+  return sendMail({
+    to:      email,
+    subject: "Order Delivered ✓ — Beme Market",
+    html:    T.orderDeliveredTemplate({ order }),
+  });
+}
+
+export async function sendOrderCancelled({ order, buyerEmail, reason }) {
+  const email = buyerEmail || order?.customer?.email;
+  if (!email) return;
+  return sendMail({
+    to:      email,
+    subject: "Order Cancelled — Beme Market",
+    html:    T.orderCancelledTemplate({ order, reason }),
+  });
+}
+
+/* ── Backward compatibility alias (used by existing paystackRoutes) ── */
 export async function sendOrderPaidEmails(payload = {}) {
   const {
-    customerEmail,
-    email,
-    customerName,
-    name,
-    orderId,
-    reference,
-    total,
-    amount,
-    items = [],
-    adminEmail,
-    shopEmail,
+    customerEmail, email: payloadEmail, customerName, name,
+    orderId, reference, total, amount, items = [],
+    adminEmail, shopEmail,
   } = payload || {};
 
-  const buyerEmail = String(customerEmail || email || "").trim();
-  const buyerName = String(customerName || name || "Customer").trim();
-  const safeBuyerName = escapeHtml(buyerName);
-  const safeOrderId = escapeHtml(orderId || reference || "your order");
-  const totalAmount = total ?? amount ?? 0;
+  const buyerEmail = String(customerEmail || payloadEmail || "").trim();
+  const buyerName  = String(customerName  || name        || "Customer").trim();
+  const totalAmt   = total ?? amount ?? 0;
 
-  const itemLines = Array.isArray(items)
-    ? items
-        .map((item) => {
-          const itemName = escapeHtml(item?.name || "Item");
-          const qty = Number(item?.qty || 1);
-          const price = Number(item?.price || 0);
-          return `<li style="margin-bottom:8px;">${itemName} × ${qty} — ${formatMoney(
-            price * qty
-          )}</li>`;
-        })
-        .join("")
-    : "";
+  // Build a minimal order object for the template
+  const order = {
+    id:      orderId || reference || "",
+    items:   items.map(i => ({ name: i?.name||"Item", qty: Number(i?.qty||1), price: Number(i?.price||0) })),
+    pricing: { subtotal: totalAmt, deliveryFee: 0, total: totalAmt },
+    customer: { email: buyerEmail, firstName: buyerName, address: "—", region: "—" },
+    delivery: { label: "—" },
+  };
 
-  if (buyerEmail) {
-    const subject = `Payment received for ${orderId || reference || "your order"}`;
-
-    const text = [
-      `Hi ${buyerName},`,
-      "",
-      "Your payment has been received successfully.",
-      `Order: ${orderId || reference || "your order"}`,
-      `Total: ${formatMoney(totalAmount)}`,
-      "",
-      "Thank you for shopping on Beme Market.",
-    ].join("\n");
-
-    const html = `
-      <div style="margin:0;padding:32px;background:#0b0b0b;font-family:Arial,sans-serif;color:#ffffff;">
-        <div style="max-width:560px;margin:0 auto;background:#111111;border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:32px;">
-          <div style="font-size:12px;letter-spacing:0.18em;text-transform:uppercase;opacity:0.7;margin-bottom:14px;">
-            Beme Market
-          </div>
-
-          <h1 style="margin:0 0 14px;font-size:28px;line-height:1.2;color:#ffffff;">
-            Payment confirmed
-          </h1>
-
-          <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:rgba(255,255,255,0.82);">
-            Hi <strong>${safeBuyerName}</strong>, your payment has been received successfully.
-          </p>
-
-          <p style="margin:0 0 8px;font-size:15px;line-height:1.7;color:rgba(255,255,255,0.82);">
-            <strong>Order:</strong> ${safeOrderId}
-          </p>
-
-          <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:rgba(255,255,255,0.82);">
-            <strong>Total:</strong> ${formatMoney(totalAmount)}
-          </p>
-
-          ${
-            itemLines
-              ? `
-            <div style="margin:20px 0;">
-              <div style="font-size:14px;font-weight:700;margin-bottom:10px;">Items</div>
-              <ul style="padding-left:18px;margin:0;color:rgba(255,255,255,0.82);">
-                ${itemLines}
-              </ul>
-            </div>
-          `
-              : ""
-          }
-
-          <p style="margin:24px 0 0;font-size:14px;line-height:1.7;color:rgba(255,255,255,0.62);">
-            Thank you for shopping on Beme Market.
-          </p>
-        </div>
-      </div>
-    `;
-
-    await sendMail({
-      to: buyerEmail,
-      subject,
-      text,
-      html,
-    });
-  }
+  if (buyerEmail) await sendOrderConfirmation({ order, buyerEmail });
 
   const internalEmail = String(adminEmail || shopEmail || "").trim();
-
   if (internalEmail) {
-    const subject = `Order paid: ${orderId || reference || "New paid order"}`;
-
-    const text = [
-      "A customer payment has been confirmed.",
-      `Order: ${orderId || reference || "N/A"}`,
-      `Customer: ${buyerName}`,
-      `Email: ${buyerEmail || "N/A"}`,
-      `Total: ${formatMoney(totalAmount)}`,
-    ].join("\n");
-
-    const html = `
-      <div style="margin:0;padding:24px;background:#0b0b0b;font-family:Arial,sans-serif;color:#ffffff;">
-        <div style="max-width:560px;margin:0 auto;background:#111111;border:1px solid rgba(255,255,255,0.08);border-radius:18px;padding:28px;">
-          <div style="font-size:12px;letter-spacing:0.18em;text-transform:uppercase;opacity:0.7;margin-bottom:14px;">
-            Beme Market
-          </div>
-
-          <h1 style="margin:0 0 14px;font-size:24px;line-height:1.2;color:#ffffff;">
-            Order payment received
-          </h1>
-
-          <p style="margin:0 0 8px;font-size:15px;color:rgba(255,255,255,0.82);">
-            <strong>Order:</strong> ${safeOrderId}
-          </p>
-          <p style="margin:0 0 8px;font-size:15px;color:rgba(255,255,255,0.82);">
-            <strong>Customer:</strong> ${safeBuyerName}
-          </p>
-          <p style="margin:0 0 8px;font-size:15px;color:rgba(255,255,255,0.82);">
-            <strong>Email:</strong> ${escapeHtml(buyerEmail || "N/A")}
-          </p>
-          <p style="margin:0 0 8px;font-size:15px;color:rgba(255,255,255,0.82);">
-            <strong>Total:</strong> ${formatMoney(totalAmount)}
-          </p>
-        </div>
-      </div>
-    `;
-
     await sendMail({
-      to: internalEmail,
-      subject,
-      text,
-      html,
+      to:      internalEmail,
+      subject: `Order paid: ${orderId || reference || "New order"}`,
+      html:    T.adminNewOrderTemplate({ order }),
     });
   }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SUBSCRIPTION EMAILS
+═══════════════════════════════════════════════════════════ */
+
+export async function sendSubscriptionConfirmation({
+  email, planId, billing, amount, reference, expiresAt, sellerName,
+}) {
+  if (!email) return;
+  const planName = (planId||"starter").charAt(0).toUpperCase()+(planId||"starter").slice(1);
+  await sendMail({
+    to:      email,
+    subject: `Your ${planName} Plan is Active 🎉 — Beme Market`,
+    html:    T.subscriptionConfirmationTemplate({ planId, billing, amount, reference, expiresAt, sellerName }),
+  });
+  await sendToAdmin(
+    `New subscription: ${planName} (${billing||"monthly"}) — GHS ${Number(amount||0).toFixed(2)}`,
+    T.subscriptionConfirmationTemplate({ planId, billing, amount, reference, expiresAt, sellerName })
+  );
+}
+
+export async function sendRenewalReminder({ email, planId, expiresAt, daysLeft, sellerName }) {
+  if (!email) return;
+  const planName = (planId||"starter").charAt(0).toUpperCase()+(planId||"starter").slice(1);
+  return sendMail({
+    to:      email,
+    subject: `Your ${planName} Plan renews in ${daysLeft||7} days — Beme Market`,
+    html:    T.renewalReminderTemplate({ planId, expiresAt, daysLeft, sellerName }),
+  });
+}
+
+export async function sendPlanExpired({ email, planId, sellerName }) {
+  if (!email) return;
+  const planName = (planId||"starter").charAt(0).toUpperCase()+(planId||"starter").slice(1);
+  return sendMail({
+    to:      email,
+    subject: `Your ${planName} Plan has expired — Beme Market`,
+    html:    T.planExpiredTemplate({ planId, sellerName }),
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STORE EMAILS
+═══════════════════════════════════════════════════════════ */
+
+export async function sendStoreApplicationReceived({ email, storeName, sellerName }) {
+  if (!email) return;
+  await sendMail({
+    to:      email,
+    subject: "We received your store application — Beme Market",
+    html:    T.storeApplicationReceivedTemplate({ storeName, sellerName }),
+  });
+  await sendToAdmin(
+    `New store application: ${storeName} by ${sellerName}`,
+    T.adminNewApplicationTemplate({ storeName, sellerName, sellerEmail: email })
+  );
+}
+
+export async function sendStoreApproved({ email, storeName, sellerName, storeUrl }) {
+  if (!email) return;
+  return sendMail({
+    to:      email,
+    subject: "Your store is approved and live! — Beme Market 🎉",
+    html:    T.storeApprovedTemplate({ storeName, sellerName, storeUrl }),
+  });
+}
+
+export async function sendStoreRejected({ email, storeName, sellerName, reason }) {
+  if (!email) return;
+  return sendMail({
+    to:      email,
+    subject: "Store application update — Beme Market",
+    html:    T.storeRejectedTemplate({ storeName, sellerName, reason }),
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAYOUT EMAILS
+═══════════════════════════════════════════════════════════ */
+
+export async function sendPayoutProcessed({ email, sellerName, amount, reference, method }) {
+  if (!email) return;
+  await sendMail({
+    to:      email,
+    subject: `Payout of GHS ${Number(amount||0).toFixed(2)} sent — Beme Market`,
+    html:    T.payoutProcessedTemplate({ sellerName, amount, reference, method }),
+  });
+}
+
+export async function sendAdminPayoutAlert({ sellerName, sellerEmail, amount }) {
+  return sendToAdmin(
+    `New payout request: GHS ${Number(amount||0).toFixed(2)} from ${sellerName}`,
+    T.adminNewPayoutTemplate({ sellerName, sellerEmail, amount })
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CHAT EMAILS
+═══════════════════════════════════════════════════════════ */
+
+export async function sendNewMessageAlert({ sellerEmail, sellerName, customerName, messagePreview, chatLink }) {
+  if (!sellerEmail) return;
+  return sendMail({
+    to:      sellerEmail,
+    subject: `New message from ${customerName||"a customer"} — Beme Market`,
+    html:    T.newMessageAlertTemplate({ sellerName, customerName, messagePreview, chatLink }),
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ADMIN HELPERS
+═══════════════════════════════════════════════════════════ */
+
+export async function sendAdminOrderAlert({ order }) {
+  return sendToAdmin(
+    `New order #${(order.id||"").slice(0,8).toUpperCase()} — GHS ${Number(order.pricing?.total||0).toFixed(2)}`,
+    T.adminNewOrderTemplate({ order })
+  );
 }
