@@ -1,7 +1,7 @@
 import express        from "express";
 import crypto         from "crypto";
-import { db }         from "../firebase.js";
-import { FieldValue } from "firebase-admin/firestore";
+import { adminDb, firebaseAdmin } from "../firebaseAdmin.js";
+const FieldValue = firebaseAdmin.firestore.FieldValue;
 
 const router = express.Router();
 
@@ -76,7 +76,7 @@ router.post("/initialize", async (req, res) => {
     if (!psData.status) throw new Error(psData.message || "Paystack error");
 
     // Store pending reference in Firestore
-    await db.collection("subscriptionAttempts").doc(psData.data.reference).set({
+    await adminDb.collection("subscriptionAttempts").doc(psData.data.reference).set({
       reference:   psData.data.reference,
       planId:      plan,
       billing:     period,
@@ -139,23 +139,23 @@ router.get("/verify", async (req, res) => {
     if (billing === "yearly") expiryDate.setFullYear(expiryDate.getFullYear() + 1);
     else                      expiryDate.setMonth(expiryDate.getMonth() + 1);
 
-    const batch = db.batch();
+    const batch = adminDb.batch();
 
     // 1. Update shops/{shopId}
     if (shopId) {
-      batch.set(db.collection("shops").doc(shopId), {
+      batch.set(adminDb.collection("shops").doc(shopId), {
         planId, billing, updatedAt: now,
         ...limits,
       }, { merge: true });
     }
 
     // 2. Update storeApplications/{uid}
-    batch.set(db.collection("storeApplications").doc(uid), {
+    batch.set(adminDb.collection("storeApplications").doc(uid), {
       planId, billing, updatedAt: now,
     }, { merge: true });
 
     // 3. Write subscription record
-    batch.set(db.collection("subscriptions").doc(uid), {
+    batch.set(adminDb.collection("subscriptions").doc(uid), {
       uid, shopId, planId, billing,
       status:          "active",
       reference,
@@ -171,7 +171,7 @@ router.get("/verify", async (req, res) => {
     }, { merge: true });
 
     // 4. Mark attempt as verified
-    batch.set(db.collection("subscriptionAttempts").doc(reference), {
+    batch.set(adminDb.collection("subscriptionAttempts").doc(reference), {
       status: "verified", verifiedAt: now,
     }, { merge: true });
 
@@ -224,7 +224,7 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
       }
 
       // Check not already processed
-      const attemptRef  = db.collection("subscriptionAttempts").doc(reference);
+      const attemptRef  = adminDb.collection("subscriptionAttempts").doc(reference);
       const attemptSnap = await attemptRef.get();
       if (attemptSnap.exists && attemptSnap.data().status === "verified") {
         console.log("[webhook] already verified:", reference);
@@ -238,12 +238,12 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
       if (billing === "yearly") expiry.setFullYear(expiry.getFullYear() + 1);
       else                      expiry.setMonth(expiry.getMonth() + 1);
 
-      const batch = db.batch();
+      const batch = adminDb.batch();
       if (shopId) {
-        batch.set(db.collection("shops").doc(shopId), { planId, billing, ...limits, updatedAt: now }, { merge: true });
+        batch.set(adminDb.collection("shops").doc(shopId), { planId, billing, ...limits, updatedAt: now }, { merge: true });
       }
-      batch.set(db.collection("storeApplications").doc(uid), { planId, billing, updatedAt: now }, { merge: true });
-      batch.set(db.collection("subscriptions").doc(uid), {
+      batch.set(adminDb.collection("storeApplications").doc(uid), { planId, billing, updatedAt: now }, { merge: true });
+      batch.set(adminDb.collection("subscriptions").doc(uid), {
         uid, shopId, planId, billing,
         status: "active", reference,
         amountKobo: data.amount, amountGHS: data.amount / 100,
@@ -272,7 +272,7 @@ router.get("/status", async (req, res) => {
   try {
     const { uid } = req.query;
     if (!uid) return res.status(400).json({ error: "uid required" });
-    const snap = await db.collection("subscriptions").doc(uid).get();
+    const snap = await adminDb.collection("subscriptions").doc(uid).get();
     if (!snap.exists) return res.json({ planId: "basic", status: "none" });
     res.json(snap.data());
   } catch (err) {
