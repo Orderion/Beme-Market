@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
+import { doc, setDoc, getDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
 import { useAuth } from "../../context/AuthContext";
@@ -24,6 +25,8 @@ const IC = {
   link:   "M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71|M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71",
   eye:    "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z|M12 12a3 3 0 100-6 3 3 0 000 6",
   store:  "M3 9h18v10a2 2 0 01-2 2H5a2 2 0 01-2-2V9z|M3 9l2.45-4.9A2 2 0 017.24 3h9.52a2 2 0 011.8 1.1L21 9",
+  trash:  "M3 6h18|M19 6l-1 14H6L5 6|M10 11v6|M14 11v6|M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2",
+  warn:   "M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z|M12 9v4|M12 17h.01",
 };
 
 function ImgUpload({ value, onChange, uploading, isLogo, label }) {
@@ -101,77 +104,47 @@ function Preview({ form }) {
   const letter = (form.shopName || "S").charAt(0).toUpperCase();
   const social = [
     form.whatsapp  && { l: "WhatsApp",  c: "#25D366" },
-    form.instagram && { l: "Instagram", c: "#E1306C" },
-    form.tiktok    && { l: "TikTok",    c: "#111"    },
-    form.website   && { l: "Website",   c: "#046EF2" },
+    form.instagram && { l: "Instagram",  c: "#E1306C" },
+    form.tiktok    && { l: "TikTok",     c: "#111" },
+    form.website   && { l: "Website",    c: "#046EF2" },
   ].filter(Boolean);
-
   return (
-    <div style={{ border: "1px solid rgba(0,0,0,0.1)", borderRadius: 14, overflow: "hidden",
-      background: "#F7F8FA", fontFamily: "'Nunito',sans-serif" }}>
-
-      {/* ── Banner — exact same as StoreFront ── */}
-      <div style={{ position: "relative", height: 110, overflow: "hidden",
-        background: form.bannerUrl ? "transparent" : "linear-gradient(135deg,#046EF2 0%,#1e3a8a 100%)" }}>
-        {form.bannerUrl && (
-          <img src={form.bannerUrl} alt=""
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-        )}
-        <div style={{ position: "absolute", inset: 0,
-          background: "linear-gradient(to bottom,rgba(0,0,0,0) 30%,rgba(0,0,0,0.5) 100%)" }} />
-
-        {/* Circular logo overlapping banner bottom-left — same as live StoreFront */}
-        <div style={{
-          position: "absolute", bottom: -22, left: 14, zIndex: 3,
-          width: 52, height: 52, borderRadius: "50%",
-          border: "3px solid #fff",
-          background: form.logoUrl ? "transparent" : "#046EF2",
-          overflow: "hidden", boxShadow: "0 3px 10px rgba(0,0,0,0.2)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          {form.logoUrl
-            ? <img src={form.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            : <span style={{ fontSize: 20, fontWeight: 900, color: "#fff" }}>{letter}</span>
-          }
-        </div>
+    <div style={{ border: "1px solid rgba(0,0,0,0.1)", borderRadius: 14, overflow: "hidden", background: "#fff" }}>
+      <div style={{ height: 80, position: "relative", overflow: "hidden",
+        background: form.bannerUrl ? "transparent" : "linear-gradient(135deg,#111,#333)" }}>
+        {form.bannerUrl && <img src={form.bannerUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom,transparent 40%,rgba(0,0,0,0.3))" }} />
       </div>
-
-      {/* ── Identity — same padding structure as StoreFront ── */}
-      <div style={{ padding: "30px 14px 12px", background: "#fff" }}>
-        <div style={{ fontSize: 15, fontWeight: 900, color: "#111",
-          letterSpacing: "-0.02em", marginBottom: 2,
-          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {form.shopName || "Your Store Name"}
+      <div style={{ padding: "0 14px 14px" }}>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 10, marginTop: -24 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, border: "2.5px solid #fff",
+            overflow: "hidden", flexShrink: 0, background: form.logoUrl ? "transparent" : "#111",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 18, fontWeight: 900, color: "#fff" }}>
+            {form.logoUrl ? <img src={form.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : letter}
+          </div>
+          <div style={{ flex: 1, paddingBottom: 4, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 900, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {form.shopName || "Your Store Name"}
+            </div>
+            {form.description && (
+              <div style={{ fontSize: 11, color: "#9CA3AF", overflow: "hidden",
+                display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", marginTop: 2 }}>
+                {form.description}
+              </div>
+            )}
+          </div>
         </div>
-        {form.description && (
-          <div style={{ fontSize: 11, color: "#9CA3AF", marginBottom: 8,
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {form.description}
+        {social.length > 0 && (
+          <div style={{ display: "flex", gap: 5, marginTop: 10, flexWrap: "wrap" }}>
+            {social.map(s => (
+              <span key={s.l} style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px",
+                borderRadius: 100, background: `${s.c}12`, color: s.c, border: `1px solid ${s.c}25` }}>
+                {s.l}
+              </span>
+            ))}
           </div>
         )}
-
-        {/* Action buttons row — mirrors live StoreFront exactly */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <div style={{ padding: "5px 12px", borderRadius: 100, fontSize: 10, fontWeight: 800,
-            border: "1.5px solid rgba(0,0,0,0.12)", background: "#fff", color: "#111",
-            whiteSpace: "nowrap" }}>
-            Follow
-          </div>
-          {(form.chatPreference === "beme" || !form.chatPreference) && (
-            <div style={{ padding: "5px 12px", borderRadius: 100, fontSize: 10, fontWeight: 800,
-              border: "1.5px solid rgba(0,0,0,0.12)", background: "#fff", color: "#111",
-              display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
-              💬 Chat
-            </div>
-          )}
-          {social.map(s => (
-            <span key={s.l} style={{ padding: "5px 10px", borderRadius: 100, fontSize: 10,
-              fontWeight: 700, background: `${s.c}12`, color: s.c,
-              border: `1px solid ${s.c}25`, whiteSpace: "nowrap" }}>
-              {s.l}
-            </span>
-          ))}
-        </div>
       </div>
     </div>
   );
@@ -186,7 +159,12 @@ export default function DashboardAppearance() {
     whatsapp:"", instagram:"", tiktok:"", website:"",
     chatPreference: "whatsapp",
   });
-  const [saving,   setSaving]   = useState(false);
+  const navigate = useNavigate();
+  const [saving,      setSaving]      = useState(false);
+  const [deleting,    setDeleting]    = useState(false);
+  const [showDelDlg,  setShowDelDlg]  = useState(false);
+  const [delConfirm,  setDelConfirm]  = useState("");
+  const [delError,    setDelError]    = useState("");
   const [saved,    setSaved]    = useState(false);
   const [upBanner, setUpBanner] = useState(false);
   const [upLogo,   setUpLogo]   = useState(false);
@@ -220,6 +198,37 @@ export default function DashboardAppearance() {
   }, [shop?.id]);
 
   const upd = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleDelete = async () => {
+    const sid = storeId || shop?.id || user?.uid;
+    const name = shop?.shopName || form.shopName;
+    if (delConfirm.trim().toLowerCase() !== name.trim().toLowerCase()) {
+      setDelError("Store name doesn't match. Please type it exactly.");
+      return;
+    }
+    setDeleting(true);
+    setDelError("");
+    try {
+      // Soft-delete: mark as deleted in Firestore
+      if (sid) {
+        await setDoc(doc(db, "shops", sid), {
+          status: "deleted", deletedAt: serverTimestamp(), deletedBy: user?.uid,
+        }, { merge: true });
+        await setDoc(doc(db, "storeApplications", user?.uid), {
+          status: "deleted", deletedAt: serverTimestamp(),
+        }, { merge: true });
+      }
+      // Clear local state
+      localStorage.removeItem("beme_seller_applied");
+      setShowDelDlg(false);
+      navigate("/");
+    } catch (e) {
+      console.error("[DeleteStore]", e);
+      setDelError("Failed to delete store. Please try again or contact support.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleSave = async () => {
     const sid = storeId || shop?.id || user?.uid;
@@ -259,8 +268,8 @@ export default function DashboardAppearance() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: "#111", letterSpacing: "-0.03em" }}>Store Design</div>
-          <div style={{ fontSize: 13, color: "#9CA3AF", fontWeight: 500, marginTop: 3 }}>Customise what customers see on your public store page</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#111", letterSpacing: "-0.03em" }}>Manage Store</div>
+          <div style={{ fontSize: 13, color: "#9CA3AF", fontWeight: 500, marginTop: 3 }}>Customise your store and manage account settings</div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <a href={storeUrl} target="_blank" rel="noreferrer"
@@ -455,6 +464,98 @@ export default function DashboardAppearance() {
           </a>
         </div>
       </div>
+
+      {/* ── Danger Zone ── */}
+      <div style={{ marginTop:32, border:"1.5px solid rgba(239,68,68,0.25)", borderRadius:16,
+        padding:"22px 24px", background:"rgba(239,68,68,0.02)" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
+          <Ico d={IC.warn} size={18} color="#EF4444"/>
+          <div style={{ fontSize:16, fontWeight:800, color:"#EF4444" }}>Danger Zone</div>
+        </div>
+        <p style={{ fontSize:13, color:"#6B7280", margin:"0 0 18px", lineHeight:1.6 }}>
+          Deleting your store is permanent. Your products, orders history, and store page will be hidden.
+          This action cannot be undone.
+        </p>
+        <button type="button" onClick={() => { setShowDelDlg(true); setDelConfirm(""); setDelError(""); }}
+          style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 20px",
+            borderRadius:10, border:"1.5px solid #EF4444", background:"#fff",
+            color:"#EF4444", fontSize:13, fontWeight:800, cursor:"pointer", fontFamily:"inherit",
+            transition:"background 0.15s" }}
+          onMouseEnter={e=>{e.currentTarget.style.background="rgba(239,68,68,0.06)";}}
+          onMouseLeave={e=>{e.currentTarget.style.background="#fff";}}>
+          <Ico d={IC.trash} size={14} color="#EF4444"/>
+          Delete Store
+        </button>
+      </div>
+
+      {/* ── Delete confirmation dialog ── */}
+      {showDelDlg && (
+        <div onClick={e=>{if(e.target===e.currentTarget){setShowDelDlg(false);setDelConfirm("");setDelError("");}}}
+          style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.35)", zIndex:9999,
+            display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+          <div style={{ background:"#fff", borderRadius:20, padding:"28px 24px", width:"100%",
+            maxWidth:420, boxShadow:"0 24px 64px rgba(0,0,0,0.18)" }}>
+
+            <div style={{ width:52, height:52, borderRadius:"50%", background:"#fef2f2",
+              display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 16px" }}>
+              <Ico d={IC.trash} size={24} color="#EF4444"/>
+            </div>
+
+            <div style={{ fontSize:18, fontWeight:900, color:"#111", textAlign:"center",
+              letterSpacing:"-0.02em", marginBottom:8 }}>
+              Delete your store?
+            </div>
+            <p style={{ fontSize:13, color:"#6B7280", textAlign:"center", lineHeight:1.6, marginBottom:20 }}>
+              This will permanently delete <strong style={{color:"#111"}}>{shop?.shopName || form.shopName}</strong>.
+              All your products and store data will be removed. This cannot be undone.
+            </p>
+
+            <div style={{ marginBottom:8 }}>
+              <label style={{ fontSize:13, fontWeight:700, color:"#374151", display:"block", marginBottom:6 }}>
+                Type your store name to confirm:
+              </label>
+              <input value={delConfirm} onChange={e=>{setDelConfirm(e.target.value);setDelError("");}}
+                placeholder={shop?.shopName || form.shopName}
+                style={{ width:"100%", height:44, padding:"0 14px", border:"1.5px solid rgba(0,0,0,0.12)",
+                  borderRadius:10, fontSize:14, outline:"none", fontFamily:"inherit",
+                  boxSizing:"border-box", color:"#111" }}
+                onFocus={e=>e.target.style.borderColor="#EF4444"}
+                onBlur={e=>e.target.style.borderColor="rgba(0,0,0,0.12)"}
+              />
+            </div>
+
+            {delError && (
+              <div style={{ fontSize:12, color:"#EF4444", fontWeight:600, marginBottom:12,
+                padding:"8px 12px", background:"#fef2f2", borderRadius:8 }}>
+                {delError}
+              </div>
+            )}
+
+            <div style={{ display:"flex", gap:10, marginTop:8 }}>
+              <button type="button" onClick={()=>{setShowDelDlg(false);setDelConfirm("");setDelError("");}}
+                style={{ flex:1, height:44, borderRadius:10, border:"1.5px solid rgba(0,0,0,0.12)",
+                  background:"#f5f7fa", color:"#111", fontSize:14, fontWeight:700,
+                  cursor:"pointer", fontFamily:"inherit" }}>
+                Cancel
+              </button>
+              <button type="button" onClick={handleDelete} disabled={deleting ||
+                delConfirm.trim().toLowerCase() !== (shop?.shopName||form.shopName).trim().toLowerCase()}
+                style={{ flex:1, height:44, borderRadius:10, border:"none",
+                  background: (delConfirm.trim().toLowerCase()===(shop?.shopName||form.shopName).trim().toLowerCase())
+                    ? "#EF4444" : "#f5f5f5",
+                  color: (delConfirm.trim().toLowerCase()===(shop?.shopName||form.shopName).trim().toLowerCase())
+                    ? "#fff" : "#9ca3af",
+                  fontSize:14, fontWeight:800, cursor:deleting?"wait":"pointer", fontFamily:"inherit",
+                  transition:"all 0.15s" }}>
+                {deleting ? "Deleting…" : "Delete Store"}
+              </button>
+            </div>
+            <p style={{ fontSize:11, color:"#9ca3af", textAlign:"center", marginTop:12, fontWeight:500 }}>
+              This action is permanent and cannot be reversed.
+            </p>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @media(max-width:768px){
