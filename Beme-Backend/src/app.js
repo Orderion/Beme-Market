@@ -5,14 +5,15 @@ import dotenv from "dotenv";
 
 import { errorHandler } from "./middlewares/errorMiddleware.js";
 
-import authRoutes from "./routes/authRoutes.js";
-import productRoutes from "./routes/productRoutes.js";
-import cartRoutes from "./routes/cartRoutes.js";
-import orderRoutes from "./routes/orderRoutes.js";
-import paystackRoutes from "./routes/paystack.js";
-import adminReviewRoutes from "./routes/adminReview.js";
-import aiRoutes  from "./routes/aiRoutes.js";
-import chatRoutes from "./routes/chatRoutes.js";
+import authRoutes         from "./routes/authRoutes.js";
+import productRoutes      from "./routes/productRoutes.js";
+import cartRoutes         from "./routes/cartRoutes.js";
+import orderRoutes        from "./routes/orderRoutes.js";
+import paystackRoutes     from "./routes/paystack.js";
+import adminReviewRoutes  from "./routes/adminReview.js";
+import aiRoutes           from "./routes/aiRoutes.js";
+import chatRoutes         from "./routes/chatRoutes.js";
+import subscriptionRoutes from "./routes/subscriptionRoutes.js";
 
 dotenv.config();
 
@@ -31,6 +32,9 @@ const allowedOrigins = [
 /* ===============================
    MIDDLEWARES
 ================================ */
+
+// Webhook needs raw body — must be registered BEFORE express.json()
+app.use("/api/subscriptions/webhook", express.raw({ type: "application/json" }));
 
 app.use(
   cors({
@@ -52,7 +56,7 @@ if (process.env.NODE_ENV === "development") {
 }
 
 /* ===============================
-   HEALTH CHECK ROUTES
+   HEALTH CHECK
 ================================ */
 
 app.get("/", (_req, res) => {
@@ -71,14 +75,15 @@ app.get("/health", (_req, res) => {
    API ROUTES
 ================================ */
 
-app.use("/api/auth",     authRoutes);
-app.use("/api/ai",       aiRoutes);
-app.use("/api/chat",     chatRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/cart",     cartRoutes);
-app.use("/api/orders",   orderRoutes);
-app.use("/api/paystack", paystackRoutes);
-app.use("/api/admin",    adminReviewRoutes);
+app.use("/api/auth",          authRoutes);
+app.use("/api/ai",            aiRoutes);
+app.use("/api/chat",          chatRoutes);
+app.use("/api/products",      productRoutes);
+app.use("/api/cart",          cartRoutes);
+app.use("/api/orders",        orderRoutes);
+app.use("/api/paystack",      paystackRoutes);
+app.use("/api/admin",         adminReviewRoutes);
+app.use("/api/subscriptions", subscriptionRoutes);
 
 /* ===============================
    404 HANDLER
