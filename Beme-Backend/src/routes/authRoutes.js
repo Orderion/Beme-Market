@@ -109,4 +109,20 @@ router.post("/send-verification", async (req, res) => {
   }
 });
 
+/* ── Test email — remove after confirming emails work ── */
+router.get("/test-email", async (req, res) => {
+  const to = req.query.to || process.env.ADMIN_EMAIL;
+  if (!to) return res.status(400).json({ error: "Pass ?to=youremail@gmail.com" });
+  try {
+    const { sendPasswordResetEmail } = await import("../services/email.js");
+    await sendPasswordResetEmail({
+      email: to,
+      resetLink: "https://bememarket.store/reset-password?oobCode=TEST_CODE",
+    });
+    res.json({ success: true, message: `Test email sent to ${to}` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 export default router;
