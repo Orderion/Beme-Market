@@ -1,201 +1,119 @@
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import { verifySubscriptionPayment } from "../services/subscriptionService";
-import { SELLER_APPLIED_KEY } from "../components/SellerRoute";
-import "./SubscriptionSuccess.css";
 
-function SpinnerIcon() {
-  return <div className="succ-spinner" />;
-}
-
-function SuccessIcon() {
-  return (
-    <div className="succ-icon-wrap">
-      <div className="succ-icon-circle">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
-          stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
-      </div>
-    </div>
-  );
-}
-
-function ErrorIcon() {
-  return (
-    <div className="succ-icon-wrap">
-      <div className="succ-icon-circle" style={{ background: "#EF4444" }}>
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
-          stroke="#fff" strokeWidth="2" strokeLinecap="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </div>
-    </div>
-  );
-}
-
-function CheckItem({ label }) {
-  return (
-    <div className="succ-check-item">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-        stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round">
-        <polyline points="20 6 9 17 4 12"/>
-      </svg>
-      {label}
-    </div>
-  );
-}
+const PLAN_FEATURES = {
+  starter: ["10 product listings", "Customer messaging", "WhatsApp & social links", "Store banner & logo", "1,000 AI auto-replies/day"],
+  growth:  ["25 product listings", "Beme Delivery Support", "Flash sales & discount codes", "5 featured boosts/month", "Analytics Pro dashboard", "20,000 AI auto-replies/day"],
+  pro:     ["500 product listings", "Everything in Growth", "Beme Delivery (discounted)", "Custom domain", "20 featured boosts/month", "Unlimited AI auto-replies", "Priority support"],
+};
 
 export default function SubscriptionSuccess() {
-  const navigate    = useNavigate();
-  const [params]    = useSearchParams();
-  const { user, refreshProfile } = useAuth();
-
-  const reference = params.get("reference") || params.get("trxref");
-  const status    = params.get("status");
-
-  const [phase,   setPhase]   = useState("verifying");
-  const [message, setMessage] = useState("Verifying your payment…");
+  const [params]  = useSearchParams();
+  const navigate  = useNavigate();
+  const planId    = params.get("plan")    || "starter";
+  const billing   = params.get("billing") || "monthly";
+  const planName  = planId.charAt(0).toUpperCase() + planId.slice(1);
+  const features  = PLAN_FEATURES[planId] || [];
+  const [count,   setCount] = useState(5);
 
   useEffect(() => {
-    let mounted = true;
-
-    const process = async () => {
-
-      // ── CRITICAL: Set the localStorage flag IMMEDIATELY on any plan.
-      // This guarantees dashboard access even if Cloud Functions fail
-      // (Spark plan has no CF deployment). The flag is set here; role="seller"
-      // in Firestore gets set later when CFs are deployed.
-      if (user?.uid) {
-        localStorage.setItem(SELLER_APPLIED_KEY, user.uid);
-      }
-
-      // ── Free / basic plan ───────────────────────────────────────────────────
-      if (status === "free") {
-        await refreshProfile?.();
-        if (mounted) {
-          setPhase("success");
-          setMessage("Your free store is ready!");
-        }
-        return;
-      }
-
-      // ── Paid plan — verify Paystack reference ────────────────────────────────
-      if (!reference) {
-        if (mounted) {
-          // Flag is already set above — show success anyway so they can access dashboard
-          setPhase("success");
-          setMessage("Your store is being activated!");
-        }
-        return;
-      }
-
-      setMessage("Confirming payment with Paystack…");
-
-      try {
-        const result = await verifySubscriptionPayment(reference);
-        if (!mounted) return;
-        await refreshProfile?.();
-        setPhase("success");
-      } catch (err) {
-        if (!mounted) return;
-        // CF failed (likely not deployed yet) — but localStorage flag is already set,
-        // so the user CAN still access the dashboard. Show a soft warning, not a hard error.
-        setPhase("success");
-        setMessage("Store setup complete! (Payment verification pending — contact support if needed.)");
-      }
-    };
-
-    process();
-    return () => { mounted = false; };
-  }, [reference, status, user?.uid]);
-
-  const goToDashboard = () => {
-    // window.location.href forces a full page reload — bypasses any SPA routing
-    // guards that might have stale state. Works regardless of SellerRoute version.
-    window.location.href = "/seller-dashboard";
-  };
+    const t = setInterval(() => setCount(c => {
+      if (c <= 1) { clearInterval(t); navigate("/seller-dashboard?tab=home"); return 0; }
+      return c - 1;
+    }), 1000);
+    return () => clearInterval(t);
+  }, [navigate]);
 
   return (
-    <div className="succ-root">
-      {/* Confetti on success */}
-      {phase === "success" && (
-        <div className="succ-confetti" aria-hidden="true">
-          {[...Array(18)].map((_, i) => (
-            <div key={i} className="succ-confetti-piece" style={{
-              left: `${(i / 18) * 100}%`,
-              animationDelay: `${(i % 5) * 0.3}s`,
-              background: ["#046EF2","#22C55E","#F59E0B","#7C3AED","#EF4444"][i % 5],
-            }}/>
-          ))}
+    <div style={{
+      minHeight: "100vh",
+      background: "#f5f7fa",
+      fontFamily: "var(--font-main,'Nunito',sans-serif)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24,
+    }}>
+      <div style={{
+        background: "#fff",
+        borderRadius: 24,
+        padding: "48px 40px",
+        maxWidth: 480,
+        width: "100%",
+        textAlign: "center",
+        boxShadow: "0 12px 48px rgba(0,0,0,0.10)",
+        border: "1px solid rgba(0,0,0,0.07)",
+      }}>
+
+        {/* Animated checkmark */}
+        <div style={{ width: 72, height: 72, borderRadius: "50%",
+          background: "linear-gradient(135deg,#046EF2,#7C3AED)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          margin: "0 auto 24px",
+          boxShadow: "0 8px 24px rgba(4,110,242,0.35)" }}>
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none"
+            stroke="#fff" strokeWidth="2.8" strokeLinecap="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
         </div>
-      )}
 
-      <div className="succ-card">
+        <div style={{ fontSize: 28, fontWeight: 900, color: "#111",
+          letterSpacing: "-0.03em", marginBottom: 8 }}>
+          Welcome to {planName}! 🎉
+        </div>
 
-        {/* ── Verifying ── */}
-        {phase === "verifying" && (
-          <>
-            <SpinnerIcon />
-            <h2 className="succ-title">Setting Up Your Store</h2>
-            <p className="succ-sub">{message}</p>
-            <div className="succ-steps">
-              {["Confirming payment","Creating your storefront","Activating your account"].map((s, i) => (
-                <div key={s} className="succ-step-item">
-                  <div className="succ-step-dot succ-step-loading"
-                    style={{ animationDelay: `${i * 0.3}s` }}/>
-                  <span>{s}</span>
-                </div>
-              ))}
+        <div style={{ fontSize: 15, color: "#6b7280", marginBottom: 24,
+          fontWeight: 500, lineHeight: 1.6 }}>
+          Your {billing === "yearly" ? "yearly" : "monthly"} subscription is now active.
+          Start selling with your upgraded features.
+        </div>
+
+        {/* Plan badge */}
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8,
+          padding: "8px 18px", borderRadius: 20,
+          background: "linear-gradient(135deg, rgba(4,110,242,0.08), rgba(124,58,237,0.08))",
+          border: "1px solid rgba(4,110,242,0.2)", marginBottom: 28 }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%",
+            background: "linear-gradient(135deg, #046EF2, #7C3AED)" }}/>
+          <span style={{ fontSize: 14, fontWeight: 800, color: "#046EF2" }}>
+            {planName} Plan · {billing === "yearly" ? "Yearly" : "Monthly"}
+          </span>
+        </div>
+
+        {/* Features unlocked */}
+        {features.length > 0 && (
+          <div style={{ background: "#f8f9fb", borderRadius: 14,
+            padding: "18px 20px", marginBottom: 28, textAlign: "left" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af",
+              textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>
+              Now unlocked for you
             </div>
-          </>
+            {features.map((f, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center",
+                gap: 10, marginBottom: 9, fontSize: 14, fontWeight: 600, color: "#374151" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                {f}
+              </div>
+            ))}
+          </div>
         )}
 
-        {/* ── Success ── */}
-        {phase === "success" && (
-          <>
-            <SuccessIcon />
-            <h2 className="succ-title">Welcome to Beme Market!</h2>
-            <p className="succ-sub">
-              Your store is live! Start adding products and sharing your store link with customers.
-            </p>
-            <div className="succ-checklist">
-              <CheckItem label="Store created and activated" />
-              <CheckItem label="Payment confirmed" />
-              <CheckItem label="Seller dashboard ready" />
-              <CheckItem label="Products can be listed now" />
-            </div>
-            <button className="succ-cta-btn" onClick={goToDashboard}>
-              Go to My Dashboard →
-            </button>
-            <div className="succ-support">
-              Need help?{" "}
-              <a href="/support" style={{ color: "#046EF2" }}>Contact support</a>
-            </div>
-          </>
-        )}
+        {/* CTA */}
+        <button onClick={() => navigate("/seller-dashboard?tab=home")}
+          style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none",
+            background: "#046EF2", color: "#fff", fontSize: 15, fontWeight: 800,
+            cursor: "pointer", fontFamily: "inherit",
+            boxShadow: "0 4px 16px rgba(4,110,242,0.35)",
+            transition: "opacity 0.15s", marginBottom: 12 }}>
+          Go to Dashboard →
+        </button>
 
-        {/* ── Error ── */}
-        {phase === "error" && (
-          <>
-            <ErrorIcon />
-            <h2 className="succ-title">Something Went Wrong</h2>
-            <p className="succ-sub">{message}</p>
-            <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 24, flexWrap: "wrap" }}>
-              <button className="succ-cta-btn" style={{ background: "#EF4444" }}
-                onClick={() => navigate("/store-plans")}>
-                Try Again
-              </button>
-              <button className="succ-cta-btn"
-                style={{ background: "rgba(0,0,0,0.08)", color: "#111" }}
-                onClick={() => navigate("/support")}>
-                Contact Support
-              </button>
-            </div>
-          </>
-        )}
-
+        <div style={{ fontSize: 12, color: "#9ca3af", fontWeight: 500 }}>
+          Redirecting automatically in {count}s
+        </div>
       </div>
     </div>
   );

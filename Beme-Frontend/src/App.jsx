@@ -76,6 +76,7 @@ import CommunityGuidelines from "./pages/CommunityGuidelines";
 import StoreOnboarding      from "./pages/StoreOnboarding";
 import StoreSurvey          from "./pages/StoreSurvey";
 import SubscriptionSuccess  from "./pages/SubscriptionSuccess";
+import SubscriptionCallback from "./pages/SubscriptionCallback";
 import SellerDashboard      from "./pages/SellerDashboard";
 
 /* ── SELLER PRODUCT DETAIL ── */
@@ -88,10 +89,6 @@ import StoreFront from "./pages/StoreFront";
 import SellerPayoutRequests  from "./pages/admin/PayoutRequests";
 import VerificationRequests  from "./pages/admin/VerificationRequests";
 import StoreModeration       from "./pages/admin/StoreModeration";
-
-/* ─────────────────────────────────────────────────────────────
-   HELPERS
-───────────────────────────────────────────────────────────── */
 
 function SuperAdminOnly({ children }) {
   const { loading, isSuperAdmin } = useAuth();
@@ -109,28 +106,24 @@ const VERIFY_REQUIRED_PREFIXES = [
   "/store-onboarding",
   "/store-survey",
   "/subscription-success",
+  "/subscription/success",
   "/onboarding",
 ];
 
 function RequireVerified({ children }) {
   const { user, emailVerified, loading } = useAuth();
   const location = useLocation();
-
   if (loading) return null;
   if (!user) return children;
-
   const needsVerification = VERIFY_REQUIRED_PREFIXES.some(prefix =>
     location.pathname.startsWith(prefix)
   );
-
   if (needsVerification && !emailVerified) {
     return <Navigate to="/verify-email" replace />;
   }
-
   return children;
 }
 
-/* ─── FULL-SCREEN PATHS ─── */
 const FULL_SCREEN_ROUTES = new Set([
   "/login",
   "/signup",
@@ -153,6 +146,8 @@ const FULL_SCREEN_ROUTES = new Set([
   "/store-onboarding",
   "/store-survey",
   "/subscription-success",
+  "/subscription/callback",
+  "/subscription/success",
   "/seller-dashboard",
   "/admin/seller-payouts",
   "/admin/verification-requests",
@@ -165,7 +160,6 @@ function isFullScreen(pathname) {
   return false;
 }
 
-/* ─── APP SHELL ─── */
 function AppShell() {
   const location = useLocation();
   const { loading: authLoading } = useAuth();
@@ -262,8 +256,12 @@ function AppShell() {
               element={<SellerRoute requireOnly="auth"><StoreOnboarding/></SellerRoute>}/>
             <Route path="/store-survey"
               element={<SellerRoute requireOnly="auth"><StoreSurvey/></SellerRoute>}/>
+
+            {/* ── SUBSCRIPTION FLOW ── */}
             <Route path="/subscription-success"
               element={<SellerRoute requireOnly="auth"><SubscriptionSuccess/></SellerRoute>}/>
+            <Route path="/subscription/callback" element={<SubscriptionCallback/>}/>
+            <Route path="/subscription/success"  element={<SubscriptionSuccess/>}/>
 
             {/* ── SELLER DASHBOARD ── */}
             <Route path="/seller-dashboard" element={<SellerDashboard/>}/>
