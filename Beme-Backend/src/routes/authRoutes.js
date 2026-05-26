@@ -3,7 +3,6 @@ import { firebaseAdmin } from "../firebaseAdmin.js";
 import {
   sendPasswordResetEmail,
   sendVerificationEmail,
-  sendWelcomeEmail,
 } from "../services/email.js";
 
 const router = express.Router();
@@ -18,63 +17,67 @@ function normalizeEmail(value) {
 function getFrontendBaseUrl() {
   return String(process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/+$/, "");
 }
-function withTimeout(promise, timeoutMs, label = "Operation") {
+function withTimeout(promise, ms, label = "Operation") {
   return Promise.race([
     promise,
-    new Promise((_, reject) => {
-      setTimeout(() => { reject(new Error(`${label} timed out after ${timeoutMs}ms`)); }, timeoutMs);
-    }),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    ),
   ]);
 }
 
-router.get("/", (_req, res) => { res.json({ message: "Auth route working" }); });
+router.get("/", (_req, res) => res.json({ message: "Auth route working" }));
 
-/* ── Forgot password — sends branded email ── */
+/* ── Forgot password → custom branded email with custom reset URL ── */
 router.post("/forgot-password", async (req, res) => {
   try {
     const email = normalizeEmail(req.body?.email);
     if (!email || !isValidEmail(email)) {
       return res.status(400).json({ success: false, message: "Enter a valid email address." });
     }
-    const actionCodeSettings = {
-      url: `${getFrontendBaseUrl()}/login?reset=1`,
-      handleCodeInApp: false,
-    };
+
     try {
-      const resetLink = await firebaseAdmin
-        .auth()
-        .generatePasswordResetLink(email, actionCodeSettings);
+      // Generate Firebase reset link (raw — contains oobCode)
+      const rawLink = await firebaseAdmin.auth().generatePasswordResetLink(email, {
+        url: `${getFrontendBaseUrl()}/login?reset=done`,
+        handleCodeInApp: false,
+      });
+
+      // Extract oobCode and build OUR custom reset page URL
+      const parsed  = new URL(rawLink);
+      const oobCode = parsed.searchParams.get("oobCode") || "";
+      const resetLink = oobCode
+        ? `${getFrontendBaseUrl()}/reset-password?oobCode=${encodeURIComponent(oobCode)}`
+        : rawLink; // fallback to Firebase URL if parse fails
+
       await withTimeout(
         sendPasswordResetEmail({ email, resetLink }),
         EMAIL_SEND_TIMEOUT_MS,
-        "Password reset email send"
+        "Password reset email"
       );
-      return res.status(200).json({
+
+      return res.json({
         success: true,
         message: "If an account exists for this email, a password reset link has been sent.",
       });
-    } catch (innerError) {
-      const code    = innerError?.code    || "";
-      const message = innerError?.message || "";
-      console.error("FORGOT_PASSWORD_EMAIL_ERROR", { code, message });
+    } catch (inner) {
+      const code = inner?.code || "";
+      console.error("[forgot-password]", inner.message);
       if (code.includes("auth/user-not-found") || code.includes("auth/invalid-email")) {
-        return res.status(200).json({
-          success: true,
-          message: "If an account exists for this email, a password reset link has been sent.",
-        });
+        return res.json({ success: true, message: "If an account exists for this email, a reset link has been sent." });
       }
-      if (message.includes("timed out")) {
-        return res.status(504).json({ success: false, message: "Reset email service timed out." });
+      if (inner.message?.includes("timed out")) {
+        return res.status(504).json({ success: false, message: "Email timed out. Try again." });
       }
-      return res.status(500).json({ success: false, message: "Could not send reset email. Check backend email settings." });
+      return res.status(500).json({ success: false, message: "Could not send reset email." });
     }
-  } catch (error) {
-    console.error("FORGOT_PASSWORD_ROUTE_ERROR", { message: error?.message });
-    return res.status(500).json({ success: false, message: "Could not send reset email. Try again." });
+  } catch (err) {
+    console.error("[forgot-password] route:", err.message);
+    return res.status(500).json({ success: false, message: "Could not send reset email." });
   }
 });
 
-/* ── Send verification email — called after signup ── */
+/* ── Send verification email after signup ── */
 router.post("/send-verification", async (req, res) => {
   try {
     const { email, name } = req.body;
@@ -82,29 +85,26 @@ router.post("/send-verification", async (req, res) => {
       return res.status(400).json({ success: false, message: "Valid email required." });
     }
     try {
-      const verifyLink = await firebaseAdmin
-        .auth()
-        .generateEmailVerificationLink(normalizeEmail(email), {
-          url: `${getFrontendBaseUrl()}/login?verified=1`,
-          handleCodeInApp: false,
-        });
+      const verifyLink = await firebaseAdmin.auth().generateEmailVerificationLink(
+        normalizeEmail(email),
+        { url: `${getFrontendBaseUrl()}/login?verified=1`, handleCodeInApp: false }
+      );
       await withTimeout(
         sendVerificationEmail({ email: normalizeEmail(email), verifyLink, name: name || "" }),
         EMAIL_SEND_TIMEOUT_MS,
-        "Verification email send"
+        "Verification email"
       );
       return res.json({ success: true, message: "Verification email sent." });
-    } catch (innerError) {
-      const code = innerError?.code || "";
-      console.error("[send-verification] error:", innerError.message);
-      // If user doesn't exist in Firebase yet, still return ok (Firebase may not have processed yet)
+    } catch (inner) {
+      const code = inner?.code || "";
+      console.error("[send-verification]", inner.message);
       if (code.includes("auth/user-not-found") || code.includes("auth/invalid-email")) {
-        return res.json({ success: true, message: "If the account exists, a verification email has been sent." });
+        return res.json({ success: true });
       }
       return res.status(500).json({ success: false, message: "Could not send verification email." });
     }
-  } catch (error) {
-    console.error("[send-verification] route error:", error.message);
+  } catch (err) {
+    console.error("[send-verification] route:", err.message);
     return res.status(500).json({ success: false, message: "Could not send verification email." });
   }
 });
