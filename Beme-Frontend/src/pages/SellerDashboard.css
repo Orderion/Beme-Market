@@ -374,7 +374,7 @@
 .sd-topbar {
   height: 58px;
   background: var(--white);
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
