@@ -77,6 +77,7 @@ import StoreOnboarding      from "./pages/StoreOnboarding";
 import StoreSurvey          from "./pages/StoreSurvey";
 import SubscriptionSuccess  from "./pages/SubscriptionSuccess";
 import SubscriptionCallback from "./pages/SubscriptionCallback";
+import ResetPassword     from "./pages/ResetPassword";
 import SellerDashboard      from "./pages/SellerDashboard";
 
 /* ── SELLER PRODUCT DETAIL ── */
@@ -147,6 +148,7 @@ const FULL_SCREEN_ROUTES = new Set([
   "/store-survey",
   "/subscription-success",
   "/subscription/callback",
+  "/reset-password",
   "/subscription/success",
   "/seller-dashboard",
   "/admin/seller-payouts",
@@ -261,6 +263,7 @@ function AppShell() {
             <Route path="/subscription-success"
               element={<SellerRoute requireOnly="auth"><SubscriptionSuccess/></SellerRoute>}/>
             <Route path="/subscription/callback" element={<SubscriptionCallback/>}/>
+            <Route path="/reset-password"        element={<ResetPassword/>}/>
             <Route path="/subscription/success"  element={<SubscriptionSuccess/>}/>
 
             {/* ── SELLER DASHBOARD ── */}
