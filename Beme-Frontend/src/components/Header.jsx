@@ -668,20 +668,25 @@ export default function Header({ onMenu, onCart }) {
             <div className="hdr-suggestion-empty">Loading…</div>
           ) : suggestions.length ? (
             <>
-              {suggestions.map((item, idx) => (
-                <button key={item.id} type="button"
-                  className={`hdr-suggestion-item ${idx === activeIdx ? "active" : ""}`}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => goToSearch(item.value)}>
-                  <span className="hdr-sug-search-icon" aria-hidden="true">
-                    <IconSearch />
-                  </span>
-                  <span className="hdr-sug-label">{item.label}</span>
-                  <span className="hdr-sug-arrow" aria-hidden="true">
-                    <IconArrowRight />
-                  </span>
-                </button>
-              ))}
+              {suggestions.map((item, idx) => {
+                const q = search.trim().toLowerCase();
+                const labelLower = item.label.toLowerCase();
+                const matchIdx = q ? labelLower.indexOf(q) : -1;
+                const highlighted = matchIdx >= 0
+                  ? <>{item.label.slice(0, matchIdx)}<span className="hdr-sug-match">{item.label.slice(matchIdx, matchIdx + q.length)}</span>{item.label.slice(matchIdx + q.length)}</>
+                  : item.label;
+                return (
+                  <button key={item.id} type="button"
+                    className={`hdr-suggestion-item ${idx === activeIdx ? "active" : ""}`}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => goToSearch(item.value)}>
+                    <span className="hdr-sug-search-icon" aria-hidden="true">
+                      <IconSearch />
+                    </span>
+                    <span className="hdr-sug-label">{highlighted}</span>
+                  </button>
+                );
+              })}
               <button type="button" className="hdr-sug-more"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => goToSearch(search)}>

@@ -42,6 +42,24 @@ const SORT_OPTIONS = [
 ];
 const SORT_LABELS = Object.fromEntries(SORT_OPTIONS);
 
+
+/* ── Track + sort categories by click popularity ── */
+const POPULAR_KEY = "beme_cat_clicks";
+function getCatClicks() {
+  try { return JSON.parse(localStorage.getItem(POPULAR_KEY) || "{}"); } catch { return {}; }
+}
+function trackCatClick(query) {
+  try {
+    const clicks = getCatClicks();
+    clicks[query] = (clicks[query] || 0) + 1;
+    localStorage.setItem(POPULAR_KEY, JSON.stringify(clicks));
+  } catch {}
+}
+function sortByPopularity(cats) {
+  const clicks = getCatClicks();
+  return [...cats].sort((a, b) => (clicks[b.query] || 0) - (clicks[a.query] || 0));
+}
+
 function IconPlus()   { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>; }
 function IconArrow()  { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>; }
 function IconSearch() { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>; }
@@ -62,6 +80,8 @@ const Shop = () => {
   const stockParam = params.get("stock") === "1";
 
   const activeCatKey = NAV_CATEGORIES.find(c => c.query === qParam)?.key || null;
+  const [sortedCats, setSortedCats] = useState(() => sortByPopularity(NAV_CATEGORIES));
+  useEffect(() => { setSortedCats(sortByPopularity(NAV_CATEGORIES)); }, [qParam]);
 
   useEffect(() => {
     document.body.style.overflow = (filtersOpen || sortOpen) ? "hidden" : "";
@@ -78,7 +98,12 @@ const Shop = () => {
   const closePanels = () => { setFiltersOpen(false); setSortOpen(false); };
 
   /* ── Setters ── */
-  const setQ        = (val) => { const n=new URLSearchParams(params); if(!val)n.delete("q"); else n.set("q",val); setParams(n); };
+  const setQ        = (val) => {
+    const n=new URLSearchParams(params);
+    if(!val) n.delete("q");
+    else { n.set("q",val); trackCatClick(val); }
+    setParams(n);
+  };
   const clearSearch = ()    => { const n=new URLSearchParams(params); n.delete("q"); setParams(n); };
   const resetSortOnly  = () => { const n=new URLSearchParams(params); n.delete("sort"); setParams(n); };
   const resetPriceOnly = () => { const n=new URLSearchParams(params); n.delete("min"); n.delete("max"); setParams(n); };
@@ -175,7 +200,7 @@ const Shop = () => {
                     <svg viewBox="0 0 24 24" className="shop-chip-svg" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                     All products
                   </button>
-                  {NAV_CATEGORIES.map(cat => (
+                  {sortedCats.map(cat => (
                     <button key={cat.key} type="button"
                       className={activeCatKey===cat.key?"sidebar-item active":"sidebar-item"}
                       onClick={() => setQ(cat.query)}>
@@ -262,7 +287,7 @@ const Shop = () => {
           <div className="shop-cat-chips">
             <button className={`shop-cat-chip${!activeCatKey&&!qParam?" shop-cat-chip--active":""}`}
               type="button" onClick={() => clearSearch()}>All</button>
-            {NAV_CATEGORIES.map(cat => (
+            {sortedCats.map(cat => (
               <button key={cat.key}
                 className={`shop-cat-chip${activeCatKey===cat.key?" shop-cat-chip--active":""}`}
                 type="button" onClick={() => setQ(cat.query)}>

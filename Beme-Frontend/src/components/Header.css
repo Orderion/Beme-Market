@@ -989,3 +989,93 @@ body.dark .hdr-cat-mega-footer { border-top-color: rgba(255,255,255,0.06); }
   overflow: hidden; text-overflow: ellipsis;
 }
 .hdr-suggestions--pinterest .hdr-suggestion-item.active .hdr-sug-label { font-weight: 700; }
+
+/* ══ SEARCH BAR — Google/Pinterest style ══ */
+
+/* Thicker border on search form */
+.hdr-search-form {
+  border-width: 2px !important;
+  border-radius: 24px !important;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08) !important;
+}
+.hdr-search-form:focus-within {
+  border-color: #1a73e8 !important;
+  box-shadow: 0 1px 6px rgba(26,115,232,0.2) !important;
+}
+
+/* Dropdown — white, no dividers, bigger radius */
+.hdr-suggestions {
+  border-radius: 24px !important;
+  border-width: 2px !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12) !important;
+  padding: 8px 0 !important;
+  overflow: hidden;
+}
+
+/* Remove ALL dividers between suggestion items */
+.hdr-suggestion-item {
+  border-bottom: none !important;
+  border-top: none !important;
+  padding: 12px 16px !important;
+  gap: 14px !important;
+  border-radius: 0 !important;
+}
+
+/* Hover — soft gray rounded rectangle (like Google) */
+.hdr-suggestion-item:hover,
+.hdr-suggestion-item.active {
+  background: #f1f3f4 !important;
+  border-radius: 0 !important;
+}
+body.dark .hdr-suggestion-item:hover,
+body.dark .hdr-suggestion-item.active {
+  background: rgba(255,255,255,0.08) !important;
+}
+
+/* Suggestion label — bigger, cleaner */
+.hdr-suggestions--pinterest .hdr-sug-label {
+  font-size: 15px !important;
+  font-weight: 400 !important;
+  color: var(--text) !important;
+}
+.hdr-suggestions--pinterest .hdr-suggestion-item.active .hdr-sug-label,
+.hdr-suggestions--pinterest .hdr-suggestion-item:hover .hdr-sug-label {
+  font-weight: 400 !important;
+}
+
+/* Bold the matching part */
+.hdr-sug-match { font-weight: 700; }
+
+/* Search icon — slightly bigger */
+.hdr-sug-search-icon { opacity: 0.35 !important; }
+.hdr-sug-search-icon svg { width: 16px !important; height: 16px !important; }
+
+/* Arrow — hide on non-pinterest */
+.hdr-sug-arrow { display: none !important; }
+.hdr-suggestions--pinterest .hdr-sug-arrow { display: flex !important; }
+
+/* Remove "Search for X" row divider */
+.hdr-sug-more {
+  border-top: 1px solid rgba(0,0,0,0.06) !important;
+  margin-top: 4px !important;
+  border-radius: 0 !important;
+  padding: 12px 16px !important;
+  font-size: 14px !important;
+}
+
+/* Recent searches — no divider */
+.hdr-recent-item {
+  border-bottom: none !important;
+  padding: 11px 16px !important;
+}
+.hdr-recent-item:hover { background: #f1f3f4 !important; }
+body.dark .hdr-recent-item:hover { background: rgba(255,255,255,0.08) !important; }
+
+/* Category chip row — keep subtle separator */
+.hdr-sug-chips {
+  border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+  padding: 10px 14px 12px !important;
+}
+
+/* Section labels */
+.hdr-sug-section-label { padding: 12px 16px 6px !important; }
