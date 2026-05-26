@@ -8,63 +8,69 @@ import {
 const router = express.Router();
 const EMAIL_SEND_TIMEOUT_MS = 12000;
 
-function isValidEmail(value) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
-}
-function normalizeEmail(value) {
-  return String(value || "").trim().toLowerCase();
-}
-function getFrontendBaseUrl() {
-  return String(process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/+$/, "");
-}
-function withTimeout(promise, ms, label = "Operation") {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
-    ),
-  ]);
+function isValidEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||"").trim()); }
+function normalizeEmail(v) { return String(v||"").trim().toLowerCase(); }
+function getFrontendBaseUrl() { return String(process.env.FRONTEND_URL||"http://localhost:5173").replace(/\/+$/,""); }
+function withTimeout(p,ms,label="Op") {
+  return Promise.race([p, new Promise((_,r)=>setTimeout(()=>r(new Error(`${label} timed out`)),ms))]);
 }
 
 router.get("/", (_req, res) => res.json({ message: "Auth route working" }));
 
-/* ── Forgot password → custom branded email with custom reset URL ── */
+/* ── Test reset email ── */
+router.get("/test-email", async (req, res) => {
+  const to = req.query.to || process.env.ADMIN_EMAIL;
+  if (!to) return res.status(400).json({ error: "Pass ?to=youremail@gmail.com" });
+  try {
+    await sendPasswordResetEmail({
+      email: to,
+      resetLink: "https://bememarket.store/reset-password?oobCode=TEST_CODE",
+    });
+    res.json({ success: true, message: `Test reset email sent to ${to}` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/* ── Test verification email ── */
+router.get("/test-verify", async (req, res) => {
+  const to = req.query.to;
+  if (!to) return res.status(400).json({ error: "Pass ?to=youremail@gmail.com" });
+  try {
+    await sendVerificationEmail({
+      email: to,
+      verifyLink: `${getFrontendBaseUrl()}/login?verified=1`,
+      name: "Test User",
+    });
+    res.json({ success: true, message: `Verification test email sent to ${to}` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/* ── Forgot password ── */
 router.post("/forgot-password", async (req, res) => {
   try {
     const email = normalizeEmail(req.body?.email);
     if (!email || !isValidEmail(email)) {
       return res.status(400).json({ success: false, message: "Enter a valid email address." });
     }
-
     try {
-      // Generate Firebase reset link (raw — contains oobCode)
       const rawLink = await firebaseAdmin.auth().generatePasswordResetLink(email, {
-        url: `${getFrontendBaseUrl()}/login?reset=done`,
-        handleCodeInApp: false,
+        url: `${getFrontendBaseUrl()}/login?reset=done`, handleCodeInApp: false,
       });
-
-      // Extract oobCode and build OUR custom reset page URL
-      const parsed  = new URL(rawLink);
-      const oobCode = parsed.searchParams.get("oobCode") || "";
+      const parsed   = new URL(rawLink);
+      const oobCode  = parsed.searchParams.get("oobCode") || "";
       const resetLink = oobCode
         ? `${getFrontendBaseUrl()}/reset-password?oobCode=${encodeURIComponent(oobCode)}`
-        : rawLink; // fallback to Firebase URL if parse fails
-
-      await withTimeout(
-        sendPasswordResetEmail({ email, resetLink }),
-        EMAIL_SEND_TIMEOUT_MS,
-        "Password reset email"
-      );
-
-      return res.json({
-        success: true,
-        message: "If an account exists for this email, a password reset link has been sent.",
-      });
+        : rawLink;
+      await withTimeout(sendPasswordResetEmail({ email, resetLink }), EMAIL_SEND_TIMEOUT_MS, "Password reset email");
+      return res.json({ success: true, message: "If an account exists, a reset link has been sent." });
     } catch (inner) {
       const code = inner?.code || "";
       console.error("[forgot-password]", inner.message);
       if (code.includes("auth/user-not-found") || code.includes("auth/invalid-email")) {
-        return res.json({ success: true, message: "If an account exists for this email, a reset link has been sent." });
+        return res.json({ success: true, message: "If an account exists, a reset link has been sent." });
       }
       if (inner.message?.includes("timed out")) {
         return res.status(504).json({ success: false, message: "Email timed out. Try again." });
@@ -91,14 +97,13 @@ router.post("/send-verification", async (req, res) => {
       );
       await withTimeout(
         sendVerificationEmail({ email: normalizeEmail(email), verifyLink, name: name || "" }),
-        EMAIL_SEND_TIMEOUT_MS,
-        "Verification email"
+        EMAIL_SEND_TIMEOUT_MS, "Verification email"
       );
       return res.json({ success: true, message: "Verification email sent." });
     } catch (inner) {
       const code = inner?.code || "";
       console.error("[send-verification]", inner.message);
-      if (code.includes("auth/user-not-found") || code.includes("auth/invalid-email")) {
+      if (code.includes("auth/user-not-found") || code.includes("auth/invalid-email") || code.includes("TOO_MANY")) {
         return res.json({ success: true });
       }
       return res.status(500).json({ success: false, message: "Could not send verification email." });
@@ -106,31 +111,6 @@ router.post("/send-verification", async (req, res) => {
   } catch (err) {
     console.error("[send-verification] route:", err.message);
     return res.status(500).json({ success: false, message: "Could not send verification email." });
-  }
-});
-
-/* ── Test emails — reset & verification ── */
-router.get("/test-email", async (req, res) => {
-  const to   = req.query.to   || process.env.ADMIN_EMAIL;
-  const type = req.query.type || "reset";
-  if (!to) return res.status(400).json({ error: "Pass ?to=youremail@gmail.com" });
-  try {
-    const { sendPasswordResetEmail, sendVerificationEmail } = await import("../services/email.js");
-    if (type === "verify") {
-      await sendVerificationEmail({
-        email: to,
-        verifyLink: "https://bememarket.store/login?verified=1",
-        name: "Test User",
-      });
-      return res.json({ success: true, message: `Verification test email sent to ${to}` });
-    }
-    await sendPasswordResetEmail({
-      email: to,
-      resetLink: "https://bememarket.store/reset-password?oobCode=TEST_CODE",
-    });
-    res.json({ success: true, message: `Reset test email sent to ${to}` });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
   }
 });
 
