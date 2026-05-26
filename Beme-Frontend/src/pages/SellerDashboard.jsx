@@ -243,7 +243,7 @@ export default function SellerDashboard() {
     marketing:     "Marketing",
     analytics:     "Analytics Pro",
     withdrawals:   "Withdrawals",
-    appearance:    "Store Design",
+    appearance:    "Manage Store",
     verification:  "Verification",
     delivery:      "Delivery Settings",
     security:      "Security",
