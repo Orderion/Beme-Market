@@ -366,3 +366,34 @@ body.dark .hdr-cat-mega-footer { border-top-color:rgba(255,255,255,0.06); }
     transition: none !important; animation: none !important;
   }
 }
+
+
+/* ── Remove submit button, clean pill search ── */
+.hdr-search-submit { display: none !important; }
+
+/* Border stays subtle always — no blue highlight */
+.hdr-search-form {
+  border: 1.5px solid rgba(0,0,0,0.15) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
+}
+.hdr-search-form:focus-within {
+  border-color: rgba(0,0,0,0.2) !important;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.1) !important;
+}
+body.dark .hdr-search-form {
+  border-color: rgba(255,255,255,0.15) !important;
+}
+body.dark .hdr-search-form:focus-within {
+  border-color: rgba(255,255,255,0.25) !important;
+}
+
+/* Remove the divider line (black character) */
+.hdr-search-submit,
+.hdr-search-form > button[type="submit"] { display: none !important; }
+
+/* Input takes full width now */
+.hdr-search-input { padding-right: 8px !important; }
+
+/* Search icon left — Pinterest gray */
+.hdr-search-icon-left { color: #9aa0a6 !important; opacity: 1 !important; }

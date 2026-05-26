@@ -1032,10 +1032,7 @@ export default function Header({ onMenu, onCart }) {
                   <IconClose />
                 </button>
               )}
-              <button type="submit" className="hdr-search-submit"
-                tabIndex={isBar ? 0 : -1} aria-label="Search">
-                <IconSearch />
-              </button>
+
             </form>
             {renderDropdown()}
           </div>
