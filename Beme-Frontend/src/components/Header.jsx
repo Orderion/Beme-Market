@@ -663,7 +663,7 @@ export default function Header({ onMenu, onCart }) {
 
     if (isTyping) {
       return (
-        <div className="hdr-suggestions">
+        <div className="hdr-suggestions hdr-suggestions--pinterest">
           {loadingSugs ? (
             <div className="hdr-suggestion-empty">Loading…</div>
           ) : suggestions.length ? (
@@ -673,10 +673,13 @@ export default function Header({ onMenu, onCart }) {
                   className={`hdr-suggestion-item ${idx === activeIdx ? "active" : ""}`}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => goToSearch(item.value)}>
-                  <span className={`hdr-sug-type hdr-sug-type--${item.type}`}>
-                    {TYPE_LABELS[item.type] || item.type}
+                  <span className="hdr-sug-search-icon" aria-hidden="true">
+                    <IconSearch />
                   </span>
                   <span className="hdr-sug-label">{item.label}</span>
+                  <span className="hdr-sug-arrow" aria-hidden="true">
+                    <IconArrowRight />
+                  </span>
                 </button>
               ))}
               <button type="button" className="hdr-sug-more"

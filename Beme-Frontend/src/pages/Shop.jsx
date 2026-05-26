@@ -1,18 +1,11 @@
-/* ============================================================
-   FILE: src/pages/Shop.jsx
-   Categories section now uses the same NAV_CATEGORIES as the
-   header nav (defined once here, same data as Header.jsx).
-   Category filter sets ?q= param, matching header behaviour.
-   Layout fixed for all screen sizes.
-============================================================ */
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductGrid from "../components/ProductGrid";
 import ProductRequestModal from "../components/productRequest/ProductRequestModal";
 import shopBanner from "../assets/Shop-banner.JPG";
 import {
-  SHOPS, HOME_FILTER_OPTIONS,
-  normalizeShop, normalizeHomeFilter,
+  HOME_FILTER_OPTIONS,
+  normalizeHomeFilter,
 } from "../constants/catalog";
 import "./Shop.css";
 
@@ -28,7 +21,6 @@ const NAV_CATEGORIES = [
   { key:"accessories",     label:"Accessories",      query:"accessories", color:"#FFF3DB" },
 ];
 
-/* ── Category icons (same stroke style as header ChipIcon) ── */
 const CAT_ICONS = {
   iphones:(<svg viewBox="0 0 24 24" className="shop-chip-svg" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="7" y="2" width="10" height="20" rx="2.5"/><circle cx="12" cy="17.5" r="0.8" fill="currentColor" stroke="none"/></svg>),
   laptops:(<svg viewBox="0 0 24 24" className="shop-chip-svg" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="5" width="18" height="12" rx="1.5"/><path d="M1 19h22"/></svg>),
@@ -40,28 +32,20 @@ const CAT_ICONS = {
   accessories:(<svg viewBox="0 0 24 24" className="shop-chip-svg" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg>),
 };
 
-const SHOP_FILTER_OPTIONS = SHOPS.map(s => ({ ...s }));
+/* Sort options — plan-aware */
+const SORT_OPTIONS = [
+  ["new",        "New Arrivals"],
+  ["trending",   "Trending"],
+  ["featured",   "Featured"],
+  ["price-asc",  "Price: Low to High"],
+  ["price-desc", "Price: High to Low"],
+];
+const SORT_LABELS = Object.fromEntries(SORT_OPTIONS);
 
-function getLabel(list, key) {
-  return list.find(i => i.key === key)?.label || null;
-}
+function IconPlus()   { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>; }
+function IconArrow()  { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>; }
+function IconSearch() { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>; }
 
-function ShopIcon({ shopKey }) {
-  const p = { fill:"none", stroke:"currentColor", strokeWidth:"1.8", strokeLinejoin:"round" };
-  if (shopKey==="fashion") return <svg viewBox="0 0 24 24" className="shop-chip-svg" {...p}><path d="M9 4l3 2 3-2 3 3-2 3v9H8v-9L6 7l3-3Z"/></svg>;
-  if (shopKey==="kente")   return <svg viewBox="0 0 24 24" className="shop-chip-svg" {...p} strokeLinecap="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>;
-  if (shopKey==="perfume") return <svg viewBox="0 0 24 24" className="shop-chip-svg" {...p} strokeLinecap="round"><path d="M9 2h6v4H9zM12 6v3M7 9h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/></svg>;
-  if (shopKey==="tech")    return <svg viewBox="0 0 24 24" className="shop-chip-svg" {...p} strokeLinecap="round"><rect x="5" y="5" width="14" height="10" rx="1.6"/><path d="M3.5 18h17"/></svg>;
-  return <svg viewBox="0 0 24 24" className="shop-chip-svg" {...p} strokeLinecap="round"><rect x="4" y="5" width="16" height="14" rx="2.4"/><path d="M8 9h8M8 12h8M8 15h5"/></svg>;
-}
-
-function IconPlus() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>; }
-function IconArrow(){ return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>; }
-function IconSearch(){ return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>; }
-
-/* ════════════════════════════════════════
-   COMPONENT
-════════════════════════════════════════ */
 const Shop = () => {
   const [params, setParams]           = useSearchParams();
   const [requestModalOpen, setRequest]= useState(false);
@@ -69,17 +53,14 @@ const Shop = () => {
   const [sortOpen, setSortOpen]       = useState(false);
 
   /* ── URL params ── */
-  const shopParam     = normalizeShop(params.get("shop"));
-  const rawSlot       = params.get("slot");
-  const slotParam     = rawSlot ? normalizeHomeFilter(rawSlot) : null;
-  const qParam        = (params.get("q") || "").trim();
-  const sortParam     = (params.get("sort") || "new").toLowerCase();
-  const minParam      = params.get("min") ? Number(params.get("min")) : null;
-  const maxParam      = params.get("max") ? Number(params.get("max")) : null;
-  const stockParam    = params.get("stock") === "1";
-  const featuredParam = params.get("featured") === "1";
+  const rawSlot    = params.get("slot");
+  const slotParam  = rawSlot ? normalizeHomeFilter(rawSlot) : null;
+  const qParam     = (params.get("q") || "").trim();
+  const sortParam  = (params.get("sort") || "new").toLowerCase();
+  const minParam   = params.get("min") ? Number(params.get("min")) : null;
+  const maxParam   = params.get("max") ? Number(params.get("max")) : null;
+  const stockParam = params.get("stock") === "1";
 
-  /* active category = which NAV_CATEGORY query matches current ?q= */
   const activeCatKey = NAV_CATEGORIES.find(c => c.query === qParam)?.key || null;
 
   useEffect(() => {
@@ -88,32 +69,32 @@ const Shop = () => {
   }, [filtersOpen, sortOpen]);
 
   const [draft, setDraft] = useState(() => ({
-    sort:sortParam, min:minParam??"", max:maxParam??"", stock:stockParam, featured:featuredParam,
+    sort: sortParam, min: minParam ?? "", max: maxParam ?? "", stock: stockParam,
   }));
   useEffect(() => {
-    setDraft({ sort:sortParam, min:minParam??"", max:maxParam??"", stock:stockParam, featured:featuredParam });
-  }, [sortParam, minParam, maxParam, stockParam, featuredParam]);
+    setDraft({ sort: sortParam, min: minParam ?? "", max: maxParam ?? "", stock: stockParam });
+  }, [sortParam, minParam, maxParam, stockParam]);
 
   const closePanels = () => { setFiltersOpen(false); setSortOpen(false); };
 
   /* ── Setters ── */
-  const setShop  = (shop)  => { const n=new URLSearchParams(params); if(!shop)n.delete("shop"); else n.set("shop",shop); setParams(n); };
-  const setQ     = (val)   => { const n=new URLSearchParams(params); if(!val)n.delete("q"); else n.set("q",val); setParams(n); };
-  const clearSearch = ()   => { const n=new URLSearchParams(params); n.delete("q"); setParams(n); };
-  const resetSortOnly  = ()=> { const n=new URLSearchParams(params); n.delete("sort"); setParams(n); };
-  const resetPriceOnly = ()=> { const n=new URLSearchParams(params); n.delete("min"); n.delete("max"); setParams(n); };
-  const toggleStock    = (v)=>{ const n=new URLSearchParams(params); if(v)n.set("stock","1"); else n.delete("stock"); setParams(n); };
-  const toggleFeatured = (v)=>{ const n=new URLSearchParams(params); if(v)n.set("featured","1"); else n.delete("featured"); setParams(n); };
+  const setQ        = (val) => { const n=new URLSearchParams(params); if(!val)n.delete("q"); else n.set("q",val); setParams(n); };
+  const clearSearch = ()    => { const n=new URLSearchParams(params); n.delete("q"); setParams(n); };
+  const resetSortOnly  = () => { const n=new URLSearchParams(params); n.delete("sort"); setParams(n); };
+  const resetPriceOnly = () => { const n=new URLSearchParams(params); n.delete("min"); n.delete("max"); setParams(n); };
+  const toggleStock    = (v)=> { const n=new URLSearchParams(params); if(v)n.set("stock","1"); else n.delete("stock"); setParams(n); };
 
   const clearAll = () => {
     const n = new URLSearchParams(params);
-    ["shop","slot","sort","min","max","stock","featured","q"].forEach(k => n.delete(k));
+    ["slot","sort","min","max","stock","q"].forEach(k => n.delete(k));
     setParams(n); closePanels();
   };
+
   const openSort = () => {
-    setDraft({ sort:sortParam, min:minParam??"", max:maxParam??"", stock:stockParam, featured:featuredParam });
+    setDraft({ sort:sortParam, min:minParam??"", max:maxParam??"", stock:stockParam });
     setSortOpen(true); setFiltersOpen(false);
   };
+
   const applySort = () => {
     const next = new URLSearchParams(params);
     if (!draft.sort || draft.sort==="new") next.delete("sort"); else next.set("sort",draft.sort);
@@ -122,39 +103,37 @@ const Shop = () => {
     if(min!=null&&!Number.isNaN(min)&&min>=0)next.set("min",String(min));else next.delete("min");
     if(max!=null&&!Number.isNaN(max)&&max>=0)next.set("max",String(max));else next.delete("max");
     if(draft.stock)next.set("stock","1");else next.delete("stock");
-    if(draft.featured)next.set("featured","1");else next.delete("featured");
     setParams(next); setSortOpen(false);
   };
+
   const clearSortPanel = () => {
-    setDraft({ sort:"new", min:"", max:"", stock:false, featured:false });
+    setDraft({ sort:"new", min:"", max:"", stock:false });
     const n = new URLSearchParams(params);
-    ["sort","min","max","stock","featured"].forEach(k => n.delete(k));
+    ["sort","min","max","stock"].forEach(k => n.delete(k));
     setParams(n); setSortOpen(false);
   };
 
-  const hasActiveFilters = !!activeCatKey || !!shopParam || !!slotParam || !!qParam;
-  const hasActiveSort    = sortParam!=="new" || stockParam || featuredParam || minParam!=null || maxParam!=null;
+  const hasActiveFilters = !!activeCatKey || !!slotParam || !!qParam;
+  const hasActiveSort    = sortParam!=="new" || stockParam || minParam!=null || maxParam!=null;
 
   const activePills = useMemo(() => {
     const pills = [];
-    if (shopParam)   pills.push({ key:`shop:${shopParam}`, label:SHOPS.find(s=>s.key===shopParam)?.label||"Shop", onRemove:()=>setShop(null) });
     if (activeCatKey) pills.push({ key:`cat:${activeCatKey}`, label:NAV_CATEGORIES.find(c=>c.key===activeCatKey)?.label||qParam, onRemove:()=>clearSearch() });
-    else if (qParam) pills.push({ key:`q:${qParam}`, label:`Search: ${qParam}`, onRemove:()=>clearSearch() });
-    if(sortParam!=="new") pills.push({ key:`sort:${sortParam}`, label:sortParam==="price-asc"?"Price: Low → High":"Price: High → Low", onRemove:()=>resetSortOnly() });
+    else if (qParam)  pills.push({ key:`q:${qParam}`, label:`Search: ${qParam}`, onRemove:()=>clearSearch() });
+    if(sortParam!=="new") pills.push({ key:`sort:${sortParam}`, label:SORT_LABELS[sortParam]||sortParam, onRemove:()=>resetSortOnly() });
     if(minParam!=null||maxParam!=null) pills.push({ key:"price-range", label:`GHS ${minParam??0} – ${maxParam??"∞"}`, onRemove:()=>resetPriceOnly() });
-    if(stockParam)    pills.push({ key:"stock",    label:"In stock",  onRemove:()=>toggleStock(false) });
-    if(featuredParam) pills.push({ key:"featured", label:"Featured",  onRemove:()=>toggleFeatured(false) });
+    if(stockParam) pills.push({ key:"stock", label:"In stock", onRemove:()=>toggleStock(false) });
     return pills;
-  }, [shopParam,activeCatKey,qParam,sortParam,minParam,maxParam,stockParam,featuredParam]);
+  }, [activeCatKey,qParam,sortParam,minParam,maxParam,stockParam]);
 
   const filter = useMemo(() => ({
     dept:null, kind:null,
-    shop:shopParam||null, slot:slotParam||null,
+    shop:null, slot:slotParam||null,
     q:qParam||"",
     priceMin:minParam!=null&&!Number.isNaN(minParam)?minParam:null,
     priceMax:maxParam!=null&&!Number.isNaN(maxParam)?maxParam:null,
-    inStockOnly:stockParam, featuredOnly:featuredParam, sort:sortParam,
-  }), [shopParam,slotParam,qParam,minParam,maxParam,stockParam,featuredParam,sortParam]);
+    inStockOnly:stockParam, featuredOnly:false, sort:sortParam,
+  }), [slotParam,qParam,minParam,maxParam,stockParam,sortParam]);
 
   return (
     <div className="shop-page">
@@ -186,27 +165,7 @@ const Shop = () => {
 
             <div className="shop-sidebar-scroll">
 
-              {/* ── Store ── */}
-              <div className="shop-sidebar-section">
-                <div className="shop-sidebar-label">Store</div>
-                <div className="shop-sidebar-list">
-                  <button type="button" className={!shopParam?"sidebar-item active":"sidebar-item"} onClick={() => setShop(null)}>
-                    <svg viewBox="0 0 24 24" className="shop-chip-svg" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="4" y="5" width="16" height="14" rx="2.4"/><path d="M8 9h8M8 12h8M8 15h5"/></svg>
-                    All stores
-                  </button>
-                  {SHOP_FILTER_OPTIONS.map(shop => (
-                    <button key={shop.key} type="button"
-                      className={shopParam===shop.key?"sidebar-item active":"sidebar-item"}
-                      onClick={() => setShop(shop.key)}>
-                      <ShopIcon shopKey={shop.key}/>{shop.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="shop-sidebar-divider"/>
-
-              {/* ── Browse (same categories as header) ── */}
+              {/* ── Browse categories (synced with mega menu) ── */}
               <div className="shop-sidebar-section">
                 <div className="shop-sidebar-label">Browse</div>
                 <div className="shop-sidebar-list">
@@ -233,7 +192,7 @@ const Shop = () => {
               <div className="shop-sidebar-section">
                 <div className="shop-sidebar-label">Sort by</div>
                 <div className="shop-radio">
-                  {[["new","Dynamic"],["price-asc","Price: Low to High"],["price-desc","Price: High to Low"]].map(([v,l]) => (
+                  {SORT_OPTIONS.map(([v,l]) => (
                     <label key={v} className="shop-radio-item">
                       <input type="radio" name="sidebar-sort" checked={draft.sort===v} onChange={() => setDraft(p=>({...p,sort:v}))}/>
                       {l}
@@ -250,8 +209,10 @@ const Shop = () => {
                   <span className="shop-range-dash">—</span>
                   <input inputMode="numeric" placeholder="Max" value={draft.max} onChange={e => setDraft(p=>({...p,max:e.target.value}))}/>
                 </div>
-                <label className="shop-toggle"><input type="checkbox" checked={draft.stock}    onChange={e => setDraft(p=>({...p,stock:e.target.checked}))}/>In stock only</label>
-                <label className="shop-toggle"><input type="checkbox" checked={draft.featured} onChange={e => setDraft(p=>({...p,featured:e.target.checked}))}/>Featured only</label>
+                <label className="shop-toggle">
+                  <input type="checkbox" checked={draft.stock} onChange={e => setDraft(p=>({...p,stock:e.target.checked}))}/>
+                  In stock only
+                </label>
               </div>
 
               {/* ── Request product ── */}
@@ -280,7 +241,6 @@ const Shop = () => {
         {/* ════════════════ MAIN ════════════════ */}
         <div className="shop-main">
 
-          {/* Banner */}
           <div className="shop-banner-wrap">
             <div className="shop-banner">
               <img src={shopBanner} alt="Beme Market banner" className="shop-banner-img"
@@ -298,24 +258,20 @@ const Shop = () => {
             </div>
           </div>
 
-          {/* ── Category chips row (below banner, desktop) ── */}
+          {/* Category chips (desktop) */}
           <div className="shop-cat-chips">
-            <button
-              className={`shop-cat-chip${!activeCatKey&&!qParam?" shop-cat-chip--active":""}`}
-              type="button" onClick={() => clearSearch()}>
-              All
-            </button>
+            <button className={`shop-cat-chip${!activeCatKey&&!qParam?" shop-cat-chip--active":""}`}
+              type="button" onClick={() => clearSearch()}>All</button>
             {NAV_CATEGORIES.map(cat => (
               <button key={cat.key}
                 className={`shop-cat-chip${activeCatKey===cat.key?" shop-cat-chip--active":""}`}
                 type="button" onClick={() => setQ(cat.query)}>
-                {CAT_ICONS[cat.key]}
-                {cat.label}
+                {CAT_ICONS[cat.key]}{cat.label}
               </button>
             ))}
           </div>
 
-          {/* Mobile controls */}
+          {/* Mobile filter/sort bar */}
           <div className="shop-controls">
             <button className="shop-control-btn" type="button"
               onClick={() => { setFiltersOpen(o=>!o); setSortOpen(false); }} aria-expanded={filtersOpen}>
@@ -383,7 +339,7 @@ const Shop = () => {
         </div>
       </div>
 
-      {/* Sort panel */}
+      {/* Sort panel (mobile) */}
       <div className={`shop-panel shop-panel--sort${sortOpen?" open":""}`} aria-hidden={!sortOpen}>
         <div className="shop-panel-inner">
           <div className="shop-panel-head">
@@ -397,8 +353,11 @@ const Shop = () => {
             <div className="shop-panel-section">
               <div className="shop-panel-label">Sort</div>
               <div className="shop-radio">
-                {[["new","Dynamic"],["price-asc","Price: Low to High"],["price-desc","Price: High to Low"]].map(([v,l])=>(
-                  <label key={v} className="shop-radio-item"><input type="radio" name="panel-sort" checked={draft.sort===v} onChange={() => setDraft(p=>({...p,sort:v}))}/>{l}</label>
+                {SORT_OPTIONS.map(([v,l])=>(
+                  <label key={v} className="shop-radio-item">
+                    <input type="radio" name="panel-sort" checked={draft.sort===v} onChange={() => setDraft(p=>({...p,sort:v}))}/>
+                    {l}
+                  </label>
                 ))}
               </div>
             </div>
@@ -409,8 +368,10 @@ const Shop = () => {
                 <span className="shop-range-dash">—</span>
                 <input inputMode="numeric" placeholder="Max" value={draft.max} onChange={e => setDraft(p=>({...p,max:e.target.value}))}/>
               </div>
-              <label className="shop-toggle"><input type="checkbox" checked={draft.stock}    onChange={e => setDraft(p=>({...p,stock:e.target.checked}))}/>In stock only</label>
-              <label className="shop-toggle"><input type="checkbox" checked={draft.featured} onChange={e => setDraft(p=>({...p,featured:e.target.checked}))}/>Featured only</label>
+              <label className="shop-toggle">
+                <input type="checkbox" checked={draft.stock} onChange={e => setDraft(p=>({...p,stock:e.target.checked}))}/>
+                In stock only
+              </label>
             </div>
           </div>
           <div className="shop-panel-actions">

@@ -966,3 +966,26 @@ body.dark .hdr-cat-mega-footer { border-top-color: rgba(255,255,255,0.06); }
     animation: none !important;
   }
 }
+
+/* ══════════════════════════════════════════════
+   PINTEREST-STYLE SEARCH SUGGESTIONS (Header.css)
+══════════════════════════════════════════════ */
+.hdr-sug-search-icon {
+  display: flex; align-items: center; flex-shrink: 0;
+  color: var(--muted); opacity: 0.45;
+}
+.hdr-sug-search-icon svg { width: 14px; height: 14px; stroke-width: 1.8; }
+.hdr-sug-arrow {
+  display: flex; align-items: center; flex-shrink: 0;
+  color: var(--muted); opacity: 0; margin-left: auto;
+  transition: opacity 0.12s ease;
+}
+.hdr-suggestion-item:hover .hdr-sug-arrow,
+.hdr-suggestion-item.active .hdr-sug-arrow { opacity: 0.45; }
+.hdr-suggestions--pinterest .hdr-suggestion-item { padding: 11px 16px; gap: 12px; }
+.hdr-suggestions--pinterest .hdr-sug-label {
+  font-size: 14px; font-weight: 500; text-align: left;
+  flex: 1; min-width: 0; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.hdr-suggestions--pinterest .hdr-suggestion-item.active .hdr-sug-label { font-weight: 700; }
