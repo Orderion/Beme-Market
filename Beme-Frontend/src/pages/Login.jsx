@@ -1,19 +1,13 @@
 /* ============================================================
    FILE: Beme-Frontend/src/pages/Login.jsx
    AUTH: Email/password + Google sign-in
-   FIXES:
-     - completeLogin no longer redirects existing users to
-       /onboarding just because onboardingComplete is missing.
-       Only truly new users (no Firestore doc) go to onboarding.
-     - MFA verification uses Firebase callable (no REST endpoint)
-     - Failed attempt tracking + lockout unchanged
+   EMAIL: Forgot password now uses branded backend email
 ============================================================ */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
-  sendPasswordResetEmail,
   GoogleAuthProvider,
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
@@ -21,27 +15,18 @@ import { auth, db } from "../firebase";
 import { verifyTOTP } from "../services/twoFactorService";
 import "./Auth.css";
 
-/* ── constants ── */
+const API_URL = import.meta.env.VITE_API_URL || "https://beme-market-1.onrender.com";
+
 const RESET_COOLDOWN_MS   = 60_000;
 const MAX_FAILED_ATTEMPTS = 5;
 const WARN_AFTER_ATTEMPTS = 3;
 const LOCKOUT_DURATION_MS = 30_000;
 const MFA_CODE_LENGTH     = 6;
 
-/* ── helpers ── */
-function isValidEmail(v) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || "").trim());
-}
-function normalizeEmail(v) {
-  return String(v || "").trim().toLowerCase();
-}
-function formatSecs(ms) {
-  return Math.ceil(ms / 1000);
-}
+function isValidEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || "").trim()); }
+function normalizeEmail(v) { return String(v || "").trim().toLowerCase(); }
+function formatSecs(ms) { return Math.ceil(ms / 1000); }
 
-/* ══════════════════════════════════════
-   ICONS
-══════════════════════════════════════ */
 function EyeIcon({ open }) {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -86,9 +71,7 @@ function PhoneIcon() {
     </svg>
   );
 }
-function Spinner({ dark }) {
-  return <span className={`auth-spinner${dark ? " auth-spinner--dark" : ""}`} aria-hidden="true"/>;
-}
+function Spinner({ dark }) { return <span className={`auth-spinner${dark ? " auth-spinner--dark" : ""}`} aria-hidden="true"/>; }
 function GoogleLogo() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
@@ -118,68 +101,17 @@ function LoginIllustration() {
       <circle cx="116" cy="150" r="5" fill="#FF5F57"/>
       <circle cx="130" cy="150" r="5" fill="#FEBC2E"/>
       <circle cx="144" cy="150" r="5" fill="#28C840"/>
-      <rect x="158" y="142" width="160" height="16" rx="8" fill="white"/>
-      <text x="176" y="153" fontSize="7" fill="#94A3B8" fontFamily="system-ui" fontWeight="500">bememarket.store</text>
-      <rect x="120" y="178" width="220" height="152" rx="12" fill="white"/>
-      <rect x="120" y="178" width="220" height="152" rx="12" stroke="#EBF2FF" strokeWidth="1"/>
-      <circle cx="230" cy="200" r="16" fill="#EBF2FF"/>
-      <path d="M223 200 a7 7 0 0 1 14 0" stroke="#046EF2" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-      <rect x="221" y="200" width="18" height="11" rx="3" fill="#046EF2"/>
-      <circle cx="230" cy="204" r="2" fill="white"/>
-      <rect x="134" y="224" width="152" height="7" rx="3.5" fill="#EBF2FF"/>
-      <rect x="148" y="235" width="124" height="5" rx="2.5" fill="#F0F4FF"/>
-      <rect x="134" y="248" width="192" height="18" rx="5" fill="#F8FAFF" stroke="#E2E8F0" strokeWidth="1"/>
-      <rect x="139" y="252" width="60" height="5" rx="2.5" fill="#CBD5E1"/>
-      <rect x="134" y="272" width="192" height="18" rx="5" fill="#F8FAFF" stroke="#046EF2" strokeWidth="1.2"/>
-      <rect x="139" y="276" width="50" height="5" rx="2.5" fill="#CBD5E1"/>
       <rect x="134" y="296" width="192" height="20" rx="6" fill="#046EF2"/>
-      <rect x="188" y="302" width="84" height="7" rx="3.5" fill="white" opacity="0.5"/>
-      <rect x="24" y="220" width="68" height="76" rx="14" fill="white">
-        <animate attributeName="y" values="220;214;220" dur="3.5s" repeatCount="indefinite"/>
-      </rect>
-      <path d="M58 240 L40 246 L40 260 Q40 272 58 278 Q76 272 76 260 L76 246 Z"
-            fill="#EBF2FF" stroke="#046EF2" strokeWidth="1.5" strokeLinejoin="round"
-            transform="translate(-16 -6) scale(0.85)"/>
-      <polyline points="43,259 48,264 58,252" stroke="#046EF2" strokeWidth="2"
-                fill="none" strokeLinecap="round" strokeLinejoin="round"
-                transform="translate(15 5)"/>
-      <rect x="32" y="272" width="44" height="6" rx="3" fill="#F0F4FF"/>
-      <rect x="38" y="281" width="32" height="4" rx="2" fill="#F0F4FF"/>
-      <rect x="368" y="188" width="72" height="88" rx="14" fill="white">
-        <animate attributeName="y" values="188;182;188" dur="4s" repeatCount="indefinite"/>
-      </rect>
-      <rect x="375" y="250" width="58" height="16" rx="4" fill="#046EF2"/>
-      <rect x="382" y="255" width="30" height="5" rx="2.5" fill="white" opacity="0.6"/>
-      <circle cx="388" cy="148" r="26" fill="#EBF2FF">
-        <animate attributeName="r" values="26;27.5;26" dur="4.5s" repeatCount="indefinite"/>
-      </circle>
-      <circle cx="406" cy="136" r="9" fill="#046EF2"/>
-      <polyline points="401,136 404.5,139.5 411,132" stroke="white" strokeWidth="1.5"
-                fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-      <g opacity="0.3">
-        <path d="M440 230 L442 237 L450 237 L444 242 L446 250 L440 246 L434 250 L436 242 L430 237 L438 237 Z" fill="#046EF2">
-          <animate attributeName="opacity" values="0.3;0.6;0.3" dur="3s" repeatCount="indefinite"/>
-        </path>
-        <path d="M48 158 L50 164 L56 164 L51 168 L53 175 L48 172 L43 175 L45 168 L40 164 L46 164 Z" fill="#046EF2">
-          <animate attributeName="opacity" values="0.25;0.55;0.25" dur="3.8s" repeatCount="indefinite"/>
-        </path>
-      </g>
     </svg>
   );
 }
 
-/* ══════════════════════════════════════
-   MFA VERIFICATION SCREEN
-══════════════════════════════════════ */
 function MfaScreen({ onVerify, onCancel, loading, error }) {
   const [digits, setDigits] = useState(Array(MFA_CODE_LENGTH).fill(""));
   const refs = useRef([]);
-
   const handleDigit = (i, val) => {
     const cleaned = val.replace(/\D/g, "").slice(-1);
-    const next    = [...digits];
-    next[i]       = cleaned;
-    setDigits(next);
+    const next    = [...digits]; next[i] = cleaned; setDigits(next);
     if (cleaned && i < MFA_CODE_LENGTH - 1) refs.current[i + 1]?.focus();
     if (next.every(d => d !== "")) onVerify(next.join(""));
   };
@@ -197,15 +129,11 @@ function MfaScreen({ onVerify, onCancel, loading, error }) {
     refs.current[Math.min(pasted.length, MFA_CODE_LENGTH - 1)]?.focus();
     if (pasted.length === MFA_CODE_LENGTH) onVerify(pasted);
   };
-
   return (
     <div className="auth-mfa">
       <div className="auth-mfa__icon"><PhoneIcon /></div>
       <h2 className="auth-mfa__title">Two-step verification</h2>
-      <p className="auth-mfa__sub">
-        Open your authenticator app and enter the 6-digit code for
-        <strong> Beme Market</strong>.
-      </p>
+      <p className="auth-mfa__sub">Open your authenticator app and enter the 6-digit code for <strong> Beme Market</strong>.</p>
       <div className="auth-otp-row" onPaste={handlePaste}>
         {digits.map((d, i) => (
           <input key={i} ref={el => refs.current[i] = el}
@@ -216,25 +144,15 @@ function MfaScreen({ onVerify, onCancel, loading, error }) {
             autoFocus={i === 0} disabled={loading} aria-label={`Digit ${i + 1}`}/>
         ))}
       </div>
-      {error && (
-        <div className="auth-alert auth-alert--error" role="alert" style={{ marginTop: 12, width: "100%" }}>
-          {error}
-        </div>
-      )}
-      <p className="auth-mfa__hint">
-        The code refreshes every 30 seconds. Make sure your phone clock is accurate.
-      </p>
-      <button type="button" className="auth-btn-ghost" onClick={onCancel}
-        disabled={loading} style={{ marginTop: 8 }}>
+      {error && <div className="auth-alert auth-alert--error" role="alert" style={{ marginTop: 12, width: "100%" }}>{error}</div>}
+      <p className="auth-mfa__hint">The code refreshes every 30 seconds.</p>
+      <button type="button" className="auth-btn-ghost" onClick={onCancel} disabled={loading} style={{ marginTop: 8 }}>
         {loading ? <><Spinner dark /> Verifying…</> : "Use a different account"}
       </button>
     </div>
   );
 }
 
-/* ══════════════════════════════════════
-   MAIN COMPONENT
-══════════════════════════════════════ */
 export default function Login() {
   const navigate   = useNavigate();
   const location   = useLocation();
@@ -277,41 +195,23 @@ export default function Login() {
 
   const anyLoading = loading || googleLoading || resetLoading || mfaLoading;
 
-  /* ────────────────────────────────────────────────────────────────
-     FIX: completeLogin no longer bounces existing users to /onboarding
-     because their doc lacks `onboardingComplete`.
-     Rule: only redirect to /onboarding if the doc does NOT exist
-     (brand-new user whose Cloud Function hasn't created the doc yet).
-  ──────────────────────────────────────────────────────────────── */
   const completeLogin = useCallback(async (user) => {
     try {
       const snap = await getDoc(doc(db, "users", user.uid));
-      if (!snap.exists()) {
-        // Truly new user — no Firestore doc yet
-        navigate("/onboarding", { replace: true });
-        return;
-      }
-      // Doc exists → user is established, go to their intended destination
-    } catch (_) {
-      // On Firestore error, still proceed — don't block login
-    }
+      if (!snap.exists()) { navigate("/onboarding", { replace: true }); return; }
+    } catch (_) {}
     setFailedAttempts(0);
     navigate(redirectTo, { replace: true });
   }, [navigate, redirectTo]);
 
-  /* MFA verification */
   const handleMfaVerify = useCallback(async (code) => {
     if (!mfaUser || mfaLoading) return;
     setMfaLoading(true); setMfaError("");
     try {
       const result = await verifyTOTP(code);
-      if (!result.valid) {
-        setMfaError(result.error || "Incorrect code. Try again.");
-        setMfaLoading(false); return;
-      }
+      if (!result.valid) { setMfaError(result.error || "Incorrect code. Try again."); setMfaLoading(false); return; }
       await completeLogin(mfaUser);
     } catch (e) {
-      console.error("MFA verify error:", e);
       setMfaError("Verification failed. Check your connection and try again.");
     } finally { setMfaLoading(false); }
   }, [mfaUser, mfaLoading, completeLogin]);
@@ -321,10 +221,8 @@ export default function Login() {
     setMfaRequired(false); setMfaUser(null); setMfaError("");
   }, []);
 
-  /* Email/password sign in */
   const onSubmit = async (e) => {
-    e.preventDefault();
-    setErr(""); setMsg("");
+    e.preventDefault(); setErr(""); setMsg("");
     if (isLocked) { setErr(`Account temporarily locked. Try again in ${lockCountdown}s.`); return; }
     const emailTrim = normalizeEmail(email);
     const passTrim  = String(password || "").trim();
@@ -333,27 +231,20 @@ export default function Login() {
     setLoading(true);
     try {
       const cred = await signInWithEmailAndPassword(auth, emailTrim, passTrim);
-      if (!cred.user.emailVerified) {
-        navigate("/verify-email", { replace: true }); return;
-      }
+      if (!cred.user.emailVerified) { navigate("/verify-email", { replace: true }); return; }
       setFailedAttempts(0); setLockedUntil(0); setLockCountdown(0);
       let mfaEnabled = false;
       try {
         const snap = await getDoc(doc(db, "users", cred.user.uid));
         mfaEnabled  = snap.data()?.mfa?.enabled === true;
       } catch (_) {}
-      if (mfaEnabled) {
-        setMfaUser(cred.user); setMfaRequired(true); setLoading(false); return;
-      }
+      if (mfaEnabled) { setMfaUser(cred.user); setMfaRequired(true); setLoading(false); return; }
       await completeLogin(cred.user);
     } catch (e) {
       const code = e?.code || "";
       let message = "Sign in failed. Try again.";
-      if (code.includes("auth/invalid-credential") ||
-          code.includes("auth/user-not-found")     ||
-          code.includes("auth/wrong-password")) {
-        const next = failedAttempts + 1;
-        setFailedAttempts(next);
+      if (code.includes("auth/invalid-credential") || code.includes("auth/user-not-found") || code.includes("auth/wrong-password")) {
+        const next = failedAttempts + 1; setFailedAttempts(next);
         if (next >= MAX_FAILED_ATTEMPTS) {
           const until = Date.now() + LOCKOUT_DURATION_MS;
           setLockedUntil(until); setLockCountdown(formatSecs(LOCKOUT_DURATION_MS));
@@ -364,16 +255,12 @@ export default function Login() {
             ? `Incorrect credentials. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining before temporary lock.`
             : "Invalid email or password.";
         }
-      } else if (code.includes("auth/too-many-requests")) {
-        message = "Too many attempts detected. Please wait before trying again.";
-      } else if (code.includes("auth/invalid-email")) {
-        message = "Invalid email address.";
-      }
+      } else if (code.includes("auth/too-many-requests")) { message = "Too many attempts detected. Please wait before trying again."; }
+        else if (code.includes("auth/invalid-email"))     { message = "Invalid email address."; }
       setErr(message);
     } finally { setLoading(false); }
   };
 
-  /* Google sign in */
   const handleGoogle = async () => {
     setErr(""); setMsg(""); setGoogleLoading(true);
     try {
@@ -402,7 +289,7 @@ export default function Login() {
     } finally { setGoogleLoading(false); }
   };
 
-  /* Forgot password */
+  /* ── Forgot password — now uses branded backend email ── */
   const onForgot = async () => {
     if (anyLoading) return;
     setErr(""); setMsg("");
@@ -413,33 +300,33 @@ export default function Login() {
     if (cooldownRem > 0) { setErr(`Wait ${Math.ceil(cooldownRem / 1000)}s before trying again.`); return; }
     setResetLoading(true);
     try {
-      await sendPasswordResetEmail(auth, emailTrim, { url: `${window.location.origin}/login` });
-      setLastResetAt(Date.now());
-      setMsg("Password reset email sent — check your inbox.");
-    } catch (e) {
-      const code = e?.code || "";
-      if (code === "auth/user-not-found") {
+      const res  = await fetch(`${API_URL}/api/auth/forgot-password`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email: emailTrim }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
         setLastResetAt(Date.now());
-        setMsg("If an account exists for this email, a reset link has been sent.");
-      } else if (code.includes("auth/invalid-email")) {
-        setErr("Invalid email address.");
-      } else if (code.includes("auth/too-many-requests")) {
-        setErr("Too many requests. Please wait before trying again.");
+        setMsg("Password reset email sent — check your inbox.");
+      } else if (res.status === 504) {
+        setErr("Reset email timed out. Please try again.");
       } else {
-        setErr("Could not send reset email. Try again.");
+        setLastResetAt(Date.now());
+        // Always show success to prevent email enumeration
+        setMsg("If an account exists for this email, a reset link has been sent.");
       }
+    } catch (_) {
+      setErr("Could not send reset email. Check your connection and try again.");
     } finally { setResetLoading(false); }
   };
 
-  /* MFA screen */
   if (mfaRequired) {
     return (
       <div className="auth-page">
         <div className="auth-panel auth-panel--centered">
           <Link to="/" className="auth-logo">
-            <div className="auth-logo-mark">
-              <img src="/Favicon-white.PNG" alt="" width="22" height="22" style={{ objectFit: "contain" }}/>
-            </div>
+            <div className="auth-logo-mark"><img src="/Favicon-white.PNG" alt="" width="22" height="22" style={{ objectFit: "contain" }}/></div>
             <span className="auth-logo-name">Beme Market</span>
           </Link>
           <MfaScreen onVerify={handleMfaVerify} onCancel={cancelMfa} loading={mfaLoading} error={mfaError}/>
@@ -448,21 +335,18 @@ export default function Login() {
           <LoginIllustration />
           <div className="auth-visual-caption">
             <h2>Your account is protected</h2>
-            <p>Two-step verification keeps your store and earnings safe from unauthorized access.</p>
+            <p>Two-step verification keeps your store and earnings safe.</p>
           </div>
         </div>
       </div>
     );
   }
 
-  /* Main login form */
   return (
     <div className="auth-page">
       <div className="auth-panel">
         <Link to="/" className="auth-logo">
-          <div className="auth-logo-mark">
-            <img src="/Favicon-white.PNG" alt="" width="22" height="22" style={{ objectFit: "contain" }}/>
-          </div>
+          <div className="auth-logo-mark"><img src="/Favicon-white.PNG" alt="" width="22" height="22" style={{ objectFit: "contain" }}/></div>
           <span className="auth-logo-name">Beme Market</span>
         </Link>
 
@@ -482,16 +366,12 @@ export default function Login() {
         {!isLocked && failedAttempts >= WARN_AFTER_ATTEMPTS && failedAttempts < MAX_FAILED_ATTEMPTS && (
           <div className="auth-attempts-warn" role="alert">
             <ShieldIcon />
-            <span>
-              {MAX_FAILED_ATTEMPTS - failedAttempts} attempt{MAX_FAILED_ATTEMPTS - failedAttempts !== 1 ? "s" : ""} remaining
-              before your account is temporarily locked.
-            </span>
+            <span>{MAX_FAILED_ATTEMPTS - failedAttempts} attempt{MAX_FAILED_ATTEMPTS - failedAttempts !== 1 ? "s" : ""} remaining before temporary lock.</span>
           </div>
         )}
 
         <div style={{ marginBottom: 16 }}>
-          <button className="auth-btn-social" onClick={handleGoogle}
-            disabled={anyLoading || isLocked} type="button">
+          <button className="auth-btn-social" onClick={handleGoogle} disabled={anyLoading || isLocked} type="button">
             {googleLoading ? <Spinner dark/> : <GoogleLogo/>}
             {googleLoading ? "Signing in…" : "Continue with Google"}
           </button>
@@ -504,8 +384,7 @@ export default function Login() {
             <label className="auth-label" htmlFor="l-email">Email address</label>
             <div className="auth-input-wrap">
               <input id="l-email" className="auth-input auth-input--plain" type="email"
-                placeholder="your@email.com" value={email}
-                onChange={e => setEmail(e.target.value)}
+                placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)}
                 autoComplete="email" disabled={anyLoading || isLocked}/>
             </div>
           </div>
@@ -515,11 +394,9 @@ export default function Login() {
             <div className="auth-input-wrap">
               <input id="l-pass" className="auth-input"
                 type={showPass ? "text" : "password"}
-                placeholder="Enter your password" value={password}
-                onChange={e => setPassword(e.target.value)}
+                placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)}
                 autoComplete="current-password" disabled={anyLoading || isLocked}/>
-              <button type="button" className="auth-eye"
-                onClick={() => setShowPass(v => !v)}
+              <button type="button" className="auth-eye" onClick={() => setShowPass(v => !v)}
                 aria-label={showPass ? "Hide password" : "Show password"}>
                 <EyeIcon open={showPass}/>
               </button>
@@ -528,16 +405,13 @@ export default function Login() {
 
           <div className="auth-row">
             <div className="auth-check-row">
-              <button type="button"
-                className={`auth-checkbox${rememberMe ? " auth-checkbox--on" : ""}`}
-                onClick={() => setRememberMe(v => !v)}
-                aria-pressed={rememberMe} aria-label="Remember me">
+              <button type="button" className={`auth-checkbox${rememberMe ? " auth-checkbox--on" : ""}`}
+                onClick={() => setRememberMe(v => !v)} aria-pressed={rememberMe} aria-label="Remember me">
                 {rememberMe && <CheckIcon/>}
               </button>
               <span className="auth-check-label">Remember me</span>
             </div>
-            <button type="button" className="auth-forgot"
-              onClick={onForgot} disabled={anyLoading || isLocked}>
+            <button type="button" className="auth-forgot" onClick={onForgot} disabled={anyLoading || isLocked}>
               {resetLoading ? "Sending…" : resetCooldownLeft > 0 ? `Retry in ${resetCooldownLeft}s` : "Forgot password?"}
             </button>
           </div>
@@ -549,19 +423,14 @@ export default function Login() {
             {loading ? <><Spinner/> Signing in…</> : isLocked ? `Locked · ${lockCountdown}s` : "Sign in"}
           </button>
 
-          <button type="button" className="auth-btn-ghost"
-            onClick={() => navigate("/checkout")} disabled={anyLoading || isLocked}>
+          <button type="button" className="auth-btn-ghost" onClick={() => navigate("/checkout")} disabled={anyLoading || isLocked}>
             Continue as guest
           </button>
         </form>
 
         <div className="auth-footer">
-          <span className="auth-footer-text">
-            Don't have an account?{" "}
-            <Link className="auth-link" to="/signup">Create one</Link>
-          </span>
+          <span className="auth-footer-text">Don't have an account?{" "}<Link className="auth-link" to="/signup">Create one</Link></span>
         </div>
-
         <p className="auth-terms-note">
           By continuing you agree to our{" "}
           <Link className="auth-link" to="/terms">Terms</Link> and{" "}
