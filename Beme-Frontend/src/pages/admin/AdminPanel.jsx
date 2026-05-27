@@ -406,73 +406,8 @@ export default function AdminPanel() {
   const { unreadCount } = useAdminUnreadCount();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   const [collapsed, setCollapsed]     = useState(false);
-  const [theme, setTheme] = useState(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("beme_admin_theme") || "dark";
-    return "dark";
-  });
-
-  useEffect(() => {
-    document.body.classList.toggle("dark", theme === "dark");
-    localStorage.setItem("beme_admin_theme", theme);
-  }, [theme]);
-  const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
-
-  /* ── Overview data ── */
-  const [metrics, setMetrics] = useState({
-    totalOrders: 0, totalRevenue: 0, avgOrder: 0, totalUnits: 0,
-    totalProducts: 0, inStock: 0, totalUsers: 0, totalSellers: 0,
-    pendingPayouts: 0, openTickets: 0,
-  });
-  const [dailySeries, setDailySeries] = useState([]);
-  const [recentOrders, setRecentOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  /* ── Determine active section from path ── */
-  const active = useMemo(() => {
-    const p = location.pathname;
-    if (p === "/admin") return "overview";
-    const match = NAV.find(n => n.path !== "/admin" && p.startsWith(n.path));
-    return match?.key || "overview";
-  }, [location.pathname]);
-
-  const activeNav = NAV.find(n => n.key === active);
-
-  /* ── Fetch overview data ── */
-  const fetchOverview = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [prodSnap, ordSnap, userSnap, payoutSnap, ticketSnap] = await Promise.allSettled([
-        getDocs(collection(db, "Products")),
-        getDocs(query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(200))),
-        getDocs(collection(db, "users")),
-        getDocs(query(collection(db, "payoutRequests"), where("status", "==", "pending"))),
-        getDocs(query(collection(db, "support_tickets"), where("status", "==", "open"))),
-      ]);
-
-      const products = prodSnap.status === "fulfilled" ? prodSnap.value.docs.map(d => ({ id: d.id, ...d.data() })) : [];
-      const orders   = ordSnap.status  === "fulfilled" ? ordSnap.value.docs.map(d => ({ id: d.id, ...d.data() })) : [];
-      const users    = userSnap.status === "fulfilled" ? userSnap.value.docs.map(d => ({ id: d.id, ...d.data() })) : [];
-
-      const totalRevenue = orders.reduce((s, o) => s + orderTotal(o), 0);
-      const totalUnits   = orders.reduce((s, o) => s + (o.items || []).reduce((ss, i) => ss + Number(i?.qty || 0), 0), 0);
-      const sellers      = users.filter(u => ["shop_admin", "seller"].includes(String(u.role || u.sellerStatus || "").toLowerCase()));
-      const inStock      = products.filter(p => p.inStock !== false).length;
-
-      setMetrics({
-        totalOrders: orders.length,
-        totalRevenue,
-        avgOrder: orders.length ? totalRevenue / orders.length : 0,
-        totalUnits,
-        totalProducts: products.length,
-        inStock,
-        totalUsers: users.length,
-        totalSellers: sellers.length,
-        pendingPayouts: payoutSnap.status === "fulfilled" ? payoutSnap.value.size : 0,
-        openTickets:   ticketSnap.status  === "fulfilled" ? ticketSnap.value.size : 0,
-      });
-      setDailySeries(buildDailySeries(orders, 7));
-      setRecentOrders(orders.slice(0, 5));
     } catch (e) { console.error("AdminPanel overview fetch:", e); }
     finally { setLoading(false); }
   }, []);
