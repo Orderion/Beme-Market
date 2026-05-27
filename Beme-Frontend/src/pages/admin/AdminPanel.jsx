@@ -12,6 +12,7 @@ import {
 import { db } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
 import { useAdminUnreadCount } from "../../hooks/useNotifications";
+import { useTheme } from "../../context/ThemeContext";
 import "./AdminPanel.css";
 
 /* ── Lazy section imports ── */
