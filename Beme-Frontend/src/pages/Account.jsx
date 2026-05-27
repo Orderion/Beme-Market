@@ -447,9 +447,9 @@ export default function Account() {
             <NavLink icon={ICONS.saved}    label="Saved Items"      onClick={()=>setActiveTab("saved")}   active={activeTab==="saved"} badge={savedCount}/>
             <NavLink icon={ICONS.requests} label="Product Requests" onClick={()=>navigate("/account/requests")}/>
             <NavLink icon={ICONS.notif}    label="Notifications"    onClick={()=>navigate("/account/notifications")} badge={unreadCount} badgeRed/>
-            <NavLink icon={ICONS.settings} label="Theme" onClick={toggleTheme}
-            {isAdminUser && (
-              <NavLink icon={ICONS.chart} label="Admin Panel" onClick={()=>setShowAdminGate(true)}/>
+              {isAdminUser && (
+                <NavLink icon={ICONS.chart} label="Admin Panel" onClick={()=>setShowAdminGate(true)}/>
+              )}/>
             )}
           </div>
 
