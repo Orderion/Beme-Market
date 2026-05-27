@@ -128,7 +128,7 @@ export default function HomepageSection() {
             {cards.map((c,i)=>(
               <button key={c.id||i}
                 onClick={()=>setSelected(i)}
-                style={{padding:"10px 12px",borderRadius:9,border:`1px solid ${selected===i?"var(--ap-purple)":"var(--ap-border2)"}`,background:selected===i?"var(--ap-purple-dim)":"rgba(255,255,255,0.02)",color:selected===i?"var(--ap-purple-lt)":"var(--ap-text2)",fontSize:13,fontWeight:500,fontFamily:"var(--ap-font)",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:8"}}>
+                style={{padding:"10px 12px",borderRadius:9,border:selected===i?"1px solid var(--ap-purple)":"1px solid var(--ap-border2)",background:selected===i?"var(--ap-purple-dim)":"rgba(255,255,255,0.02)",color:selected===i?"var(--ap-purple-lt)":"var(--ap-text2)",fontSize:13,fontWeight:500,fontFamily:"var(--ap-font)",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:8"}}>
                 {c.imageUrl ? <img src={c.imageUrl} alt="" style={{width:28,height:28,borderRadius:5,objectFit:"cover",flexShrink:0}}/> : <div style={{width:28,height:28,borderRadius:5,background:"rgba(255,255,255,0.05)",flexShrink:0}}/>}
                 <span style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.heading||`Card ${i+1}`}</span>
               </button>
