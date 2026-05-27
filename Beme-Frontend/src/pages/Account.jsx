@@ -314,6 +314,7 @@ export default function Account() {
   const [showLogout,      setShowLogout]      = useState(false);
   const [showEdit,        setShowEdit]        = useState(false);
   const [showAdminGate,   setShowAdminGate]   = useState(false);
+  const [theme,           setTheme]           = useState(() => localStorage.getItem("beme_theme") || "light");
   const [profile,         setProfile]         = useState(null);
   const [shop,            setShop]            = useState(null);
   const [recentOrders,    setRecentOrders]    = useState([]);
@@ -321,6 +322,12 @@ export default function Account() {
   const [profileLoading,  setProfileLoading]  = useState(true);
 
   const { unreadCount } = useUserUnreadCount();
+
+  useEffect(() => {
+    document.body.classList.toggle("dark", theme === "dark");
+    localStorage.setItem("beme_theme", theme);
+  }, [theme]);
+  const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
 
   // Detect store ownership
   const appliedUid = typeof window !== "undefined" ? localStorage.getItem("beme_seller_applied") : null;
@@ -380,6 +387,7 @@ export default function Account() {
     { id:"saved",     label:"Saved",     icon:ICONS.saved    },
     { id:"settings",  label:"Settings",  icon:ICONS.settings },
     ...(hasStore ? [{ id:"store", label:"My Store", icon:ICONS.store }] : []),
+    ...(isAdminUser ? [{ id:"admin", label:"Admin", icon:ICONS.chart }] : []),
   ];
 
   if (!user) return null;
@@ -406,7 +414,7 @@ export default function Account() {
       <div className="acc-mobile-tabs">
         {MOBILE_TABS.map(t=>(
           <button key={t.id} className={`acc-mobile-tab ${activeTab===t.id?"acc-mobile-tab--active":""}`}
-            onClick={()=>setActiveTab(t.id)}>
+            onClick={()=>{ if(t.id==="admin"){ setShowAdminGate(true); } else { setActiveTab(t.id); } }}>
             <Ico d={t.icon} size={14}/>{t.label}
           </button>
         ))}
@@ -446,6 +454,11 @@ export default function Account() {
             <NavLink icon={ICONS.saved}    label="Saved Items"      onClick={()=>setActiveTab("saved")}   active={activeTab==="saved"} badge={savedCount}/>
             <NavLink icon={ICONS.requests} label="Product Requests" onClick={()=>navigate("/account/requests")}/>
             <NavLink icon={ICONS.notif}    label="Notifications"    onClick={()=>navigate("/account/notifications")} badge={unreadCount} badgeRed/>
+            <NavLink icon={ICONS.settings} label="Theme" onClick={toggleTheme}
+              label={`Theme: ${theme === "dark" ? "🌙 Dark" : "☀️ Light"}`}/>
+            {isAdminUser && (
+              <NavLink icon={ICONS.chart} label="Admin Panel" onClick={()=>setShowAdminGate(true)}/>
+            )}
           </div>
 
           {/* Settings */}
