@@ -57,7 +57,7 @@ export default function DashboardCustomers() {
                       <tr key={c.id}>
                         <td>
                           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                            <div style={{ width:34, height:34, borderRadius:"50%", background:"rgba(4,110,242,0.1)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:13, color:"#046EF2", flexShrink:0 }}>
+                            <div style={{ width:34, height:34, borderRadius:"50%", background:"rgba(124,58,237,0.1)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:13, color:"#7c3aed", flexShrink:0 }}>
                               {(c.name || "?")[0].toUpperCase()}
                             </div>
                             <span style={{ fontWeight:600 }}>{c.name || "Anonymous"}</span>

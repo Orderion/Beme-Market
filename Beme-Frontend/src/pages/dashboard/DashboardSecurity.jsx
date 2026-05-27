@@ -104,8 +104,8 @@ function OtpInput({ onComplete, disabled, label }) {
             ref={el => refs.current[i] = el}
             style={{
               ...styles.otpDigit,
-              borderColor: d ? "var(--grtheme, #046EF2)" : "rgba(17,17,17,0.15)",
-              background: d ? "rgba(4,110,242,0.04)" : "var(--bg, #fff)",
+              borderColor: d ? "var(--grtheme, #7c3aed)" : "rgba(17,17,17,0.15)",
+              background: d ? "rgba(124,58,237,0.04)" : "var(--bg, #fff)",
             }}
             type="text"
             inputMode="numeric"
@@ -423,7 +423,7 @@ export default function DashboardSecurity() {
 function ShieldIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-      stroke="var(--grtheme,#046EF2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      stroke="var(--grtheme,#7c3aed)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
     </svg>
   );
@@ -498,7 +498,7 @@ const styles = {
   },
   cardIconWrap: {
     width: 42, height: 42, borderRadius: 12,
-    background: "rgba(4,110,242,0.08)",
+    background: "rgba(124,58,237,0.08)",
     display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
   },
   cardHeaderText: { flex: 1 },
@@ -523,7 +523,7 @@ const styles = {
   stepItem: { display: "flex", alignItems: "center", gap: 12 },
   stepNum: {
     width: 26, height: 26, borderRadius: "50%",
-    background: "rgba(4,110,242,0.1)", color: "var(--grtheme, #046EF2)",
+    background: "rgba(124,58,237,0.1)", color: "var(--grtheme, #7c3aed)",
     display: "flex", alignItems: "center", justifyContent: "center",
     fontSize: 13, fontWeight: 800, flexShrink: 0,
   },
@@ -531,7 +531,7 @@ const styles = {
   btnPrimary: {
     display: "inline-flex", alignItems: "center", gap: 6,
     height: 46, padding: "0 20px", borderRadius: 10,
-    background: "var(--grtheme, #046EF2)", color: "white",
+    background: "var(--grtheme, #7c3aed)", color: "white",
     border: "none", fontSize: 14, fontWeight: 700,
     cursor: "pointer", transition: "opacity 0.15s",
   },

@@ -57,7 +57,7 @@ function TopupModal({ onClose }) {
                 <div style={{fontSize:14,fontWeight:700,color:"#111",marginBottom:2}}>{bought===p.id?"✓ Credits added!":busy===p.id?"Processing…":p.msgs}</div>
                 <div style={{fontSize:12,color:"#9ca3af",fontWeight:600}}>{p.ghs}</div>
               </div>
-              <div style={{fontSize:14,fontWeight:800,color:"#046EF2",background:"#eff6ff",padding:"5px 12px",borderRadius:8}}>{p.price}</div>
+              <div style={{fontSize:14,fontWeight:800,color:"#7c3aed",background:"#f5f3ff",padding:"5px 12px",borderRadius:8}}>{p.price}</div>
             </button>
           ))}
         </div>
@@ -70,16 +70,16 @@ function TopupModal({ onClose }) {
 function LockedState({ onUpgrade }) {
   return (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:480,padding:"48px 24px",textAlign:"center"}}>
-      <div style={{width:64,height:64,borderRadius:"50%",background:"#eff6ff",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:20,color:"#046EF2"}}><Ico d={I.lock} size={28}/></div>
+      <div style={{width:64,height:64,borderRadius:"50%",background:"#f5f3ff",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:20,color:"#7c3aed"}}><Ico d={I.lock} size={28}/></div>
       <div style={{fontSize:22,fontWeight:800,color:"#111",marginBottom:8,letterSpacing:"-0.03em"}}>AI Copilot is Pro only</div>
       <div style={{fontSize:14,color:"#6b7280",lineHeight:1.7,maxWidth:320,marginBottom:28,fontWeight:600}}>Upgrade to Pro to unlock your personal AI business assistant.</div>
-      <button onClick={onUpgrade} style={{padding:"12px 28px",background:"#046EF2",color:"#fff",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 14px rgba(4,110,242,0.3)"}}>Upgrade to Pro — $10/mo</button>
+      <button onClick={onUpgrade} style={{padding:"12px 28px",background:"#7c3aed",color:"#fff",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 14px rgba(124,58,237,0.3)"}}>Upgrade to Pro — $10/mo</button>
       <div style={{fontSize:12,color:"#9ca3af",fontWeight:600}}>Cancel anytime · 14-day free trial</div>
       <div style={{marginTop:32,background:"#f8f9fb",border:"1px solid #e5e7eb",borderRadius:12,padding:"20px 24px",maxWidth:320,width:"100%",textAlign:"left"}}>
         <div style={{fontSize:11,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:12}}>What you unlock</div>
         {["AI chat — 15 messages/day free","Product description generator","Analytics explainer in plain English","Instagram & TikTok caption generator","Customer reply assistant","Store health analysis","AI sales suggestions"].map((f,i)=>(
           <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,fontSize:13,color:"#374151",fontWeight:600}}>
-            <span style={{color:"#046EF2",flexShrink:0}}><Ico d={I.check} size={13}/></span>{f}
+            <span style={{color:"#7c3aed",flexShrink:0}}><Ico d={I.check} size={13}/></span>{f}
           </div>
         ))}
       </div>
@@ -91,7 +91,7 @@ function ChatPanel({ aiContext, suggestions, pageLabel, shopName }) {
   const [showTopup,setShowTopup]=useState(false);
   const { messagesUsed,dailyLimit,messagesRemaining,isAtLimit,isNearLimit,usagePercent }=useAIUsage();
   const { messages,input,setInput,isTyping,error,histLoading,bottomRef,sendMessage }=useAIChat({ aiContext, onLimitReached:()=>setShowTopup(true) });
-  const bar = usagePercent>=100?"#ef4444":usagePercent>=80?"#f59e0b":"#046EF2";
+  const bar = usagePercent>=100?"#ef4444":usagePercent>=80?"#f59e0b":"#7c3aed";
   const handleKey=e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMessage(); } };
   return (
     <div style={{display:"flex",flexDirection:"column",height:"100%",minHeight:0}}>
@@ -99,7 +99,7 @@ function ChatPanel({ aiContext, suggestions, pageLabel, shopName }) {
       <div style={{padding:"10px 18px",borderBottom:"1px solid #f5f5f5",flexShrink:0}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
           <span style={{fontSize:12,color:"#9ca3af",fontWeight:600}}>{isAtLimit?"Daily limit reached":`${messagesUsed} / ${dailyLimit} messages today`}</span>
-          <button onClick={()=>setShowTopup(true)} style={{fontSize:12,color:"#046EF2",background:"none",border:"none",cursor:"pointer",fontWeight:700,padding:0}}>Get more →</button>
+          <button onClick={()=>setShowTopup(true)} style={{fontSize:12,color:"#7c3aed",background:"none",border:"none",cursor:"pointer",fontWeight:700,padding:0}}>Get more →</button>
         </div>
         <div style={{height:4,background:"#f0f0f0",borderRadius:4,overflow:"hidden"}}>
           <div style={{height:"100%",width:`${usagePercent}%`,background:bar,borderRadius:4,transition:"width 0.4s ease,background 0.3s"}}/>
@@ -113,7 +113,7 @@ function ChatPanel({ aiContext, suggestions, pageLabel, shopName }) {
         ):messages.length===0?(
           <div style={{padding:"8px 0"}}>
             <div style={{textAlign:"center",marginBottom:24}}>
-              <div style={{width:52,height:52,borderRadius:"50%",background:"linear-gradient(135deg,#046EF2,#7C3AED)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",color:"#fff"}}><Ico d={I.sparkle} size={22}/></div>
+              <div style={{width:52,height:52,borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#7C3AED)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",color:"#fff"}}><Ico d={I.sparkle} size={22}/></div>
               <div style={{fontSize:16,fontWeight:800,color:"#111",marginBottom:6,letterSpacing:"-0.02em"}}>Hi! I'm your Beme AI Copilot</div>
               <div style={{fontSize:13,color:"#6b7280",lineHeight:1.7,maxWidth:280,margin:"0 auto",fontWeight:600}}>I'm here to help <strong style={{color:"#111"}}>{shopName}</strong> grow. Ask me anything about products, orders, analytics, or marketing.</div>
             </div>
@@ -121,7 +121,7 @@ function ChatPanel({ aiContext, suggestions, pageLabel, shopName }) {
             <div style={{display:"flex",flexDirection:"column",gap:7}}>
               {suggestions.slice(0,4).map((s,i)=>(
                 <button key={i} onClick={()=>sendMessage(s)} style={{background:"#f8f9fb",border:"1px solid #e5e7eb",borderRadius:9,color:"#374151",fontSize:13,padding:"10px 14px",cursor:"pointer",textAlign:"left",fontWeight:600,fontFamily:"Nunito,sans-serif",transition:"all 0.15s"}}
-                  onMouseEnter={e=>{e.currentTarget.style.background="#eff6ff";e.currentTarget.style.borderColor="#bfdbfe";e.currentTarget.style.color="#046EF2";}}
+                  onMouseEnter={e=>{e.currentTarget.style.background="#f5f3ff";e.currentTarget.style.borderColor="#ddd6fe";e.currentTarget.style.color="#7c3aed";}}
                   onMouseLeave={e=>{e.currentTarget.style.background="#f8f9fb";e.currentTarget.style.borderColor="#e5e7eb";e.currentTarget.style.color="#374151";}}
                 >{s}</button>
               ))}
@@ -137,19 +137,19 @@ function ChatPanel({ aiContext, suggestions, pageLabel, shopName }) {
         {isAtLimit?(
           <div style={{textAlign:"center",fontSize:13,color:"#6b7280",padding:"8px 0",fontWeight:600}}>
             Daily limit reached.{" "}
-            <button onClick={()=>setShowTopup(true)} style={{color:"#046EF2",background:"none",border:"none",cursor:"pointer",fontSize:13,fontWeight:700}}>Top up →</button>
+            <button onClick={()=>setShowTopup(true)} style={{color:"#7c3aed",background:"none",border:"none",cursor:"pointer",fontSize:13,fontWeight:700}}>Top up →</button>
           </div>
         ):(
           <div style={{display:"flex",alignItems:"flex-end",gap:8}}>
             <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={handleKey}
               placeholder={`Ask me anything about ${pageLabel}…`} rows={1} disabled={isTyping}
               style={{flex:1,background:"#f8f9fb",border:"1px solid #e5e7eb",borderRadius:10,color:"#111",fontSize:13,padding:"10px 13px",resize:"none",outline:"none",lineHeight:1.5,maxHeight:120,overflowY:"auto",fontFamily:"Nunito,sans-serif",fontWeight:600,transition:"border-color 0.15s,box-shadow 0.15s"}}
-              onFocus={e=>{e.target.style.borderColor="#046EF2";e.target.style.boxShadow="0 0 0 3px rgba(4,110,242,0.10)";}}
+              onFocus={e=>{e.target.style.borderColor="#7c3aed";e.target.style.boxShadow="0 0 0 3px rgba(124,58,237,0.10)";}}
               onBlur={e=>{e.target.style.borderColor="#e5e7eb";e.target.style.boxShadow="none";}}
               onInput={e=>{e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,120)+"px";}}
             />
             <button onClick={()=>sendMessage()} disabled={!input.trim()||isTyping}
-              style={{width:40,height:40,borderRadius:10,flexShrink:0,border:"none",background:input.trim()&&!isTyping?"#046EF2":"#f0f0f0",cursor:input.trim()&&!isTyping?"pointer":"not-allowed",display:"flex",alignItems:"center",justifyContent:"center",color:input.trim()&&!isTyping?"#fff":"#9ca3af",transition:"all 0.15s"}}>
+              style={{width:40,height:40,borderRadius:10,flexShrink:0,border:"none",background:input.trim()&&!isTyping?"#7c3aed":"#f0f0f0",cursor:input.trim()&&!isTyping?"pointer":"not-allowed",display:"flex",alignItems:"center",justifyContent:"center",color:input.trim()&&!isTyping?"#fff":"#9ca3af",transition:"all 0.15s"}}>
               <Ico d={I.send} size={15}/>
             </button>
           </div>
@@ -163,7 +163,7 @@ function ChatPanel({ aiContext, suggestions, pageLabel, shopName }) {
 
 function SettingsPanel({ messagesUsed, dailyLimit, messagesRemaining, usagePercent, sellerId }) {
   const { settings, loading, saving, updateSetting } = useAISettings();
-  const bar = usagePercent>=100?"#ef4444":usagePercent>=80?"#f59e0b":"#046EF2";
+  const bar = usagePercent>=100?"#ef4444":usagePercent>=80?"#f59e0b":"#7c3aed";
 
   // Auto-reply daily usage
   const [arUsage, setArUsage] = useState({ count:0, limit:1000, plan:"starter" });
@@ -181,9 +181,9 @@ function SettingsPanel({ messagesUsed, dailyLimit, messagesRemaining, usagePerce
     }).catch(() => {});
   }, [sellerId]);
 
-  const arBar = arUsage.limit === Infinity ? "#046EF2"
+  const arBar = arUsage.limit === Infinity ? "#7c3aed"
     : arUsage.count / arUsage.limit >= 1 ? "#ef4444"
-    : arUsage.count / arUsage.limit >= 0.8 ? "#f59e0b" : "#046EF2";
+    : arUsage.count / arUsage.limit >= 0.8 ? "#f59e0b" : "#7c3aed";
   const arPct = arUsage.limit === Infinity ? 10
     : Math.min(100, Math.round((arUsage.count / arUsage.limit) * 100));
 
@@ -193,12 +193,12 @@ function SettingsPanel({ messagesUsed, dailyLimit, messagesRemaining, usagePerce
         <div style={{fontSize:11,fontWeight:700,color:"#9ca3af",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:14}}>Today's Usage</div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:10}}>
           <div><div style={{fontSize:30,fontWeight:900,color:"#111",letterSpacing:"-0.04em",lineHeight:1}}>{messagesUsed}</div><div style={{fontSize:12,color:"#9ca3af",fontWeight:600,marginTop:2}}>of {dailyLimit} used</div></div>
-          <div style={{textAlign:"right"}}><div style={{fontSize:24,fontWeight:900,color:"#046EF2",letterSpacing:"-0.03em",lineHeight:1}}>{messagesRemaining}</div><div style={{fontSize:12,color:"#9ca3af",fontWeight:600,marginTop:2}}>remaining</div></div>
+          <div style={{textAlign:"right"}}><div style={{fontSize:24,fontWeight:900,color:"#7c3aed",letterSpacing:"-0.03em",lineHeight:1}}>{messagesRemaining}</div><div style={{fontSize:12,color:"#9ca3af",fontWeight:600,marginTop:2}}>remaining</div></div>
         </div>
         <div style={{height:6,background:"#f0f0f0",borderRadius:6,overflow:"hidden"}}><div style={{height:"100%",width:`${usagePercent}%`,background:bar,borderRadius:6,transition:"width 0.4s ease"}}/></div>
         <div style={{fontSize:11,color:"#9ca3af",marginTop:8,fontWeight:600}}>Resets at midnight</div>
       </div>
-      <div style={{background:"linear-gradient(135deg,#046EF2 0%,#7C3AED 100%)",borderRadius:12,padding:"16px 20px",color:"#fff"}}>
+      <div style={{background:"linear-gradient(135deg,#7c3aed 0%,#7C3AED 100%)",borderRadius:12,padding:"16px 20px",color:"#fff"}}>
         <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:5}}><Ico d={I.star} size={13}/><span style={{fontSize:13,fontWeight:800}}>Pro Plan Active</span></div>
         <div style={{fontSize:12,opacity:0.85,lineHeight:1.6,fontWeight:600}}>15 free messages/day + pay-as-you-go top-ups</div>
       </div>
@@ -212,7 +212,7 @@ function SettingsPanel({ messagesUsed, dailyLimit, messagesRemaining, usagePerce
           </div>
           <button onClick={()=>updateSetting("customerAutoReplies",!settings.customerAutoReplies)}
             disabled={saving} aria-label="Toggle Auto-Reply"
-            style={{width:44,height:26,borderRadius:13,flexShrink:0,background:settings.customerAutoReplies?"#046EF2":"#e5e7eb",border:"none",cursor:saving?"not-allowed":"pointer",position:"relative",transition:"background 0.2s"}}>
+            style={{width:44,height:26,borderRadius:13,flexShrink:0,background:settings.customerAutoReplies?"#7c3aed":"#e5e7eb",border:"none",cursor:saving?"not-allowed":"pointer",position:"relative",transition:"background 0.2s"}}>
             <span style={{position:"absolute",top:3,left:settings.customerAutoReplies?20:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.15)"}}/>
           </button>
         </div>
@@ -244,7 +244,7 @@ function SettingsPanel({ messagesUsed, dailyLimit, messagesRemaining, usagePerce
                 <div style={{fontSize:11,color:"#9ca3af",lineHeight:1.5,fontWeight:600}}>{a.desc}</div>
               </div>
               <button onClick={()=>updateSetting(a.key,!settings[a.key])} disabled={saving} aria-label={`Toggle ${a.label}`}
-                style={{width:38,height:22,borderRadius:11,flexShrink:0,background:settings[a.key]?"#046EF2":"#e5e7eb",border:"none",cursor:saving?"not-allowed":"pointer",position:"relative",transition:"background 0.2s",marginTop:3}}>
+                style={{width:38,height:22,borderRadius:11,flexShrink:0,background:settings[a.key]?"#7c3aed":"#e5e7eb",border:"none",cursor:saving?"not-allowed":"pointer",position:"relative",transition:"background 0.2s",marginTop:3}}>
                 <span style={{position:"absolute",top:2,left:settings[a.key]?18:2,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.15)"}}/>
               </button>
             </div>
@@ -268,16 +268,16 @@ export default function AIAssistant() {
     <div style={{padding:"24px 24px 40px",maxWidth:1080,margin:"0 auto"}}>
       <div style={{marginBottom:22}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
-          <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#046EF2,#7C3AED)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",flexShrink:0}}><Ico d={I.sparkle} size={15}/></div>
+          <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#7C3AED)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",flexShrink:0}}><Ico d={I.sparkle} size={15}/></div>
           <div style={{fontSize:22,fontWeight:900,color:"#111",letterSpacing:"-0.03em"}}>AI Copilot</div>
-          <span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:"#eff6ff",color:"#046EF2",border:"1px solid #bfdbfe"}}>PRO</span>
+          <span style={{fontSize:11,fontWeight:700,padding:"3px 9px",borderRadius:20,background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe"}}>PRO</span>
         </div>
         <div style={{fontSize:13,color:"#9ca3af",fontWeight:600,paddingLeft:44}}>Your AI business assistant — helping with <strong style={{color:"#374151"}}>{pageLabel}</strong></div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:18,alignItems:"start"}}>
         <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:14,boxShadow:"0 1px 4px rgba(0,0,0,0.06)",overflow:"hidden",display:"flex",flexDirection:"column",height:"calc(100vh - 210px)",minHeight:500}}>
           <div style={{padding:"14px 18px",borderBottom:"1px solid #f5f5f5",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
-            <div style={{width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#046EF2,#7C3AED)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}><Ico d={I.chat} size={14}/></div>
+            <div style={{width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#7C3AED)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}><Ico d={I.chat} size={14}/></div>
             <div>
               <div style={{fontSize:14,fontWeight:800,color:"#111"}}>Beme AI Copilot</div>
               <div style={{fontSize:11,color:"#9ca3af",fontWeight:600}}>Helping {shopName} grow</div>

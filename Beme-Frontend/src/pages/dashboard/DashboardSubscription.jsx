@@ -31,7 +31,7 @@ const PLANS = [
     ],
   },
   {
-    id:"starter", name:"Starter", tagline:"For growing sellers", limit:"10 products", color:"#046EF2",
+    id:"starter", name:"Starter", tagline:"For growing sellers", limit:"10 products", color:"#7c3aed",
     features:[
       { t:"10 product listings",           on:true  },
       { t:"Full storefront page",           on:true  },
@@ -197,7 +197,7 @@ export default function DashboardSubscription() {
         <InfoPill label="Price"         value={MONTHLY[rawPlan]===0 ? "Free" : `GHS ${MONTHLY[rawPlan]}/month`}/>
         <InfoPill label="Product limit" value={PLANS.find(p=>p.id===rawPlan)?.limit||"5 products"}/>
         <InfoPill label="Billing"       value={subData?.billing ? subData.billing.charAt(0).toUpperCase()+subData.billing.slice(1) : "Monthly"}/>
-        {expiresStr && <InfoPill label="Renews on" value={expiresStr} color="#046EF2"/>}
+        {expiresStr && <InfoPill label="Renews on" value={expiresStr} color="#7c3aed"/>}
         <InfoPill label="Beme Delivery"  value={["growth","pro"].includes(rawPlan) ? "✅ Included" : "🔒 Growth+ only"}
           color={["growth","pro"].includes(rawPlan) ? "#15803d" : "#9CA3AF"}/>
         <InfoPill label="Analytics Pro"  value={["growth","pro"].includes(rawPlan) ? "✅ Included" : "🔒 Growth+ only"}
@@ -228,7 +228,7 @@ export default function DashboardSubscription() {
               {b.l}
               {b.k==="yearly" && (
                 <span style={{fontSize:11,fontWeight:800,padding:"2px 8px",borderRadius:20,
-                  background:"linear-gradient(135deg,#046EF2,#7C3AED)",color:"#fff",
+                  background:"linear-gradient(135deg,#7c3aed,#7C3AED)",color:"#fff",
                   animation: billing==="yearly" ? "badge-pop 0.3s ease" : "none"}}>
                   Save 17%
                 </span>
@@ -237,7 +237,7 @@ export default function DashboardSubscription() {
           ))}
         </div>
         {isYearly && (
-          <span style={{fontSize:13,color:"#046EF2",fontWeight:700}}>
+          <span style={{fontSize:13,color:"#7c3aed",fontWeight:700}}>
             Billed annually · Pay once, save all year
           </span>
         )}
@@ -257,25 +257,25 @@ export default function DashboardSubscription() {
               background:"#fff", borderRadius:18, padding:"22px 18px",
               position:"relative", display:"flex", flexDirection:"column",
               border: isCurrent
-                ? "2px solid #046EF2"
+                ? "2px solid #7c3aed"
                 : plan.popular
                   ? "2px solid transparent"
                   : "1.5px solid rgba(0,0,0,0.08)",
-              boxShadow: isCurrent ? "0 0 0 4px rgba(4,110,242,0.10)" : "0 2px 12px rgba(0,0,0,0.05)",
+              boxShadow: isCurrent ? "0 0 0 4px rgba(124,58,237,0.10)" : "0 2px 12px rgba(0,0,0,0.05)",
               background: plan.popular && !isCurrent
-                ? "linear-gradient(#fff,#fff) padding-box, linear-gradient(135deg,#046EF2,#6366F1,#7C3AED) border-box"
+                ? "linear-gradient(#fff,#fff) padding-box, linear-gradient(135deg,#7c3aed,#6366F1,#7C3AED) border-box"
                 : "#fff",
             }}>
               {plan.popular && !isCurrent && (
                 <div style={{position:"absolute",top:-12,left:"50%",transform:"translateX(-50%)",
-                  background:"linear-gradient(135deg,#046EF2,#7C3AED)",color:"#fff",
+                  background:"linear-gradient(135deg,#7c3aed,#7C3AED)",color:"#fff",
                   fontSize:10,fontWeight:800,padding:"4px 12px",borderRadius:100,whiteSpace:"nowrap"}}>
                   ⭐ Most Popular
                 </div>
               )}
               {isCurrent && (
                 <div style={{position:"absolute",top:-12,left:14,
-                  background:"#046EF2",color:"#fff",fontSize:10,fontWeight:800,
+                  background:"#7c3aed",color:"#fff",fontSize:10,fontWeight:800,
                   padding:"4px 12px",borderRadius:100}}>
                   Your Plan
                 </div>
@@ -328,7 +328,7 @@ export default function DashboardSubscription() {
               {/* CTA */}
               {isCurrent ? (
                 <div style={{padding:"11px",textAlign:"center",fontSize:13,fontWeight:700,
-                  color:"#046EF2",background:"rgba(4,110,242,0.06)",borderRadius:10}}>
+                  color:"#7c3aed",background:"rgba(124,58,237,0.06)",borderRadius:10}}>
                   ✓ Current Plan
                 </div>
               ) : isDowngrade ? (
@@ -339,10 +339,10 @@ export default function DashboardSubscription() {
               ) : (
                 <button type="button" onClick={()=>handleUpgrade(plan)} disabled={!!initiating}
                   style={{width:"100%",padding:"12px",borderRadius:10,border:"none",
-                    background:"#046EF2",color:"#fff",fontSize:13,fontWeight:800,
+                    background:"#7c3aed",color:"#fff",fontSize:13,fontWeight:800,
                     cursor:initiating?"not-allowed":"pointer",fontFamily:"inherit",
                     opacity:initiating?0.7:1,
-                    boxShadow:"0 4px 14px rgba(4,110,242,0.35)",transition:"opacity 0.15s"}}>
+                    boxShadow:"0 4px 14px rgba(124,58,237,0.35)",transition:"opacity 0.15s"}}>
                   {initiating===plan.id ? "Processing…"
                     : price===0 ? "Get started free"
                     : `Choose ${plan.name} →`}
@@ -367,11 +367,11 @@ export default function DashboardSubscription() {
                   color:"#6B7280",borderBottom:"1px solid rgba(0,0,0,0.06)",minWidth:160}}>Feature</th>
                 {PLANS.map(p => (
                   <th key={p.id} style={{padding:"12px 14px",textAlign:"center",fontSize:12,fontWeight:800,
-                    color:p.id===rawPlan?"#046EF2":"#6B7280",
+                    color:p.id===rawPlan?"#7c3aed":"#6B7280",
                     borderBottom:"1px solid rgba(0,0,0,0.06)",
-                    background:p.id===rawPlan?"rgba(4,110,242,0.04)":"transparent"}}>
+                    background:p.id===rawPlan?"rgba(124,58,237,0.04)":"transparent"}}>
                     {p.name}
-                    {p.id===rawPlan && <div style={{fontSize:9,color:"#046EF2",fontWeight:700}}>YOUR PLAN</div>}
+                    {p.id===rawPlan && <div style={{fontSize:9,color:"#7c3aed",fontWeight:700}}>YOUR PLAN</div>}
                   </th>
                 ))}
               </tr>
@@ -382,7 +382,7 @@ export default function DashboardSubscription() {
                   <td style={{padding:"10px 20px",fontSize:13,fontWeight:600,color:"#374151"}}>{label}</td>
                   {vals.map((v,ci) => (
                     <td key={ci} style={{padding:"10px 14px",textAlign:"center",
-                      background:PLANS[ci].id===rawPlan?"rgba(4,110,242,0.02)":"transparent"}}>
+                      background:PLANS[ci].id===rawPlan?"rgba(124,58,237,0.02)":"transparent"}}>
                       {typeof v === "boolean"
                         ? <div style={{display:"flex",justifyContent:"center"}}><Chk on={v} color={PLANS[ci].color}/></div>
                         : <span style={{fontSize:13,fontWeight:700,color:"#111"}}>{v}</span>}

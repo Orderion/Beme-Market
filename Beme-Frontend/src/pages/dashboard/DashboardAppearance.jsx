@@ -83,7 +83,7 @@ function Field({ label, hint, icon, value, onChange, placeholder, multiline, typ
     transition: "border-color 0.15s", padding: icon ? (multiline ? "11px 14px 11px 38px" : "0 14px 0 38px") : (multiline ? "11px 14px" : "0 14px"),
     height: multiline ? "auto" : 46,
   };
-  const focus = e => e.target.style.borderColor = "#046EF2";
+  const focus = e => e.target.style.borderColor = "#7c3aed";
   const blur  = e => e.target.style.borderColor = "rgba(0,0,0,0.1)";
   return (
     <div style={{ marginBottom: 16 }}>
@@ -106,7 +106,7 @@ function Preview({ form }) {
     form.whatsapp  && { l: "WhatsApp",  c: "#25D366" },
     form.instagram && { l: "Instagram",  c: "#E1306C" },
     form.tiktok    && { l: "TikTok",     c: "#111" },
-    form.website   && { l: "Website",    c: "#046EF2" },
+    form.website   && { l: "Website",    c: "#7c3aed" },
   ].filter(Boolean);
   return (
     <div style={{ border: "1px solid rgba(0,0,0,0.1)", borderRadius: 14, overflow: "hidden", background: "#fff" }}>
@@ -316,12 +316,12 @@ export default function DashboardAppearance() {
             <div style={{ fontSize: 15, fontWeight: 800, color: "#111", marginBottom: 18 }}>Store Information</div>
             <Field label="Store Name" value={form.shopName} onChange={e=>upd("shopName",e.target.value)} placeholder="e.g. Kente Kicks GH" hint="This is your store title that customers see."/>
             <Field label="Store Description" value={form.description} onChange={e=>upd("description",e.target.value)} placeholder="Tell customers what makes your store special…" multiline hint="Shown on your store's About tab."/>
-            <div style={{ padding: "12px 14px", borderRadius: 10, background: "rgba(4,110,242,0.04)", border: "1px solid rgba(4,110,242,0.12)" }}>
+            <div style={{ padding: "12px 14px", borderRadius: 10, background: "rgba(124,58,237,0.04)", border: "1px solid rgba(124,58,237,0.12)" }}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#9CA3AF", marginBottom: 5 }}>
                 Your store link — share this with customers
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: "#046EF2", wordBreak: "break-all" }}>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: "#7c3aed", wordBreak: "break-all" }}>
                   bememarket.store{storeUrl}
                 </span>
                 <button type="button"
@@ -369,13 +369,13 @@ export default function DashboardAppearance() {
                 <button key={opt.id} type="button"
                   onClick={() => upd("chatPreference", opt.id)}
                   style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px",
-                    borderRadius:10, border:`1.5px solid ${form.chatPreference===opt.id?"#046EF2":"rgba(0,0,0,0.09)"}`,
-                    background: form.chatPreference===opt.id ? "rgba(4,110,242,0.04)" : "#fafafa",
+                    borderRadius:10, border:`1.5px solid ${form.chatPreference===opt.id?"#7c3aed":"rgba(0,0,0,0.09)"}`,
+                    background: form.chatPreference===opt.id ? "rgba(124,58,237,0.04)" : "#fafafa",
                     cursor:"pointer", textAlign:"left", fontFamily:"inherit" }}>
                   <div style={{ width:36, height:36, borderRadius:9, flexShrink:0,
-                    background: form.chatPreference===opt.id ? "rgba(4,110,242,0.1)" : "rgba(0,0,0,0.05)",
+                    background: form.chatPreference===opt.id ? "rgba(124,58,237,0.1)" : "rgba(0,0,0,0.05)",
                     display:"flex", alignItems:"center", justifyContent:"center",
-                    color: form.chatPreference===opt.id ? "#046EF2" : "#9CA3AF" }}>
+                    color: form.chatPreference===opt.id ? "#7c3aed" : "#9CA3AF" }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                       stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                       {opt.icon.split("|").map((d,i) => <path key={i} d={d}/>)}
@@ -386,8 +386,8 @@ export default function DashboardAppearance() {
                     <div style={{ fontSize:12, color:"#9CA3AF", marginTop:2 }}>{opt.sub}</div>
                   </div>
                   <div style={{ width:18, height:18, borderRadius:"50%", flexShrink:0,
-                    border:`2px solid ${form.chatPreference===opt.id?"#046EF2":"rgba(0,0,0,0.15)"}`,
-                    background: form.chatPreference===opt.id ? "#046EF2" : "transparent",
+                    border:`2px solid ${form.chatPreference===opt.id?"#7c3aed":"rgba(0,0,0,0.15)"}`,
+                    background: form.chatPreference===opt.id ? "#7c3aed" : "transparent",
                     display:"flex", alignItems:"center", justifyContent:"center" }}>
                     {form.chatPreference===opt.id && (
                       <div style={{ width:6, height:6, borderRadius:"50%", background:"#fff" }}/>

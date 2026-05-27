@@ -283,8 +283,8 @@ export default function DashboardProducts() {
           {STATUS_OPTS.map(opt => (
             <button key={opt} type="button" onClick={() => setStatusFilter(opt)}
               style={{ padding:"6px 14px", borderRadius:100, border:"1.5px solid",
-                borderColor: statusFilter===opt ? "#046EF2" : "rgba(0,0,0,0.1)",
-                background: statusFilter===opt ? "#046EF2" : "transparent",
+                borderColor: statusFilter===opt ? "#7c3aed" : "rgba(0,0,0,0.1)",
+                background: statusFilter===opt ? "#7c3aed" : "transparent",
                 color: statusFilter===opt ? "#fff" : "#333",
                 fontSize:12, fontWeight:700, cursor:"pointer",
                 fontFamily:"inherit", transition:"all 0.15s" }}>

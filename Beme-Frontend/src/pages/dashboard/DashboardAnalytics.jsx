@@ -14,7 +14,7 @@ const API_URL = import.meta.env.VITE_API_URL || "https://beme-market-1.onrender.
 
 /* ── Theme ── */
 const C = {
-  blue:   "#1a6ef5",
+  blue:   "#7c3aed",
   green:  "#22C55E",
   purple: "#7C3AED",
   orange: "#F59E0B",
@@ -140,7 +140,7 @@ function LockedState() {
   return (
     <div style={{ display:"flex", flexDirection:"column", alignItems:"center",
       justifyContent:"center", minHeight:500, textAlign:"center", padding:"48px 24px" }}>
-      <div style={{ width:68, height:68, borderRadius:"50%", background:"#eff6ff",
+      <div style={{ width:68, height:68, borderRadius:"50%", background:"#f5f3ff",
         display:"flex", alignItems:"center", justifyContent:"center", marginBottom:20 }}>
         <Ico d={IC.lock} size={28} color={C.blue}/>
       </div>

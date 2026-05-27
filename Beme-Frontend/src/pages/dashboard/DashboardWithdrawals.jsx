@@ -72,8 +72,8 @@ export function DashboardWithdrawals() {
       </div>
 
       {/* Info banner */}
-      <div style={{ display:"flex", gap:10, padding:"12px 16px", background:"rgba(4,110,242,0.04)", borderRadius:10, border:"1px solid rgba(4,110,242,0.12)", marginBottom:14 }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#046EF2" strokeWidth="1.8" strokeLinecap="round" style={{ flexShrink:0, marginTop:1 }}>
+      <div style={{ display:"flex", gap:10, padding:"12px 16px", background:"rgba(124,58,237,0.04)", borderRadius:10, border:"1px solid rgba(124,58,237,0.12)", marginBottom:14 }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.8" strokeLinecap="round" style={{ flexShrink:0, marginTop:1 }}>
           <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
         </svg>
         <div style={{ fontSize:13, color:"#6B7280", lineHeight:1.5 }}>

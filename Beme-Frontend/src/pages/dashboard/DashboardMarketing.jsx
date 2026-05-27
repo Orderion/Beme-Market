@@ -19,7 +19,7 @@ const PLAN_TIER = { basic: 0, standard: 1, pro: 2 };
 
 const ICON_COLORS = {
   flash:    "#F59E0B",
-  discount: "#046EF2",
+  discount: "#7c3aed",
   boost:    "#7C3AED",
   ai:       "#22C55E",
   referral: "#EF4444",
@@ -113,7 +113,7 @@ WHATSAPP: [caption]` : `Write 1 caption ready to post. Just the caption text, no
               <input value={captionProduct} onChange={e=>setCaptionProduct(e.target.value)}
                 placeholder="Enter product name e.g. Ankara Mini Dress"
                 style={{ flex:1, minWidth:200, height:40, padding:"0 12px", border:"1.5px solid #e5e7eb", borderRadius:9, fontSize:13, fontWeight:600, outline:"none", fontFamily:"Nunito,sans-serif", color:"#111", background:"#f8f9fb" }}
-                onFocus={e=>{e.target.style.borderColor="#046EF2";e.target.style.boxShadow="0 0 0 3px rgba(4,110,242,0.10)";}}
+                onFocus={e=>{e.target.style.borderColor="#7c3aed";e.target.style.boxShadow="0 0 0 3px rgba(124,58,237,0.10)";}}
                 onBlur={e=>{e.target.style.borderColor="#e5e7eb";e.target.style.boxShadow="none";}}
                 onKeyDown={e=>e.key==="Enter"&&generateCaptions()}
               />
@@ -125,7 +125,7 @@ WHATSAPP: [caption]` : `Write 1 caption ready to post. Just the caption text, no
                 <option value="all">All 3 platforms</option>
               </select>
               <button onClick={generateCaptions} disabled={generating || !captionProduct.trim()}
-                style={{ height:40, padding:"0 18px", borderRadius:9, border:"none", background:generating||!captionProduct.trim()?"#f0f0f0":"#046EF2", color:generating||!captionProduct.trim()?"#9ca3af":"#fff", fontSize:13, fontWeight:800, cursor:generating||!captionProduct.trim()?"not-allowed":"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", gap:6, transition:"all 0.15s" }}>
+                style={{ height:40, padding:"0 18px", borderRadius:9, border:"none", background:generating||!captionProduct.trim()?"#f0f0f0":"#7c3aed", color:generating||!captionProduct.trim()?"#9ca3af":"#fff", fontSize:13, fontWeight:800, cursor:generating||!captionProduct.trim()?"not-allowed":"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", gap:6, transition:"all 0.15s" }}>
                 {generating ? <><div style={{ width:12,height:12,border:"2px solid currentColor",borderTopColor:"transparent",borderRadius:"50%",animation:"mkt-spin 0.8s linear infinite" }}/> Writing…</> : "✨ Generate"}
               </button>
             </div>
@@ -135,7 +135,7 @@ WHATSAPP: [caption]` : `Write 1 caption ready to post. Just the caption text, no
                 {Object.entries(captions).map(([platform, text]) => text && (
                   <div key={platform} style={{ background:"#f8f9fb", borderRadius:10, border:"1px solid #e5e7eb", padding:"12px 14px" }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-                      <span style={{ fontSize:11, fontWeight:800, color:"#046EF2", textTransform:"uppercase", letterSpacing:"0.06em" }}>
+                      <span style={{ fontSize:11, fontWeight:800, color:"#7c3aed", textTransform:"uppercase", letterSpacing:"0.06em" }}>
                         {platform === "instagram" ? "📸 Instagram" : platform === "tiktok" ? "📱 TikTok" : "💬 WhatsApp"}
                       </span>
                       <button onClick={() => { navigator.clipboard.writeText(text); }}
@@ -146,7 +146,7 @@ WHATSAPP: [caption]` : `Write 1 caption ready to post. Just the caption text, no
                     <div style={{ fontSize:13, color:"#374151", lineHeight:1.6, fontWeight:600, whiteSpace:"pre-wrap" }}>{text}</div>
                   </div>
                 ))}
-                <button onClick={()=>{setCaptions(null);generateCaptions();}} style={{ alignSelf:"flex-start", fontSize:12, color:"#046EF2", background:"none", border:"none", cursor:"pointer", fontWeight:700, padding:0 }}>↺ Regenerate</button>
+                <button onClick={()=>{setCaptions(null);generateCaptions();}} style={{ alignSelf:"flex-start", fontSize:12, color:"#7c3aed", background:"none", border:"none", cursor:"pointer", fontWeight:700, padding:0 }}>↺ Regenerate</button>
               </div>
             )}
           </div>
@@ -163,7 +163,7 @@ WHATSAPP: [caption]` : `Write 1 caption ready to post. Just the caption text, no
         {TOOLS.map((t) => {
           const locked   = !canAccess(t.plan);
           const IconComp = MARKETING_ICONS[t.id];
-          const iconColor = ICON_COLORS[t.id] || "#046EF2";
+          const iconColor = ICON_COLORS[t.id] || "#7c3aed";
 
           return (
             <div

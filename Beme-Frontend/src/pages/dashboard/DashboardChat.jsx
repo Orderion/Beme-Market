@@ -109,8 +109,8 @@ export default function DashboardChat() {
                 : conversations.map(c => (
                     <div key={c.id} className={`sd-chat-item ${activeChat===c.id?"active":""}`}
                       onClick={() => handleSelectChat(c.id)}
-                      style={{ borderLeft:activeChat===c.id?"3px solid #046EF2":"3px solid transparent", cursor:"pointer", padding:"12px 16px", display:"flex", alignItems:"center", gap:10 }}>
-                      <div style={{ width:34, height:34, borderRadius:"50%", background:"rgba(4,110,242,0.08)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:13, color:"#046EF2", flexShrink:0 }}>
+                      style={{ borderLeft:activeChat===c.id?"3px solid #7c3aed":"3px solid transparent", cursor:"pointer", padding:"12px 16px", display:"flex", alignItems:"center", gap:10 }}>
+                      <div style={{ width:34, height:34, borderRadius:"50%", background:"rgba(124,58,237,0.08)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:13, color:"#7c3aed", flexShrink:0 }}>
                         {(c.customerName||"?")[0].toUpperCase()}
                       </div>
                       <div style={{ minWidth:0, flex:1 }}>
@@ -118,7 +118,7 @@ export default function DashboardChat() {
                         <div style={{ fontSize:12, color:"#9CA3AF", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.lastMessage||"No messages yet"}</div>
                       </div>
                       {c.unreadBySeller > 0 && (
-                        <div style={{ background:"#046EF2", color:"#fff", borderRadius:"50%", width:18, height:18, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, flexShrink:0 }}>
+                        <div style={{ background:"#7c3aed", color:"#fff", borderRadius:"50%", width:18, height:18, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, flexShrink:0 }}>
                           {c.unreadBySeller}
                         </div>
                       )}
@@ -138,7 +138,7 @@ export default function DashboardChat() {
               <>
                 {/* Header */}
                 <div style={{ padding:"14px 16px", borderBottom:"1px solid rgba(0,0,0,0.08)", display:"flex", alignItems:"center", gap:12 }}>
-                  <div style={{ width:34, height:34, borderRadius:"50%", background:"rgba(4,110,242,0.08)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:13, color:"#046EF2", flexShrink:0 }}>
+                  <div style={{ width:34, height:34, borderRadius:"50%", background:"rgba(124,58,237,0.08)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:13, color:"#7c3aed", flexShrink:0 }}>
                     {(activeChatData?.customerName||"?")[0].toUpperCase()}
                   </div>
                   <div style={{ flex:1 }}>
@@ -149,9 +149,9 @@ export default function DashboardChat() {
                   </div>
                   <button onClick={togglePauseAI}
                     style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 12px", borderRadius:20,
-                      border:`1px solid ${aiPaused?"#f59e0b":"rgba(4,110,242,0.2)"}`,
-                      background:aiPaused?"#fffbeb":"#eff6ff",
-                      color:aiPaused?"#d97706":"#046EF2",
+                      border:`1px solid ${aiPaused?"#f59e0b":"rgba(124,58,237,0.2)"}`,
+                      background:aiPaused?"#fffbeb":"#f5f3ff",
+                      color:aiPaused?"#d97706":"#7c3aed",
                       fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                     {aiPaused ? "⏸ AI Paused" : "✨ AI Active"}
                   </button>
@@ -187,8 +187,8 @@ export default function DashboardChat() {
 
                 {/* AI suggestion */}
                 {aiSuggestion && (
-                  <div style={{ margin:"0 16px 8px", padding:"10px 14px", background:"#eff6ff", borderRadius:10, border:"1px solid #bfdbfe", fontSize:12, color:"#1e3a5f", fontWeight:600 }}>
-                    <div style={{ fontSize:10, fontWeight:700, color:"#046EF2", marginBottom:4 }}>✨ AI Suggestion — edit or send as is</div>
+                  <div style={{ margin:"0 16px 8px", padding:"10px 14px", background:"#f5f3ff", borderRadius:10, border:"1px solid #ddd6fe", fontSize:12, color:"#3b0764", fontWeight:600 }}>
+                    <div style={{ fontSize:10, fontWeight:700, color:"#7c3aed", marginBottom:4 }}>✨ AI Suggestion — edit or send as is</div>
                     {aiSuggestion}
                   </div>
                 )}
@@ -198,10 +198,10 @@ export default function DashboardChat() {
                   {lastCustomerMsg && (
                     <button onClick={handleAISuggest} disabled={aiLoading} title="Generate AI reply"
                       style={{ height:42, width:42, borderRadius:10, border:"1px solid #e5e7eb",
-                        background:aiLoading?"#f0f0f0":"#eff6ff", color:"#046EF2",
+                        background:aiLoading?"#f0f0f0":"#f5f3ff", color:"#7c3aed",
                         cursor:aiLoading?"wait":"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:16 }}>
                       {aiLoading
-                        ? <div style={{ width:14, height:14, border:"2px solid #046EF2", borderTopColor:"transparent", borderRadius:"50%", animation:"spin 0.8s linear infinite" }}/>
+                        ? <div style={{ width:14, height:14, border:"2px solid #7c3aed", borderTopColor:"transparent", borderRadius:"50%", animation:"spin 0.8s linear infinite" }}/>
                         : "✨"}
                     </button>
                   )}

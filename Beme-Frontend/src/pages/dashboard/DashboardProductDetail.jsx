@@ -364,11 +364,11 @@ SEO_TITLE: [your title here]`;
                     <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:3 }}>
                       <button type="button" onClick={handleAIWrite} disabled={aiWriting}
                         style={{ display:"flex", alignItems:"center", gap:5, padding:"4px 10px",
-                          borderRadius:8, border:"1px solid #bfdbfe", background:"#eff6ff",
-                          color:"#046EF2", fontSize:11, fontWeight:700, cursor:aiWriting?"wait":"pointer",
+                          borderRadius:8, border:"1px solid #ddd6fe", background:"#f5f3ff",
+                          color:"#7c3aed", fontSize:11, fontWeight:700, cursor:aiWriting?"wait":"pointer",
                           fontFamily:"inherit", transition:"all 0.15s" }}>
                         {aiWriting ? (
-                          <><div style={{ width:10,height:10,border:"2px solid #046EF2",borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.8s linear infinite" }}/> Writing…</>
+                          <><div style={{ width:10,height:10,border:"2px solid #7c3aed",borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.8s linear infinite" }}/> Writing…</>
                         ) : <>✨ Write with AI</>}
                       </button>
                       <span style={{ fontSize:9, color:"#c0c0c0", fontWeight:600 }}>Writes listings only · Questions? Use AI Copilot</span>
@@ -412,7 +412,7 @@ SEO_TITLE: [your title here]`;
                         Title only
                       </button>
                       <button type="button" onClick={() => { setAiGenerated(null); handleAIWrite(); }}
-                        style={{ padding:"8px 14px", borderRadius:8, border:"1px solid #bfdbfe", background:"#eff6ff", color:"#046EF2", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                        style={{ padding:"8px 14px", borderRadius:8, border:"1px solid #ddd6fe", background:"#f5f3ff", color:"#7c3aed", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
                         ↺ Regenerate
                       </button>
                       <button type="button" onClick={() => setAiGenerated(null)}
@@ -494,10 +494,10 @@ SEO_TITLE: [your title here]`;
               <div style={{ fontWeight:800, fontSize:14, color:"#111", marginBottom:12 }}>Status</div>
               <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                 {["active","draft"].map((s) => (
-                  <label key={s} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"10px 12px", borderRadius:8, border:`1.5px solid ${form.status===s?"#046EF2":"rgba(0,0,0,0.08)"}`, background: form.status===s?"rgba(4,110,242,0.04)":"transparent" }}>
-                    <input type="radio" name="status" value={s} checked={form.status===s} onChange={()=>setForm((f)=>({...f,status:s}))} style={{ accentColor:"#046EF2" }}/>
+                  <label key={s} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", padding:"10px 12px", borderRadius:8, border:`1.5px solid ${form.status===s?"#7c3aed":"rgba(0,0,0,0.08)"}`, background: form.status===s?"rgba(124,58,237,0.04)":"transparent" }}>
+                    <input type="radio" name="status" value={s} checked={form.status===s} onChange={()=>setForm((f)=>({...f,status:s}))} style={{ accentColor:"#7c3aed" }}/>
                     <div>
-                      <div style={{ fontSize:13, fontWeight:700, color:form.status===s?"#046EF2":"#111" }}>{s==="active"?"Active":"Draft"}</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:form.status===s?"#7c3aed":"#111" }}>{s==="active"?"Active":"Draft"}</div>
                       <div style={{ fontSize:11, color:"#9CA3AF" }}>{s==="active"?"Visible to buyers":"Hidden — not visible to buyers"}</div>
                     </div>
                   </label>
@@ -594,7 +594,7 @@ SEO_TITLE: [your title here]`;
                       </div>
                       <button type="button"
                         onClick={()=>setForm(f=>({...f,customizations:f.customizations.map((g,gi2)=>gi2!==gi?g:{...g,values:[...g.values,makeOptVal()]})}))}
-                        style={{ marginTop:10, display:"flex", alignItems:"center", gap:5, fontSize:12, fontWeight:700, color:"#046EF2", background:"none", border:"none", cursor:"pointer", padding:"4px 0", fontFamily:"inherit" }}>
+                        style={{ marginTop:10, display:"flex", alignItems:"center", gap:5, fontSize:12, fontWeight:700, color:"#7c3aed", background:"none", border:"none", cursor:"pointer", padding:"4px 0", fontFamily:"inherit" }}>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
                         Add value
                       </button>
@@ -644,7 +644,7 @@ SEO_TITLE: [your title here]`;
         .sd-form-group{margin-bottom:14px;}
         .sd-label{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#9CA3AF;margin-bottom:7px;}
         .sd-input{width:100%;padding:11px 14px;border-radius:8px;border:1.5px solid rgba(0,0,0,0.1);background:#fff;color:#111;font-size:14px;font-weight:600;font-family:inherit;outline:none;transition:border-color 0.15s;box-sizing:border-box;}
-        .sd-input:focus{border-color:#046EF2;box-shadow:0 0 0 3px rgba(4,110,242,0.08);}
+        .sd-input:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,0.08);}
         .sd-textarea{resize:vertical;min-height:100px;line-height:1.6;} @keyframes spin{to{transform:rotate(360deg)}}
         .sd-select{appearance:none;cursor:pointer;}
       `}</style>

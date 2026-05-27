@@ -26,8 +26,8 @@ function pct(c,p)          { if(!p)return c>0?100:0;return Math.round(((c-p)/p)*
 function initials(name)    { if(!name)return "?";const p=name.trim().split(" ");return p.length>=2?(p[0][0]+p[p.length-1][0]).toUpperCase():name.slice(0,2).toUpperCase(); }
 
 const DAY=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-const STATUS_COLOR={paid:"#22C55E",delivered:"#22C55E",processing:"#046EF2",shipped:"#7C3AED",pending:"#F59E0B",cancelled:"#EF4444"};
-const AVATAR_PAL=["#046EF2","#7C3AED","#22C55E","#F59E0B","#EF4444","#0891B2"];
+const STATUS_COLOR={paid:"#22C55E",delivered:"#22C55E",processing:"#7c3aed",shipped:"#7C3AED",pending:"#F59E0B",cancelled:"#EF4444"};
+const AVATAR_PAL=["#7c3aed","#7C3AED","#22C55E","#F59E0B","#EF4444","#0891B2"];
 
 function Ico({d,size=14,color="currentColor"}) {
   return (
@@ -189,7 +189,7 @@ export default function DashboardHome() {
 
       {/* 4 metric cards */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:10}}>
-        <MetricCard label="Revenue (Month)" value={`GHS ${fmtMoney(m.rev)}`} pctVal={pct(m.rev,m.pRev)} icon={IC.rev} iconColor="#046EF2" loading={loading}/>
+        <MetricCard label="Revenue (Month)" value={`GHS ${fmtMoney(m.rev)}`} pctVal={pct(m.rev,m.pRev)} icon={IC.rev} iconColor="#7c3aed" loading={loading}/>
         <MetricCard label="Orders (Week)"   value={m.wkO}                   pctVal={pct(m.wkO,m.pwO)} icon={IC.ord} iconColor="#7C3AED" loading={loading}/>
         <MetricCard label="Approved"        value={m.apr}                   pctVal={pct(m.apr,m.pApr)} icon={IC.chk} iconColor="#22C55E" loading={loading}/>
         <MetricCard label="Customers"       value={m.custs}                 pctVal={pct(m.custs,m.pCusts)} icon={IC.usr} iconColor="#F59E0B" loading={loading}/>
@@ -198,7 +198,7 @@ export default function DashboardHome() {
       {/* 2 mini strips */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:18}}>
         {[
-          {label:"Total Orders",    val:m.total,                    color:"#046EF2", icon:IC.arr},
+          {label:"Total Orders",    val:m.total,                    color:"#7c3aed", icon:IC.arr},
           {label:"Avg. Order Value",val:`GHS ${fmtMoney(m.avg)}`,   color:"#7C3AED", icon:IC.rev},
         ].map(s=>(
           <div key={s.label} style={{background:"#fff",borderRadius:12,

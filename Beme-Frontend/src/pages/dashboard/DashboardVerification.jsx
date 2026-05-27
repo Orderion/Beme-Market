@@ -31,7 +31,7 @@ const IC = {
 const BENEFITS = [
   {
     icon:  IC.shieldOk,
-    color: "#046EF2",
+    color: "#7c3aed",
     title: "Build Trust",
     desc:  "Verified badge appears on your store page and all your product listings.",
   },
@@ -146,7 +146,7 @@ export default function DashboardVerification() {
 
       {/* Verified hero */}
       {isVerified && (
-        <div style={{ background:"linear-gradient(135deg,#046EF2,#22C55E)", borderRadius:18, padding:"28px 24px",
+        <div style={{ background:"linear-gradient(135deg,#7c3aed,#22C55E)", borderRadius:18, padding:"28px 24px",
           marginBottom:20, display:"flex", alignItems:"center", gap:16 }}>
           <div style={{ width:56, height:56, borderRadius:16, background:"rgba(255,255,255,0.2)",
             display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
@@ -223,9 +223,9 @@ export default function DashboardVerification() {
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
             {DOCS_NEEDED.map(doc => (
               <div key={doc.label} style={{ display:"flex", alignItems:"center", gap:12 }}>
-                <div style={{ width:34, height:34, borderRadius:9, background:"rgba(4,110,242,0.08)",
-                  display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, color:"#046EF2" }}>
-                  <Ico d={doc.icon} size={16} color="#046EF2"/>
+                <div style={{ width:34, height:34, borderRadius:9, background:"rgba(124,58,237,0.08)",
+                  display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, color:"#7c3aed" }}>
+                  <Ico d={doc.icon} size={16} color="#7c3aed"/>
                 </div>
                 <div>
                   <div style={{ fontSize:13, fontWeight:700, color:"var(--text,#111)" }}>{doc.label}</div>
@@ -264,15 +264,15 @@ export default function DashboardVerification() {
                 borderRadius:10, background:"var(--bg,#F7F8FA)", color:"var(--text,#111)",
                 fontSize:14, fontWeight:500, outline:"none", resize:"vertical",
                 fontFamily:"inherit", boxSizing:"border-box", lineHeight:1.6 }}
-              onFocus={e=>e.target.style.borderColor="#046EF2"}
+              onFocus={e=>e.target.style.borderColor="#7c3aed"}
               onBlur={e=>e.target.style.borderColor="rgba(0,0,0,0.1)"}/>
           </div>
           <button type="button" onClick={handleSubmit} disabled={sending}
             style={{ width:"100%", height:50, borderRadius:12, border:"none",
-              background:"#046EF2", color:"#fff", fontSize:14, fontWeight:800,
+              background:"#7c3aed", color:"#fff", fontSize:14, fontWeight:800,
               cursor:sending?"wait":"pointer", opacity:sending?0.7:1,
               fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-              boxShadow:"0 4px 14px rgba(4,110,242,0.3)", transition:"opacity 0.15s" }}>
+              boxShadow:"0 4px 14px rgba(124,58,237,0.3)", transition:"opacity 0.15s" }}>
             <Ico d={IC.send} size={16} color="#fff"/>
             {sending ? "Submitting…" : "Submit Verification Request"}
           </button>
@@ -296,7 +296,7 @@ export default function DashboardVerification() {
           <div style={{ fontSize:13, color:"var(--muted,#6B7280)", lineHeight:1.6 }}>
             Your verification request has been submitted. Our team is reviewing your store.
             We'll notify you once it's complete. If you have questions, contact{" "}
-            <a href="/support" style={{ color:"#046EF2", fontWeight:700 }}>support</a>.
+            <a href="/support" style={{ color:"#7c3aed", fontWeight:700 }}>support</a>.
           </div>
         </div>
       )}
