@@ -433,15 +433,8 @@ export default function Account() {
               <div className="acc-sidebar-name">{displayName}</div>
               <div className="acc-sidebar-badge">
                 <Ico d={ICONS.member} size={10}/>&nbsp;
-                {/* Admin Panel link */}
-                {isAdminUser && (
-                  <div className="acc-sidebar-section">
-                    <div className="acc-sidebar-label">Administration</div>
-                    <NavLink icon={ICONS.settings} label="Admin Panel" onClick={()=>setShowAdminGate(true)}/>
-                  </div>
-                )}
 
-                {hasStore ? "Beme Seller" : "Beme Member"}
+{hasStore ? "Beme Seller" : "Beme Member"}
               </div>
             </div>
           </button>
@@ -455,7 +448,6 @@ export default function Account() {
             <NavLink icon={ICONS.requests} label="Product Requests" onClick={()=>navigate("/account/requests")}/>
             <NavLink icon={ICONS.notif}    label="Notifications"    onClick={()=>navigate("/account/notifications")} badge={unreadCount} badgeRed/>
             <NavLink icon={ICONS.settings} label="Theme" onClick={toggleTheme}
-              label={`Theme: ${theme === "dark" ? "🌙 Dark" : "☀️ Light"}`}/>
             {isAdminUser && (
               <NavLink icon={ICONS.chart} label="Admin Panel" onClick={()=>setShowAdminGate(true)}/>
             )}
