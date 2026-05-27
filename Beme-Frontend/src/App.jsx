@@ -32,7 +32,7 @@ import Onboarding  from "./pages/Onboarding";
 import AdminLogin  from "./pages/AdminLogin";
 
 /* ── ADMIN ── */
-import AdminDashboard        from "./pages/AdminDashboard";
+import AdminPanel            from "./pages/admin/AdminPanel";
 import Admin                 from "./pages/Admin";
 import AdminOrders           from "./pages/AdminOrders";
 import AdminReviewQueue      from "./pages/AdminReviewQueue";
@@ -132,6 +132,18 @@ const FULL_SCREEN_ROUTES = new Set([
   "/admin-login",
   "/onboarding",
   "/admin",
+  "/admin/analytics",
+  "/admin/users",
+  "/admin/stores",
+  "/admin/orders",
+  "/admin/products",
+  "/admin/payouts",
+  "/admin/support",
+  "/admin/media",
+  "/admin/notifications",
+  "/admin/homepage",
+  "/admin/admins",
+  "/admin/settings",
   "/admin/product-manager",
   "/admin/homepage",
   "/admin/support",
@@ -275,39 +287,32 @@ function AppShell() {
             <Route path="/seller-dashboard/products/:productId"
               element={<SellerRoute requireOnly="auth"><DashboardProductDetail/></SellerRoute>}/>
 
-            {/* ── ADMIN ── */}
-            <Route path="/admin"
-              element={<AdminRoute><RequireAdmin><AdminDashboard/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/product-manager"
-              element={<AdminRoute><RequireAdmin><Admin/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin-orders"
-              element={<AdminRoute><RequireAdmin><AdminOrders/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin-review-queue"
-              element={<AdminRoute><RequireAdmin><AdminReviewQueue/></RequireAdmin></AdminRoute>}/>
-            <Route path="/analytics"
-              element={<AdminRoute><RequireAdmin><Analytics/></RequireAdmin></AdminRoute>}/>
-            <Route path="/payout-requests"
-              element={<AdminRoute><RequireAdmin><PayoutRequests/></RequireAdmin></AdminRoute>}/>
-            <Route path="/shop-applications"
-              element={<AdminRoute><RequireAdmin><ShopApplications/></RequireAdmin></AdminRoute>}/>
-            <Route path="/account-management"
-              element={<AdminRoute><RequireAdmin><AccountManagement/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/homepage"
-              element={<AdminRoute><RequireAdmin><HomepageAdmin/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/product-requests"
-              element={<AdminRoute><RequireAdmin><ProductRequests/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/media"
-              element={<AdminRoute><RequireAdmin><MediaManager/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/support"
-              element={<AdminRoute><RequireAdmin><AdminSupportDashboard/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/notifications"
-              element={<AdminRoute><RequireAdmin><AdminNotifications/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/seller-payouts"
-              element={<AdminRoute><RequireAdmin><SellerPayoutRequests/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/verification-requests"
-              element={<AdminRoute><RequireAdmin><VerificationRequests/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/store-moderation"
-              element={<AdminRoute><RequireAdmin><StoreModeration/></RequireAdmin></AdminRoute>}/>
+            {/* ── ADMIN — unified panel ── */}
+            <Route path="/admin"           element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
+            <Route path="/admin/analytics" element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
+            <Route path="/admin/users"     element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
+            <Route path="/admin/stores"    element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
+            <Route path="/admin/orders"    element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
+            <Route path="/admin/products"  element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
+            <Route path="/admin/payouts"   element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
+            <Route path="/admin/support"   element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
+            <Route path="/admin/media"     element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
+            <Route path="/admin/notifications" element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
+            <Route path="/admin/homepage"  element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
+            <Route path="/admin/admins"    element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
+            <Route path="/admin/settings"  element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
+            {/* Redirect old scattered admin routes */}
+            <Route path="/admin-orders"             element={<Navigate to="/admin/orders"    replace/>}/>
+            <Route path="/admin-review-queue"        element={<Navigate to="/admin"           replace/>}/>
+            <Route path="/analytics"                 element={<Navigate to="/admin/analytics" replace/>}/>
+            <Route path="/payout-requests"           element={<Navigate to="/admin/payouts"  replace/>}/>
+            <Route path="/shop-applications"         element={<Navigate to="/admin/stores"   replace/>}/>
+            <Route path="/account-management"        element={<Navigate to="/admin/admins"   replace/>}/>
+            <Route path="/admin/product-manager"     element={<Navigate to="/admin/products" replace/>}/>
+            <Route path="/admin/product-requests"    element={<Navigate to="/admin/products" replace/>}/>
+            <Route path="/admin/seller-payouts"      element={<Navigate to="/admin/payouts"  replace/>}/>
+            <Route path="/admin/verification-requests" element={<Navigate to="/admin/stores" replace/>}/>
+            <Route path="/admin/store-moderation"    element={<Navigate to="/admin/stores"   replace/>}/>
 
             {/* ── SUPER ADMIN ONLY ── */}
             <Route path="/own-a-shop"

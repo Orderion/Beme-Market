@@ -207,6 +207,57 @@ function EditProfileModal({ profile, displayName, onClose, onSaved }) {
   );
 }
 
+
+/* ─── Admin Password Gate ─────────────────────────────────── */
+function AdminPasswordGate({ onSuccess, onCancel }) {
+  const { user } = useAuth();
+  const [password, setPassword] = useState("");
+  const [error,    setError]    = useState("");
+  const [loading,  setLoading]  = useState(false);
+
+  const verify = async () => {
+    if (!password.trim()) { setError("Enter your password."); return; }
+    setLoading(true); setError("");
+    try {
+      const { EmailAuthProvider, reauthenticateWithCredential } = await import("firebase/auth");
+      const cred = EmailAuthProvider.credential(user.email, password);
+      await reauthenticateWithCredential(auth.currentUser, cred);
+      onSuccess();
+    } catch(e) {
+      const code = e?.code || "";
+      if (["auth/wrong-password","auth/invalid-credential","auth/invalid-login-credentials"].includes(code)) {
+        setError("Incorrect password. Please try again.");
+      } else { setError(e?.message || "Verification failed."); }
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div className="acc-modal-backdrop" onClick={onCancel}>
+      <div className="acc-modal" onClick={e=>e.stopPropagation()} style={{maxWidth:400,borderRadius:20,padding:"0 20px 36px"}}>
+        <div className="acc-modal__head">
+          <h2 className="acc-modal__title">Verify Identity</h2>
+          <button type="button" className="acc-modal__close" onClick={onCancel}><Ico d={ICONS.close} size={16}/></button>
+        </div>
+        <div style={{fontSize:14,color:"var(--muted,#6B7280)",marginBottom:20,lineHeight:1.5,paddingTop:4}}>
+          Enter your password to access the Admin Panel.
+        </div>
+        <div className="acc-modal__section">
+          <label className="acc-modal__label">Password</label>
+          <input className="acc-modal__input" type="password" value={password}
+            onChange={e=>{setPassword(e.target.value);setError("");}}
+            onKeyDown={e=>e.key==="Enter"&&verify()}
+            placeholder="Your account password" autoFocus disabled={loading}/>
+        </div>
+        {error && <div className="acc-modal__err">{error}</div>}
+        <button type="button" className="acc-modal__save" onClick={verify} disabled={loading}
+          style={{background:"#7c3aed",boxShadow:"0 4px 14px rgba(124,58,237,0.35)"}}>
+          {loading ? <><Spinner/>Verifying…</> : "Continue to Admin →"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Logout Sheet ───────────────────────────────────────── */
 function LogoutSheet({ onConfirm, onCancel }) {
   return (
@@ -257,11 +308,12 @@ function OverviewCard({ title, actionLabel, onAction, children, span }) {
 ══════════════════════════════════════════════════════════ */
 export default function Account() {
   const navigate       = useNavigate();
-  const { user, logout, isSeller, isSellerActive, subscriptionPlan } = useAuth();
+  const { user, logout, isSeller, isSellerActive, subscriptionPlan, isSuperAdmin, isAdmin, role } = useAuth();
 
   const [activeTab,       setActiveTab]       = useState("overview");
   const [showLogout,      setShowLogout]      = useState(false);
   const [showEdit,        setShowEdit]        = useState(false);
+  const [showAdminGate,   setShowAdminGate]   = useState(false);
   const [profile,         setProfile]         = useState(null);
   const [shop,            setShop]            = useState(null);
   const [recentOrders,    setRecentOrders]    = useState([]);
@@ -318,6 +370,7 @@ export default function Account() {
   const shoppingPrefs = Array.isArray(profile?.shoppingPreference) ? profile.shoppingPreference : [];
   const profileComplete = !!profile?.displayName && !!profile?.age && shoppingPrefs.length > 0;
 
+  const isAdminUser = isSuperAdmin || isAdmin || role === "admin" || role === "super_admin";
   const plan = (subscriptionPlan || shop?.planId || "free").toLowerCase();
   const planColors = PLAN_COLORS[plan] || PLAN_COLORS.free;
 
@@ -372,6 +425,14 @@ export default function Account() {
               <div className="acc-sidebar-name">{displayName}</div>
               <div className="acc-sidebar-badge">
                 <Ico d={ICONS.member} size={10}/>&nbsp;
+                {/* Admin Panel link */}
+                {isAdminUser && (
+                  <div className="acc-sidebar-section">
+                    <div className="acc-sidebar-label">Administration</div>
+                    <NavLink icon={ICONS.settings} label="Admin Panel" onClick={()=>setShowAdminGate(true)}/>
+                  </div>
+                )}
+
                 {hasStore ? "Beme Seller" : "Beme Member"}
               </div>
             </div>
@@ -800,6 +861,7 @@ export default function Account() {
 
       {showLogout && <LogoutSheet onConfirm={handleLogout} onCancel={()=>setShowLogout(false)}/>}
       {showEdit   && <EditProfileModal profile={profile} displayName={displayName} onClose={()=>setShowEdit(false)} onSaved={u=>setProfile(p=>({...p,...u}))}/>}
+      {showAdminGate && <AdminPasswordGate onSuccess={()=>{setShowAdminGate(false);navigate("/admin");}} onCancel={()=>setShowAdminGate(false)}/>}
     </div>
   );
 }
