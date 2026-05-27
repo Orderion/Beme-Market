@@ -81,13 +81,13 @@ const NAV = [
   { id: "subscription", icon: "star",      label: "Subscription" },
 ];
 
-const PLAN_COLORS = { basic: "#6B7280", standard: "#046EF2", pro: "#7C3AED" };
+const PLAN_COLORS = { basic: "#6B7280", standard: "#7c3aed", pro: "#7C3AED" };
 
 /* ── Sidebar ── */
 function Sidebar({ activeTab, onNav, shop, plan, chatUnread, onClose, isMobile, storeUid, collapsed, onToggle }) {
   const { logout }  = useAuth();
   const navigate    = useNavigate();
-  const planColor   = PLAN_COLORS[plan] || "#046EF2";
+  const planColor   = PLAN_COLORS[plan] || "#7c3aed";
   const planInitial = (shop?.shopName || "S")[0].toUpperCase();
 
   const handleLogout = async () => {
