@@ -2,16 +2,16 @@ import { useState, useEffect } from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 
-import AdminRoute from "./components/AdminRoute";
-import RequireAdmin from "./components/auth/RequireAdmin";
-import SellerRoute from "./components/SellerRoute";
+import AdminRoute    from "./components/AdminRoute";
+import RequireAdmin  from "./components/auth/RequireAdmin";
+import SellerRoute   from "./components/SellerRoute";
 
-import Header from "./components/Header";
-import Sidebar from "./components/Sidebar";
-import CartDrawer from "./components/CartDrawer";
-import Footer from "./components/Footer";
+import Header       from "./components/Header";
+import Sidebar      from "./components/Sidebar";
+import CartDrawer   from "./components/CartDrawer";
+import Footer       from "./components/Footer";
 import LoaderOverlay from "./components/LoaderOverlay";
-import BottomNav from "./components/navigation/BottomNav.jsx";
+import BottomNav    from "./components/navigation/BottomNav.jsx";
 
 /* ── PUBLIC PAGES ── */
 import Home            from "./pages/Home";
@@ -25,11 +25,12 @@ import FlashDeals      from "./pages/FlashDeals";
 import Chat            from "./pages/Chat";
 
 /* ── AUTH ── */
-import Login      from "./pages/Login";
-import Signup     from "./pages/Signup";
-import VerifyEmail from "./pages/VerifyEmail";
-import Onboarding  from "./pages/Onboarding";
-import AdminLogin  from "./pages/AdminLogin";
+import Login        from "./pages/Login";
+import Signup       from "./pages/Signup";
+import VerifyEmail  from "./pages/VerifyEmail";
+import Onboarding   from "./pages/Onboarding";
+import AdminLogin   from "./pages/AdminLogin";
+import ResetPassword from "./pages/ResetPassword";
 
 /* ── ADMIN ── */
 import AdminPanel            from "./pages/admin/AdminPanel";
@@ -77,7 +78,6 @@ import StoreOnboarding      from "./pages/StoreOnboarding";
 import StoreSurvey          from "./pages/StoreSurvey";
 import SubscriptionSuccess  from "./pages/SubscriptionSuccess";
 import SubscriptionCallback from "./pages/SubscriptionCallback";
-import ResetPassword     from "./pages/ResetPassword";
 import SellerDashboard      from "./pages/SellerDashboard";
 
 /* ── SELLER PRODUCT DETAIL ── */
@@ -94,37 +94,11 @@ import StoreModeration       from "./pages/admin/StoreModeration";
 function SuperAdminOnly({ children }) {
   const { loading, isSuperAdmin } = useAuth();
   if (loading) return null;
-  if (!isSuperAdmin) return <Navigate to="/" replace/>;
+  if (!isSuperAdmin) return <Navigate to="/" replace />;
   return children;
 }
 
-const VERIFY_REQUIRED_PREFIXES = [
-  "/account",
-  "/saved",
-  "/orders",
-  "/order-success",
-  "/seller-dashboard",
-  "/store-onboarding",
-  "/store-survey",
-  "/subscription-success",
-  "/subscription/success",
-  "/onboarding",
-];
-
-function RequireVerified({ children }) {
-  const { user, emailVerified, loading } = useAuth();
-  const location = useLocation();
-  if (loading) return null;
-  if (!user) return children;
-  const needsVerification = VERIFY_REQUIRED_PREFIXES.some(prefix =>
-    location.pathname.startsWith(prefix)
-  );
-  if (needsVerification && !emailVerified) {
-    return <Navigate to="/verify-email" replace />;
-  }
-  return children;
-}
-
+// ── Routes that never show the public header/footer/nav ──
 const FULL_SCREEN_ROUTES = new Set([
   "/login",
   "/signup",
@@ -145,11 +119,7 @@ const FULL_SCREEN_ROUTES = new Set([
   "/admin/admins",
   "/admin/settings",
   "/admin/product-manager",
-  "/admin/homepage",
-  "/admin/support",
-  "/admin/media",
   "/admin/product-requests",
-  "/admin/notifications",
   "/admin-orders",
   "/admin-review-queue",
   "/analytics",
@@ -160,8 +130,9 @@ const FULL_SCREEN_ROUTES = new Set([
   "/store-survey",
   "/subscription-success",
   "/subscription/callback",
-  "/reset-password",
   "/subscription/success",
+  "/reset-password",
+  // ── Seller dashboard and all its tab views ──
   "/seller-dashboard",
   "/admin/seller-payouts",
   "/admin/verification-requests",
@@ -170,8 +141,36 @@ const FULL_SCREEN_ROUTES = new Set([
 
 function isFullScreen(pathname) {
   if (FULL_SCREEN_ROUTES.has(pathname)) return true;
-  if (pathname.startsWith("/seller-dashboard/products/")) return true;
+  if (pathname.startsWith("/seller-dashboard")) return true; // covers ?tab= params
   return false;
+}
+
+// ── Paths that require email verification ──
+const VERIFY_REQUIRED_PREFIXES = [
+  "/account",
+  "/saved",
+  "/orders",
+  "/order-success",
+  "/seller-dashboard",
+  "/store-onboarding",
+  "/store-survey",
+  "/subscription-success",
+  "/subscription/success",
+  "/onboarding",
+];
+
+function RequireVerified({ children }) {
+  const { user, emailVerified, loading } = useAuth();
+  const location = useLocation();
+  if (loading) return null;
+  if (!user) return children;
+  const needsVerification = VERIFY_REQUIRED_PREFIXES.some(p =>
+    location.pathname.startsWith(p)
+  );
+  if (needsVerification && !emailVerified) {
+    return <Navigate to="/verify-email" replace />;
+  }
+  return children;
 }
 
 function AppShell() {
@@ -202,13 +201,13 @@ function AppShell() {
 
   return (
     <>
-      <LoaderOverlay isVisible={authLoading || routeLoading}/>
+      <LoaderOverlay isVisible={authLoading || routeLoading} />
 
       {!shouldHideHeader && (
         <>
-          <Header onMenu={() => setSidebarOpen(true)} onCart={() => setCartOpen(true)}/>
-          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)}/>
-          <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)}/>
+          <Header onMenu={() => setSidebarOpen(true)} onCart={() => setCartOpen(true)} />
+          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
         </>
       )}
 
@@ -217,120 +216,129 @@ function AppShell() {
           <Routes>
 
             {/* ── PUBLIC ── */}
-            <Route path="/"              element={<Home/>}/>
-            <Route path="/shop"          element={<Shop/>}/>
-            <Route path="/offers"        element={<Offers/>}/>
-            <Route path="/flash-deals"   element={<FlashDeals/>}/>
-            <Route path="/product/:id"   element={<ProductDetails/>}/>
-            <Route path="/checkout"      element={<Checkout/>}/>
-            <Route path="/order-success" element={<OrderSuccess/>}/>
-            <Route path="/orders"        element={<Orders/>}/>
-            <Route path="/messages"      element={<Chat/>}/>
+            <Route path="/"              element={<Home />} />
+            <Route path="/shop"          element={<Shop />} />
+            <Route path="/offers"        element={<Offers />} />
+            <Route path="/flash-deals"   element={<FlashDeals />} />
+            <Route path="/product/:id"   element={<ProductDetails />} />
+            <Route path="/checkout"      element={<Checkout />} />
+            <Route path="/order-success" element={<OrderSuccess />} />
+            <Route path="/orders"        element={<Orders />} />
+            <Route path="/messages"      element={<Chat />} />
 
             {/* ── AUTH ── */}
-            <Route path="/login"        element={<Login/>}/>
-            <Route path="/signup"       element={<Signup/>}/>
-            <Route path="/verify-email" element={<VerifyEmail/>}/>
-            <Route path="/onboarding"   element={<Onboarding/>}/>
-            <Route path="/admin-login"  element={<AdminLogin/>}/>
+            <Route path="/login"         element={<Login />} />
+            <Route path="/signup"        element={<Signup />} />
+            <Route path="/verify-email"  element={<VerifyEmail />} />
+            <Route path="/onboarding"    element={<Onboarding />} />
+            <Route path="/admin-login"   element={<AdminLogin />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* ── ACCOUNT ── */}
-            <Route path="/account"               element={<Account/>}/>
-            <Route path="/account/manage"        element={<ManageAccount/>}/>
-            <Route path="/account/payments"      element={<PaymentMethods hasCompletedOrder={false}/>}/>
-            <Route path="/account/notifications" element={<Notifications/>}/>
-            <Route path="/account/help"          element={<HelpSupport/>}/>
-            <Route path="/account/contact"       element={<ContactUs/>}/>
-            <Route path="/saved"                 element={<SavedItems/>}/>
-            <Route path="/account/requests"      element={<UserRequests/>}/>
+            <Route path="/account"               element={<Account />} />
+            <Route path="/account/manage"        element={<ManageAccount />} />
+            <Route path="/account/payments"      element={<PaymentMethods hasCompletedOrder={false} />} />
+            <Route path="/account/notifications" element={<Notifications />} />
+            <Route path="/account/help"          element={<HelpSupport />} />
+            <Route path="/account/contact"       element={<ContactUs />} />
+            <Route path="/saved"                 element={<SavedItems />} />
+            <Route path="/account/requests"      element={<UserRequests />} />
 
             {/* ── LEGAL ── */}
-            <Route path="/about"            element={<About/>}/>
-            <Route path="/support"          element={<Support/>}/>
-            <Route path="/contact"          element={<Contact/>}/>
-            <Route path="/faq"              element={<FAQ/>}/>
-            <Route path="/shipping-returns" element={<ShippingReturns/>}/>
-            <Route path="/privacy-policy"   element={<PrivacyPolicy/>}/>
-            <Route path="/terms-of-service" element={<TermsOfService/>}/>
-            <Route path="/refund-policy"    element={<RefundPolicy/>}/>
-            <Route path="/cookie-policy"    element={<CookiePolicy/>}/>
+            <Route path="/about"            element={<About />} />
+            <Route path="/support"          element={<Support />} />
+            <Route path="/contact"          element={<Contact />} />
+            <Route path="/faq"              element={<FAQ />} />
+            <Route path="/shipping-returns" element={<ShippingReturns />} />
+            <Route path="/privacy-policy"   element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/refund-policy"    element={<RefundPolicy />} />
+            <Route path="/cookie-policy"    element={<CookiePolicy />} />
 
             {/* ── SELLER PUBLIC ── */}
-            <Route path="/get-a-store"          element={<GetAStore/>}/>
-            <Route path="/store-plans"          element={<StorePlans/>}/>
-            <Route path="/seller-terms"         element={<SellerTerms/>}/>
-            <Route path="/seller-policy"        element={<SellerPolicy/>}/>
-            <Route path="/community-guidelines" element={<CommunityGuidelines/>}/>
+            <Route path="/get-a-store"          element={<GetAStore />} />
+            <Route path="/store-plans"          element={<StorePlans />} />
+            <Route path="/seller-terms"         element={<SellerTerms />} />
+            <Route path="/seller-policy"        element={<SellerPolicy />} />
+            <Route path="/community-guidelines" element={<CommunityGuidelines />} />
 
             {/* ── PUBLIC STOREFRONT ── */}
-            <Route path="/store/:storeSlug" element={<StoreFront/>}/>
+            <Route path="/store/:storeSlug" element={<StoreFront />} />
 
             {/* ── SELLER ONBOARDING ── */}
             <Route path="/store-onboarding"
-              element={<SellerRoute requireOnly="auth"><StoreOnboarding/></SellerRoute>}/>
+              element={<SellerRoute requireOnly="auth"><StoreOnboarding /></SellerRoute>} />
             <Route path="/store-survey"
-              element={<SellerRoute requireOnly="auth"><StoreSurvey/></SellerRoute>}/>
+              element={<SellerRoute requireOnly="auth"><StoreSurvey /></SellerRoute>} />
 
             {/* ── SUBSCRIPTION FLOW ── */}
             <Route path="/subscription-success"
-              element={<SellerRoute requireOnly="auth"><SubscriptionSuccess/></SellerRoute>}/>
-            <Route path="/subscription/callback" element={<SubscriptionCallback/>}/>
-            <Route path="/reset-password"        element={<ResetPassword/>}/>
-            <Route path="/subscription/success"  element={<SubscriptionSuccess/>}/>
+              element={<SellerRoute requireOnly="auth"><SubscriptionSuccess /></SellerRoute>} />
+            <Route path="/subscription/callback" element={<SubscriptionCallback />} />
+            <Route path="/subscription/success"  element={<SubscriptionSuccess />} />
 
-            {/* ── SELLER DASHBOARD ── */}
-            <Route path="/seller-dashboard" element={<SellerDashboard/>}/>
+            {/* ══════════════════════════════════════════════════
+                SELLER DASHBOARD
+                All tab navigation is handled internally via
+                ?tab= query params inside SellerDashboard.jsx.
+                Tabs: home | products | orders | customers |
+                      chat | marketing | analytics | withdrawals |
+                      appearance | ai | subscription | settings |
+                      help | learn | gift
+            ══════════════════════════════════════════════════ */}
+            <Route path="/seller-dashboard" element={<SellerDashboard />} />
 
-            {/* ── SELLER PRODUCT ADD / EDIT ── */}
+            {/* ── SELLER PRODUCT ADD / EDIT (separate full-screen routes) ── */}
             <Route path="/seller-dashboard/products/new"
-              element={<SellerRoute requireOnly="auth"><DashboardProductDetail/></SellerRoute>}/>
+              element={<SellerRoute requireOnly="auth"><DashboardProductDetail /></SellerRoute>} />
             <Route path="/seller-dashboard/products/:productId"
-              element={<SellerRoute requireOnly="auth"><DashboardProductDetail/></SellerRoute>}/>
+              element={<SellerRoute requireOnly="auth"><DashboardProductDetail /></SellerRoute>} />
 
             {/* ── ADMIN — unified panel ── */}
-            <Route path="/admin"           element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/analytics" element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/users"     element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/stores"    element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/orders"    element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/products"  element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/payouts"   element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/support"   element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/media"     element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/notifications" element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/homepage"  element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/admins"    element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
-            <Route path="/admin/settings"  element={<AdminRoute><RequireAdmin><AdminPanel/></RequireAdmin></AdminRoute>}/>
-            {/* Redirect old scattered admin routes */}
-            <Route path="/admin-orders"             element={<Navigate to="/admin/orders"    replace/>}/>
-            <Route path="/admin-review-queue"        element={<Navigate to="/admin"           replace/>}/>
-            <Route path="/analytics"                 element={<Navigate to="/admin/analytics" replace/>}/>
-            <Route path="/payout-requests"           element={<Navigate to="/admin/payouts"  replace/>}/>
-            <Route path="/shop-applications"         element={<Navigate to="/admin/stores"   replace/>}/>
-            <Route path="/account-management"        element={<Navigate to="/admin/admins"   replace/>}/>
-            <Route path="/admin/product-manager"     element={<Navigate to="/admin/products" replace/>}/>
-            <Route path="/admin/product-requests"    element={<Navigate to="/admin/products" replace/>}/>
-            <Route path="/admin/seller-payouts"      element={<Navigate to="/admin/payouts"  replace/>}/>
-            <Route path="/admin/verification-requests" element={<Navigate to="/admin/stores" replace/>}/>
-            <Route path="/admin/store-moderation"    element={<Navigate to="/admin/stores"   replace/>}/>
+            <Route path="/admin"               element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
+            <Route path="/admin/analytics"     element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
+            <Route path="/admin/users"         element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
+            <Route path="/admin/stores"        element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
+            <Route path="/admin/orders"        element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
+            <Route path="/admin/products"      element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
+            <Route path="/admin/payouts"       element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
+            <Route path="/admin/support"       element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
+            <Route path="/admin/media"         element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
+            <Route path="/admin/notifications" element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
+            <Route path="/admin/homepage"      element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
+            <Route path="/admin/admins"        element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
+            <Route path="/admin/settings"      element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
+
+            {/* ── Legacy admin redirects ── */}
+            <Route path="/admin-orders"                  element={<Navigate to="/admin/orders"    replace />} />
+            <Route path="/admin-review-queue"            element={<Navigate to="/admin"           replace />} />
+            <Route path="/analytics"                     element={<Navigate to="/admin/analytics" replace />} />
+            <Route path="/payout-requests"               element={<Navigate to="/admin/payouts"   replace />} />
+            <Route path="/shop-applications"             element={<Navigate to="/admin/stores"    replace />} />
+            <Route path="/account-management"            element={<Navigate to="/admin/admins"    replace />} />
+            <Route path="/admin/product-manager"         element={<Navigate to="/admin/products"  replace />} />
+            <Route path="/admin/product-requests"        element={<Navigate to="/admin/products"  replace />} />
+            <Route path="/admin/seller-payouts"          element={<Navigate to="/admin/payouts"   replace />} />
+            <Route path="/admin/verification-requests"   element={<Navigate to="/admin/stores"    replace />} />
+            <Route path="/admin/store-moderation"        element={<Navigate to="/admin/stores"    replace />} />
 
             {/* ── SUPER ADMIN ONLY ── */}
             <Route path="/own-a-shop"
-              element={<SuperAdminOnly><ShopOwnerApply/></SuperAdminOnly>}/>
+              element={<SuperAdminOnly><ShopOwnerApply /></SuperAdminOnly>} />
 
             {/* ── FALLBACK ── */}
-            <Route path="*" element={<Navigate to="/" replace/>}/>
+            <Route path="*" element={<Navigate to="/" replace />} />
 
           </Routes>
         </main>
       </RequireVerified>
 
-      {!shouldHideFooter && <Footer/>}
-      {!shouldHideHeader && <BottomNav/>}
+      {!shouldHideFooter && <Footer />}
+      {!shouldHideHeader && <BottomNav />}
     </>
   );
 }
 
 export default function App() {
-  return <AppShell/>;
+  return <AppShell />;
 }
