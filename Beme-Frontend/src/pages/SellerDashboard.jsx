@@ -124,7 +124,7 @@ function PageSpinner() {
 export default function SellerDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate        = useNavigate();
-  const { user, loading: authLoading, isSuperAdmin, isAdmin, isSeller, isSellerActive, subscriptionPlan, profile } = useAuth();
+  const { user, isSuperAdmin, isAdmin, isSeller, isSellerActive, subscriptionPlan, profile } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { shop, loading: shopLoading } = useSellerAuth();
 
@@ -147,23 +147,11 @@ export default function SellerDashboard() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [setSearchParams]);
 
+  // Wait for seller data
+  if (shopLoading) return <PageSpinner />;
+
   const isDark = theme === "dark";
 
-  // ── Wait for BOTH auth context AND seller data before guarding ──
-  // Without this, isSeller is false during the initial auth hydration
-  // and the "Seller access only" screen fires for real sellers.
-  if (authLoading || shopLoading) return <PageSpinner />;
-
-  if (!isSeller) {
-    return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", fontFamily: "var(--sd-font)", gap: 16 }}>
-        <div style={{ fontSize: 48 }}>🏪</div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: "var(--sd-text)" }}>Seller access only</div>
-        <div style={{ fontSize: 14, color: "var(--sd-muted)" }}>You need a seller account to access this dashboard.</div>
-        <button onClick={() => navigate("/")} className="sd-btn sd-btn-primary" style={{ marginTop: 8 }}>Go Home</button>
-      </div>
-    );
-  }
 
   const shopName = shop?.shopName || profile?.shopName || "Your Store";
   const initial  = (shopName[0] || "S").toUpperCase();
