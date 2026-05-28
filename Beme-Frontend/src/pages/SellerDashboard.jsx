@@ -20,7 +20,8 @@ import DashboardVerification from "./dashboard/DashboardVerification";
 import DashboardAppearance   from "./dashboard/DashboardAppearance";
 import DashboardWithdrawals  from "./dashboard/DashboardWithdrawals";
 import DashboardSecurity     from "./dashboard/DashboardSecurity";
-import DashboardAIAssistant  from "./dashboard/AIAssistant";  // ← NEW
+import DashboardAIAssistant  from "./dashboard/AIAssistant";
+import TopbarDropdown        from "./dashboard/TopbarDropdown";
 
 const DashboardDelivery = React.lazy(() =>
   import("./dashboard/DashboardDelivery")
@@ -52,14 +53,13 @@ const ICONS = {
   paint:    "M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z",
   shield:   "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
   star:     "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
-  settings: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z",
+  settings: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z",
   logout:   "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9",
   delivery: "M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3 M9 17H7 M17 21H9 M3 9h11 M13 17h2l1-1V9h-3 M16 9l3 3 M19 12v5a2 2 0 0 1-2 2 M17 21a2 2 0 1 0 4 0 2 2 0 0 0-4 0 M7 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0",
   menu:     "M3 12h18 M3 6h18 M3 18h18",
   close:    "M18 6L6 18 M6 6l12 12",
   external: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6 M15 3h6v6 M10 14L21 3",
   lock:     "M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z M7 11V7a5 5 0 0 1 10 0v4",
-  // ── NEW: sparkle icon for AI Copilot ──
   sparkle:  "M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z",
 };
 
@@ -77,7 +77,7 @@ const NAV = [
   { id: "delivery",     icon: "delivery",  label: "Delivery"     },
   { id: "verification", icon: "shield",    label: "Verification" },
   { id: "security",     icon: "lock",      label: "Security"     },
-  { id: "ai-assistant", icon: "sparkle",   label: "AI Copilot"   }, // ← NEW
+  { id: "ai-assistant", icon: "sparkle",   label: "AI Copilot"   },
   { id: "subscription", icon: "star",      label: "Subscription" },
 ];
 
@@ -127,7 +127,6 @@ function Sidebar({ activeTab, onNav, shop, plan, chatUnread, onClose, isMobile, 
             {id === "chat" && chatUnread > 0 && (
               <span className="sd-nav-badge">{chatUnread > 99 ? "99+" : chatUnread}</span>
             )}
-            {/* Pro badge on AI Copilot */}
             {id === "ai-assistant" && (
               <span style={{
                 marginLeft: "auto", fontSize: 9, fontWeight: 700,
@@ -247,7 +246,7 @@ export default function SellerDashboard() {
     verification:  "Verification",
     delivery:      "Delivery Settings",
     security:      "Security",
-    "ai-assistant":"AI Copilot",      // ← NEW
+    "ai-assistant":"AI Copilot",
     subscription:  "Subscription",
   };
 
@@ -268,7 +267,7 @@ export default function SellerDashboard() {
       </Suspense>
     ),
     security:      <DashboardSecurity />,
-    "ai-assistant":<DashboardAIAssistant />,   // ← NEW
+    "ai-assistant":<DashboardAIAssistant />,
     subscription:  <DashboardSubscription />,
   };
 
@@ -318,9 +317,11 @@ export default function SellerDashboard() {
               <Icon path="M8 2v3 M16 2v3 M3 10h18 M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" size={13} color="#8B8FA8" />
               {dateStr}
             </span>
-            <button className="sd-avatar-btn" title={user?.displayName || user?.email}>
-              {(user?.displayName || user?.email || "S")[0].toUpperCase()}
-            </button>
+            <TopbarDropdown
+              user={user}
+              subscriptionPlan={subscriptionPlan}
+              onTabChange={goTab}
+            />
           </div>
         </header>
 
