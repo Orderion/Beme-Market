@@ -124,7 +124,7 @@ function PageSpinner() {
 export default function SellerDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate        = useNavigate();
-  const { user, isSuperAdmin, isAdmin, isSeller, isSellerActive, subscriptionPlan, profile } = useAuth();
+  const { user, loading: authLoading, isSuperAdmin, isAdmin, isSeller, isSellerActive, subscriptionPlan, profile } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { shop, loading: shopLoading } = useSellerAuth();
 
@@ -149,8 +149,11 @@ export default function SellerDashboard() {
 
   const isDark = theme === "dark";
 
-  // ── Guard: must be a seller ──
-  if (shopLoading) return <PageSpinner />;
+  // ── Wait for BOTH auth context AND seller data before guarding ──
+  // Without this, isSeller is false during the initial auth hydration
+  // and the "Seller access only" screen fires for real sellers.
+  if (authLoading || shopLoading) return <PageSpinner />;
+
   if (!isSeller) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", fontFamily: "var(--sd-font)", gap: 16 }}>
