@@ -125,47 +125,93 @@ function TopupModal({ onClose }) {
   );
 }
 
-/* ─── Single message bubble ─── */
-function MessageBubble({ message }) {
-  const [copied, setCopied] = useState(false);
+/* ─── Single message bubble — screenshot style ─── */
+function MessageBubble({ message, onRetry }) {
+  const [copied,  setCopied]  = useState(false);
+  const [hovered, setHovered] = useState(false);
   const isUser = message.role === "user";
 
   const copyText = () => {
     navigator.clipboard?.writeText(message.content || "").then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+      setTimeout(() => setCopied(false), 2000);
     });
   };
 
+  /* SVG icons inline */
+  const CopyIcon = () => copied
+    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+    : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 0 2 2v1"/></svg>;
+
+  const RetryIcon = () =>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>;
+
+  const EditIcon = () =>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+
   return (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:isUser?"flex-end":"flex-start", marginBottom:12, gap:4 }}>
-      {/* Label */}
-      <div style={{ fontSize:11,fontWeight:600,color:"var(--sd-muted)",paddingLeft:isUser?0:4,paddingRight:isUser?4:0 }}>
-        {isUser ? "You" : "Beme AI"}
-      </div>
-      {/* Bubble — outline only, no fill */}
+    <div
+      style={{ display:"flex", flexDirection:"column", alignItems:isUser?"flex-end":"flex-start", marginBottom:16 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}>
+
+      {/* Bubble */}
       <div style={{
-        maxWidth:"82%",
-        padding:"11px 14px",
-        borderRadius: isUser ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
-        background: "transparent",
+        maxWidth: "78%",
+        position: "relative",
+        background: "var(--sd-bg)",
         border: `1px solid ${isUser ? "var(--sd-accent-border)" : "var(--sd-border)"}`,
-        fontSize:13.5, lineHeight:1.75, color:"var(--sd-text)",
-        fontFamily:"var(--sd-font)", whiteSpace:"pre-wrap", wordBreak:"break-word",
-        position:"relative",
+        borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+        padding: "13px 15px 38px",
+        fontSize: 14,
+        lineHeight: 1.75,
+        color: "var(--sd-text)",
+        fontFamily: "var(--sd-font)",
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
+        boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
       }}>
         {message.content}
+
+        {/* Action icons pinned to bottom-right inside bubble */}
+        <div style={{
+          position: "absolute",
+          bottom: 8,
+          right: 10,
+          display: "flex",
+          alignItems: "center",
+          gap: 2,
+          opacity: hovered ? 1 : 0,
+          transition: "opacity 0.15s",
+          pointerEvents: hovered ? "auto" : "none",
+        }}>
+          {/* Retry — shown for AI messages */}
+          {!isUser && onRetry && (
+            <button onClick={onRetry} title="Regenerate"
+              style={{ width:26,height:26,borderRadius:7,border:"1px solid var(--sd-border)",background:"var(--sd-white)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--sd-muted)",transition:"color 0.1s,background 0.1s" }}
+              onMouseEnter={e=>{e.currentTarget.style.color="var(--sd-text)";e.currentTarget.style.background="var(--sd-border-light)";}}
+              onMouseLeave={e=>{e.currentTarget.style.color="var(--sd-muted)";e.currentTarget.style.background="var(--sd-white)";}}>
+              <RetryIcon/>
+            </button>
+          )}
+          {/* Edit — user messages only */}
+          {isUser && (
+            <button title="Edit message"
+              style={{ width:26,height:26,borderRadius:7,border:"1px solid var(--sd-border)",background:"var(--sd-white)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--sd-muted)",transition:"color 0.1s,background 0.1s" }}
+              onMouseEnter={e=>{e.currentTarget.style.color="var(--sd-text)";e.currentTarget.style.background="var(--sd-border-light)";}}
+              onMouseLeave={e=>{e.currentTarget.style.color="var(--sd-muted)";e.currentTarget.style.background="var(--sd-white)";}}>
+              <EditIcon/>
+            </button>
+          )}
+          {/* Copy — both */}
+          <button onClick={copyText} title={copied?"Copied!":"Copy message"}
+            style={{ width:26,height:26,borderRadius:7,border:`1px solid ${copied?"rgba(21,128,61,0.25)":"var(--sd-border)"}`,background:copied?"rgba(21,128,61,0.06)":"var(--sd-white)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:copied?"#16a34a":"var(--sd-muted)",transition:"all 0.1s" }}
+            onMouseEnter={e=>{if(!copied){e.currentTarget.style.color="var(--sd-text)";e.currentTarget.style.background="var(--sd-border-light)";}}}
+            onMouseLeave={e=>{if(!copied){e.currentTarget.style.color="var(--sd-muted)";e.currentTarget.style.background="var(--sd-white)";}}} >
+            <CopyIcon/>
+          </button>
+        </div>
       </div>
-      {/* Copy button — AI messages only */}
-      {!isUser && (
-        <button onClick={copyText}
-          style={{ display:"flex",alignItems:"center",gap:5,background:"none",border:"none",cursor:"pointer",color:copied?"#16a34a":"var(--sd-muted)",fontSize:11,fontWeight:500,padding:"2px 4px",borderRadius:6,fontFamily:"var(--sd-font)",transition:"color 0.15s" }}>
-          {copied
-            ? <><Ico d={IC.check} size={12} color="#16a34a" sw={2.5}/> Copied</>
-            : <><Ico d={IC.copy}  size={12} color="var(--sd-muted)"/> Copy</>
-          }
-        </button>
-      )}
     </div>
   );
 }
@@ -458,7 +504,7 @@ export default function AIAssistant() {
             {histLoading ? (
               <div style={{ textAlign:"center",color:"var(--sd-muted)",fontSize:13,padding:32 }}>Loading…</div>
             ) : (
-              messages.map((m,i) => <MessageBubble key={m.id||i} message={m}/>)
+              messages.map((m,i) => <MessageBubble key={m.id||i} message={m} onRetry={m.role!=="user" ? () => sendMessage(messages.filter(x=>x.role==="user").slice(-1)[0]?.content || "") : null}/>)
             )}
             {isTyping && <TypingDots/>}
             {error && (
