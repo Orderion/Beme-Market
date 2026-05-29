@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 
-function Ico({ d, size = 16, color = "currentColor", sw = 1.8 }) {
+function Ico({ d, size = 15, color = "currentColor", sw = 1.6 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
       stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
@@ -17,42 +17,66 @@ const D = {
   book:     "M4 19.5A2.5 2.5 0 0 1 6.5 17H20|M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z",
   gift:     "M20 12v10H4V12|M2 7h20v5H2z|M12 22V7|M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z|M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z",
   logout:   "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4|M16 17l5-5-5-5|M21 12H9",
-  close:    "M18 6L6 18|M6 6l12 12",
-  chevron:  "M6 9l6 6 6-6",
+  arrow:    "M7 17L17 7|M7 7h10v10",
 };
 
+/* ── Logout bottom sheet ── */
 function LogoutSheet({ onClose }) {
   const { logout } = useAuth();
   const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     const h = (e) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", h);
     return () => document.removeEventListener("keydown", h);
   }, [onClose]);
+
   const handle = async () => {
     setLoading(true);
     await logout().catch(console.error);
     window.location.href = "/";
   };
+
   return (
-    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.48)",zIndex:500,display:"flex",alignItems:"flex-end",justifyContent:"center",animation:"sd-fade-in 0.18s ease" }} onClick={onClose}>
-      <div style={{ background:"var(--sd-white)",borderRadius:"22px 22px 0 0",width:"100%",maxWidth:480,animation:"sd-sheet-up 0.24s cubic-bezier(0.22,1,0.36,1)",overflow:"hidden" }} onClick={e=>e.stopPropagation()}>
-        <div style={{ width:36,height:4,borderRadius:2,background:"var(--sd-border)",margin:"12px auto 0" }}/>
-        <div style={{ padding:"20px 24px 36px",display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center" }}>
-          <div style={{ width:52,height:52,borderRadius:"50%",background:"var(--sd-danger-bg)",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,border:"1px solid rgba(185,28,28,0.12)" }}>
-            <Ico d={D.logout} size={22} color="var(--sd-danger)" />
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:500,
+               display:"flex",alignItems:"flex-end",justifyContent:"center",
+               animation:"sd-fade-in 0.15s ease" }}>
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background:"var(--sd-white)",borderRadius:"18px 18px 0 0",
+                 width:"100%",maxWidth:440,
+                 animation:"sd-sheet-up 0.22s cubic-bezier(0.22,1,0.36,1)" }}>
+        <div style={{ width:32,height:4,borderRadius:2,background:"var(--sd-border)",
+                      margin:"12px auto 0" }} />
+        <div style={{ padding:"22px 24px 40px",display:"flex",flexDirection:"column",
+                      alignItems:"center",textAlign:"center",fontFamily:"var(--sd-font)" }}>
+          <div style={{ width:46,height:46,borderRadius:"50%",
+                        background:"rgba(220,38,38,0.07)",
+                        display:"flex",alignItems:"center",justifyContent:"center",
+                        marginBottom:14,border:"1px solid rgba(220,38,38,0.12)" }}>
+            <Ico d={D.logout} size={20} color="#dc2626" />
           </div>
-          <div style={{ fontSize:18,fontWeight:800,color:"var(--sd-text)",marginBottom:6,letterSpacing:"-0.02em" }}>Sign out of Beme?</div>
-          <div style={{ fontSize:13,color:"var(--sd-muted)",lineHeight:1.65,marginBottom:24,maxWidth:280 }}>
+          <div style={{ fontSize:17,fontWeight:700,color:"var(--sd-text)",
+                        marginBottom:6,letterSpacing:"-0.02em" }}>Sign out?</div>
+          <div style={{ fontSize:13,color:"var(--sd-muted)",lineHeight:1.65,
+                        marginBottom:22,maxWidth:260 }}>
             Your store stays live and orders keep coming in.
           </div>
-          <div style={{ display:"flex",gap:10,width:"100%" }}>
+          <div style={{ display:"flex",gap:8,width:"100%" }}>
             <button onClick={onClose} disabled={loading}
-              style={{ flex:1,padding:"12px",borderRadius:10,border:"1px solid var(--sd-border)",background:"transparent",color:"var(--sd-text)",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"var(--sd-font)" }}>
+              style={{ flex:1,padding:"11px",borderRadius:9,
+                       border:"1px solid var(--sd-border)",background:"transparent",
+                       color:"var(--sd-text)",fontSize:13,fontWeight:600,
+                       cursor:"pointer",fontFamily:"var(--sd-font)" }}>
               Cancel
             </button>
             <button onClick={handle} disabled={loading}
-              style={{ flex:1,padding:"12px",borderRadius:10,border:"none",background:"var(--sd-danger-bg)",color:"var(--sd-danger)",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"var(--sd-font)" }}>
+              style={{ flex:1,padding:"11px",borderRadius:9,border:"none",
+                       background:"rgba(220,38,38,0.07)",color:"#dc2626",
+                       fontSize:13,fontWeight:700,cursor:"pointer",
+                       fontFamily:"var(--sd-font)" }}>
               {loading ? "Signing out…" : "Sign Out"}
             </button>
           </div>
@@ -62,64 +86,109 @@ function LogoutSheet({ onClose }) {
   );
 }
 
+/* ════════════════════════════════════════════
+   MAIN DROPDOWN  — Claude-style minimal menu
+════════════════════════════════════════════ */
 export default function TopbarDropdown({ user, subscriptionPlan, onTabChange }) {
-  const [open, setOpen] = useState(false);
-  const [showLogout, setShowLogout] = useState(false);
+  const [open,        setOpen]        = useState(false);
+  const [showLogout,  setShowLogout]  = useState(false);
   const wrapRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
-    const click = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
-    const key   = (e) => { if (e.key === "Escape") setOpen(false); };
-    document.addEventListener("mousedown", click);
-    document.addEventListener("keydown", key);
-    return () => { document.removeEventListener("mousedown", click); document.removeEventListener("keydown", key); };
+    const close = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    const esc   = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown",   esc);
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", esc); };
   }, [open]);
 
   const go = (tab) => { onTabChange(tab); setOpen(false); };
-  const planLabel = subscriptionPlan ? subscriptionPlan.charAt(0).toUpperCase() + subscriptionPlan.slice(1) : "Basic";
-  const initial   = (user?.displayName || user?.email || "S")[0].toUpperCase();
+  const initial = (user?.displayName || user?.email || "S")[0].toUpperCase();
 
-  const ITEMS = [
-    { id:"settings", icon:D.settings, label:"Settings",     action:() => go("settings") },
-    { id:"help",     icon:D.help,     label:"Get Help",     action:() => go("help") },
-    { id:"upgrade",  icon:D.star,     label:"Upgrade Plan", badge:planLabel, action:() => go("subscription") },
-    { id:"learn",    icon:D.book,     label:"Learn More",   action:() => go("learn") },
-    { id:"gift",     icon:D.gift,     label:"Gift Beme",    action:() => go("gift") },
-    { id:"logout",   icon:D.logout,   label:"Log Out",      action:() => { setOpen(false); setShowLogout(true); }, danger:true },
+  const MAIN_ITEMS = [
+    { icon: D.settings, label: "Settings",     action: () => go("settings") },
+    { icon: D.help,     label: "Get Help",      action: () => go("help") },
+    { icon: D.star,     label: "Upgrade Plan",  action: () => go("subscription") },
+    { icon: D.book,     label: "Learn More",    action: () => go("learn") },
+    { icon: D.gift,     label: "Gift Beme",     action: () => go("gift") },
   ];
 
   return (
-    <div style={{ position:"relative",display:"flex",alignItems:"center" }} ref={wrapRef}>
+    <div ref={wrapRef} style={{ position:"relative", display:"flex", alignItems:"center" }}>
+
+      {/* Avatar button */}
       <button
         className={`sd-avatar-btn${open ? " sd-avatar-btn--open" : ""}`}
-        title={user?.displayName || user?.email}
         onClick={() => setOpen(o => !o)}
-        aria-expanded={open}>
+        aria-expanded={open}
+        title={user?.displayName || user?.email}>
         {initial}
       </button>
 
+      {/* Dropdown */}
       {open && (
-        <div style={{ position:"absolute",top:"calc(100% + 10px)",right:0,width:224,background:"var(--sd-white)",border:"1px solid var(--sd-border)",borderRadius:14,boxShadow:"0 8px 32px rgba(0,0,0,0.13)",zIndex:300,overflow:"hidden",animation:"sd-dd-in 0.15s cubic-bezier(0.22,1,0.36,1)" }}>
-          <div style={{ padding:"12px 14px 10px",borderBottom:"1px solid var(--sd-border-light)" }}>
-            <div style={{ fontSize:12,color:"var(--sd-muted)",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{user?.email || "—"}</div>
+        <div style={{
+          position:"absolute", top:"calc(100% + 8px)", right:0,
+          width:220, background:"var(--sd-white)",
+          border:"1px solid var(--sd-border)", borderRadius:12,
+          boxShadow:"0 4px 20px rgba(0,0,0,0.10)", zIndex:300, overflow:"hidden",
+          animation:"sd-dd-in 0.14s cubic-bezier(0.22,1,0.36,1)",
+          fontFamily:"var(--sd-font)",
+        }}>
+
+          {/* User info header */}
+          <div style={{ padding:"10px 12px 8px", borderBottom:"1px solid var(--sd-border)" }}>
+            <div style={{ fontSize:12,fontWeight:600,color:"var(--sd-text)",
+                          overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
+              {user?.displayName || user?.email || "Seller"}
+            </div>
+            {user?.displayName && (
+              <div style={{ fontSize:11,color:"var(--sd-muted)",marginTop:1,
+                            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
+                {user?.email}
+              </div>
+            )}
           </div>
-          {ITEMS.map(item => (
-            <button key={item.id} onClick={item.action}
-              style={{ display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 14px",background:"transparent",border:"none",cursor:"pointer",fontFamily:"var(--sd-font)",fontSize:13.5,fontWeight:500,color:item.danger?"var(--sd-danger)":"var(--sd-text)",textAlign:"left",transition:"background 0.12s" }}
-              onMouseEnter={e => e.currentTarget.style.background = item.danger ? "var(--sd-danger-bg)" : "var(--sd-accent-dim)"}
-              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-              <span style={{ display:"flex",alignItems:"center",justifyContent:"center",width:20,flexShrink:0 }}>
-                <Ico d={item.icon} size={15} />
-              </span>
-              <span style={{ flex:1 }}>{item.label}</span>
-              {item.badge && (
-                <span style={{ fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:100,background:"var(--sd-accent-dim)",color:"var(--sd-accent)",border:"1px solid var(--sd-accent-border)" }}>
-                  {item.badge}
+
+          {/* Main items */}
+          <div style={{ padding:"4px" }}>
+            {MAIN_ITEMS.map(item => (
+              <button key={item.label} onClick={item.action}
+                style={{
+                  display:"flex", alignItems:"center", gap:9,
+                  width:"100%", padding:"8px 10px", borderRadius:8,
+                  background:"transparent", border:"none", cursor:"pointer",
+                  fontFamily:"var(--sd-font)", fontSize:13, fontWeight:500,
+                  color:"var(--sd-text)", textAlign:"left", transition:"background 0.1s",
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = "var(--sd-border-light)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <span style={{ display:"flex",alignItems:"center",color:"var(--sd-muted)" }}>
+                  <Ico d={item.icon} size={15} color="var(--sd-muted)" />
                 </span>
-              )}
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Divider + Log Out */}
+          <div style={{ borderTop:"1px solid var(--sd-border)", padding:"4px" }}>
+            <button
+              onClick={() => { setOpen(false); setShowLogout(true); }}
+              style={{
+                display:"flex", alignItems:"center", gap:9,
+                width:"100%", padding:"8px 10px", borderRadius:8,
+                background:"transparent", border:"none", cursor:"pointer",
+                fontFamily:"var(--sd-font)", fontSize:13, fontWeight:500,
+                color:"#dc2626", textAlign:"left", transition:"background 0.1s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(220,38,38,0.06)"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              <Ico d={D.logout} size={15} color="#dc2626" />
+              Log Out
             </button>
-          ))}
+          </div>
         </div>
       )}
 
