@@ -167,6 +167,21 @@ function Field({ label, required, hint, children }) {
   );
 }
 
+/* ─── Mini accordion for preview ─── */
+function PreviewAccordion({ title, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ borderBottom:"1px solid var(--sd-border-light)" }}>
+      <button type="button" onClick={() => setOpen(o => !o)}
+        style={{ width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 0",background:"none",border:"none",cursor:"pointer",fontFamily:"var(--sd-font)",fontSize:12,fontWeight:600,color:"var(--sd-text)",textAlign:"left" }}>
+        {title}
+        <span style={{ fontSize:16,color:"var(--sd-muted)",transform:open?"rotate(45deg)":"none",transition:"transform 0.2s",lineHeight:1 }}>+</span>
+      </button>
+      {open && <div style={{ paddingBottom:12 }}>{children}</div>}
+    </div>
+  );
+}
+
 /* ══════════════════════════════════════════════════════════
    LIVE PREVIEW COMPONENT
    Mirrors the actual product details page in real time
@@ -389,6 +404,21 @@ function ProductPreview({ form }) {
           <button type="button" style={{ width:"100%",height:44,borderRadius:9,border:"none",background:"var(--sd-text)",fontSize:13,fontWeight:700,color:"var(--sd-white)",cursor:"default",fontFamily:"var(--sd-font)" }}>
             Pay now · {fmtMoney(finalPrice * qty)}
           </button>
+
+          {/* Description accordion */}
+          <div style={{ marginTop:12,borderTop:"1px solid var(--sd-border-light)" }}>
+            <PreviewAccordion title="Product Details">
+              {form.description
+                ? <p style={{ fontSize:12,lineHeight:1.75,color:"var(--sd-text)",opacity:0.8,margin:0,whiteSpace:"pre-line",fontWeight:400 }}>{form.description}</p>
+                : <p style={{ fontSize:12,color:"var(--sd-muted)",margin:0,fontStyle:"italic" }}>Your description will appear here…</p>
+              }
+            </PreviewAccordion>
+            <PreviewAccordion title="Delivery & Returns">
+              <p style={{ fontSize:12,lineHeight:1.7,color:"var(--sd-text)",opacity:0.75,margin:0 }}>
+                Standard delivery: 1–3 business days within Ghana. Returns accepted within 7 days of delivery in original condition.
+              </p>
+            </PreviewAccordion>
+          </div>
         </div>
       </div>
     </div>
@@ -414,6 +444,18 @@ export default function DashboardProductDetail() {
   const [uploading,   setUploading]   = useState(false);
   const [saved,       setSaved]       = useState(false);
   const [error,       setError]       = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  // Refs for scroll-to-error
+  const nameRef     = useRef(null);
+  const priceRef    = useRef(null);
+  const categoryRef = useRef(null);
+  const imagesRef   = useRef(null);
+
+  const scrollToField = (ref) => {
+    ref?.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+  const clearFieldError = (k) => setFieldErrors(e => { const n={...e}; delete n[k]; return n; });
 
   // AI writer
   const [aiWriting,   setAiWriting]   = useState(false);
@@ -464,7 +506,7 @@ export default function DashboardProductDetail() {
   const maxProds = planLimits?.maxProducts || FALLBACK_LIMITS[(subscriptionPlan||"basic").toLowerCase()] || 5;
   const atLimit  = isNew && allProducts.length >= maxProds;
 
-  const upd = k => e => { setForm(f=>({...f,[k]:e.target.type==="checkbox"?e.target.checked:e.target.value})); setError(""); };
+  const upd = k => e => { setForm(f=>({...f,[k]:e.target.type==="checkbox"?e.target.checked:e.target.value})); setError(""); clearFieldError(k); };
 
   /* ─── AI Writer ─── */
   const handleAIWrite = async () => {
@@ -509,10 +551,30 @@ export default function DashboardProductDetail() {
 
   /* ─── Save ─── */
   const validate = () => {
-    if (!form.name.trim())          { setError("Product title is required.");        return false; }
-    if (!form.price||Number(form.price)<=0) { setError("Enter a valid price.");     return false; }
-    if (!form.category)             { setError("Select a category.");                return false; }
-    if (form.images.length===0)     { setError("Add at least one product image.");   return false; }
+    if (!form.name.trim()) {
+      setError("Product title is required.");
+      setFieldErrors(e => ({...e, name: true}));
+      scrollToField(nameRef);
+      return false;
+    }
+    if (!form.price || Number(form.price) <= 0) {
+      setError("Enter a valid price.");
+      setFieldErrors(e => ({...e, price: true}));
+      scrollToField(priceRef);
+      return false;
+    }
+    if (!form.category) {
+      setError("Select a category.");
+      setFieldErrors(e => ({...e, category: true}));
+      scrollToField(categoryRef);
+      return false;
+    }
+    if (form.images.length === 0) {
+      setError("Add at least one product image.");
+      setFieldErrors(e => ({...e, images: true}));
+      scrollToField(imagesRef);
+      return false;
+    }
     return true;
   };
 
@@ -547,7 +609,7 @@ export default function DashboardProductDetail() {
   const selectedCatObj = MARKETPLACE_CATEGORIES.find(c => c.label === form.category);
 
   if (loading) return (
-    <div style={{ minHeight:"100vh",background:"var(--sd-bg)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--sd-font)" }}>
+    <div style={{ minHeight:"100vh",background:"#ffffff",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--sd-font)" }}>
       <div style={{ display:"flex",alignItems:"center",gap:10,color:"var(--sd-muted)",fontSize:14 }}>
         <div style={{ width:22,height:22,borderRadius:"50%",border:"2.5px solid var(--sd-border)",borderTopColor:"var(--sd-accent)",animation:"dpd-spin 0.7s linear infinite" }}/>
         Loading product…
@@ -556,7 +618,7 @@ export default function DashboardProductDetail() {
   );
 
   return (
-    <div style={{ minHeight:"100vh",background:"var(--sd-bg)",fontFamily:"var(--sd-font)" }}>
+    <div style={{ minHeight:"100vh",background:"#ffffff",fontFamily:"var(--sd-font)" }}>
 
       {/* ── Sticky top bar ── */}
       <div style={{ background:"var(--sd-white)",borderBottom:"1px solid var(--sd-border)",padding:"0 20px",height:54,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100,gap:12 }}>
@@ -630,11 +692,14 @@ export default function DashboardProductDetail() {
             {/* Title & Description */}
             <Section title="Product Details">
               <Field label="Product Title" required>
-                <input value={form.name} onChange={upd("name")} maxLength={120}
-                  placeholder="e.g. Ankara Mini Dress — Red Print"
-                  style={{ width:"100%",padding:"10px 13px",border:"1px solid var(--sd-border)",borderRadius:8,background:"var(--sd-bg)",color:"var(--sd-text)",fontSize:14,fontWeight:500,outline:"none",fontFamily:"var(--sd-font)",boxSizing:"border-box",transition:"border-color 0.15s" }}
-                  onFocus={e=>e.target.style.borderColor="var(--sd-accent)"}
-                  onBlur={e=>e.target.style.borderColor="var(--sd-border)"}/>
+                <div ref={nameRef}>
+                  <input value={form.name} onChange={upd("name")} maxLength={120}
+                    placeholder="e.g. Ankara Mini Dress — Red Print"
+                    style={{ width:"100%",padding:"10px 13px",border:`1px solid ${fieldErrors.name?"var(--sd-danger)":"var(--sd-border)"}`,borderRadius:8,background:"#f9fafb",color:"var(--sd-text)",fontSize:14,fontWeight:500,outline:"none",fontFamily:"var(--sd-font)",boxSizing:"border-box",transition:"border-color 0.15s",boxShadow:fieldErrors.name?"0 0 0 3px rgba(220,38,38,0.08)":"none" }}
+                    onFocus={e=>{ if(!fieldErrors.name) e.target.style.borderColor="var(--sd-accent)"; }}
+                    onBlur={e=>{ if(!fieldErrors.name) e.target.style.borderColor="var(--sd-border)"; }}/>
+                  {fieldErrors.name && <div style={{ fontSize:11,color:"var(--sd-danger)",fontWeight:600,marginTop:4 }}>Product title is required</div>}
+                </div>
               </Field>
               <Field label="Description" hint={isProSeller ? "Pro tip: use AI to write a better description." : undefined}>
                 <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8 }}>
@@ -653,7 +718,7 @@ export default function DashboardProductDetail() {
                 </div>
                 <textarea value={form.description} onChange={upd("description")} rows={5}
                   placeholder="Describe your product — what it is, who it's for, what makes it great…"
-                  style={{ width:"100%",padding:"10px 13px",border:"1px solid var(--sd-border)",borderRadius:8,background:"var(--sd-bg)",color:"var(--sd-text)",fontSize:13,outline:"none",resize:"vertical",fontFamily:"var(--sd-font)",lineHeight:1.65,boxSizing:"border-box",minHeight:100,transition:"border-color 0.15s" }}
+                  style={{ width:"100%",padding:"10px 13px",border:"1px solid var(--sd-border)",borderRadius:8,background:"#f9fafb",color:"var(--sd-text)",fontSize:13,outline:"none",resize:"vertical",fontFamily:"var(--sd-font)",lineHeight:1.65,boxSizing:"border-box",minHeight:100,transition:"border-color 0.15s" }}
                   onFocus={e=>e.target.style.borderColor="var(--sd-accent)"}
                   onBlur={e=>e.target.style.borderColor="var(--sd-border)"}/>
               </Field>
@@ -692,19 +757,32 @@ export default function DashboardProductDetail() {
 
             {/* Media */}
             <Section title="Product Photos" subtitle="Add up to 5 photos. The first image is your main listing photo.">
-              <ImageGrid images={form.images} onAdd={handleAddImages} onRemove={i=>setForm(f=>({...f,images:f.images.filter((_,j)=>j!==i)}))} uploading={uploading}/>
+              <div ref={imagesRef}>
+                {fieldErrors.images && (
+                  <div style={{ padding:"9px 12px",borderRadius:8,background:"var(--sd-danger-bg)",border:"1px solid rgba(220,38,38,0.2)",fontSize:12,color:"var(--sd-danger)",fontWeight:600,marginBottom:12,display:"flex",alignItems:"center",gap:6 }}>
+                    <Ico d={IC.alert} size={13} color="var(--sd-danger)"/> Add at least one product photo to continue
+                  </div>
+                )}
+                <ImageGrid images={form.images}
+                  onAdd={(files) => { handleAddImages(files); clearFieldError("images"); }}
+                  onRemove={i=>setForm(f=>({...f,images:f.images.filter((_,j)=>j!==i)}))}
+                  uploading={uploading}/>
+              </div>
             </Section>
 
             {/* Pricing */}
             <Section title="Pricing">
               <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
                 <Field label="Price (GHS)" required>
-                  <div style={{ display:"flex",alignItems:"center",border:"1px solid var(--sd-border)",borderRadius:8,overflow:"hidden",background:"var(--sd-bg)",transition:"border-color 0.15s" }}
-                    onFocusCapture={e=>e.currentTarget.style.borderColor="var(--sd-accent)"}
-                    onBlurCapture={e=>e.currentTarget.style.borderColor="var(--sd-border)"}>
-                    <span style={{ padding:"0 10px",fontSize:12,fontWeight:700,color:"var(--sd-muted)",borderRight:"1px solid var(--sd-border)",lineHeight:"42px",userSelect:"none" }}>GHS</span>
-                    <input type="number" min="0" step="0.01" value={form.price} onChange={upd("price")} placeholder="0.00"
-                      style={{ flex:1,padding:"10px 12px",border:"none",background:"transparent",color:"var(--sd-text)",fontSize:14,fontWeight:600,outline:"none",fontFamily:"var(--sd-font)" }}/>
+                  <div ref={priceRef}>
+                    <div style={{ display:"flex",alignItems:"center",border:`1px solid ${fieldErrors.price?"var(--sd-danger)":"var(--sd-border)"}`,borderRadius:8,overflow:"hidden",background:"#f9fafb",transition:"border-color 0.15s",boxShadow:fieldErrors.price?"0 0 0 3px rgba(220,38,38,0.08)":"none" }}
+                      onFocusCapture={e=>{ if(!fieldErrors.price) e.currentTarget.style.borderColor="var(--sd-accent)"; }}
+                      onBlurCapture={e=>{ if(!fieldErrors.price) e.currentTarget.style.borderColor=fieldErrors.price?"var(--sd-danger)":"var(--sd-border)"; }}>
+                      <span style={{ padding:"0 10px",fontSize:12,fontWeight:700,color:"var(--sd-muted)",borderRight:"1px solid var(--sd-border)",lineHeight:"42px",userSelect:"none" }}>GHS</span>
+                      <input type="number" min="0" step="0.01" value={form.price} onChange={upd("price")} placeholder="0.00"
+                        style={{ flex:1,padding:"10px 12px",border:"none",background:"transparent",color:"var(--sd-text)",fontSize:14,fontWeight:600,outline:"none",fontFamily:"var(--sd-font)" }}/>
+                    </div>
+                    {fieldErrors.price && <div style={{ fontSize:11,color:"var(--sd-danger)",fontWeight:600,marginTop:4 }}>Enter a valid price</div>}
                   </div>
                 </Field>
                 <Field label="Compare-at Price (GHS)" hint="Shows as crossed-out original price">
@@ -728,13 +806,17 @@ export default function DashboardProductDetail() {
             <Section title="Category" subtitle="Choose the most relevant category for better search visibility.">
               <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
                 <Field label="Main Category" required>
-                  <select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value,subcategory:""}))}
-                    style={{ width:"100%",padding:"10px 13px",border:"1px solid var(--sd-border)",borderRadius:8,background:"var(--sd-bg)",color:form.category?"var(--sd-text)":"var(--sd-muted)",fontSize:13,fontWeight:500,outline:"none",fontFamily:"var(--sd-font)",cursor:"pointer",boxSizing:"border-box",transition:"border-color 0.15s",appearance:"none" }}
-                    onFocus={e=>e.target.style.borderColor="var(--sd-accent)"}
-                    onBlur={e=>e.target.style.borderColor="var(--sd-border)"}>
-                    <option value="">Select a category</option>
-                    {MARKETPLACE_CATEGORIES.map(c=><option key={c.key} value={c.label}>{c.emoji} {c.label}</option>)}
-                  </select>
+                  <div ref={categoryRef}>
+                    <select value={form.category}
+                      onChange={e=>{ setForm(f=>({...f,category:e.target.value,subcategory:""})); clearFieldError("category"); }}
+                      style={{ width:"100%",padding:"10px 13px",border:`1px solid ${fieldErrors.category?"var(--sd-danger)":"var(--sd-border)"}`,borderRadius:8,background:"#f9fafb",color:form.category?"var(--sd-text)":"var(--sd-muted)",fontSize:13,fontWeight:500,outline:"none",fontFamily:"var(--sd-font)",cursor:"pointer",boxSizing:"border-box",transition:"border-color 0.15s",appearance:"none",boxShadow:fieldErrors.category?"0 0 0 3px rgba(220,38,38,0.08)":"none" }}
+                      onFocus={e=>{ if(!fieldErrors.category) e.target.style.borderColor="var(--sd-accent)"; }}
+                      onBlur={e=>{ if(!fieldErrors.category) e.target.style.borderColor="var(--sd-border)"; }}>
+                      <option value="">Select a category</option>
+                      {MARKETPLACE_CATEGORIES.map(c=><option key={c.key} value={c.label}>{c.label}</option>)}
+                    </select>
+                    {fieldErrors.category && <div style={{ fontSize:11,color:"var(--sd-danger)",fontWeight:600,marginTop:4 }}>Please select a category</div>}
+                  </div>
                 </Field>
                 {selectedCatObj?.subcategories?.length > 0 && (
                   <Field label="Subcategory">
