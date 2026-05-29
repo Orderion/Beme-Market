@@ -166,7 +166,7 @@ export default function SellerDashboard() {
                 <span className="sd-nav-label">{item.label}</span>
                 {badge > 0 && <span className="sd-nav-badge">{badge > 99 ? "99+" : badge}</span>}
                 {item.id === "ai" && (
-                  <span className="sd-ai-chip sd-nav-label">AI</span>
+                  <span className="sd-ai-chip">AI</span>
                 )}
               </button>
             );
@@ -367,12 +367,14 @@ export default function SellerDashboard() {
           display: flex; align-items: center; justify-content: center; padding: 0 4px;
         }
         .sd-ai-chip {
-          font-size: 9px; font-weight: 800; padding: 1px 6px;
+          font-size: 9px; font-weight: 800; padding: 2px 6px;
           border-radius: 100px; background: var(--sd-accent-dim);
           color: var(--sd-accent); letter-spacing: 0.04em;
+          flex-shrink: 0;
+          margin-left: auto;
         }
 
-        /* ── Sidebar footer ── */
+        /* Sidebar footer */
         .sd-sidebar-footer {
           padding: 8px;
           border-top: 1px solid var(--sd-border-light);
@@ -391,10 +393,10 @@ export default function SellerDashboard() {
         .sd-footer-btn:hover { background: var(--sd-border-light); }
         .sd-footer-label { color: var(--sd-muted); font-size: 13px; }
 
-        /* ════ COLLAPSED STATE ════
-           Sidebar shrinks to icon-only.
-           On hover it expands back as an overlay (no layout shift).
-        ══════════════════════════ */
+        /* COLLAPSED STATE
+           Sidebar shrinks to 64px icon-only.
+           Hovering expands it as an overlay with no layout shift.
+        */
         .sd-sidebar--collapsed {
           width: var(--sd-sidebar-collapsed-w);
           position: fixed;
@@ -404,34 +406,47 @@ export default function SellerDashboard() {
         .sd-sidebar--collapsed:hover {
           width: var(--sd-sidebar-w);
           overflow-y: auto;
-          box-shadow: 4px 0 20px rgba(0,0,0,0.10);
+          box-shadow: 4px 0 20px rgba(0,0,0,0.12);
         }
-
-        /* Hide text labels when collapsed and not hovered */
-        .sd-sidebar--collapsed:not(:hover) .sd-nav-label,
-        .sd-sidebar--collapsed:not(:hover) .sd-store-info,
-        .sd-sidebar--collapsed:not(:hover) .sd-store-dot,
-        .sd-sidebar--collapsed:not(:hover) .sd-footer-label {
-          opacity: 0;
-          width: 0;
-          overflow: hidden;
-          pointer-events: none;
+        /* Remove horizontal padding from all containers so icons center in 64px */
+        .sd-sidebar--collapsed:not(:hover) .sd-nav {
+          padding-left: 0; padding-right: 0;
         }
-
-        /* Center icons when collapsed */
-        .sd-sidebar--collapsed:not(:hover) .sd-nav-item,
+        .sd-sidebar--collapsed:not(:hover) .sd-sidebar-footer {
+          padding-left: 0; padding-right: 0;
+        }
+        .sd-sidebar--collapsed:not(:hover) .sd-store-header {
+          padding-left: 0; padding-right: 0;
+          justify-content: center; gap: 0;
+        }
+        /* Nav items: kill gap + horizontal padding, center contents */
+        .sd-sidebar--collapsed:not(:hover) .sd-nav-item {
+          justify-content: center;
+          padding-left: 0; padding-right: 0;
+          gap: 0;
+        }
         .sd-sidebar--collapsed:not(:hover) .sd-footer-btn {
           justify-content: center;
           padding-left: 0; padding-right: 0;
           gap: 0;
         }
-        .sd-sidebar--collapsed:not(:hover) .sd-store-header {
+        /* Icon span fills item width so it truly centers */
+        .sd-sidebar--collapsed:not(:hover) .sd-nav-icon {
+          width: 100%;
           justify-content: center;
-          padding-left: 0; padding-right: 0;
+          min-width: unset;
         }
-
-        /* Main shifts right to clear the collapsed sidebar */
+        /* Hide all text + badges */
+        .sd-sidebar--collapsed:not(:hover) .sd-nav-label,
+        .sd-sidebar--collapsed:not(:hover) .sd-store-info,
+        .sd-sidebar--collapsed:not(:hover) .sd-store-dot,
+        .sd-sidebar--collapsed:not(:hover) .sd-footer-label,
+        .sd-sidebar--collapsed:not(:hover) .sd-ai-chip,
+        .sd-sidebar--collapsed:not(:hover) .sd-nav-badge {
+          display: none;
+        }
         .sd-main--collapsed { margin-left: var(--sd-sidebar-collapsed-w); }
+
 
         /* ════ MAIN AREA ════ */
         .sd-main {
