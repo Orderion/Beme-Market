@@ -112,8 +112,8 @@ export default function SellerDashboard() {
 
   const tabParam = searchParams.get("tab");
   const [activeTab,   setActiveTab]   = useState(tabParam && TAB_TITLES[tabParam] ? tabParam : "home");
-  const [sidebarOpen, setSidebarOpen] = useState(false);   // mobile overlay
-  const [collapsed,   setCollapsed]   = useState(false);   // desktop collapse
+  const [sidebarOpen, setSidebarOpen] = useState(false);   // mobile/tablet overlay
+  const [collapsed,   setCollapsed]   = useState(false);   // desktop collapse only
 
   useEffect(() => {
     if (tabParam && TAB_TITLES[tabParam] && tabParam !== activeTab) setActiveTab(tabParam);
@@ -139,7 +139,7 @@ export default function SellerDashboard() {
       {/* ══════ SIDEBAR ══════ */}
       <aside className={`sd-sidebar${collapsed ? " sd-sidebar--collapsed" : ""}${sidebarOpen ? " sd-sidebar--mobile-open" : ""}`}>
 
-        {/* Store identity — top of sidebar, no Beme logo */}
+        {/* Store identity */}
         <div className="sd-store-header">
           <div className="sd-store-avatar">{initial}</div>
           <div className="sd-store-info">
@@ -179,7 +179,7 @@ export default function SellerDashboard() {
             <span className="sd-nav-icon"><Ico d={isDark ? D.sun : D.moon} size={16} color="var(--sd-muted)" /></span>
             <span className="sd-nav-label sd-footer-label">{isDark ? "Light mode" : "Dark mode"}</span>
           </button>
-          {/* Collapse toggle — desktop only */}
+          {/* Collapse toggle — desktop ONLY, hidden on mobile/tablet via CSS */}
           <button className="sd-footer-btn sd-collapse-btn" onClick={() => setCollapsed(c => !c)}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
             <span className="sd-nav-icon">
@@ -190,7 +190,7 @@ export default function SellerDashboard() {
         </div>
       </aside>
 
-      {/* Mobile overlay backdrop */}
+      {/* Mobile/tablet overlay backdrop — closes sidebar on outside tap */}
       {sidebarOpen && <div className="sd-sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
 
       {/* ══════ MAIN ══════ */}
@@ -198,6 +198,7 @@ export default function SellerDashboard() {
 
         {/* Topbar */}
         <header className="sd-topbar">
+          {/* Hamburger — visible on mobile AND tablet (≤1024px) */}
           <button className="sd-hamburger" onClick={() => setSidebarOpen(o => !o)} aria-label="Toggle sidebar">
             <Ico d={D.menu} size={20} color="var(--sd-text)" />
           </button>
@@ -245,7 +246,6 @@ export default function SellerDashboard() {
           --sd-accent2:       #6d28d9;
           --sd-accent-dim:    rgba(124,58,237,0.08);
           --sd-accent-border: rgba(124,58,237,0.18);
-          /* ── White / neutral light mode ── */
           --sd-bg:            #f9fafb;
           --sd-white:         #ffffff;
           --sd-border:        #e5e7eb;
@@ -264,7 +264,8 @@ export default function SellerDashboard() {
           --sd-sidebar-collapsed-w: 64px;
           --sd-topbar-h:      56px;
         }
-        /* ── Dark mode — untouched ── */
+
+        /* ── Dark mode ── */
         .sd-dark {
           --sd-bg:            #0e0b1a;
           --sd-white:         #18152a;
@@ -308,7 +309,7 @@ export default function SellerDashboard() {
           transition: width 0.22s cubic-bezier(0.4,0,0.2,1);
         }
 
-        /* ── Store header (top of sidebar — no logo above it) ── */
+        /* ── Store header ── */
         .sd-store-header {
           display: flex;
           align-items: center;
@@ -374,7 +375,7 @@ export default function SellerDashboard() {
           margin-left: auto;
         }
 
-        /* Sidebar footer */
+        /* ── Sidebar footer ── */
         .sd-sidebar-footer {
           padding: 8px;
           border-top: 1px solid var(--sd-border-light);
@@ -393,10 +394,7 @@ export default function SellerDashboard() {
         .sd-footer-btn:hover { background: var(--sd-border-light); }
         .sd-footer-label { color: var(--sd-muted); font-size: 13px; }
 
-        /* COLLAPSED STATE
-           Sidebar shrinks to 64px icon-only.
-           Hovering expands it as an overlay with no layout shift.
-        */
+        /* ── DESKTOP COLLAPSED STATE ── */
         .sd-sidebar--collapsed {
           width: var(--sd-sidebar-collapsed-w);
           position: fixed;
@@ -408,18 +406,12 @@ export default function SellerDashboard() {
           overflow-y: auto;
           box-shadow: 4px 0 20px rgba(0,0,0,0.12);
         }
-        /* Remove horizontal padding from all containers so icons center in 64px */
-        .sd-sidebar--collapsed:not(:hover) .sd-nav {
-          padding-left: 0; padding-right: 0;
-        }
-        .sd-sidebar--collapsed:not(:hover) .sd-sidebar-footer {
-          padding-left: 0; padding-right: 0;
-        }
+        .sd-sidebar--collapsed:not(:hover) .sd-nav { padding-left: 0; padding-right: 0; }
+        .sd-sidebar--collapsed:not(:hover) .sd-sidebar-footer { padding-left: 0; padding-right: 0; }
         .sd-sidebar--collapsed:not(:hover) .sd-store-header {
           padding-left: 0; padding-right: 0;
           justify-content: center; gap: 0;
         }
-        /* Nav items: kill gap + horizontal padding, center contents */
         .sd-sidebar--collapsed:not(:hover) .sd-nav-item {
           justify-content: center;
           padding-left: 0; padding-right: 0;
@@ -430,21 +422,17 @@ export default function SellerDashboard() {
           padding-left: 0; padding-right: 0;
           gap: 0;
         }
-        /* Icon span fills item width so it truly centers */
         .sd-sidebar--collapsed:not(:hover) .sd-nav-icon {
           width: 100%;
           justify-content: center;
           min-width: unset;
         }
-        /* Hide all text + badges */
         .sd-sidebar--collapsed:not(:hover) .sd-nav-label,
         .sd-sidebar--collapsed:not(:hover) .sd-store-info,
         .sd-sidebar--collapsed:not(:hover) .sd-store-dot,
         .sd-sidebar--collapsed:not(:hover) .sd-footer-label,
         .sd-sidebar--collapsed:not(:hover) .sd-ai-chip,
-        .sd-sidebar--collapsed:not(:hover) .sd-nav-badge {
-          display: none;
-        }
+        .sd-sidebar--collapsed:not(:hover) .sd-nav-badge { display: none; }
         .sd-main--collapsed { margin-left: var(--sd-sidebar-collapsed-w); }
 
 
@@ -460,11 +448,14 @@ export default function SellerDashboard() {
           background: var(--sd-white);
           border-bottom: 1px solid var(--sd-border);
         }
+
+        /* Hamburger hidden on desktop, shown on mobile+tablet */
         .sd-hamburger {
           display: none; background: none; border: none;
           cursor: pointer; padding: 6px; border-radius: 8px;
         }
         .sd-hamburger:hover { background: var(--sd-border-light); }
+
         .sd-topbar-title {
           font-size: 15px; font-weight: 700; color: var(--sd-text);
           letter-spacing: -0.01em; flex: 1;
@@ -522,17 +513,14 @@ export default function SellerDashboard() {
           animation: sd-spin 0.7s linear infinite;
         }
 
-        /* ── Mobile sidebar (overlay from left) ── */
-        .sd-sidebar--mobile-open {
-          transform: none !important;
-        }
+        /* ── Sidebar overlay backdrop ── */
         .sd-sidebar-overlay {
           position: fixed; inset: 0;
           background: rgba(0,0,0,0.36); z-index: 99;
           display: none;
         }
 
-        /* ── Shared component classes used by child pages ── */
+        /* ── Shared component classes ── */
         .sd-panel {
           background: var(--sd-white);
           border: 1px solid var(--sd-border);
@@ -570,31 +558,64 @@ export default function SellerDashboard() {
         }
         .sd-form-group { margin-bottom: 16px; }
 
-        /* ── Responsive ── */
-        @media (max-width: 768px) {
+        /* ══════════════════════════════════════
+           RESPONSIVE
+           ≤ 1024px  →  hamburger + overlay sidebar (mobile & tablet)
+           > 1024px  →  always-visible sidebar with collapse toggle
+        ══════════════════════════════════════ */
+
+        /* Tablet + Mobile */
+        @media (max-width: 1024px) {
+          /* Sidebar slides in from left as overlay */
           .sd-sidebar {
             position: fixed; left: 0; top: 0; bottom: 0;
             transform: translateX(-100%);
-            z-index: 200; width: var(--sd-sidebar-w) !important;
+            z-index: 200;
+            width: var(--sd-sidebar-w) !important;
+            box-shadow: none;
+            /* Override any collapsed state on small screens */
+          }
+          .sd-sidebar--mobile-open {
+            transform: translateX(0) !important;
             box-shadow: 4px 0 20px rgba(0,0,0,0.15);
           }
-          .sd-sidebar--mobile-open { transform: translateX(0) !important; }
+          /* Show overlay backdrop when sidebar is open */
           .sd-sidebar-overlay { display: block; }
+
+          /* Show hamburger */
           .sd-hamburger { display: flex; align-items: center; justify-content: center; }
+
+          /* Remove desktop collapsed margin */
           .sd-main--collapsed { margin-left: 0 !important; }
-          .sd-content { padding: 16px 16px 60px; }
+
+          /* Ensure full labels are visible inside the overlay sidebar */
           .sd-nav-label, .sd-store-info, .sd-store-dot, .sd-footer-label {
-            opacity: 1 !important; width: auto !important;
+            opacity: 1 !important;
+            width: auto !important;
+            display: block !important;
           }
           .sd-nav-item, .sd-footer-btn {
             justify-content: flex-start !important;
-            padding: 9px 8px !important; gap: 9px !important;
+            padding: 9px 8px !important;
+            gap: 9px !important;
           }
           .sd-store-header {
             justify-content: flex-start !important;
             padding: 16px 14px 12px !important;
           }
+          .sd-nav-icon {
+            width: 20px !important;
+            min-width: 20px !important;
+            justify-content: flex-start !important;
+          }
+          .sd-ai-chip { display: inline-flex !important; }
+
+          /* Hide the collapse button — only useful on desktop */
+          .sd-collapse-btn { display: none !important; }
+
+          .sd-content { padding: 16px 16px 60px; }
         }
+
         @media (max-width: 480px) {
           .sd-live-badge { display: none; }
         }
