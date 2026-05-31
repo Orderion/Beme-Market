@@ -16,66 +16,289 @@ function Ico({ d, size = 16, color = "currentColor", sw = 1.8, fill = "none" }) 
   );
 }
 const IC = {
-  sparkle:  "M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z",
-  send:     "M22 2L11 13|M22 2L15 22l-4-9-9-4 22-7z",
-  paperclip:"M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48",
-  image:    "M21 15l-5-5L5 21|M3 3h18v18H3z|M8.5 8.5a1 1 0 1 0 2 0 1 1 0 0 0-2 0",
-  copy:     "M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z|M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 0 2 2v1",
-  check:    "M20 6L9 17l-5-5",
-  plus:     "M12 5v14|M5 12h14",
-  x:        "M18 6L6 18|M6 6l12 12",
-  lock:     "M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z|M7 11V7a5 5 0 0 1 10 0v4",
-  zap:      "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
-  bar:      "M18 20V10|M12 20V4|M6 20v-6",
-  package:  "M16.5 9.4l-9-5.19|M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z|M3.27 6.96L12 12.01l8.73-5.05|M12 22.08V12",
-  chat:     "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
-  file:     "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z|M14 2v6h6",
+  sparkle:   "M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z",
+  send:      "M22 2L11 13|M22 2L15 22l-4-9-9-4 22-7z",
+  paperclip: "M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48",
+  image:     "M21 15l-5-5L5 21|M3 3h18v18H3z|M8.5 8.5a1 1 0 1 0 2 0 1 1 0 0 0-2 0",
+  copy:      "M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z|M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 0 2 2v1",
+  check:     "M20 6L9 17l-5-5",
+  plus:      "M12 5v14|M5 12h14",
+  x:         "M18 6L6 18|M6 6l12 12",
+  retry:     "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8|M3 3v5h5",
+  edit:      "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7|M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z",
+  file:      "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z|M14 2v6h6",
+  zap:       "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
+  bar:       "M18 20V10|M12 20V4|M6 20v-6",
+  package:   "M16.5 9.4l-9-5.19|M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z|M3.27 6.96L12 12.01l8.73-5.05|M12 22.08V12",
+  chat:      "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
 };
 
-/* ─── Purple orb ─── */
-function PurpleOrb() {
+/* ══════════════════════════════════════
+   ANIMATED ORB  — rotating gradient
+   waves behind it, orb spins slowly
+══════════════════════════════════════ */
+function AnimatedOrb({ size = 72 }) {
+  const s = size;
   return (
-    <svg width="90" height="90" viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg" style={{ filter:"drop-shadow(0 8px 24px rgba(124,58,237,0.45))" }}>
-      <defs>
-        <radialGradient id="orbG" cx="38%" cy="32%" r="70%">
-          <stop offset="0%"   stopColor="#d8b4fe"/>
-          <stop offset="40%"  stopColor="#7c3aed"/>
-          <stop offset="100%" stopColor="#3b0764"/>
-        </radialGradient>
-        <radialGradient id="orbSheen" cx="30%" cy="25%" r="45%">
-          <stop offset="0%"  stopColor="rgba(255,255,255,0.35)"/>
-          <stop offset="100%" stopColor="rgba(255,255,255,0)"/>
-        </radialGradient>
-      </defs>
-      <circle cx="45" cy="45" r="42" fill="url(#orbG)"/>
-      <ellipse cx="33" cy="29" rx="12" ry="8" fill="url(#orbSheen)"/>
-    </svg>
+    <div style={{ position:"relative", width:s, height:s, flexShrink:0 }}>
+      {/* Wave ring 3 — outermost, slowest */}
+      <div style={{
+        position:"absolute",
+        inset: -s * 0.42,
+        borderRadius:"50%",
+        background:"conic-gradient(from 0deg,#7c3aed18,#a78bfa44,#7c3aed18,#6d28d944,#7c3aed18)",
+        animation:"orb-spin-r 9s linear infinite",
+        zIndex:0,
+      }}/>
+      {/* Wave ring 2 */}
+      <div style={{
+        position:"absolute",
+        inset: -s * 0.22,
+        borderRadius:"50%",
+        background:"conic-gradient(from 120deg,#9333ea33,#c4b5fd66,#9333ea33,#7c3aed55,#9333ea33)",
+        animation:"orb-spin 6s linear infinite",
+        zIndex:0,
+      }}/>
+      {/* Wave ring 1 — innermost */}
+      <div style={{
+        position:"absolute",
+        inset: -s * 0.08,
+        borderRadius:"50%",
+        background:"conic-gradient(from 240deg,#7c3aed55,#ddd6fe88,#7c3aed55)",
+        animation:"orb-spin-r 4s linear infinite",
+        zIndex:0,
+      }}/>
+      {/* Main orb */}
+      <div style={{
+        position:"relative", zIndex:1,
+        width:"100%", height:"100%",
+        borderRadius:"50%",
+        background:"linear-gradient(135deg,#c4b5fd 0%,#7c3aed 45%,#3b0764 100%)",
+        boxShadow:"0 6px 28px rgba(124,58,237,0.5)",
+        display:"flex", alignItems:"center", justifyContent:"center",
+        animation:"orb-spin 8s linear infinite",
+      }}>
+        {/* Inner sheen */}
+        <div style={{
+          position:"absolute", top:"12%", left:"14%",
+          width:"38%", height:"30%",
+          borderRadius:"50%",
+          background:"radial-gradient(circle,rgba(255,255,255,0.45),rgba(255,255,255,0))",
+          pointerEvents:"none",
+        }}/>
+        <svg width={s * 0.42} height={s * 0.42} viewBox="0 0 24 24" fill="none"
+          stroke="rgba(255,255,255,0.92)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+        </svg>
+      </div>
+    </div>
   );
 }
 
-/* ─── Time greeting ─── */
-function greeting() {
-  const h = new Date().getHours();
-  if (h < 12) return "Good Morning";
-  if (h < 17) return "Good Afternoon";
-  return "Good Evening";
+/* ─── Mini orb for header / bubble avatar ─── */
+function MiniOrb({ size = 28 }) {
+  return (
+    <div style={{
+      width:size, height:size, borderRadius:"50%", flexShrink:0,
+      background:"linear-gradient(135deg,#c4b5fd,#7c3aed,#4f46e5)",
+      display:"flex", alignItems:"center", justifyContent:"center",
+      boxShadow:"0 2px 10px rgba(124,58,237,0.4)",
+      animation:"orb-spin 8s linear infinite",
+    }}>
+      <svg width={size*0.52} height={size*0.52} viewBox="0 0 24 24" fill="none"
+        stroke="rgba(255,255,255,0.92)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+      </svg>
+    </div>
+  );
 }
 
-/* ─── Example prompt cards ─── */
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 const EXAMPLES = [
-  { icon: IC.zap,     label: "Boost sales",    text: "How can I increase my store sales this week?" },
-  { icon: IC.package, label: "Products",       text: "Write a compelling product description for me" },
-  { icon: IC.bar,     label: "Analytics",      text: "Explain my store performance in plain English" },
-  { icon: IC.chat,    label: "Marketing",      text: "Generate an Instagram caption for my new product" },
+  { icon: IC.zap,     label: "Boost sales",  text: "How can I increase my store sales this week?" },
+  { icon: IC.package, label: "Products",     text: "Write a compelling product description for me" },
+  { icon: IC.bar,     label: "Analytics",    text: "Explain my store performance in plain English" },
+  { icon: IC.chat,    label: "Marketing",    text: "Generate an Instagram caption for my new product" },
 ];
 
-/* ─── How Beme AI works cards ─── */
 const HOW_IT_WORKS = [
-  { icon: IC.sparkle, title: "Knows your store",   desc: "Beme AI reads your products, orders and analytics in real time." },
-  { icon: IC.zap,     title: "Instant answers",    desc: "Ask anything — pricing, delivery, customers — and get a direct answer." },
-  { icon: IC.package, title: "Writes for you",     desc: "Generate product descriptions, captions, and email copy in seconds." },
-  { icon: IC.bar,     title: "Spots trends",       desc: "Understand what is selling, what is not, and what to do about it." },
+  { icon: IC.sparkle, title: "Knows your store",  desc: "Reads your products, orders and analytics in real time." },
+  { icon: IC.zap,     title: "Instant answers",   desc: "Ask anything — pricing, delivery, customers." },
+  { icon: IC.package, title: "Writes for you",    desc: "Product descriptions, captions, emails in seconds." },
+  { icon: IC.bar,     title: "Spots trends",      desc: "Understand what's selling and what to do about it." },
 ];
+
+/* ─── Markdown-lite renderer ─── */
+function Markdown({ text, isUser }) {
+  if (!text) return null;
+  const boldify = (s) =>
+    s.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+     .replace(/\*(.*?)\*/g, "<em>$1</em>");
+
+  const lines = text.split("\n");
+  const out   = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (/^\d+\.\s/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\d+\.\s/.test(lines[i])) { items.push(lines[i].replace(/^\d+\.\s/, "")); i++; }
+      out.push(<ol key={i} style={{ margin:"6px 0", paddingLeft:20, lineHeight:1.8 }}>
+        {items.map((it,j) => <li key={j} dangerouslySetInnerHTML={{ __html: boldify(it) }}/>)}
+      </ol>);
+      continue;
+    }
+    if (/^[-•*]\s/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^[-•*]\s/.test(lines[i])) { items.push(lines[i].replace(/^[-•*]\s/, "")); i++; }
+      out.push(<ul key={i} style={{ margin:"6px 0", paddingLeft:20, lineHeight:1.8 }}>
+        {items.map((it,j) => <li key={j} dangerouslySetInnerHTML={{ __html: boldify(it) }}/>)}
+      </ul>);
+      continue;
+    }
+    if (line.trim() === "") { out.push(<div key={i} style={{ height:6 }}/>); }
+    else { out.push(<div key={i} style={{ lineHeight:1.75 }} dangerouslySetInnerHTML={{ __html: boldify(line) }}/>); }
+    i++;
+  }
+  return <>{out}</>;
+}
+
+/* ─── Message bubble ─── */
+function MessageBubble({ message, onRetry }) {
+  const [copied,  setCopied]  = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const isUser = message.role === "user";
+
+  const copy = () => {
+    navigator.clipboard?.writeText(message.content || "").then(() => {
+      setCopied(true); setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className={`ai-row${isUser ? " ai-row--user" : ""}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}>
+
+      {!isUser && <div style={{ flexShrink:0, marginTop:2 }}><MiniOrb size={28}/></div>}
+
+      <div className={`ai-bubble${isUser ? " ai-bubble--user" : " ai-bubble--ai"}`}>
+        <Markdown text={message.content} isUser={isUser}/>
+
+        {/* Hover actions — pinned bottom-right inside bubble */}
+        <div className="ai-bubble-acts" style={{ opacity: hovered ? 1 : 0 }}>
+          {!isUser && onRetry && (
+            <button className="ai-act-btn" onClick={onRetry} title="Regenerate">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+          )}
+          {isUser && (
+            <button className="ai-act-btn" title="Edit">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+          )}
+          <button className="ai-act-btn" onClick={copy} title={copied ? "Copied!" : "Copy"}
+            style={{ color: copied ? "#16a34a" : undefined }}>
+            {copied
+              ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+              : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 0 2 2v1"/></svg>
+            }
+          </button>
+        </div>
+      </div>
+
+      {isUser && <div style={{ flexShrink:0, width:28 }}/>}
+    </div>
+  );
+}
+
+/* ─── Typing dots ─── */
+function TypingDots() {
+  return (
+    <div className="ai-row">
+      <div style={{ flexShrink:0, marginTop:2 }}><MiniOrb size={28}/></div>
+      <div className="ai-bubble ai-bubble--ai ai-bubble--typing">
+        {[0,1,2].map(i => (
+          <span key={i} style={{ width:7,height:7,borderRadius:"50%",background:"var(--sd-muted)",display:"inline-block",animation:`ai-dot 1.2s ease ${i*0.2}s infinite` }}/>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Attach chip ─── */
+function AttachChip({ name, onRemove }) {
+  const isImg = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(name);
+  return (
+    <div style={{ display:"inline-flex",alignItems:"center",gap:5,padding:"3px 9px",borderRadius:100,border:"1px solid var(--sd-border)",background:"var(--sd-white)",fontSize:11,fontWeight:600,color:"var(--sd-text)" }}>
+      <Ico d={isImg ? IC.image : IC.file} size={11} color="var(--sd-muted)"/>
+      <span style={{ maxWidth:100,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{name}</span>
+      <button onClick={onRemove} style={{ background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",lineHeight:1 }}>
+        <Ico d={IC.x} size={10} color="var(--sd-muted)"/>
+      </button>
+    </div>
+  );
+}
+
+/* ─── Input bar ─── */
+function InputBar({ input, setInput, onSend, isTyping, isAtLimit, onTopup, attachments, onAttach, onRemoveAttach, pageLabel }) {
+  const fileRef  = useRef(null);
+  const imageRef = useRef(null);
+
+  const handleFile = (e) => {
+    Array.from(e.target.files || []).forEach(f => onAttach(f));
+    e.target.value = "";
+  };
+
+  const canSend = (input.trim() || attachments.length > 0) && !isTyping && !isAtLimit;
+
+  return (
+    <div className="ai-input-shell">
+      {attachments.length > 0 && (
+        <div style={{ display:"flex",flexWrap:"wrap",gap:6,marginBottom:8 }}>
+          {attachments.map((f,i) => <AttachChip key={i} name={f.name} onRemove={() => onRemoveAttach(i)}/>)}
+        </div>
+      )}
+
+      <div className="ai-input-box">
+        {/* + attach */}
+        <input ref={fileRef}  type="file" accept=".pdf,.doc,.docx,.txt,.csv,.xlsx" style={{ display:"none" }} onChange={handleFile}/>
+        <input ref={imageRef} type="file" accept="image/*" style={{ display:"none" }} onChange={handleFile}/>
+        <button className="ai-plus-btn" onClick={() => fileRef.current?.click()} title="Attach">
+          <Ico d={IC.plus} size={15} color="var(--sd-muted)"/>
+        </button>
+
+        {/* Textarea */}
+        <textarea
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
+          placeholder={isAtLimit ? "Daily limit reached — top up to continue" : "Ask anything…"}
+          rows={1} disabled={isTyping || isAtLimit}
+          className="ai-textarea"
+          onInput={e => { e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 130) + "px"; }}
+        />
+
+        {/* Send / top-up */}
+        {isAtLimit
+          ? <button className="ai-topup-inline" onClick={onTopup}>Top up</button>
+          : <button className="ai-send-btn" onClick={onSend} disabled={!canSend}
+              style={{ background: canSend ? "var(--sd-accent)" : "var(--sd-border)" }}>
+              <Ico d={IC.send} size={14} color={canSend ? "#fff" : "var(--sd-muted)"}/>
+            </button>
+        }
+      </div>
+
+      <div className="ai-input-hint">Beme AI can make mistakes. Verify important info.</div>
+    </div>
+  );
+}
 
 /* ─── Topup modal ─── */
 const PACKS = [
@@ -84,7 +307,7 @@ const PACKS = [
   { id:"unlimited_week", msgs:"7-day unlimited", price:"$5", ghs:"GHS 75" },
 ];
 function TopupModal({ onClose }) {
-  const { user } = useAuth();
+  const { user }  = useAuth();
   const [bought, setBought] = useState(null);
   const [busy,   setBusy]   = useState(null);
   const buy = async (id) => {
@@ -97,449 +320,415 @@ function TopupModal({ onClose }) {
     } catch(e) { console.error(e); } finally { setBusy(null); }
   };
   return (
-    <div onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}
+    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(6px)" }}>
-      <div style={{ background:"var(--sd-white)",borderRadius:20,padding:"28px 24px",width:"100%",maxWidth:360,border:"1px solid var(--sd-border)",boxShadow:"0 24px 64px rgba(0,0,0,0.18)" }}>
-        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6 }}>
-          <div style={{ fontSize:17,fontWeight:800,color:"var(--sd-text)",letterSpacing:"-0.02em" }}>Top up messages</div>
+      <div style={{ background:"var(--sd-white)",borderRadius:20,padding:"26px 22px",width:"100%",maxWidth:360,border:"1px solid var(--sd-border)",boxShadow:"0 24px 64px rgba(0,0,0,0.18)" }}>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5 }}>
+          <div style={{ fontSize:16,fontWeight:800,color:"var(--sd-text)" }}>Top up messages</div>
           <button onClick={onClose} style={{ background:"none",border:"none",fontSize:22,color:"var(--sd-muted)",cursor:"pointer",lineHeight:1,padding:0 }}>×</button>
         </div>
-        <div style={{ fontSize:13,color:"var(--sd-muted)",marginBottom:20 }}>Free messages reset at midnight.</div>
+        <div style={{ fontSize:12,color:"var(--sd-muted)",marginBottom:18 }}>Free messages reset at midnight.</div>
         <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
-          {PACKS.map(p=>(
-            <button key={p.id} onClick={()=>buy(p.id)} disabled={!!busy||!!bought}
-              style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 16px",background:bought===p.id?"rgba(21,128,61,0.06)":"var(--sd-bg)",border:`1px solid ${bought===p.id?"rgba(21,128,61,0.2)":"var(--sd-border)"}`,borderRadius:10,cursor:"pointer",textAlign:"left",fontFamily:"var(--sd-font)" }}>
+          {PACKS.map(p => (
+            <button key={p.id} onClick={() => buy(p.id)} disabled={!!busy||!!bought}
+              style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",background:bought===p.id?"rgba(21,128,61,.06)":"var(--sd-bg)",border:`1px solid ${bought===p.id?"rgba(21,128,61,.2)":"var(--sd-border)"}`,borderRadius:10,cursor:"pointer",textAlign:"left",fontFamily:"var(--sd-font)" }}>
               <div>
-                <div style={{ fontSize:14,fontWeight:700,color:"var(--sd-text)",marginBottom:2 }}>
-                  {bought===p.id?"Credits added!":busy===p.id?"Processing…":p.msgs}
-                </div>
-                <div style={{ fontSize:12,color:"var(--sd-muted)" }}>{p.ghs}</div>
+                <div style={{ fontSize:14,fontWeight:700,color:"var(--sd-text)",marginBottom:2 }}>{bought===p.id?"Credits added!":busy===p.id?"Processing…":p.msgs}</div>
+                <div style={{ fontSize:11,color:"var(--sd-muted)" }}>{p.ghs}</div>
               </div>
-              <div style={{ fontSize:14,fontWeight:800,color:"var(--sd-accent)",background:"var(--sd-accent-dim)",padding:"5px 12px",borderRadius:8 }}>{p.price}</div>
+              <div style={{ fontSize:13,fontWeight:800,color:"var(--sd-accent)",background:"var(--sd-accent-dim)",padding:"4px 10px",borderRadius:7 }}>{p.price}</div>
             </button>
           ))}
         </div>
-        <div style={{ fontSize:11,color:"var(--sd-muted)",textAlign:"center",marginTop:16 }}>Secured by Paystack · Credits added instantly</div>
+        <div style={{ fontSize:11,color:"var(--sd-muted)",textAlign:"center",marginTop:14 }}>Secured by Paystack · Credits added instantly</div>
       </div>
     </div>
   );
 }
 
-/* ─── Single message bubble — screenshot style ─── */
-function MessageBubble({ message, onRetry }) {
-  const [copied,  setCopied]  = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const isUser = message.role === "user";
-
-  const copyText = () => {
-    navigator.clipboard?.writeText(message.content || "").then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-
-  /* SVG icons inline */
-  const CopyIcon = () => copied
-    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-    : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 0 2 2v1"/></svg>;
-
-  const RetryIcon = () =>
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>;
-
-  const EditIcon = () =>
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
-
-  return (
-    <div
-      style={{ display:"flex", flexDirection:"column", alignItems:isUser?"flex-end":"flex-start", marginBottom:16 }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}>
-
-      {/* Bubble */}
-      <div style={{
-        maxWidth: "78%",
-        position: "relative",
-        background: "var(--sd-bg)",
-        border: `1px solid ${isUser ? "var(--sd-accent-border)" : "var(--sd-border)"}`,
-        borderRadius: isUser ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-        padding: "13px 15px 38px",
-        fontSize: 14,
-        lineHeight: 1.75,
-        color: "var(--sd-text)",
-        fontFamily: "var(--sd-font)",
-        whiteSpace: "pre-wrap",
-        wordBreak: "break-word",
-        boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-      }}>
-        {message.content}
-
-        {/* Action icons pinned to bottom-right inside bubble */}
-        <div style={{
-          position: "absolute",
-          bottom: 8,
-          right: 10,
-          display: "flex",
-          alignItems: "center",
-          gap: 2,
-          opacity: hovered ? 1 : 0,
-          transition: "opacity 0.15s",
-          pointerEvents: hovered ? "auto" : "none",
-        }}>
-          {/* Retry — shown for AI messages */}
-          {!isUser && onRetry && (
-            <button onClick={onRetry} title="Regenerate"
-              style={{ width:26,height:26,borderRadius:7,border:"1px solid var(--sd-border)",background:"var(--sd-white)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--sd-muted)",transition:"color 0.1s,background 0.1s" }}
-              onMouseEnter={e=>{e.currentTarget.style.color="var(--sd-text)";e.currentTarget.style.background="var(--sd-border-light)";}}
-              onMouseLeave={e=>{e.currentTarget.style.color="var(--sd-muted)";e.currentTarget.style.background="var(--sd-white)";}}>
-              <RetryIcon/>
-            </button>
-          )}
-          {/* Edit — user messages only */}
-          {isUser && (
-            <button title="Edit message"
-              style={{ width:26,height:26,borderRadius:7,border:"1px solid var(--sd-border)",background:"var(--sd-white)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--sd-muted)",transition:"color 0.1s,background 0.1s" }}
-              onMouseEnter={e=>{e.currentTarget.style.color="var(--sd-text)";e.currentTarget.style.background="var(--sd-border-light)";}}
-              onMouseLeave={e=>{e.currentTarget.style.color="var(--sd-muted)";e.currentTarget.style.background="var(--sd-white)";}}>
-              <EditIcon/>
-            </button>
-          )}
-          {/* Copy — both */}
-          <button onClick={copyText} title={copied?"Copied!":"Copy message"}
-            style={{ width:26,height:26,borderRadius:7,border:`1px solid ${copied?"rgba(21,128,61,0.25)":"var(--sd-border)"}`,background:copied?"rgba(21,128,61,0.06)":"var(--sd-white)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:copied?"#16a34a":"var(--sd-muted)",transition:"all 0.1s" }}
-            onMouseEnter={e=>{if(!copied){e.currentTarget.style.color="var(--sd-text)";e.currentTarget.style.background="var(--sd-border-light)";}}}
-            onMouseLeave={e=>{if(!copied){e.currentTarget.style.color="var(--sd-muted)";e.currentTarget.style.background="var(--sd-white)";}}} >
-            <CopyIcon/>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Typing indicator ─── */
-function TypingDots() {
-  return (
-    <div style={{ display:"flex",alignItems:"flex-start",flexDirection:"column",gap:4,marginBottom:12 }}>
-      <div style={{ fontSize:11,fontWeight:600,color:"var(--sd-muted)",paddingLeft:4 }}>Beme AI</div>
-      <div style={{ padding:"11px 16px",border:"1px solid var(--sd-border)",borderRadius:"14px 14px 14px 4px",display:"flex",gap:5,alignItems:"center" }}>
-        {[0,1,2].map(i=>(
-          <span key={i} style={{ width:6,height:6,borderRadius:"50%",background:"var(--sd-muted)",display:"inline-block",animation:`beme-dot 1.2s ease ${i*0.2}s infinite` }}/>
-        ))}
-      </div>
-      <style>{`@keyframes beme-dot{0%,80%,100%{transform:scale(0.6);opacity:0.4}40%{transform:scale(1);opacity:1}}`}</style>
-    </div>
-  );
-}
-
-/* ─── Attachment chip ─── */
-function AttachChip({ name, onRemove }) {
-  const isImage = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(name);
-  return (
-    <div style={{ display:"inline-flex",alignItems:"center",gap:6,padding:"4px 10px",borderRadius:100,border:"1px solid var(--sd-border)",background:"var(--sd-bg)",fontSize:12,fontWeight:600,color:"var(--sd-text)" }}>
-      <Ico d={isImage ? IC.image : IC.file} size={12} color="var(--sd-muted)" />
-      <span style={{ maxWidth:120,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{name}</span>
-      <button onClick={onRemove} style={{ background:"none",border:"none",cursor:"pointer",color:"var(--sd-muted)",padding:0,display:"flex",lineHeight:1 }}>
-        <Ico d={IC.x} size={11} color="var(--sd-muted)" />
-      </button>
-    </div>
-  );
-}
-
-/* ─── Shared input bar (used in both empty + chat states) ─── */
-function InputBar({ input, setInput, onSend, isTyping, isAtLimit, onTopup, attachments, onAttach, onRemoveAttach, pageLabel }) {
-  const fileRef  = useRef(null);
-  const imageRef = useRef(null);
-
-  const handleFile = (e) => {
-    const files = Array.from(e.target.files || []);
-    files.forEach(f => onAttach(f));
-    e.target.value = "";
-  };
-
-  const handleKey = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); }
-  };
-
-  return (
-    <div style={{ width:"100%", maxWidth:680, margin:"0 auto" }}>
-      {/* Attachment chips */}
-      {attachments.length > 0 && (
-        <div style={{ display:"flex",flexWrap:"wrap",gap:6,marginBottom:8,paddingLeft:4 }}>
-          {attachments.map((f,i) => (
-            <AttachChip key={i} name={f.name} onRemove={() => onRemoveAttach(i)} />
-          ))}
-        </div>
-      )}
-
-      {/* Input box */}
-      <div style={{
-        background:"var(--sd-white)",
-        border:"1px solid var(--sd-border)",
-        borderRadius:16,
-        boxShadow:"0 1px 4px rgba(0,0,0,0.06)",
-        overflow:"hidden",
-        transition:"box-shadow 0.15s, border-color 0.15s",
-      }}
-        onFocusCapture={e => { e.currentTarget.style.boxShadow="0 0 0 3px rgba(124,58,237,0.10)"; e.currentTarget.style.borderColor="var(--sd-accent)"; }}
-        onBlurCapture={e  => { e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.06)"; e.currentTarget.style.borderColor="var(--sd-border)"; }}>
-
-        <textarea
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKey}
-          placeholder={isAtLimit ? "Daily limit reached. Top up to continue." : `Ask me anything about ${pageLabel}…`}
-          rows={1} disabled={isTyping || isAtLimit}
-          style={{ display:"block",width:"100%",padding:"14px 16px 10px",border:"none",background:"transparent",color:"var(--sd-text)",fontSize:14,outline:"none",resize:"none",lineHeight:1.6,maxHeight:160,overflowY:"auto",fontFamily:"var(--sd-font)",boxSizing:"border-box" }}
-          onInput={e => { e.target.style.height="auto"; e.target.style.height=Math.min(e.target.scrollHeight,160)+"px"; }} />
-
-        {/* Bottom action row */}
-        <div style={{ display:"flex",alignItems:"center",gap:6,padding:"8px 12px",borderTop:"1px solid var(--sd-border-light)" }}>
-          {/* Attach file */}
-          <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.txt,.csv,.xlsx" style={{ display:"none" }} onChange={handleFile} />
-          <button onClick={() => fileRef.current?.click()}
-            style={{ display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:8,border:"1px solid var(--sd-border)",background:"transparent",cursor:"pointer",fontSize:12,fontWeight:600,color:"var(--sd-muted)",fontFamily:"var(--sd-font)",transition:"background 0.1s,color 0.1s" }}
-            onMouseEnter={e=>{e.currentTarget.style.background="var(--sd-border-light)";e.currentTarget.style.color="var(--sd-text)";}}
-            onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color="var(--sd-muted)";}}>
-            <Ico d={IC.paperclip} size={13} color="currentColor"/>
-            Attach
-          </button>
-
-          {/* Attach image */}
-          <input ref={imageRef} type="file" accept="image/*" style={{ display:"none" }} onChange={handleFile} />
-          <button onClick={() => imageRef.current?.click()}
-            style={{ display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:8,border:"1px solid var(--sd-border)",background:"transparent",cursor:"pointer",fontSize:12,fontWeight:600,color:"var(--sd-muted)",fontFamily:"var(--sd-font)",transition:"background 0.1s,color 0.1s" }}
-            onMouseEnter={e=>{e.currentTarget.style.background="var(--sd-border-light)";e.currentTarget.style.color="var(--sd-text)";}}
-            onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color="var(--sd-muted)";}}>
-            <Ico d={IC.image} size={13} color="currentColor"/>
-            Image
-          </button>
-
-          <div style={{ flex:1 }}/>
-
-          {/* Messages left pill */}
-          {isAtLimit ? (
-            <button onClick={onTopup}
-              style={{ padding:"5px 12px",borderRadius:8,border:"1px solid rgba(239,68,68,0.3)",background:"rgba(239,68,68,0.06)",color:"#dc2626",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"var(--sd-font)" }}>
-              Top up →
-            </button>
-          ) : null}
-
-          {/* Send */}
-          <button onClick={onSend} disabled={(!input.trim() && attachments.length===0) || isTyping || isAtLimit}
-            style={{ width:36,height:36,borderRadius:10,border:"none",flexShrink:0,
-              background:(input.trim()||attachments.length>0)&&!isTyping&&!isAtLimit?"var(--sd-accent)":"var(--sd-border)",
-              cursor:(input.trim()||attachments.length>0)&&!isTyping&&!isAtLimit?"pointer":"not-allowed",
-              display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s" }}>
-            <Ico d={IC.send} size={14} color={(input.trim()||attachments.length>0)&&!isTyping&&!isAtLimit?"#fff":"var(--sd-muted)"} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════
-   MAIN COMPONENT
-════════════════════════════════════════════════ */
+/* ════════════════════════════════════════
+   MAIN
+════════════════════════════════════════ */
 export default function AIAssistant() {
-  const [, setParams]    = useSearchParams();
+  const [, setParams]     = useSearchParams();
   const { profile, user } = useAuth();
   const { plan }          = useSubscription();
   const { messagesUsed, dailyLimit, messagesRemaining, isAtLimit, isNearLimit, usagePercent } = useAIUsage();
   const { aiContext, suggestions, pageLabel } = useAIContext();
 
-  const [showTopup,    setShowTopup]    = useState(false);
-  const [attachments,  setAttachments]  = useState([]);
-  const [chatKey,      setChatKey]      = useState(0); // increment to reset chat
+  const [showTopup,   setShowTopup]   = useState(false);
+  const [attachments, setAttachments] = useState([]);
+  const [chatKey,     setChatKey]     = useState(0);
 
   const { messages, input, setInput, isTyping, error, histLoading, bottomRef, sendMessage } =
     useAIChat({ aiContext, onLimitReached: () => setShowTopup(true), key: chatKey });
 
-  const shopName   = profile?.shopName || profile?.storeName || "Your Store";
-  const firstName  = shopName.split(" ")[0];
-  const isEmpty    = !histLoading && messages.length === 0;
-  const barColor   = usagePercent >= 100 ? "#ef4444" : usagePercent >= 80 ? "#f59e0b" : "var(--sd-accent)";
+  const shopName  = profile?.shopName || profile?.storeName || "Your Store";
+  const firstName = shopName.split(" ")[0];
+  const isEmpty   = !histLoading && messages.length === 0;
+  const barColor  = usagePercent >= 100 ? "#ef4444" : usagePercent >= 80 ? "#f59e0b" : "var(--sd-accent)";
 
-  const addAttachment  = (f) => setAttachments(a => [...a, f]);
-  const removeAttachment = (i) => setAttachments(a => a.filter((_,j) => j!==i));
+  const addAttachment    = (f) => setAttachments(a => [...a, f]);
+  const removeAttachment = (i) => setAttachments(a => a.filter((_, j) => j !== i));
 
   const handleSend = useCallback((override) => {
     const text = override || input;
     if (!text.trim() && attachments.length === 0) return;
-    const withAttach = attachments.length > 0
-      ? `${text}\n\n[Attachments: ${attachments.map(f=>f.name).join(", ")}]`
-      : text;
-    sendMessage(withAttach);
+    sendMessage(attachments.length > 0 ? `${text}\n\n[Attachments: ${attachments.map(f=>f.name).join(", ")}]` : text);
     setAttachments([]);
   }, [input, attachments, sendMessage]);
 
-  const newChat = () => {
-    setChatKey(k => k + 1);
-    setInput("");
-    setAttachments([]);
-  };
+  const newChat = () => { setChatKey(k => k + 1); setInput(""); setAttachments([]); };
 
   return (
-    <div style={{ fontFamily:"var(--sd-font)", display:"flex", flexDirection:"column", height:"calc(100vh - 112px)", minHeight:0 }}>
+    <div className="ai-root">
 
-      {/* ── Top bar ── */}
-      <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:16,flexShrink:0 }}>
-        <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-          <div style={{ width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,var(--sd-accent),#9333ea)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff" }}>
-            <Ico d={IC.sparkle} size={15}/>
+      {/* ══ HEADER ══ */}
+      <div className="ai-header">
+        <div className="ai-hdr-left">
+          <MiniOrb size={30}/>
+          <span className="ai-hdr-title">Beme AI</span>
+          <span className="ai-pro-badge">PRO</span>
+        </div>
+        <div className="ai-hdr-right">
+          {/* Usage pill — hidden on mobile */}
+          <div className="ai-usage-pill">
+            <div style={{ width:6,height:6,borderRadius:"50%",background:barColor,flexShrink:0 }}/>
+            <span>{isAtLimit ? "Limit reached" : `${messagesRemaining} / ${dailyLimit} left`}</span>
           </div>
-          <span style={{ fontSize:18,fontWeight:800,color:"var(--sd-text)",letterSpacing:"-0.03em" }}>Beme AI</span>
-          <span style={{ fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:100,background:"var(--sd-accent-dim)",color:"var(--sd-accent)",border:"1px solid var(--sd-accent-border)" }}>PRO</span>
+          {/* New chat — desktop text, mobile icon */}
+          {!isEmpty && <>
+            <button onClick={newChat} className="ai-newchat-text">
+              <Ico d={IC.plus} size={13} color="var(--sd-muted)"/> New chat
+            </button>
+            <button onClick={newChat} className="ai-newchat-icon" title="New chat">
+              <Ico d={IC.plus} size={16} color="var(--sd-text)"/>
+            </button>
+          </>}
         </div>
-        <div style={{ flex:1 }}/>
-        {/* Messages left indicator */}
-        <div style={{ display:"flex",alignItems:"center",gap:6,padding:"5px 12px",borderRadius:100,border:"1px solid var(--sd-border)",background:"var(--sd-white)",fontSize:12,fontWeight:600,color:"var(--sd-muted)" }}>
-          <div style={{ width:6,height:6,borderRadius:"50%",background:barColor }}/>
-          {isAtLimit ? "Limit reached" : `${messagesRemaining} / ${dailyLimit} left`}
-        </div>
-        {/* New chat */}
-        {!isEmpty && (
-          <button onClick={newChat}
-            style={{ display:"flex",alignItems:"center",gap:6,padding:"6px 14px",borderRadius:9,border:"1px solid var(--sd-border)",background:"var(--sd-white)",cursor:"pointer",fontSize:13,fontWeight:600,color:"var(--sd-text)",fontFamily:"var(--sd-font)",transition:"background 0.1s" }}
-            onMouseEnter={e=>e.currentTarget.style.background="var(--sd-border-light)"}
-            onMouseLeave={e=>e.currentTarget.style.background="var(--sd-white)"}>
-            <Ico d={IC.plus} size={13} color="var(--sd-muted)"/>
-            New chat
-          </button>
-        )}
       </div>
 
-      {/* ══════════════════════ EMPTY STATE ══════════════════════ */}
-      {isEmpty ? (
-        <div style={{ flex:1,overflowY:"auto",display:"flex",flexDirection:"column",alignItems:"center",paddingBottom:24 }}>
+      {/* ══ SCROLL AREA ══ */}
+      <div className="ai-scroll">
+        {isEmpty ? (
+          /* ── Empty state ── */
+          <div className="ai-empty">
+            <AnimatedOrb size={72}/>
+            <div className="ai-empty-greeting">{greeting()}, {firstName}</div>
+            <div className="ai-empty-tagline">What's on <span style={{ color:"var(--sd-accent)" }}>your mind?</span></div>
+            <div className="ai-empty-hint">Ask me anything about your store, products, orders, or marketing.</div>
 
-          {/* Orb + greeting */}
-          <div style={{ display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center",paddingTop:16,paddingBottom:32 }}>
-            <div style={{ marginBottom:20 }}><PurpleOrb/></div>
-            <div style={{ fontSize:28,fontWeight:900,color:"var(--sd-text)",letterSpacing:"-0.04em",lineHeight:1.2,marginBottom:6 }}>
-              {greeting()}, {firstName}
-            </div>
-            <div style={{ fontSize:18,fontWeight:700,color:"var(--sd-text)",letterSpacing:"-0.02em",marginBottom:4 }}>
-              What's on{" "}
-              <span style={{ color:"var(--sd-accent)" }}>your mind?</span>
-            </div>
-            <div style={{ fontSize:13,color:"var(--sd-muted)",maxWidth:300,lineHeight:1.6 }}>
-              Ask me anything about your store, products, orders, or marketing.
-            </div>
-          </div>
-
-          {/* Central input */}
-          <div style={{ width:"100%",maxWidth:680,marginBottom:16,padding:"0 4px" }}>
-            <InputBar
-              input={input} setInput={setInput}
-              onSend={handleSend} isTyping={isTyping}
-              isAtLimit={isAtLimit} onTopup={() => setShowTopup(true)}
-              attachments={attachments} onAttach={addAttachment}
-              onRemoveAttach={removeAttachment} pageLabel={pageLabel}/>
-          </div>
-
-          {/* Usage bar below input */}
-          <div style={{ width:"100%",maxWidth:680,marginBottom:28,padding:"0 4px" }}>
-            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5,fontSize:11,color:"var(--sd-muted)" }}>
-              <span>{isAtLimit ? "Daily limit reached" : `${messagesUsed} of ${dailyLimit} messages used today`}</span>
-              <button onClick={() => setShowTopup(true)} style={{ background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--sd-accent)",fontWeight:700,fontFamily:"var(--sd-font)",padding:0 }}>
-                Get more →
-              </button>
-            </div>
-            <div style={{ height:3,background:"var(--sd-border)",borderRadius:4,overflow:"hidden" }}>
-              <div style={{ height:"100%",width:`${usagePercent}%`,background:barColor,borderRadius:4,transition:"width 0.4s ease" }}/>
-            </div>
-          </div>
-
-          {/* Example prompts */}
-          <div style={{ width:"100%",maxWidth:680,padding:"0 4px",marginBottom:32 }}>
-            <div style={{ fontSize:10,fontWeight:700,color:"var(--sd-muted)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:12 }}>
-              Get started with an example
-            </div>
-            <div style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10 }}>
+            <div className="ai-section-lbl">Get started</div>
+            <div className="ai-examples-grid">
               {EXAMPLES.map((ex,i) => (
-                <button key={i} onClick={() => handleSend(ex.text)}
-                  style={{ display:"flex",flexDirection:"column",alignItems:"flex-start",gap:10,padding:"16px",borderRadius:12,border:"1px solid var(--sd-border)",background:"var(--sd-white)",cursor:"pointer",textAlign:"left",fontFamily:"var(--sd-font)",transition:"border-color 0.15s,box-shadow 0.15s" }}
-                  onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--sd-accent-border)";e.currentTarget.style.boxShadow="0 0 0 3px var(--sd-accent-dim)";}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--sd-border)";e.currentTarget.style.boxShadow="none";}}>
-                  <div style={{ width:32,height:32,borderRadius:8,background:"var(--sd-bg)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-                    <Ico d={ex.icon} size={15} color="var(--sd-accent)"/>
-                  </div>
-                  <div>
-                    <div style={{ fontSize:11,fontWeight:700,color:"var(--sd-muted)",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.06em" }}>{ex.label}</div>
-                    <div style={{ fontSize:13,fontWeight:500,color:"var(--sd-text2)",lineHeight:1.5 }}>{ex.text}</div>
-                  </div>
+                <button key={i} className="ai-example-card" onClick={() => handleSend(ex.text)}>
+                  <div className="ai-example-icon"><Ico d={ex.icon} size={14} color="var(--sd-accent)"/></div>
+                  <div className="ai-example-txt">{ex.text}</div>
                 </button>
               ))}
             </div>
-          </div>
 
-          {/* How it works */}
-          <div style={{ width:"100%",maxWidth:680,padding:"0 4px" }}>
-            <div style={{ fontSize:10,fontWeight:700,color:"var(--sd-muted)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:12 }}>
-              How Beme AI works
-            </div>
-            <div style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10 }}>
+            <div className="ai-section-lbl" style={{ marginTop:24 }}>How Beme AI works</div>
+            <div className="ai-how-grid">
               {HOW_IT_WORKS.map((h,i) => (
-                <div key={i} style={{ display:"flex",alignItems:"flex-start",gap:10,padding:"14px",borderRadius:12,background:"var(--sd-white)",border:"1px solid var(--sd-border)" }}>
-                  <div style={{ width:28,height:28,borderRadius:7,background:"var(--sd-accent-dim)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-                    <Ico d={h.icon} size={13} color="var(--sd-accent)"/>
-                  </div>
+                <div key={i} className="ai-how-card">
+                  <div className="ai-how-icon"><Ico d={h.icon} size={13} color="var(--sd-accent)"/></div>
                   <div>
-                    <div style={{ fontSize:12,fontWeight:700,color:"var(--sd-text)",marginBottom:2 }}>{h.title}</div>
-                    <div style={{ fontSize:11,color:"var(--sd-muted)",lineHeight:1.55 }}>{h.desc}</div>
+                    <div className="ai-how-title">{h.title}</div>
+                    <div className="ai-how-desc">{h.desc}</div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
-
-      ) : (
-      /* ══════════════════════ CHAT STATE ══════════════════════ */
-        <div style={{ flex:1,display:"flex",flexDirection:"column",minHeight:0 }}>
-
-          {/* Messages */}
-          <div style={{ flex:1,overflowY:"auto",padding:"4px 0 16px" }}>
-            {histLoading ? (
-              <div style={{ textAlign:"center",color:"var(--sd-muted)",fontSize:13,padding:32 }}>Loading…</div>
-            ) : (
-              messages.map((m,i) => <MessageBubble key={m.id||i} message={m} onRetry={m.role!=="user" ? () => sendMessage(messages.filter(x=>x.role==="user").slice(-1)[0]?.content || "") : null}/>)
-            )}
+        ) : (
+          /* ── Messages ── */
+          <div className="ai-messages">
+            {histLoading
+              ? <div className="ai-loading">Loading…</div>
+              : messages.map((m,i) => (
+                  <MessageBubble key={m.id||i} message={m}
+                    onRetry={m.role!=="user"
+                      ? () => sendMessage(messages.filter(x=>x.role==="user").slice(-1)[0]?.content||"")
+                      : null}/>
+                ))
+            }
             {isTyping && <TypingDots/>}
-            {error && (
-              <div style={{ fontSize:12,color:"#ef4444",textAlign:"center",padding:"8px 12px",background:"rgba(239,68,68,0.06)",borderRadius:8,margin:"8px 0" }}>{error}</div>
-            )}
+            {error && <div className="ai-error">{error}</div>}
             <div ref={bottomRef}/>
           </div>
+        )}
+      </div>
 
-          {/* Usage bar */}
-          <div style={{ marginBottom:10,flexShrink:0 }}>
-            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5,fontSize:11,color:"var(--sd-muted)" }}>
-              <span>{isAtLimit ? "Daily limit reached" : `${messagesUsed} / ${dailyLimit} messages used today · Resets at midnight`}</span>
-              {isNearLimit && !isAtLimit && <span style={{ color:"#f59e0b",fontWeight:600 }}>{messagesRemaining} left</span>}
-              <button onClick={() => setShowTopup(true)} style={{ background:"none",border:"none",cursor:"pointer",fontSize:11,color:"var(--sd-accent)",fontWeight:700,fontFamily:"var(--sd-font)",padding:0,marginLeft:8 }}>
-                Top up →
-              </button>
-            </div>
-            <div style={{ height:2,background:"var(--sd-border)",borderRadius:4,overflow:"hidden" }}>
-              <div style={{ height:"100%",width:`${usagePercent}%`,background:barColor,borderRadius:4,transition:"width 0.4s ease" }}/>
-            </div>
+      {/* ══ PINNED INPUT ══ */}
+      <div className="ai-bottom">
+        {/* Thin usage bar */}
+        <div className="ai-bar-row">
+          <div style={{ flex:1,height:2,background:"var(--sd-border)",borderRadius:2,overflow:"hidden" }}>
+            <div style={{ height:"100%",width:`${usagePercent}%`,background:barColor,borderRadius:2,transition:"width .4s" }}/>
           </div>
-
-          {/* Input */}
-          <div style={{ flexShrink:0 }}>
-            <InputBar
-              input={input} setInput={setInput}
-              onSend={handleSend} isTyping={isTyping}
-              isAtLimit={isAtLimit} onTopup={() => setShowTopup(true)}
-              attachments={attachments} onAttach={addAttachment}
-              onRemoveAttach={removeAttachment} pageLabel={pageLabel}/>
-          </div>
+          <span className="ai-bar-lbl">
+            {isAtLimit ? "Limit reached" : `${messagesUsed}/${dailyLimit} used`}
+          </span>
+          <button onClick={() => setShowTopup(true)} className="ai-bar-topup">Top up</button>
         </div>
-      )}
+
+        <InputBar
+          input={input} setInput={setInput}
+          onSend={handleSend} isTyping={isTyping}
+          isAtLimit={isAtLimit} onTopup={() => setShowTopup(true)}
+          attachments={attachments} onAttach={addAttachment}
+          onRemoveAttach={removeAttachment} pageLabel={pageLabel}/>
+      </div>
 
       {showTopup && <TopupModal onClose={() => setShowTopup(false)}/>}
+
+      {/* ══ STYLES ══ */}
+      <style>{`
+        /* ── Keyframes ── */
+        @keyframes orb-spin   { from{transform:rotate(0)}   to{transform:rotate(360deg)} }
+        @keyframes orb-spin-r { from{transform:rotate(0)}   to{transform:rotate(-360deg)} }
+        @keyframes ai-dot     { 0%,80%,100%{transform:scale(.6);opacity:.4} 40%{transform:scale(1);opacity:1} }
+        @keyframes ai-shimmer { 0%{background-position:-600px 0} 100%{background-position:calc(600px+100%) 0} }
+
+        /* ── Root: fills sd-content, flex column, no overflow ── */
+        .ai-root {
+          display: flex; flex-direction: column;
+          height: calc(100vh - var(--sd-topbar-h,56px) - 48px);
+          min-height: 0;
+          font-family: var(--sd-font,'DM Sans',system-ui,sans-serif);
+          color: var(--sd-text);
+          background: var(--sd-white);
+        }
+
+        /* ── Header ── */
+        .ai-header {
+          display: flex; align-items: center; justify-content: space-between;
+          padding-bottom: 12px;
+          border-bottom: 1px solid var(--sd-border-light);
+          flex-shrink: 0;
+        }
+        .ai-hdr-left  { display:flex; align-items:center; gap:8px; }
+        .ai-hdr-right { display:flex; align-items:center; gap:8px; }
+        .ai-hdr-title { font-size:17px; font-weight:800; color:var(--sd-text); letter-spacing:-.03em; }
+        .ai-pro-badge {
+          font-size:9px; font-weight:800; padding:2px 7px; border-radius:100px;
+          background:var(--sd-accent-dim); color:var(--sd-accent);
+          border:1px solid var(--sd-accent-border); letter-spacing:.04em;
+        }
+
+        /* Usage pill: hidden on mobile, visible on desktop */
+        .ai-usage-pill {
+          display: none;
+          align-items:center; gap:5px; padding:4px 10px; border-radius:100px;
+          border:1px solid var(--sd-border); background:var(--sd-white);
+          font-size:11px; font-weight:600; color:var(--sd-muted);
+        }
+        @media(min-width:640px){ .ai-usage-pill{ display:flex; } }
+
+        /* New chat: text on desktop, icon on mobile */
+        .ai-newchat-text {
+          display:none; align-items:center; gap:6px;
+          padding:5px 12px; border-radius:8px;
+          border:1px solid var(--sd-border); background:var(--sd-white);
+          cursor:pointer; font-size:12px; font-weight:600;
+          color:var(--sd-text); font-family:inherit; transition:background .1s;
+        }
+        .ai-newchat-text:hover{ background:var(--sd-border-light); }
+        @media(min-width:640px){ .ai-newchat-text{ display:flex; } }
+
+        .ai-newchat-icon {
+          display:flex; align-items:center; justify-content:center;
+          width:32px; height:32px; border-radius:8px;
+          border:1px solid var(--sd-border); background:var(--sd-white);
+          cursor:pointer; transition:background .1s;
+        }
+        .ai-newchat-icon:hover{ background:var(--sd-border-light); }
+        @media(min-width:640px){ .ai-newchat-icon{ display:none; } }
+
+        /* ── Scroll area ── */
+        .ai-scroll {
+          flex:1; overflow-y:auto; min-height:0;
+          padding:16px 0;
+        }
+
+        /* ── Empty state ── */
+        .ai-empty {
+          display:flex; flex-direction:column; align-items:center;
+          text-align:center; padding:8px 0 24px;
+        }
+        .ai-empty > .ai-orb-wrap { margin-bottom:18px; }
+        .ai-empty-greeting { font-size:22px; font-weight:900; color:var(--sd-text); letter-spacing:-.04em; margin:18px 0 4px; }
+        .ai-empty-tagline  { font-size:16px; font-weight:700; color:var(--sd-text); margin-bottom:8px; }
+        .ai-empty-hint     { font-size:13px; color:var(--sd-muted); max-width:280px; line-height:1.6; margin-bottom:24px; }
+
+        .ai-section-lbl {
+          font-size:10px; font-weight:700; color:var(--sd-muted);
+          text-transform:uppercase; letter-spacing:.1em;
+          align-self:flex-start; margin-bottom:10px; width:100%;
+        }
+
+        .ai-examples-grid {
+          display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%;
+        }
+        .ai-example-card {
+          display:flex; align-items:flex-start; gap:9px; padding:13px;
+          border-radius:12px; border:1px solid var(--sd-border);
+          background:var(--sd-white); cursor:pointer; text-align:left;
+          font-family:inherit; transition:border-color .15s, box-shadow .15s;
+        }
+        .ai-example-card:hover{
+          border-color:var(--sd-accent-border);
+          box-shadow:0 0 0 3px var(--sd-accent-dim);
+        }
+        .ai-example-icon {
+          width:26px; height:26px; border-radius:7px;
+          background:var(--sd-accent-dim);
+          display:flex; align-items:center; justify-content:center; flex-shrink:0;
+        }
+        .ai-example-txt { font-size:12px; font-weight:500; color:var(--sd-text2); line-height:1.5; }
+
+        .ai-how-grid {
+          display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%;
+        }
+        .ai-how-card {
+          display:flex; align-items:flex-start; gap:9px; padding:12px;
+          border-radius:12px; background:var(--sd-white); border:1px solid var(--sd-border);
+        }
+        .ai-how-icon  { width:26px; height:26px; border-radius:7px; background:var(--sd-accent-dim); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .ai-how-title { font-size:12px; font-weight:700; color:var(--sd-text); margin-bottom:2px; }
+        .ai-how-desc  { font-size:11px; color:var(--sd-muted); line-height:1.5; }
+
+        /* ── Messages ── */
+        .ai-messages { display:flex; flex-direction:column; gap:4px; padding-bottom:8px; }
+        .ai-loading  { text-align:center; color:var(--sd-muted); font-size:13px; padding:32px; }
+        .ai-error    { font-size:12px; color:#ef4444; text-align:center; padding:8px 12px; background:rgba(239,68,68,.06); border-radius:8px; margin:8px 0; }
+
+        /* Bubble rows */
+        .ai-row {
+          display:flex; align-items:flex-start; gap:9px; padding:5px 0;
+        }
+        .ai-row--user { flex-direction:row-reverse; }
+
+        /* Bubbles */
+        .ai-bubble {
+          position:relative; max-width:78%;
+          padding:11px 14px 34px;
+          border-radius:18px;
+          font-size:14px; line-height:1.75;
+          color:var(--sd-text); font-family:var(--sd-font);
+          word-break:break-word;
+          transition: background .25s;
+        }
+        .ai-bubble--ai {
+          background:var(--sd-white);
+          border:1px solid var(--sd-border);
+          border-top-left-radius:4px;
+        }
+        .ai-bubble--user {
+          background:var(--sd-accent);
+          color:#fff;
+          border:none;
+          border-top-right-radius:4px;
+        }
+        .ai-bubble--typing {
+          display:flex; align-items:center; gap:5px;
+          padding:13px 16px; min-height:44px;
+        }
+
+        /* Hover action buttons inside bubble */
+        .ai-bubble-acts {
+          position:absolute; bottom:7px; right:9px;
+          display:flex; align-items:center; gap:3px;
+          transition:opacity .15s; pointer-events:none;
+        }
+        .ai-bubble:hover .ai-bubble-acts,
+        .ai-bubble-acts[style*="opacity: 1"] { pointer-events:auto; }
+        .ai-act-btn {
+          width:25px; height:25px; border-radius:7px;
+          border:1px solid var(--sd-border);
+          background:var(--sd-white);
+          cursor:pointer; display:flex; align-items:center; justify-content:center;
+          color:var(--sd-muted); transition:background .1s;
+        }
+        .ai-act-btn:hover{ background:var(--sd-border-light); }
+        /* User bubble: transparent action buttons */
+        .ai-bubble--user .ai-act-btn{
+          border-color:rgba(255,255,255,.3);
+          background:rgba(255,255,255,.15);
+          color:rgba(255,255,255,.8);
+        }
+        .ai-bubble--user .ai-act-btn:hover{ background:rgba(255,255,255,.25); }
+
+        /* ── Pinned bottom ── */
+        .ai-bottom {
+          flex-shrink:0;
+          padding-top:10px;
+          border-top:1px solid var(--sd-border-light);
+        }
+        .ai-bar-row {
+          display:flex; align-items:center; gap:8px; margin-bottom:8px;
+        }
+        .ai-bar-lbl   { font-size:10px; color:var(--sd-muted); white-space:nowrap; flex-shrink:0; }
+        .ai-bar-topup {
+          background:none; border:none; cursor:pointer;
+          font-size:10px; color:var(--sd-accent); font-weight:700;
+          font-family:inherit; padding:0; flex-shrink:0;
+        }
+
+        /* Input */
+        .ai-input-shell { width:100%; }
+        .ai-input-box {
+          display:flex; align-items:flex-end; gap:7px;
+          background:var(--sd-white);
+          border:1px solid var(--sd-border);
+          border-radius:16px; padding:7px 9px;
+          box-shadow:0 1px 4px rgba(0,0,0,.05);
+          transition:border-color .15s, box-shadow .15s;
+        }
+        .ai-input-box:focus-within{
+          border-color:var(--sd-accent);
+          box-shadow:0 0 0 3px var(--sd-accent-dim);
+        }
+        .ai-plus-btn {
+          width:30px; height:30px; border-radius:8px; flex-shrink:0;
+          border:1px solid var(--sd-border); background:transparent;
+          display:flex; align-items:center; justify-content:center;
+          cursor:pointer; color:var(--sd-muted); transition:background .1s;
+        }
+        .ai-plus-btn:hover{ background:var(--sd-border-light); }
+        .ai-textarea {
+          flex:1; border:none; background:transparent;
+          color:var(--sd-text); font-size:14px; outline:none;
+          resize:none; line-height:1.6; max-height:130px;
+          overflow-y:auto; font-family:var(--sd-font);
+          padding:4px 0; align-self:center;
+        }
+        .ai-textarea::placeholder{ color:var(--sd-muted); }
+        .ai-send-btn {
+          width:32px; height:32px; border-radius:10px; flex-shrink:0;
+          border:none; display:flex; align-items:center; justify-content:center;
+          cursor:pointer; transition:background .15s, opacity .15s;
+        }
+        .ai-send-btn:disabled{ cursor:not-allowed; opacity:.6; }
+        .ai-topup-inline {
+          padding:5px 10px; border-radius:8px; flex-shrink:0;
+          border:1px solid rgba(239,68,68,.3); background:rgba(239,68,68,.06);
+          color:#dc2626; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit;
+        }
+        .ai-input-hint {
+          font-size:10px; color:var(--sd-muted); text-align:center; margin-top:6px;
+        }
+
+        /* Mobile tweaks */
+        @media(max-width:480px){
+          .ai-empty-greeting  { font-size:18px; }
+          .ai-empty-tagline   { font-size:14px; }
+          .ai-examples-grid,
+          .ai-how-grid        { grid-template-columns:1fr; }
+          .ai-bubble          { max-width:88%; font-size:13px; }
+        }
+      `}</style>
     </div>
   );
 }
