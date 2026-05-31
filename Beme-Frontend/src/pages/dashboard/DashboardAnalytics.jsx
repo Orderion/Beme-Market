@@ -340,8 +340,9 @@ export default function DashboardAnalytics() {
                   <AreaChart data={data.series} margin={{ top:5, right:5, left:-10, bottom:0 }}>
                     <defs>
                       <linearGradient id="mGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor={metricCfg.color} stopOpacity={0.15}/>
-                        <stop offset="95%" stopColor={metricCfg.color} stopOpacity={0}/>
+                        <stop offset="0%"   stopColor={metricCfg.color} stopOpacity={0.35}/>
+                        <stop offset="60%"  stopColor={metricCfg.color} stopOpacity={0.18}/>
+                        <stop offset="100%" stopColor={metricCfg.color} stopOpacity={0.04}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--sd-border-light)" vertical={false}/>
