@@ -11,13 +11,14 @@ import { incrementUsage } from "../../services/aiUsageService";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://beme-market-1.onrender.com";
 
-/* ── Brand accent colours — never change with theme ── */
-const A = {
+/* ── Brand colours ── */
+const C = {
   blue:   "#7c3aed",
-  blue2:  "#6d28d9",
   green:  "#22C55E",
+  purple: "#7C3AED",
   orange: "#F59E0B",
   red:    "#EF4444",
+  muted:  "#9ca3af",
 };
 
 function Ico({ d, size = 16, color = "currentColor" }) {
@@ -48,10 +49,14 @@ const IC = {
 function ChartTip({ active, payload, label, prefix = "" }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="an-tip">
-      <div className="an-tip-lbl">{label}</div>
+    <div style={{
+      background: "var(--sd-white)", border: "1px solid var(--sd-border)",
+      borderRadius: 10, padding: "10px 14px", fontSize: 12,
+      boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+    }}>
+      <div style={{ color: "var(--sd-muted)", marginBottom: 4, fontWeight: 600 }}>{label}</div>
       {payload.map((p, i) => (
-        <div key={i} style={{ color: p.color || A.blue, fontWeight: 800, fontSize: 13 }}>
+        <div key={i} style={{ color: p.color || C.blue, fontWeight: 800, fontSize: 14 }}>
           {prefix}{typeof p.value === "number" ? p.value.toLocaleString() : p.value}
         </div>
       ))}
@@ -59,48 +64,64 @@ function ChartTip({ active, payload, label, prefix = "" }) {
   );
 }
 
-/* ── Empty state ── */
-function Empty({ msg }) {
+/* ── Empty ── */
+function Empty({ msg = "No data available for this period" }) {
   return (
-    <div className="an-empty">
-      <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" className="an-empty-ico">
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center",
+      justifyContent: "center", minHeight: 160, gap: 10, padding: 24,
+    }}>
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none"
+        stroke="var(--sd-border)" strokeWidth="1.3" strokeLinecap="round">
         <path d="M18 20V10 M12 20V4 M6 20v-6"/>
       </svg>
-      <span className="an-empty-msg">{msg || "No data for this period"}</span>
+      <div style={{ fontSize: 13, color: "var(--sd-muted)", fontWeight: 600, textAlign: "center" }}>{msg}</div>
     </div>
   );
 }
 
-/* ── Card ── */
-function Card({ children, className = "", style = {} }) {
-  return <div className={`an-card ${className}`} style={style}>{children}</div>;
+/* ── Card — uses theme variables ── */
+function Card({ children, style = {} }) {
+  return (
+    <div style={{
+      background: "var(--sd-white)",
+      borderRadius: 16,
+      border: "1px solid var(--sd-border)",
+      boxShadow: "var(--sd-shadow)",
+      padding: "20px 22px",
+      ...style,
+    }}>
+      {children}
+    </div>
+  );
 }
 
 /* ── Stat card ── */
 function StatCard({ label, value, sub, color, icon, trend, loading }) {
   const up = trend >= 0;
   return (
-    <Card className="an-stat">
-      <div className="an-stat-top">
-        <div className="an-stat-lbl">{label}</div>
-        <div className="an-stat-ico" style={{ background: `${color}18` }}>
-          <Ico d={icon} size={13} color={color}/>
+    <Card style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--sd-muted)", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+          {label}
+        </div>
+        <div style={{ width: 34, height: 34, borderRadius: 10, background: `${color}14`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Ico d={icon} size={15} color={color}/>
         </div>
       </div>
       {loading
-        ? <div className="an-skel" style={{ height:26, width:"60%", marginBottom:6 }}/>
-        : <div className="an-stat-val">{value}</div>
+        ? <div className="an-skel" style={{ height: 32, width: "55%", borderRadius: 8, marginBottom: 8 }}/>
+        : <div style={{ fontSize: 30, fontWeight: 900, color: "var(--sd-text)", letterSpacing: "-0.04em", lineHeight: 1.1, marginBottom: 8 }}>{value}</div>
       }
       {!loading && (
-        <div className="an-stat-trend">
+        <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}>
           {trend !== undefined && (
-            <span style={{ display:"flex", alignItems:"center", gap:2, color: up ? A.green : A.red, fontSize:10, fontWeight:700 }}>
-              <Ico d={up ? IC.up : IC.down} size={10} color={up ? A.green : A.red}/>
+            <span style={{ display: "flex", alignItems: "center", gap: 2, color: up ? C.green : C.red, fontSize: 11, fontWeight: 700 }}>
+              <Ico d={up ? IC.up : IC.down} size={12} color={up ? C.green : C.red}/>
               {Math.abs(trend)}%
             </span>
           )}
-          <span className="an-stat-sub">{sub}</span>
+          <span style={{ fontSize: 11, color: "var(--sd-muted)", fontWeight: 500 }}>{sub}</span>
         </div>
       )}
     </Card>
@@ -111,37 +132,43 @@ function StatCard({ label, value, sub, color, icon, trend, loading }) {
 function LockedState() {
   const nav = useNavigate();
   return (
-    <div className="an-locked">
-      <div className="an-locked-ico"><Ico d={IC.lock} size={26} color={A.blue}/></div>
-      <div className="an-locked-title">Analytics Pro</div>
-      <div className="an-locked-sub">Available on <strong>Growth</strong> and <strong>Pro</strong> plans.</div>
-      <button className="an-locked-btn" onClick={() => nav("/seller-dashboard?tab=subscription")}>Upgrade Plan →</button>
-      <div className="an-locked-feats">
-        <div className="an-locked-feats-lbl">What you unlock</div>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 500, textAlign: "center", padding: "48px 24px" }}>
+      <div style={{ width: 68, height: 68, borderRadius: "50%", background: "var(--sd-accent-dim)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
+        <Ico d={IC.lock} size={28} color={C.blue}/>
+      </div>
+      <div style={{ fontSize: 24, fontWeight: 900, color: "var(--sd-text)", marginBottom: 8 }}>Analytics Pro</div>
+      <div style={{ fontSize: 14, color: "var(--sd-muted)", lineHeight: 1.7, maxWidth: 320, marginBottom: 28 }}>
+        Advanced analytics are available on the <strong style={{ color: "var(--sd-text)" }}>Growth</strong> and{" "}
+        <strong style={{ color: "var(--sd-text)" }}>Pro</strong> plans.
+      </div>
+      <button onClick={() => nav("/seller-dashboard?tab=subscription")}
+        style={{ padding: "12px 32px", background: C.blue, color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 16px ${C.blue}44` }}>
+        Upgrade Plan →
+      </button>
+      <div style={{ marginTop: 32, background: "var(--sd-white)", border: "1px solid var(--sd-border)", borderRadius: 14, padding: "20px 24px", maxWidth: 320, width: "100%", textAlign: "left" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--sd-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>What you unlock</div>
         {["Revenue & orders over time","Visitor & product view tracking","Customer funnel & conversion",
           "Repeat buyer rate","Product performance table","Top customers by spend",
-          "Revenue by day of week","Live store visitors","Payout forecast","AI weekly summary"].map((f,i) => (
-          <div key={i} className="an-locked-feat"><Ico d="M20 6L9 17l-5-5" size={11} color={A.blue}/>{f}</div>
+          "Revenue by day of week","Live store visitors","Payout forecast","AI weekly summary"].map((f, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 13, color: "var(--sd-text2)", fontWeight: 600 }}>
+            <Ico d="M20 6L9 17l-5-5" size={12} color={C.blue}/>{f}
+          </div>
         ))}
       </div>
     </div>
   );
 }
 
-const PERIODS = [
-  { key:7,  label:"7D"  },
-  { key:30, label:"30D" },
-  { key:90, label:"90D" },
-];
+const PERIODS = [{ key:7, label:"7 Days" }, { key:30, label:"30 Days" }, { key:90, label:"90 Days" }];
 const METRICS = [
-  { key:"revenue",  label:"Revenue",  color: A.blue,   prefix:"GHS " },
-  { key:"orders",   label:"Orders",   color: A.green,  prefix:""     },
-  { key:"visitors", label:"Visitors", color: A.blue,   prefix:""     },
+  { key:"revenue",  label:"Revenue",  color: C.blue,   prefix:"GHS " },
+  { key:"orders",   label:"Orders",   color: C.green,  prefix:""     },
+  { key:"visitors", label:"Visitors", color: C.purple, prefix:""     },
 ];
 
-/* ════════════════════════════════════════════
-   MAIN COMPONENT
-════════════════════════════════════════════ */
+/* ════════════════════════════════════════
+   MAIN
+════════════════════════════════════════ */
 export default function DashboardAnalytics() {
   const { user } = useAuth();
   const { subscriptionPlan, loading: sellerLoading } = useSellerAuth();
@@ -156,7 +183,7 @@ export default function DashboardAnalytics() {
   const hasAccess = sellerLoading ? true : rawPlan !== "basic" && rawPlan !== "";
 
   const dateStr = new Date().toLocaleDateString("en-GH",
-    { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+    { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   const metricCfg   = METRICS.find(m => m.key === metric) || METRICS[0];
   const hasData     = data.series?.some(d => (d[metric] || 0) > 0);
@@ -194,25 +221,35 @@ export default function DashboardAnalytics() {
   if (!hasAccess && !sellerLoading) return <LockedState/>;
 
   return (
-    <div className="an-root">
+    <div style={{ fontFamily: "var(--sd-font,'DM Sans',system-ui,sans-serif)", minHeight: "100%", color: "var(--sd-text)", background: "var(--sd-white)" }}>
 
       {/* ── Header ── */}
-      <div className="an-header">
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 22, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <div className="an-title">Analytics Overview</div>
-          <div className="an-date">{dateStr}</div>
+          <div style={{ fontSize: 26, fontWeight: 900, color: "var(--sd-text)", letterSpacing: "-0.03em", marginBottom: 3 }}>
+            Analytics Overview
+          </div>
+          <div style={{ fontSize: 13, color: "var(--sd-muted)", fontWeight: 500 }}>{dateStr}</div>
         </div>
-        <div className="an-header-r">
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {data.liveVisitors > 0 && (
-            <div className="an-live">
-              <div className="an-live-dot"/>
-              <span>{data.liveVisitors} live</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 20 }}>
+              <div style={{ width: 7, height: 7, borderRadius: "50%", background: C.green, animation: "an-pulse 1.5s ease infinite" }}/>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#15803d" }}>
+                {data.liveVisitors} live {data.liveVisitors === 1 ? "visitor" : "visitors"}
+              </span>
             </div>
           )}
-          <div className="an-periods">
+          {/* Period selector */}
+          <div style={{ display: "flex", background: "var(--sd-white)", border: "1px solid var(--sd-border)", borderRadius: 10, overflow: "hidden", boxShadow: "var(--sd-shadow)" }}>
             {PERIODS.map(p => (
               <button key={p.key} onClick={() => setPeriod(p.key)}
-                className={`an-period-btn${period === p.key ? " an-period-btn--on" : ""}`}>
+                style={{
+                  padding: "8px 16px", border: "none", fontSize: 12, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+                  background: period === p.key ? C.blue : "transparent",
+                  color: period === p.key ? "#fff" : "var(--sd-muted)",
+                }}>
                 {p.label}
               </button>
             ))}
@@ -220,25 +257,29 @@ export default function DashboardAnalytics() {
         </div>
       </div>
 
-      {/* ── AI card — gradient + floating bubbles ── */}
+      {/* ── AI Summary — gradient + floating bubbles ── */}
       {(aiLoading || aiSummary) && (
-        <div className="an-ai">
-          {/* decorative bubbles */}
+        <div className="an-ai-card">
           <span className="an-bubble an-bubble--a"/>
           <span className="an-bubble an-bubble--b"/>
           <span className="an-bubble an-bubble--c"/>
-          <div className="an-ai-body">
-            <div className="an-ai-hd">
+          <div className="an-ai-inner">
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
               <Ico d={IC.sparkle} size={14} color="#fff"/>
-              <span>AI Performance Summary</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: "#fff" }}>AI Performance Summary</span>
             </div>
             {aiLoading
-              ? <div className="an-ai-loading"><div className="an-ai-spin"/>Analysing your store…</div>
+              ? <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "rgba(255,255,255,0.85)" }}>
+                  <div className="an-spinner"/>
+                  Analysing your store…
+                </div>
               : aiSummary && (
                 <>
-                  <p className="an-ai-text">{aiSummary.summary}</p>
-                  {aiSummary.tip && <div className="an-ai-tip">💡 {aiSummary.tip}</div>}
-                  <button className="an-ai-dismiss" onClick={() => setAI(null)}>Dismiss</button>
+                  <p style={{ fontSize: 13, lineHeight: 1.7, color: "rgba(255,255,255,0.93)", margin: "0 0 10px" }}>{aiSummary.summary}</p>
+                  {aiSummary.tip && (
+                    <div className="an-ai-tip">💡 {aiSummary.tip}</div>
+                  )}
+                  <button onClick={() => setAI(null)} className="an-ai-dismiss">Dismiss</button>
                 </>
               )
             }
@@ -246,62 +287,71 @@ export default function DashboardAnalytics() {
         </div>
       )}
 
-      {/* ── Stat grid: 2×2 on mobile → 4 across on desktop ── */}
-      <div className="an-stats">
-        <StatCard label={`Revenue (${period}d)`} icon={IC.revenue} color={A.blue}
+      {/* ── Stat cards ── */}
+      <div className="an-stat-row">
+        <StatCard label={`Revenue (${period}d)`} icon={IC.revenue} color={C.blue}
           loading={data.loading} trend={0} sub="vs prev period"
           value={`GHS ${Number(data.totalRevenue||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`}/>
-        <StatCard label={`Orders (${period}d)`} icon={IC.orders} color={A.green}
+        <StatCard label={`Orders (${period}d)`} icon={IC.orders} color={C.green}
           loading={data.loading} trend={0} sub="completed"
           value={data.totalOrders || 0}/>
-        <StatCard label="Visitors" icon={IC.visitors} color={A.blue}
-          loading={data.loading} sub="page visits"
+        <StatCard label="Visitors" icon={IC.visitors} color={C.purple}
+          loading={data.loading} sub="store page visits"
           value={data.totalVisitors || 0}/>
-        <StatCard label="Conversion" icon={IC.conv} color={A.orange}
-          loading={data.loading} sub="orders/visitors"
+        <StatCard label="Conversion" icon={IC.conv} color={C.orange}
+          loading={data.loading} sub="orders / visitors"
           value={`${data.conversionRate || 0}%`}/>
       </div>
 
-      {/* ── Main chart + quick sidebar ── */}
-      <div className="an-main-row">
-        {/* Area chart */}
-        <Card className="an-chart-card">
-          <div className="an-chart-hd">
+      {/* ── Main chart + quick stats — desktop two-col, mobile stacked ── */}
+      <div className="an-body-row">
+        {/* Main chart */}
+        <Card style={{ minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, flexWrap: "wrap", gap: 10 }}>
             <div>
-              <div className="an-chart-title">{metricCfg.label} Trend</div>
-              <div className="an-chart-sub">Daily · Last {period} days</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "var(--sd-text)", marginBottom: 2 }}>
+                {metricCfg.label} Trend
+              </div>
+              <div style={{ fontSize: 12, color: "var(--sd-muted)" }}>
+                Daily breakdown · Last {period} days
+              </div>
             </div>
-            <div className="an-metrics">
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {METRICS.map(m => (
                 <button key={m.key} onClick={() => setMetric(m.key)}
-                  className={`an-metric-btn${metric === m.key ? " an-metric-btn--on" : ""}`}
-                  style={metric === m.key ? { borderColor:m.color, color:m.color, background:`${m.color}12` } : {}}>
+                  style={{
+                    padding: "6px 14px", borderRadius: 20,
+                    border: `1.5px solid ${metric === m.key ? m.color : "var(--sd-border)"}`,
+                    background: metric === m.key ? `${m.color}12` : "transparent",
+                    color: metric === m.key ? m.color : "var(--sd-muted)",
+                    fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                  }}>
                   {m.label}
                 </button>
               ))}
             </div>
           </div>
           {data.loading
-            ? <div className="an-skel" style={{ height:180 }}/>
+            ? <div className="an-skel" style={{ height: 220, borderRadius: 10 }}/>
             : !hasData
-              ? <Empty msg={`No ${metricCfg.label.toLowerCase()} data yet`}/>
+              ? <Empty msg={`No ${metricCfg.label.toLowerCase()} data for this period`}/>
               : (
-                <ResponsiveContainer width="100%" height={180}>
-                  <AreaChart data={data.series} margin={{ top:4, right:0, left:-22, bottom:0 }}>
+                <ResponsiveContainer width="100%" height={220}>
+                  <AreaChart data={data.series} margin={{ top:5, right:5, left:-10, bottom:0 }}>
                     <defs>
-                      <linearGradient id="anG" x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient id="mGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%"  stopColor={metricCfg.color} stopOpacity={0.15}/>
                         <stop offset="95%" stopColor={metricCfg.color} stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--an-grid)" vertical={false}/>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--sd-border-light)" vertical={false}/>
                     <XAxis dataKey="label" stroke="transparent"
-                      tick={{ fontSize:9, fill:"var(--an-axis)", fontWeight:600 }} axisLine={false} tickLine={false}/>
+                      tick={{ fontSize:11, fill:"var(--sd-muted)", fontWeight:600 }} axisLine={false} tickLine={false}/>
                     <YAxis stroke="transparent"
-                      tick={{ fontSize:9, fill:"var(--an-axis)" }} axisLine={false} tickLine={false}/>
+                      tick={{ fontSize:11, fill:"var(--sd-muted)" }} axisLine={false} tickLine={false}/>
                     <Tooltip content={<ChartTip prefix={metricCfg.prefix}/>}/>
                     <Area type="monotone" dataKey={metric}
-                      stroke={metricCfg.color} strokeWidth={2.5} fill="url(#anG)"
+                      stroke={metricCfg.color} strokeWidth={2.5} fill="url(#mGrad)"
                       dot={{ r:3, fill:metricCfg.color, strokeWidth:2, stroke:"var(--sd-white)" }}
                       activeDot={{ r:5, fill:metricCfg.color }}/>
                   </AreaChart>
@@ -311,30 +361,36 @@ export default function DashboardAnalytics() {
         </Card>
 
         {/* Quick stats sidebar */}
-        <div className="an-sidebar">
-          <Card style={{ flex:1 }}>
-            <div className="an-sec-lbl" style={{ marginBottom:10 }}>Customer Insights</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <Card style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--sd-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>
+              Customer Insights
+            </div>
             {[
-              { label:"Unique Customers", value: data.uniqueCustomers || 0,             icon: IC.customers, color: A.blue   },
-              { label:"Repeat Buyers",    value: `${data.repeatRate || 0}%`,            icon: IC.repeat,    color: A.green  },
-              { label:"Avg Order Value",  value: `GHS ${data.avgOrderValue || "0.00"}`, icon: IC.wallet,    color: A.orange },
+              { label:"Unique Customers", value: data.uniqueCustomers||0,             icon: IC.customers, color: C.blue   },
+              { label:"Repeat Buyers",    value: `${data.repeatRate||0}%`,            icon: IC.repeat,    color: C.green  },
+              { label:"Avg Order Value",  value: `GHS ${data.avgOrderValue||"0.00"}`, icon: IC.wallet,    color: C.orange },
             ].map(item => (
-              <div key={item.label} className="an-insight-row">
-                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                  <Ico d={item.icon} size={12} color={item.color}/>
-                  <span className="an-insight-lbl">{item.label}</span>
+              <div key={item.label} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"9px 0", borderBottom:"1px solid var(--sd-border-light)" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <Ico d={item.icon} size={13} color={item.color}/>
+                  <span style={{ fontSize:12, color:"var(--sd-text2)", fontWeight:600 }}>{item.label}</span>
                 </div>
-                <span className="an-insight-val">{data.loading ? "—" : item.value}</span>
+                <span style={{ fontSize:13, fontWeight:800, color:"var(--sd-text)" }}>
+                  {data.loading ? "—" : item.value}
+                </span>
               </div>
             ))}
           </Card>
 
-          <Card className="an-forecast">
-            <div className="an-sec-lbl an-forecast-lbl">Payout Forecast</div>
-            <div className="an-forecast-val">
+          <Card style={{ background:"rgba(34,197,94,0.07)", border:"1px solid rgba(34,197,94,0.2)" }}>
+            <div style={{ fontSize:11, fontWeight:700, color:"#15803d", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:8 }}>
+              Payout Forecast
+            </div>
+            <div style={{ fontSize:22, fontWeight:900, color:"#15803d", letterSpacing:"-0.03em" }}>
               GHS {data.loading ? "—" : Number(data.forecastRevenue||0).toLocaleString(undefined,{minimumFractionDigits:2})}
             </div>
-            <div className="an-forecast-sub">Est. from paid orders</div>
+            <div style={{ fontSize:11, color:"#16a34a", marginTop:4, fontWeight:600 }}>Est. payout from paid orders</div>
           </Card>
         </div>
       </div>
@@ -342,42 +398,43 @@ export default function DashboardAnalytics() {
       {/* ── Daily orders + best days ── */}
       <div className="an-grid2">
         <Card>
-          <div className="an-chart-title">Daily Orders</div>
-          <div className="an-chart-sub" style={{ marginBottom:12 }}>Volume per day</div>
+          <div style={{ fontSize:14, fontWeight:800, color:"var(--sd-text)", marginBottom:2 }}>Daily Orders</div>
+          <div style={{ fontSize:12, color:"var(--sd-muted)", marginBottom:14 }}>Order volume per day</div>
           {data.loading
-            ? <div className="an-skel" style={{ height:130 }}/>
-            : !data.series?.some(d => (d.orders || 0) > 0) ? <Empty msg="No orders this period"/>
+            ? <div className="an-skel" style={{ height:150, borderRadius:8 }}/>
+            : !data.series?.some(d => (d.orders||0) > 0) ? <Empty msg="No orders this period"/>
             : (
-              <ResponsiveContainer width="100%" height={130}>
-                <BarChart data={data.series} margin={{ top:0,right:0,left:-24,bottom:0 }} barSize={12}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--an-grid)" vertical={false}/>
+              <ResponsiveContainer width="100%" height={150}>
+                <BarChart data={data.series} margin={{ top:0,right:0,left:-25,bottom:0 }} barSize={16}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--sd-border-light)" vertical={false}/>
                   <XAxis dataKey="label" stroke="transparent"
-                    tick={{ fontSize:9, fill:"var(--an-axis)", fontWeight:600 }} axisLine={false} tickLine={false}/>
+                    tick={{ fontSize:10, fill:"var(--sd-muted)", fontWeight:600 }} axisLine={false} tickLine={false}/>
                   <YAxis stroke="transparent"
-                    tick={{ fontSize:9, fill:"var(--an-axis)" }} axisLine={false} tickLine={false}/>
-                  <Tooltip content={<ChartTip/>} cursor={{ fill:`${A.green}08` }}/>
-                  <Bar dataKey="orders" fill={A.green} radius={[4,4,0,0]}/>
+                    tick={{ fontSize:10, fill:"var(--sd-muted)" }} axisLine={false} tickLine={false}/>
+                  <Tooltip content={<ChartTip/>} cursor={{ fill:`${C.green}08` }}/>
+                  <Bar dataKey="orders" fill={C.green} radius={[5,5,0,0]}/>
                 </BarChart>
               </ResponsiveContainer>
             )
           }
         </Card>
+
         <Card>
-          <div className="an-chart-title">Best Days</div>
-          <div className="an-chart-sub" style={{ marginBottom:12 }}>Revenue by weekday</div>
+          <div style={{ fontSize:14, fontWeight:800, color:"var(--sd-text)", marginBottom:2 }}>Best Days</div>
+          <div style={{ fontSize:12, color:"var(--sd-muted)", marginBottom:14 }}>Revenue by day of week</div>
           {data.loading
-            ? <div className="an-skel" style={{ height:130 }}/>
-            : !data.byDayOfWeek?.some(d => (d.revenue || 0) > 0) ? <Empty msg="No revenue data yet"/>
+            ? <div className="an-skel" style={{ height:150, borderRadius:8 }}/>
+            : !data.byDayOfWeek?.some(d => (d.revenue||0) > 0) ? <Empty msg="No revenue data yet"/>
             : (
-              <ResponsiveContainer width="100%" height={130}>
-                <BarChart data={data.byDayOfWeek} margin={{ top:0,right:0,left:-24,bottom:0 }} barSize={16}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--an-grid)" vertical={false}/>
+              <ResponsiveContainer width="100%" height={150}>
+                <BarChart data={data.byDayOfWeek} margin={{ top:0,right:0,left:-25,bottom:0 }} barSize={20}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--sd-border-light)" vertical={false}/>
                   <XAxis dataKey="day" stroke="transparent"
-                    tick={{ fontSize:9, fill:"var(--an-axis)", fontWeight:600 }} axisLine={false} tickLine={false}/>
+                    tick={{ fontSize:10, fill:"var(--sd-muted)", fontWeight:600 }} axisLine={false} tickLine={false}/>
                   <YAxis stroke="transparent"
-                    tick={{ fontSize:9, fill:"var(--an-axis)" }} axisLine={false} tickLine={false}/>
-                  <Tooltip content={<ChartTip prefix="GHS "/>} cursor={{ fill:`${A.blue}08` }}/>
-                  <Bar dataKey="revenue" fill={A.blue} radius={[4,4,0,0]}/>
+                    tick={{ fontSize:10, fill:"var(--sd-muted)" }} axisLine={false} tickLine={false}/>
+                  <Tooltip content={<ChartTip prefix="GHS "/>} cursor={{ fill:`${C.blue}08` }}/>
+                  <Bar dataKey="revenue" fill={C.blue} radius={[5,5,0,0]}/>
                 </BarChart>
               </ResponsiveContainer>
             )
@@ -386,35 +443,46 @@ export default function DashboardAnalytics() {
       </div>
 
       {/* ── Product performance ── */}
-      <Card style={{ marginBottom:12 }}>
-        <div style={{ marginBottom:12 }}>
-          <div className="an-chart-title">Product Performance</div>
-          <div className="an-chart-sub">Revenue, orders & views</div>
+      <Card style={{ marginBottom:16 }}>
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:15, fontWeight:800, color:"var(--sd-text)" }}>Product Performance</div>
+          <div style={{ fontSize:12, color:"var(--sd-muted)" }}>Revenue, orders and views per product</div>
         </div>
-        {data.loading ? <div className="an-skel" style={{ height:100 }}/>
-          : !hasProducts ? <Empty msg="No product sales yet"/>
+        {data.loading
+          ? <div className="an-skel" style={{ height:120, borderRadius:8 }}/>
+          : !hasProducts ? <Empty msg="No product sales data yet"/>
           : (
             <div style={{ overflowX:"auto" }}>
-              <table className="an-table">
+              <table style={{ width:"100%", borderCollapse:"collapse" }}>
                 <thead>
-                  <tr>{["Product","Revenue","Orders","Conv."].map(h => <th key={h}>{h}</th>)}</tr>
+                  <tr>
+                    {["Product","Revenue","Orders","Views","Conv. Rate"].map(h => (
+                      <th key={h} style={{ fontSize:10, fontWeight:700, color:"var(--sd-muted)", textTransform:"uppercase", letterSpacing:"0.07em", padding:"8px 12px", textAlign:"left", borderBottom:"1px solid var(--sd-border)" }}>{h}</th>
+                    ))}
+                  </tr>
                 </thead>
                 <tbody>
                   {data.topProducts.map((p, i) => (
                     <tr key={p.id} style={{ borderBottom: i < data.topProducts.length-1 ? "1px solid var(--sd-border-light)" : "none" }}>
-                      <td>
-                        <div className="an-prod-row">
-                          <div className="an-prod-ico"><Ico d={IC.product} size={11} color={A.blue}/></div>
-                          <span className="an-prod-name">{p.name}</span>
+                      <td style={{ padding:"11px 12px", fontSize:13, fontWeight:600, color:"var(--sd-text)" }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                          <div style={{ width:28, height:28, borderRadius:6, background:`${C.blue}12`, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                            <Ico d={IC.product} size={12} color={C.blue}/>
+                          </div>
+                          <span style={{ maxWidth:180, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{p.name}</span>
                         </div>
                       </td>
-                      <td className="an-td-b">GHS {Number(p.revenue).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
-                      <td className="an-td-m">{p.orders}</td>
-                      <td>
-                        <span className="an-conv" style={{
-                          background: p.convRate !== "—" ? `${A.green}14` : "var(--sd-border-light)",
-                          color: p.convRate !== "—" ? A.green : "var(--sd-muted)",
-                        }}>{p.convRate}</span>
+                      <td style={{ padding:"11px 12px", fontSize:13, fontWeight:700, color:"var(--sd-text)" }}>
+                        GHS {Number(p.revenue).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
+                      </td>
+                      <td style={{ padding:"11px 12px", fontSize:13, color:"var(--sd-text2)" }}>{p.orders}</td>
+                      <td style={{ padding:"11px 12px", fontSize:13, color:"var(--sd-text2)" }}>{p.views||"—"}</td>
+                      <td style={{ padding:"11px 12px" }}>
+                        <span style={{ fontSize:11, fontWeight:700, padding:"3px 8px", borderRadius:20,
+                          background: p.convRate!=="—" ? `${C.green}14` : "var(--sd-border-light)",
+                          color: p.convRate!=="—" ? C.green : "var(--sd-muted)" }}>
+                          {p.convRate}
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -427,223 +495,153 @@ export default function DashboardAnalytics() {
 
       {/* ── Top customers ── */}
       <Card>
-        <div className="an-chart-title" style={{ marginBottom:3 }}>Top Customers</div>
-        <div className="an-chart-sub" style={{ marginBottom:14 }}>Highest spenders this period</div>
-        {data.loading ? <div className="an-skel" style={{ height:90 }}/>
+        <div style={{ fontSize:15, fontWeight:800, color:"var(--sd-text)", marginBottom:4 }}>Top Customers</div>
+        <div style={{ fontSize:12, color:"var(--sd-muted)", marginBottom:16 }}>Highest spenders this period</div>
+        {data.loading
+          ? <div className="an-skel" style={{ height:100, borderRadius:8 }}/>
           : !data.topCustomers?.length ? <Empty msg="No customer data yet"/>
           : data.topCustomers.map((c, i) => (
-              <div key={i} className="an-cust" style={{ borderBottom: i < data.topCustomers.length-1 ? "1px solid var(--sd-border-light)" : "none" }}>
-                <div className="an-cust-av" style={{ background:`${A.blue}14`, color:A.blue }}>
-                  {(c.name || "C")[0].toUpperCase()}
+              <div key={i} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom: i < data.topCustomers.length-1 ? "1px solid var(--sd-border-light)" : "none" }}>
+                <div style={{ width:34, height:34, borderRadius:"50%", flexShrink:0, background:`${C.blue}14`, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, fontSize:13, color:C.blue }}>
+                  {(c.name||"C")[0].toUpperCase()}
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div className="an-cust-name">{c.name}</div>
-                  <div className="an-cust-sub">{c.count} order{c.count !== 1 ? "s" : ""}</div>
+                  <div style={{ fontSize:13, fontWeight:700, color:"var(--sd-text)", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{c.name}</div>
+                  <div style={{ fontSize:11, color:"var(--sd-muted)" }}>{c.count} order{c.count!==1?"s":""}</div>
                 </div>
-                <div className="an-cust-total">GHS {Number(c.total).toLocaleString(undefined,{minimumFractionDigits:2})}</div>
+                <div style={{ fontSize:14, fontWeight:900, color:"var(--sd-text)", flexShrink:0 }}>
+                  GHS {Number(c.total).toLocaleString(undefined,{minimumFractionDigits:2})}
+                </div>
               </div>
             ))
         }
       </Card>
 
-      {/* ════════════════════════════════════════════
-          ALL STYLES
-      ════════════════════════════════════════════ */}
+      {/* ════════════════════════════════════════
+          STYLES
+      ════════════════════════════════════════ */}
       <style>{`
-        /* ── Keyframes ── */
-        @keyframes an-spin    { to { transform:rotate(360deg); } }
-        @keyframes an-pulse   { 0%,100%{opacity:1} 50%{opacity:.35} }
+        /* Keyframes */
+        @keyframes an-spin    { to { transform: rotate(360deg); } }
         @keyframes an-shimmer { 0%{background-position:-600px 0} 100%{background-position:calc(600px + 100%) 0} }
-        @keyframes an-float-a { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(16px,-22px) scale(1.12)} }
+        @keyframes an-pulse   { 0%,100%{opacity:1} 50%{opacity:.4} }
+        @keyframes an-float-a { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(18px,-24px) scale(1.12)} }
         @keyframes an-float-b { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-14px,18px) scale(.88)} }
         @keyframes an-float-c { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(10px,12px) scale(1.06)} }
 
-        /* ── Root ── */
-        .an-root {
-          font-family: var(--sd-font,'DM Sans',system-ui,sans-serif);
-          color: var(--sd-text);
-          background: var(--sd-white);
-          min-height: 100%;
-          --an-grid: var(--sd-border-light);
-          --an-axis: var(--sd-muted);
-        }
-
-        /* ── Card ── */
-        .an-card {
-          background: var(--sd-white);
-          border-radius: 14px;
-          border: 1px solid var(--sd-border);
-          box-shadow: var(--sd-shadow);
-          padding: 14px 16px;
-          transition: background .25s, border-color .25s;
-        }
-
-        /* ── Skeleton ── */
+        /* Skeleton */
         .an-skel {
-          border-radius: 8px;
           background: var(--sd-border-light);
-          background-image: linear-gradient(90deg,var(--sd-border-light) 25%,var(--sd-border) 50%,var(--sd-border-light) 75%);
+          background-image: linear-gradient(90deg, var(--sd-border-light) 25%, var(--sd-border) 50%, var(--sd-border-light) 75%);
           background-size: 600px 100%;
           animation: an-shimmer 1.4s ease infinite;
         }
 
-        /* ── Header ── */
-        .an-header   { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px; gap:10px; flex-wrap:wrap; }
-        .an-title    { font-size:20px; font-weight:900; color:var(--sd-text); letter-spacing:-.03em; line-height:1.15; }
-        .an-date     { font-size:12px; color:var(--sd-muted); margin-top:3px; font-weight:500; }
-        .an-header-r { display:flex; align-items:center; gap:8px; flex-shrink:0; flex-wrap:wrap; }
-
-        /* Live pill */
-        .an-live     { display:flex; align-items:center; gap:5px; padding:4px 10px; border-radius:100px; background:rgba(34,197,94,.08); border:1px solid rgba(34,197,94,.2); font-size:11px; font-weight:700; color:#15803d; }
-        .an-live-dot { width:6px; height:6px; border-radius:50%; background:#22C55E; animation:an-pulse 1.5s ease infinite; }
-
-        /* Period tabs */
-        .an-periods    { display:flex; background:var(--sd-white); border:1px solid var(--sd-border); border-radius:8px; overflow:hidden; }
-        .an-period-btn { padding:6px 12px; border:none; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; background:transparent; color:var(--sd-muted); transition:all .15s; }
-        .an-period-btn--on { background:${A.blue}; color:#fff; }
-
-        /* ════════════════════════════════════════
-           AI SUMMARY CARD
-        ════════════════════════════════════════ */
-        .an-ai {
+        /* ── AI gradient card ── */
+        .an-ai-card {
           position: relative;
           overflow: hidden;
           border-radius: 18px;
           margin-bottom: 16px;
-          /* Light mode: blue-purple → lavender → near-white */
-          background: linear-gradient(135deg, #3730a3 0%, #7c3aed 40%, #a78bfa 72%, #ede9fe 100%);
+          /* Light: blue-purple → lavender → near-white */
+          background: linear-gradient(135deg, #3730a3 0%, #7c3aed 38%, #a78bfa 70%, #ede9fe 100%);
         }
-        /* Dark mode override */
-        .sd-dark .an-ai {
-          background: linear-gradient(135deg, #0f0e2e 0%, #1e1b4b 30%, #312e81 62%, #0a0a18 100%);
+        .sd-dark .an-ai-card {
+          /* Dark: midnight → deep indigo → black */
+          background: linear-gradient(135deg, #0f0e2e 0%, #1e1b4b 32%, #312e81 65%, #09090f 100%);
         }
-
-        /* Floating decorative bubbles */
         .an-bubble {
-          position: absolute;
-          border-radius: 50%;
-          pointer-events: none;
-          background: rgba(255,255,255,0.13);
+          position: absolute; border-radius: 50%; pointer-events: none;
+          background: rgba(255,255,255,0.12);
         }
-        .sd-dark .an-bubble { background: rgba(129,140,248,0.15); }
-
-        .an-bubble--a { width:140px; height:140px; top:-50px; right:-40px; animation:an-float-a 7s ease-in-out infinite; }
-        .an-bubble--b { width:95px;  height:95px;  bottom:-28px; left:10px;  animation:an-float-b 9s ease-in-out infinite; }
-        .an-bubble--c { width:60px;  height:60px;  top:22px; right:120px;   animation:an-float-c 5.5s ease-in-out infinite; }
-
-        .an-ai-body   { position:relative; z-index:1; padding:18px 20px; }
-        .an-ai-hd     { display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:13px; font-weight:800; color:#fff; }
-        .an-ai-loading{ display:flex; align-items:center; gap:8px; font-size:13px; color:rgba(255,255,255,.85); }
-        .an-ai-spin   { width:13px; height:13px; border-radius:50%; border:2px solid rgba(255,255,255,.5); border-top-color:#fff; animation:an-spin .8s linear infinite; flex-shrink:0; }
-        .an-ai-text   { font-size:13px; line-height:1.7; color:rgba(255,255,255,.92); margin:0 0 10px; }
+        .sd-dark .an-bubble { background: rgba(129,140,248,0.14); }
+        .an-bubble--a { width:140px; height:140px; top:-50px; right:-40px; animation: an-float-a 7s ease-in-out infinite; }
+        .an-bubble--b { width:90px;  height:90px;  bottom:-25px; left:10px; animation: an-float-b 9s ease-in-out infinite; }
+        .an-bubble--c { width:58px;  height:58px;  top:20px; right:120px;  animation: an-float-c 5.5s ease-in-out infinite; }
+        .an-ai-inner  { position: relative; z-index: 1; padding: 20px 22px; }
+        .an-spinner   { width:14px; height:14px; border-radius:50%; border:2px solid rgba(255,255,255,.5); border-top-color:#fff; animation:an-spin .8s linear infinite; flex-shrink:0; }
         .an-ai-tip    {
-          background: rgba(255,255,255,0.14);
-          backdrop-filter: blur(6px);
-          -webkit-backdrop-filter: blur(6px);
-          border-radius: 10px; padding:9px 13px;
-          font-size:12px; font-weight:700; color:#fff; line-height:1.55;
+          background: rgba(255,255,255,0.15);
+          backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+          border-radius: 8px; padding: 8px 12px;
+          font-size: 12px; font-weight: 700; color: #fff; line-height: 1.5;
         }
-        .sd-dark .an-ai-tip { background:rgba(255,255,255,0.08); }
-        .an-ai-dismiss { margin-top:10px; background:none; border:none; color:rgba(255,255,255,.45); font-size:11px; cursor:pointer; padding:0; }
+        .sd-dark .an-ai-tip { background: rgba(255,255,255,0.08); }
+        .an-ai-dismiss { margin-top:8px; background:none; border:none; color:rgba(255,255,255,.5); font-size:11px; cursor:pointer; padding:0; display:block; }
+
+        /* ── DESKTOP layout (default — preserves original) ── */
+        .an-stat-row {
+          display: flex;
+          gap: 14px;
+          margin-bottom: 16px;
+          flex-wrap: nowrap;   /* 4 cards in one row on desktop */
+        }
+        .an-body-row {
+          display: grid;
+          grid-template-columns: 1fr 280px;
+          gap: 16px;
+          margin-bottom: 16px;
+          align-items: start;
+        }
+        .an-grid2 {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          margin-bottom: 16px;
+        }
 
         /* ════════════════════════════════════════
-           STAT GRID — 2×2 mobile, 4 across desktop
+           MOBILE  ≤ 768px
+           Stack everything like the reference image:
+           • header full width
+           • period tabs wrap
+           • stat cards: 2×2 grid
+           • chart full width, sidebar below
+           • two bar charts: 1×1 stack
         ════════════════════════════════════════ */
-        .an-stats    { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
-        .an-stat     { padding:12px 13px 10px; }
-        .an-stat-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:8px; }
-        .an-stat-lbl { font-size:9px; font-weight:700; color:var(--sd-muted); text-transform:uppercase; letter-spacing:.07em; line-height:1.4; }
-        .an-stat-ico { width:26px; height:26px; border-radius:7px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-        .an-stat-val { font-size:20px; font-weight:900; color:var(--sd-text); letter-spacing:-.04em; line-height:1; margin-bottom:5px; word-break:break-all; }
-        .an-stat-trend { display:flex; align-items:center; gap:4px; }
-        .an-stat-sub   { font-size:9px; color:var(--sd-muted); font-weight:500; }
+        @media (max-width: 768px) {
+          /* Stat cards: strict 2×2 grid */
+          .an-stat-row {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 10px !important;
+            flex-wrap: unset !important;
+          }
+          /* Each stat card loses flex:1 and fills grid cell */
+          .an-stat-row > div {
+            flex: unset !important;
+            min-width: 0 !important;
+          }
+          /* Stat value smaller to avoid overflow */
+          .an-stat-row [style*="fontSize:30"] {
+            font-size: 20px !important;
+          }
 
-        /* ── Main chart + sidebar ── */
-        .an-main-row  { display:grid; grid-template-columns:1fr; gap:10px; margin-bottom:10px; }
-        .an-chart-card{ padding:14px 16px; }
-        .an-chart-hd  { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; gap:8px; flex-wrap:wrap; }
-        .an-chart-title { font-size:13px; font-weight:800; color:var(--sd-text); }
-        .an-chart-sub   { font-size:11px; color:var(--sd-muted); margin-top:1px; }
-        .an-metrics     { display:flex; gap:4px; flex-wrap:wrap; }
-        .an-metric-btn  { padding:4px 10px; border-radius:100px; border:1.5px solid var(--sd-border); background:transparent; color:var(--sd-muted); font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .15s; }
+          /* Chart + sidebar: full-width stack */
+          .an-body-row {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
 
-        /* Sidebar */
-        .an-sidebar    { display:flex; flex-direction:column; gap:10px; }
-        .an-sec-lbl    { font-size:10px; font-weight:700; color:var(--sd-muted); text-transform:uppercase; letter-spacing:.07em; }
-        .an-insight-row{ display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--sd-border-light); }
-        .an-insight-row:last-child{ border-bottom:none; }
-        .an-insight-lbl { font-size:11px; color:var(--sd-text2); font-weight:600; }
-        .an-insight-val { font-size:12px; font-weight:800; color:var(--sd-text); }
+          /* Two bar charts: stack */
+          .an-grid2 {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
 
-        /* Payout */
-        .an-forecast     { background:rgba(34,197,94,0.07)!important; border-color:rgba(34,197,94,0.2)!important; }
-        .an-forecast-lbl { color:#15803d!important; }
-        .an-forecast-val { font-size:18px; font-weight:900; color:#15803d; letter-spacing:-.03em; margin-top:5px; }
-        .an-forecast-sub { font-size:10px; color:#16a34a; margin-top:3px; font-weight:600; }
-
-        /* 2-col grid */
-        .an-grid2 { display:grid; grid-template-columns:1fr; gap:10px; margin-bottom:10px; }
-
-        /* Tooltip */
-        .an-tip     { background:var(--sd-white); border:1px solid var(--sd-border); border-radius:10px; padding:8px 12px; font-size:12px; box-shadow:var(--sd-shadow-lg,0 8px 24px rgba(0,0,0,.1)); }
-        .an-tip-lbl { color:var(--sd-muted); margin-bottom:3px; font-weight:600; }
-
-        /* Table */
-        .an-table    { width:100%; border-collapse:collapse; }
-        .an-table th { font-size:9px; font-weight:700; color:var(--sd-muted); text-transform:uppercase; letter-spacing:.06em; padding:6px 8px; text-align:left; border-bottom:1px solid var(--sd-border); }
-        .an-table td { padding:8px 8px; }
-        .an-td-b     { font-size:12px; font-weight:700; color:var(--sd-text); }
-        .an-td-m     { font-size:12px; color:var(--sd-text2); }
-        .an-prod-row { display:flex; align-items:center; gap:7px; }
-        .an-prod-ico { width:22px; height:22px; border-radius:5px; background:${A.blue}12; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-        .an-prod-name{ font-size:11px; font-weight:600; color:var(--sd-text); max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .an-conv     { font-size:10px; font-weight:700; padding:2px 6px; border-radius:20px; white-space:nowrap; }
-
-        /* Customers */
-        .an-cust      { display:flex; align-items:center; gap:10px; padding:8px 0; }
-        .an-cust-av   { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:11px; flex-shrink:0; }
-        .an-cust-name { font-size:12px; font-weight:700; color:var(--sd-text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .an-cust-sub  { font-size:10px; color:var(--sd-muted); }
-        .an-cust-total{ font-size:12px; font-weight:900; color:var(--sd-text); flex-shrink:0; }
-
-        /* Empty */
-        .an-empty     { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:110px; gap:7px; }
-        .an-empty-ico { color:var(--sd-border); }
-        .an-empty-msg { font-size:12px; color:var(--sd-muted); font-weight:600; text-align:center; }
-
-        /* Locked */
-        .an-locked         { display:flex; flex-direction:column; align-items:center; text-align:center; padding:48px 16px; gap:7px; }
-        .an-locked-ico     { width:58px; height:58px; border-radius:50%; background:var(--sd-accent-dim); display:flex; align-items:center; justify-content:center; margin-bottom:6px; }
-        .an-locked-title   { font-size:20px; font-weight:900; color:var(--sd-text); }
-        .an-locked-sub     { font-size:13px; color:var(--sd-muted); line-height:1.7; max-width:280px; }
-        .an-locked-btn     { padding:10px 24px; background:${A.blue}; color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; margin-top:6px; }
-        .an-locked-feats   { margin-top:16px; background:var(--sd-white); border:1px solid var(--sd-border); border-radius:12px; padding:14px 16px; max-width:280px; width:100%; text-align:left; }
-        .an-locked-feats-lbl { font-size:10px; font-weight:700; color:var(--sd-muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; }
-        .an-locked-feat    { display:flex; align-items:center; gap:7px; margin-bottom:6px; font-size:12px; color:var(--sd-text2); font-weight:600; }
-
-        /* ══════════════════
-           TABLET  ≥ 600px
-        ══════════════════ */
-        @media (min-width: 600px) {
-          .an-title  { font-size:22px; }
-          .an-stats  { grid-template-columns:repeat(2,1fr); gap:12px; }
-          .an-stat-val { font-size:22px; }
-          .an-grid2  { grid-template-columns:1fr 1fr; gap:12px; }
+          /* Period tabs: shrink text so they fit */
+          .an-stat-row ~ div button,
+          button[style*="8px 16px"] {
+            padding: 6px 10px !important;
+            font-size: 11px !important;
+          }
         }
 
-        /* ══════════════════
-           DESKTOP  ≥ 1024px
-        ══════════════════ */
-        @media (min-width: 1024px) {
-          .an-title     { font-size:26px; }
-          .an-stats     { grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:16px; }
-          .an-stat-val  { font-size:26px; word-break:normal; }
-          .an-stat-lbl  { font-size:10px; }
-          .an-main-row  { grid-template-columns:1fr 260px; gap:16px; margin-bottom:16px; }
-          .an-sidebar   { flex-direction:column; }
-          .an-grid2     { gap:16px; margin-bottom:16px; }
-          .an-card      { padding:18px 20px; }
-          .an-chart-card{ padding:18px 20px; }
+        /* Extra small: tighten up */
+        @media (max-width: 400px) {
+          .an-stat-row {
+            gap: 8px !important;
+          }
         }
       `}</style>
     </div>
