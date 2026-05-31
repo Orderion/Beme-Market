@@ -248,12 +248,14 @@ function AttachChip({ name, onRemove }) {
 
 /* ─── Input bar ─── */
 function InputBar({ input, setInput, onSend, isTyping, isAtLimit, onTopup, attachments, onAttach, onRemoveAttach, pageLabel }) {
-  const fileRef  = useRef(null);
-  const imageRef = useRef(null);
+  const fileRef    = useRef(null);
+  const imageRef   = useRef(null);
+  const [showMenu, setShowMenu] = useState(false);
 
   const handleFile = (e) => {
     Array.from(e.target.files || []).forEach(f => onAttach(f));
     e.target.value = "";
+    setShowMenu(false);
   };
 
   const canSend = (input.trim() || attachments.length > 0) && !isTyping && !isAtLimit;
@@ -267,12 +269,55 @@ function InputBar({ input, setInput, onSend, isTyping, isAtLimit, onTopup, attac
       )}
 
       <div className="ai-input-box">
-        {/* + attach */}
+        {/* Hidden file inputs */}
         <input ref={fileRef}  type="file" accept=".pdf,.doc,.docx,.txt,.csv,.xlsx" style={{ display:"none" }} onChange={handleFile}/>
-        <input ref={imageRef} type="file" accept="image/*" style={{ display:"none" }} onChange={handleFile}/>
-        <button className="ai-plus-btn" onClick={() => fileRef.current?.click()} title="Attach">
-          <Ico d={IC.plus} size={15} color="var(--sd-muted)"/>
-        </button>
+        <input ref={imageRef} type="file" accept="image/*" multiple style={{ display:"none" }} onChange={handleFile}/>
+
+        {/* + button with popup */}
+        <div style={{ position:"relative", flexShrink:0 }}>
+          <button
+            className={`ai-plus-btn${showMenu ? " ai-plus-btn--open" : ""}`}
+            onClick={() => setShowMenu(m => !m)}
+            title="Add attachment">
+            <Ico d={IC.plus} size={15} color={showMenu ? "var(--sd-accent)" : "var(--sd-muted)"}/>
+          </button>
+
+          {showMenu && (
+            <>
+              {/* invisible backdrop */}
+              <div style={{ position:"fixed", inset:0, zIndex:999 }} onClick={() => setShowMenu(false)}/>
+              {/* popup card */}
+              <div className="ai-attach-menu">
+                <button className="ai-attach-option" onClick={() => { setShowMenu(false); fileRef.current?.click(); }}>
+                  <div className="ai-attach-opt-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <path d="M14 2v6h6"/>
+                      <path d="M12 18v-6M9 15l3-3 3 3"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="ai-attach-opt-title">Upload file</div>
+                    <div className="ai-attach-opt-sub">PDF, DOC, TXT, CSV, XLSX</div>
+                  </div>
+                </button>
+                <button className="ai-attach-option" onClick={() => { setShowMenu(false); imageRef.current?.click(); }}>
+                  <div className="ai-attach-opt-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <path d="M21 15l-5-5L5 21"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="ai-attach-opt-title">Upload image</div>
+                    <div className="ai-attach-opt-sub">JPG, PNG, WEBP, GIF, SVG</div>
+                  </div>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Textarea */}
         <textarea
@@ -694,9 +739,51 @@ export default function AIAssistant() {
           width:30px; height:30px; border-radius:8px; flex-shrink:0;
           border:1px solid var(--sd-border); background:transparent;
           display:flex; align-items:center; justify-content:center;
-          cursor:pointer; color:var(--sd-muted); transition:background .1s;
+          cursor:pointer; color:var(--sd-muted); transition:background .1s, border-color .1s;
         }
-        .ai-plus-btn:hover{ background:var(--sd-border-light); }
+        .ai-plus-btn:hover        { background:var(--sd-border-light); }
+        .ai-plus-btn--open        { border-color:var(--sd-accent); background:var(--sd-accent-dim); }
+
+        /* Attach popup menu */
+        .ai-attach-menu {
+          position: absolute;
+          bottom: calc(100% + 10px);
+          left: 0;
+          z-index: 1000;
+          background: var(--sd-white);
+          border: 1px solid var(--sd-border);
+          border-radius: 14px;
+          padding: 6px;
+          min-width: 220px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08);
+          animation: ai-menu-in 0.15s cubic-bezier(0.22,1,0.36,1);
+        }
+        @keyframes ai-menu-in {
+          from { opacity:0; transform:translateY(6px) scale(0.97); }
+          to   { opacity:1; transform:translateY(0)   scale(1); }
+        }
+        .ai-attach-option {
+          display: flex; align-items: center; gap: 12px;
+          width: 100%; padding: 10px 12px; border-radius: 10px;
+          border: none; background: transparent; cursor: pointer;
+          font-family: inherit; text-align: left;
+          transition: background 0.12s;
+        }
+        .ai-attach-option:hover { background: var(--sd-accent-dim); }
+        .ai-attach-option:hover .ai-attach-opt-icon { background: var(--sd-accent); color: #fff; }
+
+        .ai-attach-opt-icon {
+          width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+          background: var(--sd-border-light); color: var(--sd-text);
+          display: flex; align-items: center; justify-content: center;
+          transition: background 0.12s, color 0.12s;
+        }
+        .ai-attach-opt-title {
+          font-size: 13px; font-weight: 700; color: var(--sd-text); margin-bottom: 2px;
+        }
+        .ai-attach-opt-sub {
+          font-size: 10px; color: var(--sd-muted); font-weight: 500;
+        }
         .ai-textarea {
           flex:1; border:none; background:transparent;
           color:var(--sd-text); font-size:14px; outline:none;
