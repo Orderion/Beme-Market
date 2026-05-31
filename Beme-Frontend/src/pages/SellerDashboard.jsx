@@ -246,7 +246,7 @@ export default function SellerDashboard() {
           --sd-accent2:       #6d28d9;
           --sd-accent-dim:    rgba(124,58,237,0.08);
           --sd-accent-border: rgba(124,58,237,0.18);
-          --sd-bg:            #f9fafb;
+          --sd-bg:            #ffffff;
           --sd-white:         #ffffff;
           --sd-border:        #e5e7eb;
           --sd-border-light:  #f3f4f6;
@@ -287,7 +287,7 @@ export default function SellerDashboard() {
         .sd-root {
           display: flex;
           min-height: 100vh;
-          background: var(--sd-bg);
+          background: var(--sd-white);
           font-family: var(--sd-font);
           color: var(--sd-text);
         }
@@ -492,6 +492,7 @@ export default function SellerDashboard() {
         .sd-content {
           flex: 1; padding: 24px 24px 60px;
           max-width: 100%; overflow-x: hidden;
+          background: var(--sd-white);
         }
         .sd-inactive-banner {
           display: flex; align-items: center; gap: 8px;
