@@ -12,7 +12,6 @@ import { incrementUsage } from "../../services/aiUsageService";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://beme-market-1.onrender.com";
 
-/* ─── Icon helper ─── */
 function Ico({ d, size = 16, color = "currentColor", sw = 1.8 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
@@ -33,7 +32,6 @@ const IC = {
   trash:    "M3 6h18|M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6|M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2",
   image:    "M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14l4-4 3 3 3-3 4 4z",
   cart:     "M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z|M3 6h18|M16 10a4 4 0 0 1-8 0",
-  tag:      "M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z|M7 7h.01",
   eye:      "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z|M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6",
   alert:    "M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z|M12 9v4|M12 17h.01",
   chevronL: "M15 18l-6-6 6-6",
@@ -42,7 +40,6 @@ const IC = {
   truck:    "M1 3h15v13H1z|M16 8h4l3 3v5h-7V8z|M5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z|M18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
 };
 
-/* ─── Color swatch resolver (from ProductDetails) ─── */
 function resolveSwatchColor(label) {
   const raw = String(label || "").trim();
   if (!raw) return "#ccc";
@@ -54,7 +51,6 @@ function resolveSwatchColor(label) {
     gold:"#ffd700",yellow:"#f9c74f",green:"#4caf50",teal:"#008080",blue:"#2196f3",
     navy:"#1a2a5e",purple:"#9c27b0",violet:"#7f00ff",lavender:"#c8b4e8",
     brown:"#795548",beige:"#f5f0e8",nude:"#e3bc9a",rosegold:"#b76e79",
-    spaceblack:"#1c1c1e",spacegrey:"#48484a",midnight:"#1c1c1e",starlight:"#f5f0e8",
   };
   if (map[lower]) return map[lower];
   let hash = 0;
@@ -71,7 +67,6 @@ function swatchContrast(bg) {
   return "#fff";
 }
 
-/* ─── EMPTY FORM ─── */
 const EMPTY_FORM = {
   name:"", description:"", images:[], price:"", comparePrice:"", stock:"",
   sku:"", category:"", subcategory:"", status:"active",
@@ -81,7 +76,18 @@ const EMPTY_FORM = {
 function makeOptVal()   { return { id: crypto.randomUUID(), label: "", priceBump: "" }; }
 function makeOptGroup() { return { id: crypto.randomUUID(), name: "", type: "buttons", required: true, values: [makeOptVal(), makeOptVal()] }; }
 
-/* ─── Image Upload Grid ─── */
+/* ── Shared input style helper ── */
+const inp = (extra = {}) => ({
+  width:"100%", padding:"10px 13px",
+  border:"1px solid var(--sd-border)", borderRadius:8,
+  background:"var(--sd-white)", color:"var(--sd-text)",
+  fontSize:14, fontWeight:500, outline:"none",
+  fontFamily:"var(--sd-font)", boxSizing:"border-box",
+  transition:"border-color 0.15s",
+  ...extra,
+});
+
+/* ── Image Upload Grid ── */
 function ImageGrid({ images, onAdd, onRemove, uploading }) {
   const inputRef = useRef(null);
   const handleFiles = async (files) => {
@@ -93,99 +99,93 @@ function ImageGrid({ images, onAdd, onRemove, uploading }) {
   const onDrop = (e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); };
   return (
     <div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(100px,1fr))", gap:8 }}>
+      <div className="dpd-img-grid">
         {images.map((url, i) => (
-          <div key={url+i} style={{ position:"relative", aspectRatio:"1", borderRadius:10, overflow:"hidden", border:"1px solid var(--sd-border)", background:"var(--sd-bg)" }}>
+          <div key={url+i} className="dpd-img-cell">
             <img src={url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }}/>
-            {i===0 && <span style={{ position:"absolute",top:5,left:5,background:"var(--sd-accent)",color:"#fff",fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:100,letterSpacing:"0.04em" }}>MAIN</span>}
-            <button type="button" onClick={() => onRemove(i)}
-              style={{ position:"absolute",top:5,right:5,width:22,height:22,borderRadius:"50%",background:"rgba(0,0,0,0.55)",border:"none",color:"#fff",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
+            {i===0 && <span className="dpd-img-main-badge">MAIN</span>}
+            <button type="button" onClick={() => onRemove(i)} className="dpd-img-remove">
               <Ico d={IC.close} size={10} color="#fff"/>
             </button>
           </div>
         ))}
         {images.length < 5 && (
-          <button type="button" onClick={() => inputRef.current?.click()} onDrop={onDrop} onDragOver={e=>e.preventDefault()} disabled={uploading}
-            style={{ aspectRatio:"1",borderRadius:10,border:"1.5px dashed var(--sd-border)",background:"var(--sd-bg)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,cursor:uploading?"wait":"pointer",color:"var(--sd-muted)",fontFamily:"var(--sd-font)",transition:"border-color 0.15s,background 0.15s" }}
-            onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--sd-accent)";e.currentTarget.style.background="var(--sd-accent-dim)"}}
-            onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--sd-border)";e.currentTarget.style.background="var(--sd-bg)"}}>
+          <button type="button" onClick={() => inputRef.current?.click()} onDrop={onDrop}
+            onDragOver={e=>e.preventDefault()} disabled={uploading} className="dpd-img-add">
             {uploading
-              ? <div style={{ width:18,height:18,border:"2px solid var(--sd-accent)",borderTopColor:"transparent",borderRadius:"50%",animation:"dpd-spin 0.7s linear infinite" }}/>
-              : <><Ico d={IC.upload} size={20} color="var(--sd-muted)"/><span style={{ fontSize:11,fontWeight:600,color:"var(--sd-muted)" }}>Add photo</span></>
+              ? <div className="dpd-spinner"/>
+              : <><Ico d={IC.upload} size={20} color="var(--sd-muted)"/><span className="dpd-img-add-label">Add photo</span></>
             }
           </button>
         )}
       </div>
-      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple style={{ display:"none" }} onChange={e=>handleFiles(e.target.files)}/>
-      <p style={{ fontSize:11,color:"var(--sd-muted)",margin:"8px 0 0" }}>Up to 5 photos · JPG, PNG, WEBP · Max 5 MB each</p>
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple
+        style={{ display:"none" }} onChange={e=>handleFiles(e.target.files)}/>
+      <p className="dpd-hint">Up to 5 photos · JPG, PNG, WEBP · Max 5 MB each</p>
     </div>
   );
 }
 
-/* ─── Toggle ─── */
+/* ── Toggle ── */
 function Toggle({ checked, onChange, label, sub }) {
   return (
-    <label style={{ display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,cursor:"pointer" }}>
+    <label className="dpd-toggle">
       <div>
-        <div style={{ fontSize:13,fontWeight:600,color:"var(--sd-text)" }}>{label}</div>
-        {sub && <div style={{ fontSize:11,color:"var(--sd-muted)",marginTop:2 }}>{sub}</div>}
+        <div className="dpd-toggle-label">{label}</div>
+        {sub && <div className="dpd-toggle-sub">{sub}</div>}
       </div>
-      <div onClick={onChange} style={{ width:42,height:24,borderRadius:12,flexShrink:0,background:checked?"var(--sd-accent)":"var(--sd-border)",position:"relative",transition:"background 0.2s",cursor:"pointer" }}>
-        <div style={{ position:"absolute",top:2,left:checked?20:2,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left 0.2s",boxShadow:"0 1px 4px rgba(0,0,0,0.18)" }}/>
+      <div onClick={onChange} className="dpd-toggle-track" style={{ background: checked ? "var(--sd-accent)" : "var(--sd-border)" }}>
+        <div className="dpd-toggle-thumb" style={{ left: checked ? 20 : 2 }}/>
       </div>
     </label>
   );
 }
 
-/* ─── Section card wrapper ─── */
+/* ── Section card ── */
 function Section({ title, subtitle, children }) {
   return (
-    <div style={{ background:"var(--sd-white)",border:"1px solid var(--sd-border)",borderRadius:14,overflow:"hidden",marginBottom:14 }}>
+    <div className="dpd-section">
       {title && (
-        <div style={{ padding:"16px 20px 0" }}>
-          <div style={{ fontSize:13,fontWeight:700,color:"var(--sd-text)",letterSpacing:"-0.01em" }}>{title}</div>
-          {subtitle && <div style={{ fontSize:11,color:"var(--sd-muted)",marginTop:2 }}>{subtitle}</div>}
+        <div className="dpd-section-head">
+          <div className="dpd-section-title">{title}</div>
+          {subtitle && <div className="dpd-section-sub">{subtitle}</div>}
         </div>
       )}
-      <div style={{ padding:"14px 20px 18px" }}>{children}</div>
+      <div className="dpd-section-body">{children}</div>
     </div>
   );
 }
 
-/* ─── Form field ─── */
+/* ── Field wrapper ── */
 function Field({ label, required, hint, children }) {
   return (
-    <div style={{ marginBottom:14 }}>
+    <div className="dpd-field">
       {label && (
-        <label style={{ display:"block",fontSize:11,fontWeight:700,color:"var(--sd-muted)",textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:7 }}>
-          {label}{required && <span style={{ color:"var(--sd-accent)",marginLeft:3 }}>*</span>}
+        <label className="dpd-field-label">
+          {label}{required && <span style={{ color:"var(--sd-accent)", marginLeft:3 }}>*</span>}
         </label>
       )}
       {children}
-      {hint && <div style={{ fontSize:11,color:"var(--sd-muted)",marginTop:5 }}>{hint}</div>}
+      {hint && <div className="dpd-hint">{hint}</div>}
     </div>
   );
 }
 
-/* ─── Mini accordion for preview ─── */
+/* ── Accordion ── */
 function PreviewAccordion({ title, children }) {
   const [open, setOpen] = useState(false);
   return (
     <div style={{ borderBottom:"1px solid var(--sd-border-light)" }}>
-      <button type="button" onClick={() => setOpen(o => !o)}
-        style={{ width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 0",background:"none",border:"none",cursor:"pointer",fontFamily:"var(--sd-font)",fontSize:12,fontWeight:600,color:"var(--sd-text)",textAlign:"left" }}>
+      <button type="button" onClick={() => setOpen(o => !o)} className="dpd-accordion-btn">
         {title}
-        <span style={{ fontSize:16,color:"var(--sd-muted)",transform:open?"rotate(45deg)":"none",transition:"transform 0.2s",lineHeight:1 }}>+</span>
+        <span style={{ fontSize:16, color:"var(--sd-muted)", transform:open?"rotate(45deg)":"none", transition:"transform 0.2s", lineHeight:1 }}>+</span>
       </button>
       {open && <div style={{ paddingBottom:12 }}>{children}</div>}
     </div>
   );
 }
 
-/* ══════════════════════════════════════════════════════════
-   LIVE PREVIEW COMPONENT
-   Mirrors the actual product details page in real time
-══════════════════════════════════════════════════════════ */
+/* ── Live Preview ── */
 function ProductPreview({ form }) {
   const [activeImg, setActiveImg] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState({});
@@ -196,150 +196,132 @@ function ProductPreview({ form }) {
   const comparePrice = parseFloat(form.comparePrice) || 0;
   const hasDiscount  = comparePrice > price && price > 0;
 
-  // Reset active image when images change
   useEffect(() => { setActiveImg(i => Math.min(i, Math.max(images.length - 1, 0))); }, [images.length]);
 
   const customizations = (form.customizations || []).filter(g => g.name && g.values?.some(v => v.label));
   const colorGroup     = customizations.find(g => g.name.toLowerCase().includes("color") || g.name.toLowerCase().includes("colour"));
 
-  // Calculate option price bump
   const optionBump = customizations.reduce((sum, g) => {
     const sel = selectedOptions[g.name];
     const match = g.values?.find(v => v.label === sel);
     return sum + (parseFloat(match?.priceBump) || 0);
   }, 0);
   const finalPrice = price + optionBump;
-
   const fmtMoney = (n) => `GHS ${Number(n||0).toFixed(2)}`;
 
   return (
-    <div style={{ background:"var(--sd-white)",border:"1px solid var(--sd-border)",borderRadius:16,overflow:"hidden",fontFamily:"var(--sd-font)" }}>
-
-      {/* Preview header */}
-      <div style={{ padding:"12px 16px",borderBottom:"1px solid var(--sd-border)",display:"flex",alignItems:"center",justifyContent:"space-between",background:"var(--sd-bg)" }}>
+    <div className="dpd-preview">
+      <div className="dpd-preview-header">
         <div>
-          <div style={{ fontSize:10,fontWeight:700,color:"var(--sd-muted)",textTransform:"uppercase",letterSpacing:"0.1em" }}>Live Preview</div>
-          <div style={{ fontSize:11,color:"var(--sd-muted)",marginTop:1 }}>Updates as you type</div>
+          <div className="dpd-preview-label">Live Preview</div>
+          <div className="dpd-preview-sub">Updates as you type</div>
         </div>
-        <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-          <div style={{ width:8,height:8,borderRadius:"50%",background:form.status==="active"?"#22c55e":"var(--sd-muted)" }}/>
-          <span style={{ fontSize:11,fontWeight:600,color:form.status==="active"?"#16a34a":"var(--sd-muted)" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+          <div style={{ width:8, height:8, borderRadius:"50%", background: form.status==="active" ? "#22c55e" : "var(--sd-muted)" }}/>
+          <span style={{ fontSize:11, fontWeight:600, color: form.status==="active" ? "#16a34a" : "var(--sd-muted)" }}>
             {form.status==="active" ? "Active" : "Draft"}
           </span>
         </div>
       </div>
 
       <div style={{ overflowY:"auto", maxHeight:"calc(100vh - 280px)" }}>
-
-        {/* Product image */}
-        <div style={{ position:"relative",aspectRatio:"1",background:"var(--sd-bg)",overflow:"hidden" }}>
+        {/* Image */}
+        <div style={{ position:"relative", aspectRatio:"1", background:"var(--sd-border-light)", overflow:"hidden" }}>
           {images.length > 0 ? (
             <>
-              <img src={images[activeImg]} alt=""
-                style={{ width:"100%",height:"100%",objectFit:"cover",display:"block" }}/>
+              <img src={images[activeImg]} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }}/>
               {images.length > 1 && (
                 <>
-                  <button type="button" onClick={() => setActiveImg(i => i===0?images.length-1:i-1)}
-                    style={{ position:"absolute",top:"50%",left:8,transform:"translateY(-50%)",width:28,height:28,borderRadius:"50%",background:"rgba(255,255,255,0.9)",border:"1px solid var(--sd-border)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--sd-text)" }}>
-                    <Ico d={IC.chevronL} size={14} />
+                  <button type="button" onClick={() => setActiveImg(i => i===0?images.length-1:i-1)} className="dpd-preview-nav dpd-preview-nav--l">
+                    <Ico d={IC.chevronL} size={14}/>
                   </button>
-                  <button type="button" onClick={() => setActiveImg(i => i===images.length-1?0:i+1)}
-                    style={{ position:"absolute",top:"50%",right:8,transform:"translateY(-50%)",width:28,height:28,borderRadius:"50%",background:"rgba(255,255,255,0.9)",border:"1px solid var(--sd-border)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--sd-text)" }}>
-                    <Ico d={IC.chevronR} size={14} />
+                  <button type="button" onClick={() => setActiveImg(i => i===images.length-1?0:i+1)} className="dpd-preview-nav dpd-preview-nav--r">
+                    <Ico d={IC.chevronR} size={14}/>
                   </button>
-                  <div style={{ position:"absolute",bottom:10,left:"50%",transform:"translateX(-50%)",display:"flex",gap:4 }}>
+                  <div style={{ position:"absolute", bottom:10, left:"50%", transform:"translateX(-50%)", display:"flex", gap:4 }}>
                     {images.map((_,i) => (
                       <button key={i} type="button" onClick={() => setActiveImg(i)}
-                        style={{ width:i===activeImg?16:6,height:6,borderRadius:3,background:i===activeImg?"#fff":"rgba(255,255,255,0.6)",border:"none",padding:0,cursor:"pointer",transition:"all 0.2s" }}/>
+                        style={{ width:i===activeImg?16:6, height:6, borderRadius:3, background:i===activeImg?"#fff":"rgba(255,255,255,0.6)", border:"none", padding:0, cursor:"pointer", transition:"all 0.2s" }}/>
                     ))}
+                  </div>
+                  <div style={{ position:"absolute", top:10, right:10, padding:"3px 8px", background:"rgba(0,0,0,0.5)", borderRadius:20, fontSize:10, fontWeight:600, color:"#fff" }}>
+                    {activeImg+1}/{images.length}
                   </div>
                 </>
               )}
-              {/* Wishlist */}
-              <div style={{ position:"absolute",bottom:10,right:10,width:32,height:32,borderRadius:"50%",background:"var(--sd-white)",display:"flex",alignItems:"center",justifyContent:"center",border:"1px solid var(--sd-border)",boxShadow:"0 1px 4px rgba(0,0,0,0.1)" }}>
+              <div style={{ position:"absolute", bottom:10, right:10, width:32, height:32, borderRadius:"50%", background:"var(--sd-white)", display:"flex", alignItems:"center", justifyContent:"center", border:"1px solid var(--sd-border)", boxShadow:"0 1px 4px rgba(0,0,0,0.1)" }}>
                 <Ico d={IC.heart} size={14} color="var(--sd-muted)"/>
               </div>
-              {/* Gallery counter */}
-              {images.length > 1 && (
-                <div style={{ position:"absolute",top:10,right:10,padding:"3px 8px",background:"rgba(0,0,0,0.5)",borderRadius:20,fontSize:10,fontWeight:600,color:"#fff" }}>
-                  {activeImg+1}/{images.length}
-                </div>
-              )}
             </>
           ) : (
-            <div style={{ width:"100%",height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10,color:"var(--sd-muted)" }}>
-              <Ico d={IC.image} size={40} color="var(--sd-border)" />
-              <span style={{ fontSize:12,fontWeight:500,color:"var(--sd-muted)" }}>Add photos to see preview</span>
+            <div style={{ width:"100%", height:"100%", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:10, color:"var(--sd-muted)" }}>
+              <Ico d={IC.image} size={40} color="var(--sd-border)"/>
+              <span style={{ fontSize:12, fontWeight:500, color:"var(--sd-muted)" }}>Add photos to see preview</span>
             </div>
           )}
         </div>
 
-        {/* Thumbnails row */}
+        {/* Thumbnails */}
         {images.length > 1 && (
-          <div style={{ display:"flex",gap:5,padding:"8px 12px",borderBottom:"1px solid var(--sd-border-light)",overflowX:"auto" }}>
+          <div style={{ display:"flex", gap:5, padding:"8px 12px", borderBottom:"1px solid var(--sd-border-light)", overflowX:"auto" }}>
             {images.map((src,i) => (
               <button key={i} type="button" onClick={() => setActiveImg(i)}
-                style={{ width:44,height:44,flexShrink:0,borderRadius:7,overflow:"hidden",border:`1.5px solid ${i===activeImg?"var(--sd-accent)":"var(--sd-border)"}`,cursor:"pointer",opacity:i===activeImg?1:0.65,transition:"all 0.15s",padding:0,background:"none" }}>
-                <img src={src} alt="" style={{ width:"100%",height:"100%",objectFit:"cover",display:"block" }}/>
+                style={{ width:44, height:44, flexShrink:0, borderRadius:7, overflow:"hidden", border:`1.5px solid ${i===activeImg?"var(--sd-accent)":"var(--sd-border)"}`, cursor:"pointer", opacity:i===activeImg?1:0.65, transition:"all 0.15s", padding:0, background:"none" }}>
+                <img src={src} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }}/>
               </button>
             ))}
           </div>
         )}
 
-        {/* Product info */}
-        <div style={{ padding:"16px" }}>
-          {/* Title */}
-          <h1 style={{ fontSize:18,fontWeight:700,color:"var(--sd-text)",margin:"0 0 8px",letterSpacing:"-0.02em",lineHeight:1.2 }}>
-            {form.name || <span style={{ color:"var(--sd-muted)",fontWeight:400,fontSize:15 }}>Enter product title…</span>}
+        {/* Info */}
+        <div style={{ padding:16 }}>
+          <h1 style={{ fontSize:18, fontWeight:700, color:"var(--sd-text)", margin:"0 0 8px", letterSpacing:"-0.02em", lineHeight:1.2 }}>
+            {form.name || <span style={{ color:"var(--sd-muted)", fontWeight:400, fontSize:15 }}>Enter product title…</span>}
           </h1>
 
-          {/* Badges */}
-          <div style={{ display:"flex",flexWrap:"wrap",gap:5,marginBottom:12 }}>
-            <span style={{ padding:"3px 9px",borderRadius:100,fontSize:10,fontWeight:700,background:"rgba(34,197,94,0.1)",color:"#16a34a",border:"1px solid rgba(34,197,94,0.2)" }}>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom:12 }}>
+            <span style={{ padding:"3px 9px", borderRadius:100, fontSize:10, fontWeight:700, background:"rgba(34,197,94,0.1)", color:"#16a34a", border:"1px solid rgba(34,197,94,0.2)" }}>
               {form.inStock !== false ? "In stock" : "Out of stock"}
             </span>
             {form.category && (
-              <span style={{ padding:"3px 9px",borderRadius:100,fontSize:10,fontWeight:600,background:"var(--sd-bg)",color:"var(--sd-muted)",border:"1px solid var(--sd-border)" }}>
+              <span style={{ padding:"3px 9px", borderRadius:100, fontSize:10, fontWeight:600, background:"var(--sd-border-light)", color:"var(--sd-muted)", border:"1px solid var(--sd-border)" }}>
                 {form.category}
               </span>
             )}
             {form.featured && (
-              <span style={{ padding:"3px 9px",borderRadius:100,fontSize:10,fontWeight:700,background:"rgba(245,158,11,0.1)",color:"#d97706",border:"1px solid rgba(245,158,11,0.2)" }}>
+              <span style={{ padding:"3px 9px", borderRadius:100, fontSize:10, fontWeight:700, background:"rgba(245,158,11,0.1)", color:"#d97706", border:"1px solid rgba(245,158,11,0.2)" }}>
                 Featured
               </span>
             )}
           </div>
 
-          {/* Price */}
-          <div style={{ display:"flex",alignItems:"baseline",gap:8,marginBottom:16,paddingBottom:14,borderBottom:"1px solid var(--sd-border-light)" }}>
-            <span style={{ fontSize:22,fontWeight:700,color:"var(--sd-text)",letterSpacing:"-0.03em" }}>
-              {price > 0 ? fmtMoney(finalPrice) : <span style={{ color:"var(--sd-muted)",fontSize:16,fontWeight:400 }}>Set price…</span>}
+          <div style={{ display:"flex", alignItems:"baseline", gap:8, marginBottom:16, paddingBottom:14, borderBottom:"1px solid var(--sd-border-light)" }}>
+            <span style={{ fontSize:22, fontWeight:700, color:"var(--sd-text)", letterSpacing:"-0.03em" }}>
+              {price > 0 ? fmtMoney(finalPrice) : <span style={{ color:"var(--sd-muted)", fontSize:16, fontWeight:400 }}>Set price…</span>}
             </span>
             {hasDiscount && (
               <>
-                <span style={{ fontSize:13,color:"var(--sd-muted)",textDecoration:"line-through" }}>{fmtMoney(comparePrice)}</span>
-                <span style={{ fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:100,background:"rgba(34,197,94,0.1)",color:"#16a34a",border:"1px solid rgba(34,197,94,0.2)" }}>
+                <span style={{ fontSize:13, color:"var(--sd-muted)", textDecoration:"line-through" }}>{fmtMoney(comparePrice)}</span>
+                <span style={{ fontSize:10, fontWeight:700, padding:"2px 7px", borderRadius:100, background:"rgba(34,197,94,0.1)", color:"#16a34a", border:"1px solid rgba(34,197,94,0.2)" }}>
                   Save {fmtMoney(comparePrice - finalPrice)}
                 </span>
               </>
             )}
-            {optionBump > 0 && <span style={{ fontSize:11,color:"var(--sd-muted)" }}>+{fmtMoney(optionBump)} options</span>}
           </div>
 
-          {/* Color swatches */}
           {colorGroup && colorGroup.values?.some(v => v.label) && (
             <div style={{ marginBottom:14 }}>
-              <div style={{ fontSize:10,fontWeight:700,color:"var(--sd-muted)",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"var(--sd-muted)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>
                 {colorGroup.name}
-                {selectedOptions[colorGroup.name] && <span style={{ fontWeight:600,textTransform:"none",letterSpacing:0,marginLeft:6 }}>· {selectedOptions[colorGroup.name]}</span>}
+                {selectedOptions[colorGroup.name] && <span style={{ fontWeight:600, textTransform:"none", letterSpacing:0, marginLeft:6 }}>· {selectedOptions[colorGroup.name]}</span>}
               </div>
-              <div style={{ display:"flex",flexWrap:"wrap",gap:7 }}>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:7 }}>
                 {colorGroup.values.filter(v => v.label).map(v => {
                   const bg = resolveSwatchColor(v.label);
                   const active = selectedOptions[colorGroup.name] === v.label;
                   return (
                     <button key={v.id} type="button" onClick={() => setSelectedOptions(s => ({...s,[colorGroup.name]:v.label}))}
-                      style={{ width:28,height:28,borderRadius:"50%",background:bg,border:`2.5px solid ${active?"var(--sd-accent)":"rgba(0,0,0,0.12)"}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:active?"0 0 0 2px white,0 0 0 3.5px var(--sd-accent)":"none",transition:"all 0.15s",padding:0 }}>
+                      style={{ width:28, height:28, borderRadius:"50%", background:bg, border:`2.5px solid ${active?"var(--sd-accent)":"rgba(0,0,0,0.12)"}`, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:active?"0 0 0 2px white,0 0 0 3.5px var(--sd-accent)":"none", transition:"all 0.15s", padding:0 }}>
                       {active && <Ico d={IC.check} size={11} color={swatchContrast(bg)} sw={2.5}/>}
                     </button>
                   );
@@ -348,23 +330,19 @@ function ProductPreview({ form }) {
             </div>
           )}
 
-          {/* Other options */}
           {customizations.filter(g => g !== colorGroup).map(group => {
             const vals = group.values?.filter(v => v.label) || [];
             if (!vals.length) return null;
             return (
               <div key={group.id} style={{ marginBottom:14 }}>
-                <div style={{ fontSize:10,fontWeight:700,color:"var(--sd-muted)",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8 }}>
-                  {group.name}
-                  {group.required && <span style={{ display:"inline-block",width:5,height:5,borderRadius:"50%",background:"var(--sd-accent)",marginLeft:5,verticalAlign:"middle" }}/>}
-                </div>
-                <div style={{ display:"flex",flexWrap:"wrap",gap:6 }}>
+                <div style={{ fontSize:10, fontWeight:700, color:"var(--sd-muted)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:8 }}>{group.name}</div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
                   {vals.map(v => {
                     const active = selectedOptions[group.name] === v.label;
                     return (
                       <button key={v.id} type="button" onClick={() => setSelectedOptions(s => ({...s,[group.name]:v.label}))}
-                        style={{ padding:"7px 14px",borderRadius:7,border:`1.5px solid ${active?"var(--sd-text)":"var(--sd-border)"}`,background:active?"var(--sd-text)":"transparent",color:active?"var(--sd-white)":"var(--sd-text)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"var(--sd-font)",transition:"all 0.15s" }}>
-                        {v.label}{parseFloat(v.priceBump)>0&&<span style={{ fontSize:10,opacity:0.7 }}> +{fmtMoney(v.priceBump)}</span>}
+                        style={{ padding:"7px 14px", borderRadius:7, border:`1.5px solid ${active?"var(--sd-text)":"var(--sd-border)"}`, background:active?"var(--sd-text)":"transparent", color:active?"var(--sd-white)":"var(--sd-text)", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"var(--sd-font)", transition:"all 0.15s" }}>
+                        {v.label}
                       </button>
                     );
                   })}
@@ -373,48 +351,44 @@ function ProductPreview({ form }) {
             );
           })}
 
-          {/* Quantity */}
-          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",border:"1px solid var(--sd-border)",borderRadius:9,marginBottom:12,background:"var(--sd-bg)" }}>
-            <span style={{ fontSize:12,fontWeight:600,color:"var(--sd-text)" }}>
-              Qty{form.stock ? <span style={{ fontSize:11,color:"var(--sd-muted)",fontWeight:400 }}> · {form.stock} left</span> : ""}
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 12px", border:"1px solid var(--sd-border)", borderRadius:9, marginBottom:12, background:"var(--sd-border-light)" }}>
+            <span style={{ fontSize:12, fontWeight:600, color:"var(--sd-text)" }}>
+              Qty{form.stock ? <span style={{ fontSize:11, color:"var(--sd-muted)", fontWeight:400 }}> · {form.stock} left</span> : ""}
             </span>
-            <div style={{ display:"flex",alignItems:"center",border:"1px solid var(--sd-border)",borderRadius:7,overflow:"hidden",background:"var(--sd-white)" }}>
+            <div style={{ display:"flex", alignItems:"center", border:"1px solid var(--sd-border)", borderRadius:7, overflow:"hidden", background:"var(--sd-white)" }}>
               <button type="button" onClick={() => setQty(q => Math.max(1,q-1))}
-                style={{ width:32,height:32,border:"none",background:"transparent",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--sd-text)" }}>−</button>
-              <span style={{ minWidth:28,textAlign:"center",fontSize:13,fontWeight:700,color:"var(--sd-text)",borderLeft:"1px solid var(--sd-border)",borderRight:"1px solid var(--sd-border)",height:32,lineHeight:"32px" }}>{qty}</span>
+                style={{ width:32, height:32, border:"none", background:"transparent", fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:"var(--sd-text)" }}>−</button>
+              <span style={{ minWidth:28, textAlign:"center", fontSize:13, fontWeight:700, color:"var(--sd-text)", borderLeft:"1px solid var(--sd-border)", borderRight:"1px solid var(--sd-border)", height:32, lineHeight:"32px" }}>{qty}</span>
               <button type="button" onClick={() => setQty(q => q+1)}
-                style={{ width:32,height:32,border:"none",background:"transparent",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--sd-text)" }}>+</button>
+                style={{ width:32, height:32, border:"none", background:"transparent", fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:"var(--sd-text)" }}>+</button>
             </div>
           </div>
 
-          {/* Delivery strip */}
-          <div style={{ display:"flex",alignItems:"center",gap:7,padding:"9px 12px",background:"rgba(4,110,242,0.06)",border:"1px solid rgba(4,110,242,0.15)",borderRadius:9,marginBottom:12,fontSize:12,fontWeight:600,color:"#2563EB" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:7, padding:"9px 12px", background:"rgba(4,110,242,0.06)", border:"1px solid rgba(4,110,242,0.15)", borderRadius:9, marginBottom:12, fontSize:12, fontWeight:600, color:"#2563EB" }}>
             <Ico d={IC.truck} size={14} color="#2563EB"/> Get it in 1–3 days in Ghana
           </div>
 
-          {/* CTA buttons */}
-          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8 }}>
-            <button type="button" style={{ height:44,borderRadius:9,border:"1.5px solid var(--sd-border)",background:"transparent",fontSize:13,fontWeight:700,cursor:"default",display:"flex",alignItems:"center",justifyContent:"center",gap:7,color:"var(--sd-text)",fontFamily:"var(--sd-font)" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:8 }}>
+            <button type="button" style={{ height:44, borderRadius:9, border:"1.5px solid var(--sd-border)", background:"transparent", fontSize:13, fontWeight:700, cursor:"default", display:"flex", alignItems:"center", justifyContent:"center", gap:7, color:"var(--sd-text)", fontFamily:"var(--sd-font)" }}>
               <Ico d={IC.cart} size={14}/> Add to cart
             </button>
-            <button type="button" style={{ height:44,borderRadius:9,border:"none",background:"#2563EB",fontSize:13,fontWeight:700,cursor:"default",color:"#fff",fontFamily:"var(--sd-font)" }}>
+            <button type="button" style={{ height:44, borderRadius:9, border:"none", background:"#2563EB", fontSize:13, fontWeight:700, cursor:"default", color:"#fff", fontFamily:"var(--sd-font)" }}>
               Buy now
             </button>
           </div>
-          <button type="button" style={{ width:"100%",height:44,borderRadius:9,border:"none",background:"var(--sd-text)",fontSize:13,fontWeight:700,color:"var(--sd-white)",cursor:"default",fontFamily:"var(--sd-font)" }}>
+          <button type="button" style={{ width:"100%", height:44, borderRadius:9, border:"none", background:"var(--sd-text)", fontSize:13, fontWeight:700, color:"var(--sd-white)", cursor:"default", fontFamily:"var(--sd-font)" }}>
             Pay now · {fmtMoney(finalPrice * qty)}
           </button>
 
-          {/* Description accordion */}
-          <div style={{ marginTop:12,borderTop:"1px solid var(--sd-border-light)" }}>
+          <div style={{ marginTop:12, borderTop:"1px solid var(--sd-border-light)" }}>
             <PreviewAccordion title="Product Details">
               {form.description
-                ? <p style={{ fontSize:12,lineHeight:1.75,color:"var(--sd-text)",opacity:0.8,margin:0,whiteSpace:"pre-line",fontWeight:400 }}>{form.description}</p>
-                : <p style={{ fontSize:12,color:"var(--sd-muted)",margin:0,fontStyle:"italic" }}>Your description will appear here…</p>
+                ? <p style={{ fontSize:12, lineHeight:1.75, color:"var(--sd-text)", opacity:0.8, margin:0, whiteSpace:"pre-line", fontWeight:400 }}>{form.description}</p>
+                : <p style={{ fontSize:12, color:"var(--sd-muted)", margin:0, fontStyle:"italic" }}>Your description will appear here…</p>
               }
             </PreviewAccordion>
             <PreviewAccordion title="Delivery & Returns">
-              <p style={{ fontSize:12,lineHeight:1.7,color:"var(--sd-text)",opacity:0.75,margin:0 }}>
+              <p style={{ fontSize:12, lineHeight:1.7, color:"var(--sd-text)", opacity:0.75, margin:0 }}>
                 Standard delivery: 1–3 business days within Ghana. Returns accepted within 7 days of delivery in original condition.
               </p>
             </PreviewAccordion>
@@ -425,14 +399,14 @@ function ProductPreview({ form }) {
   );
 }
 
-/* ══════════════════════════════════════════════════════════
-   MAIN COMPONENT
-══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════
+   MAIN
+══════════════════════════════════════ */
 export default function DashboardProductDetail() {
-  const navigate  = useNavigate();
+  const navigate      = useNavigate();
   const { productId } = useParams();
-  const isNew     = !productId;
-  const { user }  = useAuth();
+  const isNew         = !productId;
+  const { user }      = useAuth();
   const { storeId, shop, subscriptionPlan, planLimits } = useSellerAuth();
   const { subscriptionPlan: subPlan } = useSubscription();
   const isProSeller = subPlan === "pro" || subscriptionPlan === "pro";
@@ -445,23 +419,17 @@ export default function DashboardProductDetail() {
   const [saved,       setSaved]       = useState(false);
   const [error,       setError]       = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [aiWriting,   setAiWriting]   = useState(false);
+  const [aiGenerated, setAiGenerated] = useState(null);
 
-  // Refs for scroll-to-error
   const nameRef     = useRef(null);
   const priceRef    = useRef(null);
   const categoryRef = useRef(null);
   const imagesRef   = useRef(null);
 
-  const scrollToField = (ref) => {
-    ref?.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  };
+  const scrollToField = (ref) => ref?.current?.scrollIntoView({ behavior:"smooth", block:"center" });
   const clearFieldError = (k) => setFieldErrors(e => { const n={...e}; delete n[k]; return n; });
 
-  // AI writer
-  const [aiWriting,   setAiWriting]   = useState(false);
-  const [aiGenerated, setAiGenerated] = useState(null);
-
-  /* ─── Load product ─── */
   useEffect(() => {
     if (isNew) return;
     const run = async () => {
@@ -471,22 +439,22 @@ export default function DashboardProductDetail() {
         if (p && p.sellerId === user?.uid) {
           const images = Array.isArray(p.images) && p.images.length ? p.images : p.imageUrl ? [p.imageUrl] : [];
           setForm({
-            name: p.name||"", description: p.description||"", images,
-            price: p.price!=null?String(p.price):"",
-            comparePrice: p.comparePrice!=null?String(p.comparePrice):"",
-            stock: p.stock!=null?String(p.stock):"",
-            trackInventory: p.trackInventory!==false,
-            lowStockAlert: p.lowStockAlert!=null?String(p.lowStockAlert):"",
-            customizations: Array.isArray(p.customizations) ? p.customizations.map((g,gi)=>({
-              id:g.id||`g-${gi}`, name:String(g.name||""), type:g.type==="select"?"select":"buttons",
+            name:p.name||"", description:p.description||"", images,
+            price:p.price!=null?String(p.price):"",
+            comparePrice:p.comparePrice!=null?String(p.comparePrice):"",
+            stock:p.stock!=null?String(p.stock):"",
+            trackInventory:p.trackInventory!==false,
+            lowStockAlert:p.lowStockAlert!=null?String(p.lowStockAlert):"",
+            customizations:Array.isArray(p.customizations)?p.customizations.map((g,gi)=>({
+              id:g.id||`g-${gi}`,name:String(g.name||""),type:g.type==="select"?"select":"buttons",
               required:g.required!==false,
               values:Array.isArray(g.values)?g.values.map((v,vi)=>({
                 id:v.id||`v-${gi}-${vi}`,label:String(v.label||""),
                 priceBump:v.priceBump!=null?String(v.priceBump):""
               })):[makeOptVal(),makeOptVal()],
-            })) : [],
-            sku: p.sku||"", category: p.category||"", subcategory: p.subcategory||"",
-            status: p.status||"active", inStock: p.inStock!==false, featured: !!p.featured,
+            })):[],
+            sku:p.sku||"",category:p.category||"",subcategory:p.subcategory||"",
+            status:p.status||"active",inStock:p.inStock!==false,featured:!!p.featured,
           });
         }
       } catch(e) { console.error(e); }
@@ -508,7 +476,6 @@ export default function DashboardProductDetail() {
 
   const upd = k => e => { setForm(f=>({...f,[k]:e.target.type==="checkbox"?e.target.checked:e.target.value})); setError(""); clearFieldError(k); };
 
-  /* ─── AI Writer ─── */
   const handleAIWrite = async () => {
     if (!form.name.trim()) { alert("Enter a product title first."); return; }
     setAiWriting(true); setAiGenerated(null);
@@ -532,13 +499,12 @@ export default function DashboardProductDetail() {
 
   const applyAI = (field) => {
     if (!aiGenerated) return;
-    if (field==="both")        setForm(f=>({...f,description:aiGenerated.description,name:aiGenerated.title}));
+    if (field==="both")             setForm(f=>({...f,description:aiGenerated.description,name:aiGenerated.title}));
     else if (field==="description") setForm(f=>({...f,description:aiGenerated.description}));
-    else if (field==="title")  setForm(f=>({...f,name:aiGenerated.title}));
+    else if (field==="title")       setForm(f=>({...f,name:aiGenerated.title}));
     setAiGenerated(null);
   };
 
-  /* ─── Image upload ─── */
   const handleAddImages = async (files) => {
     setUploading(true);
     try {
@@ -549,32 +515,11 @@ export default function DashboardProductDetail() {
     finally { setUploading(false); }
   };
 
-  /* ─── Save ─── */
   const validate = () => {
-    if (!form.name.trim()) {
-      setError("Product title is required.");
-      setFieldErrors(e => ({...e, name: true}));
-      scrollToField(nameRef);
-      return false;
-    }
-    if (!form.price || Number(form.price) <= 0) {
-      setError("Enter a valid price.");
-      setFieldErrors(e => ({...e, price: true}));
-      scrollToField(priceRef);
-      return false;
-    }
-    if (!form.category) {
-      setError("Select a category.");
-      setFieldErrors(e => ({...e, category: true}));
-      scrollToField(categoryRef);
-      return false;
-    }
-    if (form.images.length === 0) {
-      setError("Add at least one product image.");
-      setFieldErrors(e => ({...e, images: true}));
-      scrollToField(imagesRef);
-      return false;
-    }
+    if (!form.name.trim())           { setError("Product title is required."); setFieldErrors(e=>({...e,name:true})); scrollToField(nameRef); return false; }
+    if (!form.price||Number(form.price)<=0) { setError("Enter a valid price."); setFieldErrors(e=>({...e,price:true})); scrollToField(priceRef); return false; }
+    if (!form.category)              { setError("Select a category."); setFieldErrors(e=>({...e,category:true})); scrollToField(categoryRef); return false; }
+    if (form.images.length===0)      { setError("Add at least one product image."); setFieldErrors(e=>({...e,images:true})); scrollToField(imagesRef); return false; }
     return true;
   };
 
@@ -609,157 +554,141 @@ export default function DashboardProductDetail() {
   const selectedCatObj = MARKETPLACE_CATEGORIES.find(c => c.label === form.category);
 
   if (loading) return (
-    <div style={{ minHeight:"100vh",background:"#ffffff",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--sd-font)" }}>
-      <div style={{ display:"flex",alignItems:"center",gap:10,color:"var(--sd-muted)",fontSize:14 }}>
-        <div style={{ width:22,height:22,borderRadius:"50%",border:"2.5px solid var(--sd-border)",borderTopColor:"var(--sd-accent)",animation:"dpd-spin 0.7s linear infinite" }}/>
-        Loading product…
-      </div>
+    <div className="dpd-loading">
+      <div className="dpd-spinner"/>
+      Loading product…
     </div>
   );
 
-  return (
-    <div style={{ minHeight:"100vh",background:"#ffffff",fontFamily:"var(--sd-font)" }}>
+  /* ── Save button label ── */
+  const saveLabel = saved ? "Saved!" : saving ? "Saving…" : isNew ? "Publish Product" : "Save Changes";
 
-      {/* ── Sticky top bar ── */}
-      <div style={{ background:"var(--sd-white)",borderBottom:"1px solid var(--sd-border)",padding:"0 20px",height:54,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100,gap:12 }}>
-        <button type="button" onClick={() => navigate("/seller-dashboard?tab=products")}
-          style={{ display:"flex",alignItems:"center",gap:7,background:"none",border:"none",cursor:"pointer",color:"var(--sd-text)",fontSize:13,fontWeight:600,padding:0,fontFamily:"var(--sd-font)" }}>
-          <Ico d={IC.back} size={16}/>
-          Products
+  return (
+    <div className="dpd-root">
+
+      {/* ── Sticky topbar ── */}
+      <div className="dpd-topbar">
+        <button type="button" onClick={() => navigate("/seller-dashboard?tab=products")} className="dpd-back-btn">
+          <Ico d={IC.back} size={16}/> Products
         </button>
 
-        {/* Status indicator */}
-        <div style={{ flex:1,display:"flex",alignItems:"center",gap:10 }}>
-          <button type="button" onClick={() => setForm(f=>({...f,status:f.status==="active"?"draft":"active"}))}
-            style={{ display:"flex",alignItems:"center",gap:6,padding:"5px 12px",borderRadius:8,border:"1px solid var(--sd-border)",background:"transparent",cursor:"pointer",fontFamily:"var(--sd-font)",fontSize:12,fontWeight:600,color:form.status==="active"?"#16a34a":"var(--sd-muted)",transition:"all 0.15s" }}>
-            <div style={{ width:7,height:7,borderRadius:"50%",background:form.status==="active"?"#22c55e":"var(--sd-border)" }}/>
+        <div className="dpd-topbar-mid">
+          <button type="button"
+            onClick={() => setForm(f=>({...f,status:f.status==="active"?"draft":"active"}))}
+            className="dpd-status-btn"
+            style={{ color: form.status==="active" ? "#16a34a" : "var(--sd-muted)" }}>
+            <div style={{ width:7, height:7, borderRadius:"50%", background: form.status==="active" ? "#22c55e" : "var(--sd-border)" }}/>
             {form.status==="active" ? "Active" : "Draft"}
           </button>
         </div>
 
-        <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-          <button type="button" onClick={() => navigate("/seller-dashboard?tab=products")}
-            style={{ padding:"7px 14px",borderRadius:8,border:"1px solid var(--sd-border)",background:"transparent",fontSize:12,fontWeight:600,cursor:"pointer",color:"var(--sd-text)",fontFamily:"var(--sd-font)" }}>
+        <div className="dpd-topbar-right">
+          <button type="button" onClick={() => navigate("/seller-dashboard?tab=products")} className="dpd-discard-btn">
             Discard
           </button>
-          <button type="button" onClick={handleSave} disabled={saving||atLimit}
-            style={{ padding:"7px 18px",borderRadius:8,border:"none",background:saved?"#22c55e":"var(--sd-accent)",color:"#fff",fontSize:12,fontWeight:700,cursor:saving||atLimit?"not-allowed":"pointer",opacity:saving||atLimit?0.6:1,display:"flex",alignItems:"center",gap:6,fontFamily:"var(--sd-font)",transition:"background 0.2s" }}>
-            {saved ? <><Ico d={IC.check} size={13} color="#fff"/>Saved!</>
-             : saving ? "Saving…"
-             : <><Ico d={IC.save} size={13} color="#fff"/>{isNew?"Add Product":"Save Changes"}</>}
+          {/* Publish/Save button — pill style, purple border+text, hover fills */}
+          <button type="button" onClick={handleSave} disabled={saving || atLimit}
+            className={`dpd-save-btn${saved ? " dpd-save-btn--saved" : ""}`}>
+            {saved
+              ? <><Ico d={IC.check} size={13} color="#fff"/>Saved!</>
+              : saving ? "Saving…"
+              : <><Ico d={IC.save} size={13} color="inherit"/>{saveLabel}</>
+            }
           </button>
         </div>
       </div>
 
       {/* ── Main layout ── */}
-      <div style={{ maxWidth:1160,margin:"0 auto",padding:"24px 20px 80px" }}>
+      <div className="dpd-content">
 
-        {/* Page title */}
-        <div style={{ marginBottom:20 }}>
-          <h1 style={{ fontSize:22,fontWeight:800,color:"var(--sd-text)",margin:"0 0 4px",letterSpacing:"-0.03em" }}>
-            {isNew ? "Add Product" : "Edit Product"}
-          </h1>
-          <p style={{ fontSize:13,color:"var(--sd-muted)",margin:0 }}>
+        <div className="dpd-page-head">
+          <h1 className="dpd-page-title">{isNew ? "Add Product" : "Edit Product"}</h1>
+          <p className="dpd-page-sub">
             {isNew ? "Fill in the details below. The preview updates live." : "Your changes are reflected instantly in the preview."}
           </p>
         </div>
 
-        {/* Limit warning */}
         {atLimit && (
-          <div style={{ padding:"12px 16px",borderRadius:10,background:"rgba(245,158,11,0.07)",border:"1px solid rgba(245,158,11,0.25)",marginBottom:16,display:"flex",alignItems:"center",gap:10,fontSize:13,fontWeight:600,color:"#92400e" }}>
+          <div className="dpd-alert dpd-alert--warn">
             <Ico d={IC.alert} size={16} color="#d97706"/>
             Product limit reached on {subscriptionPlan} plan.{" "}
-            <button type="button" onClick={() => navigate("/seller-dashboard?tab=subscription")}
-              style={{ background:"none",border:"none",cursor:"pointer",color:"var(--sd-accent)",fontWeight:700,fontSize:13,fontFamily:"var(--sd-font)",padding:0 }}>
+            <button type="button" onClick={() => navigate("/seller-dashboard?tab=subscription")} className="dpd-alert-link">
               Upgrade →
             </button>
           </div>
         )}
 
-        {/* Error */}
         {error && (
-          <div style={{ padding:"12px 16px",borderRadius:10,background:"var(--sd-danger-bg)",border:"1px solid rgba(220,38,38,0.2)",marginBottom:16,display:"flex",alignItems:"center",gap:10,fontSize:13,fontWeight:600,color:"var(--sd-danger)" }}>
+          <div className="dpd-alert dpd-alert--err">
             <Ico d={IC.alert} size={16} color="var(--sd-danger)"/>{error}
           </div>
         )}
 
-        {/* Two-column grid */}
-        <div style={{ display:"grid",gridTemplateColumns:"1fr 380px",gap:20,alignItems:"start" }}>
+        <div className="dpd-grid">
 
-          {/* ════ LEFT: FORM ════ */}
+          {/* ── LEFT: Form ── */}
           <div>
-
             {/* Title & Description */}
             <Section title="Product Details">
               <Field label="Product Title" required>
                 <div ref={nameRef}>
                   <input value={form.name} onChange={upd("name")} maxLength={120}
                     placeholder="e.g. Ankara Mini Dress — Red Print"
-                    style={{ width:"100%",padding:"10px 13px",border:`1px solid ${fieldErrors.name?"var(--sd-danger)":"var(--sd-border)"}`,borderRadius:8,background:"#f9fafb",color:"var(--sd-text)",fontSize:14,fontWeight:500,outline:"none",fontFamily:"var(--sd-font)",boxSizing:"border-box",transition:"border-color 0.15s",boxShadow:fieldErrors.name?"0 0 0 3px rgba(220,38,38,0.08)":"none" }}
+                    style={{ ...inp(), borderColor: fieldErrors.name ? "var(--sd-danger)" : "var(--sd-border)", boxShadow: fieldErrors.name ? "0 0 0 3px rgba(220,38,38,0.08)" : "none" }}
                     onFocus={e=>{ if(!fieldErrors.name) e.target.style.borderColor="var(--sd-accent)"; }}
-                    onBlur={e=>{ if(!fieldErrors.name) e.target.style.borderColor="var(--sd-border)"; }}/>
-                  {fieldErrors.name && <div style={{ fontSize:11,color:"var(--sd-danger)",fontWeight:600,marginTop:4 }}>Product title is required</div>}
+                    onBlur={e=>{  if(!fieldErrors.name) e.target.style.borderColor="var(--sd-border)"; }}/>
+                  {fieldErrors.name && <div className="dpd-field-err">Product title is required</div>}
                 </div>
               </Field>
+
               <Field label="Description" hint={isProSeller ? "Pro tip: use AI to write a better description." : undefined}>
-                <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8 }}>
-                  <span style={{ fontSize:11,fontWeight:700,color:"var(--sd-muted)",textTransform:"uppercase",letterSpacing:"0.07em" }}>Description</span>
+                <div className="dpd-desc-head">
+                  <span className="dpd-field-label">Description</span>
                   {isProSeller && (
-                    <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-                      <button type="button" onClick={handleAIWrite} disabled={aiWriting}
-                        style={{ display:"flex",alignItems:"center",gap:5,padding:"5px 11px",borderRadius:8,border:"1px solid var(--sd-accent-border)",background:"var(--sd-accent-dim)",color:"var(--sd-accent)",fontSize:11,fontWeight:700,cursor:aiWriting?"wait":"pointer",fontFamily:"var(--sd-font)",transition:"all 0.15s" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <button type="button" onClick={handleAIWrite} disabled={aiWriting} className="dpd-ai-btn">
                         {aiWriting
-                          ? <><div style={{ width:10,height:10,border:"2px solid var(--sd-accent)",borderTopColor:"transparent",borderRadius:"50%",animation:"dpd-spin 0.8s linear infinite" }}/> Writing…</>
-                          : <><Ico d={IC.sparkle} size={12} color="var(--sd-accent)"/> Write with AI</>}
+                          ? <><div className="dpd-spinner-sm"/> Writing…</>
+                          : <><Ico d={IC.sparkle} size={12} color="var(--sd-accent)"/> Write with AI</>
+                        }
                       </button>
-                      <span style={{ fontSize:9,color:"var(--sd-muted)" }}>Writes listings only</span>
                     </div>
                   )}
                 </div>
                 <textarea value={form.description} onChange={upd("description")} rows={5}
                   placeholder="Describe your product — what it is, who it's for, what makes it great…"
-                  style={{ width:"100%",padding:"10px 13px",border:"1px solid var(--sd-border)",borderRadius:8,background:"#f9fafb",color:"var(--sd-text)",fontSize:13,outline:"none",resize:"vertical",fontFamily:"var(--sd-font)",lineHeight:1.65,boxSizing:"border-box",minHeight:100,transition:"border-color 0.15s" }}
+                  style={{ ...inp({ fontSize:13, resize:"vertical", lineHeight:"1.65", minHeight:100 }) }}
                   onFocus={e=>e.target.style.borderColor="var(--sd-accent)"}
                   onBlur={e=>e.target.style.borderColor="var(--sd-border)"}/>
               </Field>
 
-              {/* AI generated preview */}
               {aiGenerated && (
-                <div style={{ padding:"14px 16px",background:"rgba(21,128,61,0.04)",borderRadius:10,border:"1px solid rgba(21,128,61,0.2)",marginTop:4 }}>
-                  <div style={{ fontSize:10,fontWeight:800,color:"#16a34a",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:12 }}>AI Generated — Review and apply</div>
+                <div className="dpd-ai-result">
+                  <div className="dpd-ai-result-label">AI Generated — Review and apply</div>
                   <div style={{ marginBottom:10 }}>
-                    <div style={{ fontSize:10,fontWeight:700,color:"var(--sd-muted)",marginBottom:5,textTransform:"uppercase",letterSpacing:"0.06em" }}>SEO Title</div>
-                    <div style={{ fontSize:13,fontWeight:700,color:"var(--sd-text)",background:"var(--sd-white)",padding:"8px 12px",borderRadius:7,border:"1px solid var(--sd-border)" }}>{aiGenerated.title}</div>
+                    <div className="dpd-ai-result-sub">SEO Title</div>
+                    <div className="dpd-ai-result-box">{aiGenerated.title}</div>
                   </div>
                   <div style={{ marginBottom:14 }}>
-                    <div style={{ fontSize:10,fontWeight:700,color:"var(--sd-muted)",marginBottom:5,textTransform:"uppercase",letterSpacing:"0.06em" }}>Description</div>
-                    <div style={{ fontSize:13,color:"var(--sd-text2)",background:"var(--sd-white)",padding:"10px 12px",borderRadius:7,border:"1px solid var(--sd-border)",lineHeight:1.65 }}>{aiGenerated.description}</div>
+                    <div className="dpd-ai-result-sub">Description</div>
+                    <div className="dpd-ai-result-box" style={{ lineHeight:1.65, color:"var(--sd-text2)" }}>{aiGenerated.description}</div>
                   </div>
-                  <div style={{ display:"flex",gap:7,flexWrap:"wrap" }}>
-                    {[["both","Apply Both","var(--sd-accent)"],["description","Description only","var(--sd-white)"],["title","Title only","var(--sd-white)"]].map(([f,l,bg])=>(
-                      <button key={f} type="button" onClick={()=>applyAI(f)}
-                        style={{ padding:"7px 14px",borderRadius:8,border:`1px solid ${f==="both"?"var(--sd-accent)":"var(--sd-border)"}`,background:f==="both"?"var(--sd-accent)":bg,color:f==="both"?"#fff":"var(--sd-text)",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"var(--sd-font)" }}>
-                        {l}
-                      </button>
+                  <div style={{ display:"flex", gap:7, flexWrap:"wrap" }}>
+                    {[["both","Apply Both",true],["description","Description only",false],["title","Title only",false]].map(([f,l,primary])=>(
+                      <button key={f} type="button" onClick={()=>applyAI(f)} className={primary?"dpd-ai-apply-primary":"dpd-ai-apply"}>{l}</button>
                     ))}
-                    <button type="button" onClick={()=>{setAiGenerated(null);handleAIWrite();}}
-                      style={{ padding:"7px 12px",borderRadius:8,border:"1px solid var(--sd-accent-border)",background:"var(--sd-accent-dim)",color:"var(--sd-accent)",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"var(--sd-font)" }}>
-                      Regenerate
-                    </button>
-                    <button type="button" onClick={()=>setAiGenerated(null)}
-                      style={{ padding:"7px 12px",borderRadius:8,border:"none",background:"none",color:"var(--sd-muted)",fontSize:12,cursor:"pointer" }}>
-                      Dismiss
-                    </button>
+                    <button type="button" onClick={()=>{setAiGenerated(null);handleAIWrite();}} className="dpd-ai-apply">Regenerate</button>
+                    <button type="button" onClick={()=>setAiGenerated(null)} className="dpd-ai-dismiss">Dismiss</button>
                   </div>
                 </div>
               )}
             </Section>
 
-            {/* Media */}
+            {/* Photos */}
             <Section title="Product Photos" subtitle="Add up to 5 photos. The first image is your main listing photo.">
               <div ref={imagesRef}>
                 {fieldErrors.images && (
-                  <div style={{ padding:"9px 12px",borderRadius:8,background:"var(--sd-danger-bg)",border:"1px solid rgba(220,38,38,0.2)",fontSize:12,color:"var(--sd-danger)",fontWeight:600,marginBottom:12,display:"flex",alignItems:"center",gap:6 }}>
+                  <div className="dpd-alert dpd-alert--err" style={{ marginBottom:12 }}>
                     <Ico d={IC.alert} size={13} color="var(--sd-danger)"/> Add at least one product photo to continue
                   </div>
                 )}
@@ -772,31 +701,29 @@ export default function DashboardProductDetail() {
 
             {/* Pricing */}
             <Section title="Pricing">
-              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
+              <div className="dpd-2col">
                 <Field label="Price (GHS)" required>
                   <div ref={priceRef}>
-                    <div style={{ display:"flex",alignItems:"center",border:`1px solid ${fieldErrors.price?"var(--sd-danger)":"var(--sd-border)"}`,borderRadius:8,overflow:"hidden",background:"#f9fafb",transition:"border-color 0.15s",boxShadow:fieldErrors.price?"0 0 0 3px rgba(220,38,38,0.08)":"none" }}
+                    <div className="dpd-price-wrap" style={{ borderColor: fieldErrors.price ? "var(--sd-danger)" : "var(--sd-border)", boxShadow: fieldErrors.price ? "0 0 0 3px rgba(220,38,38,0.08)" : "none" }}
                       onFocusCapture={e=>{ if(!fieldErrors.price) e.currentTarget.style.borderColor="var(--sd-accent)"; }}
-                      onBlurCapture={e=>{ if(!fieldErrors.price) e.currentTarget.style.borderColor=fieldErrors.price?"var(--sd-danger)":"var(--sd-border)"; }}>
-                      <span style={{ padding:"0 10px",fontSize:12,fontWeight:700,color:"var(--sd-muted)",borderRight:"1px solid var(--sd-border)",lineHeight:"42px",userSelect:"none" }}>GHS</span>
-                      <input type="number" min="0" step="0.01" value={form.price} onChange={upd("price")} placeholder="0.00"
-                        style={{ flex:1,padding:"10px 12px",border:"none",background:"transparent",color:"var(--sd-text)",fontSize:14,fontWeight:600,outline:"none",fontFamily:"var(--sd-font)" }}/>
+                      onBlurCapture={e=>{  if(!fieldErrors.price) e.currentTarget.style.borderColor=fieldErrors.price?"var(--sd-danger)":"var(--sd-border)"; }}>
+                      <span className="dpd-price-prefix">GHS</span>
+                      <input type="number" min="0" step="0.01" value={form.price} onChange={upd("price")} placeholder="0.00" className="dpd-price-input"/>
                     </div>
-                    {fieldErrors.price && <div style={{ fontSize:11,color:"var(--sd-danger)",fontWeight:600,marginTop:4 }}>Enter a valid price</div>}
+                    {fieldErrors.price && <div className="dpd-field-err">Enter a valid price</div>}
                   </div>
                 </Field>
                 <Field label="Compare-at Price (GHS)" hint="Shows as crossed-out original price">
-                  <div style={{ display:"flex",alignItems:"center",border:"1px solid var(--sd-border)",borderRadius:8,overflow:"hidden",background:"var(--sd-bg)",transition:"border-color 0.15s" }}
+                  <div className="dpd-price-wrap"
                     onFocusCapture={e=>e.currentTarget.style.borderColor="var(--sd-accent)"}
                     onBlurCapture={e=>e.currentTarget.style.borderColor="var(--sd-border)"}>
-                    <span style={{ padding:"0 10px",fontSize:12,fontWeight:700,color:"var(--sd-muted)",borderRight:"1px solid var(--sd-border)",lineHeight:"42px",userSelect:"none" }}>GHS</span>
-                    <input type="number" min="0" step="0.01" value={form.comparePrice} onChange={upd("comparePrice")} placeholder="0.00"
-                      style={{ flex:1,padding:"10px 12px",border:"none",background:"transparent",color:"var(--sd-text)",fontSize:14,fontWeight:600,outline:"none",fontFamily:"var(--sd-font)" }}/>
+                    <span className="dpd-price-prefix">GHS</span>
+                    <input type="number" min="0" step="0.01" value={form.comparePrice} onChange={upd("comparePrice")} placeholder="0.00" className="dpd-price-input"/>
                   </div>
                 </Field>
               </div>
-              {form.comparePrice && Number(form.comparePrice) > Number(form.price) && Number(form.price) > 0 && (
-                <div style={{ padding:"9px 12px",borderRadius:8,background:"rgba(21,128,61,0.07)",border:"1px solid rgba(21,128,61,0.2)",fontSize:12,color:"#15803d",fontWeight:600,marginTop:-4 }}>
+              {form.comparePrice && Number(form.comparePrice)>Number(form.price) && Number(form.price)>0 && (
+                <div className="dpd-discount-note">
                   Discount: GHS {(Number(form.comparePrice)-Number(form.price)).toFixed(2)} ({Math.round(((Number(form.comparePrice)-Number(form.price))/Number(form.comparePrice))*100)}% off) — buyers see this as a sale
                 </div>
               )}
@@ -804,24 +731,24 @@ export default function DashboardProductDetail() {
 
             {/* Category */}
             <Section title="Category" subtitle="Choose the most relevant category for better search visibility.">
-              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
+              <div className="dpd-2col">
                 <Field label="Main Category" required>
                   <div ref={categoryRef}>
                     <select value={form.category}
                       onChange={e=>{ setForm(f=>({...f,category:e.target.value,subcategory:""})); clearFieldError("category"); }}
-                      style={{ width:"100%",padding:"10px 13px",border:`1px solid ${fieldErrors.category?"var(--sd-danger)":"var(--sd-border)"}`,borderRadius:8,background:"#f9fafb",color:form.category?"var(--sd-text)":"var(--sd-muted)",fontSize:13,fontWeight:500,outline:"none",fontFamily:"var(--sd-font)",cursor:"pointer",boxSizing:"border-box",transition:"border-color 0.15s",appearance:"none",boxShadow:fieldErrors.category?"0 0 0 3px rgba(220,38,38,0.08)":"none" }}
+                      style={{ ...inp({ appearance:"none", cursor:"pointer", color: form.category?"var(--sd-text)":"var(--sd-muted)", borderColor: fieldErrors.category?"var(--sd-danger)":"var(--sd-border)", boxShadow: fieldErrors.category?"0 0 0 3px rgba(220,38,38,0.08)":"none" }) }}
                       onFocus={e=>{ if(!fieldErrors.category) e.target.style.borderColor="var(--sd-accent)"; }}
-                      onBlur={e=>{ if(!fieldErrors.category) e.target.style.borderColor="var(--sd-border)"; }}>
+                      onBlur={e=>{  if(!fieldErrors.category) e.target.style.borderColor="var(--sd-border)"; }}>
                       <option value="">Select a category</option>
                       {MARKETPLACE_CATEGORIES.map(c=><option key={c.key} value={c.label}>{c.label}</option>)}
                     </select>
-                    {fieldErrors.category && <div style={{ fontSize:11,color:"var(--sd-danger)",fontWeight:600,marginTop:4 }}>Please select a category</div>}
+                    {fieldErrors.category && <div className="dpd-field-err">Please select a category</div>}
                   </div>
                 </Field>
                 {selectedCatObj?.subcategories?.length > 0 && (
                   <Field label="Subcategory">
                     <select value={form.subcategory} onChange={upd("subcategory")}
-                      style={{ width:"100%",padding:"10px 13px",border:"1px solid var(--sd-border)",borderRadius:8,background:"var(--sd-bg)",color:"var(--sd-text)",fontSize:13,fontWeight:500,outline:"none",fontFamily:"var(--sd-font)",cursor:"pointer",boxSizing:"border-box",appearance:"none",transition:"border-color 0.15s" }}
+                      style={{ ...inp({ appearance:"none", cursor:"pointer" }) }}
                       onFocus={e=>e.target.style.borderColor="var(--sd-accent)"}
                       onBlur={e=>e.target.style.borderColor="var(--sd-border)"}>
                       <option value="">Select subcategory</option>
@@ -838,32 +765,26 @@ export default function DashboardProductDetail() {
                 <Toggle checked={form.trackInventory} onChange={()=>setForm(f=>({...f,trackInventory:!f.trackInventory}))} label="Track inventory" sub="Recommended — lets buyers see stock levels"/>
               </div>
               {!form.trackInventory && (
-                <div style={{ padding:"10px 14px",borderRadius:9,background:"var(--sd-danger-bg)",border:"1px solid rgba(220,38,38,0.2)",fontSize:12,color:"var(--sd-danger)",marginBottom:14,lineHeight:1.5 }}>
+                <div className="dpd-alert dpd-alert--err" style={{ marginBottom:14 }}>
                   Sellers with no inventory tracking may have payouts held during review periods.
                 </div>
               )}
               {form.trackInventory && (
-                <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14 }}>
+                <div className="dpd-2col" style={{ marginBottom:14 }}>
                   <Field label="Stock Quantity" required>
                     <input type="number" min="0" value={form.stock} onChange={upd("stock")} placeholder="e.g. 12"
-                      style={{ width:"100%",padding:"10px 13px",border:"1px solid var(--sd-border)",borderRadius:8,background:"var(--sd-bg)",color:"var(--sd-text)",fontSize:14,fontWeight:600,outline:"none",fontFamily:"var(--sd-font)",boxSizing:"border-box",transition:"border-color 0.15s" }}
-                      onFocus={e=>e.target.style.borderColor="var(--sd-accent)"}
-                      onBlur={e=>e.target.style.borderColor="var(--sd-border)"}/>
+                      style={inp()} onFocus={e=>e.target.style.borderColor="var(--sd-accent)"} onBlur={e=>e.target.style.borderColor="var(--sd-border)"}/>
                   </Field>
                   <Field label="Low Stock Alert" hint="Notifies you when stock falls below this">
                     <input type="number" min="0" value={form.lowStockAlert} onChange={upd("lowStockAlert")} placeholder="e.g. 3"
-                      style={{ width:"100%",padding:"10px 13px",border:"1px solid var(--sd-border)",borderRadius:8,background:"var(--sd-bg)",color:"var(--sd-text)",fontSize:14,fontWeight:600,outline:"none",fontFamily:"var(--sd-font)",boxSizing:"border-box",transition:"border-color 0.15s" }}
-                      onFocus={e=>e.target.style.borderColor="var(--sd-accent)"}
-                      onBlur={e=>e.target.style.borderColor="var(--sd-border)"}/>
+                      style={inp()} onFocus={e=>e.target.style.borderColor="var(--sd-accent)"} onBlur={e=>e.target.style.borderColor="var(--sd-border)"}/>
                   </Field>
                 </div>
               )}
-              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12 }}>
+              <div className="dpd-2col">
                 <Field label="SKU (optional)">
                   <input type="text" value={form.sku} onChange={upd("sku")} placeholder="e.g. BM-DR-001"
-                    style={{ width:"100%",padding:"10px 13px",border:"1px solid var(--sd-border)",borderRadius:8,background:"var(--sd-bg)",color:"var(--sd-text)",fontSize:13,fontWeight:500,outline:"none",fontFamily:"var(--sd-font)",boxSizing:"border-box",transition:"border-color 0.15s" }}
-                    onFocus={e=>e.target.style.borderColor="var(--sd-accent)"}
-                    onBlur={e=>e.target.style.borderColor="var(--sd-border)"}/>
+                    style={inp()} onFocus={e=>e.target.style.borderColor="var(--sd-accent)"} onBlur={e=>e.target.style.borderColor="var(--sd-border)"}/>
                 </Field>
                 <div style={{ paddingTop:24 }}>
                   <Toggle checked={form.inStock} onChange={()=>setForm(f=>({...f,inStock:!f.inStock}))} label="In Stock" sub="Visible and buyable in marketplace"/>
@@ -871,18 +792,18 @@ export default function DashboardProductDetail() {
               </div>
             </Section>
 
-            {/* Status & Visibility */}
+            {/* Status */}
             <Section title="Status & Visibility">
-              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14 }}>
+              <div className="dpd-2col" style={{ marginBottom:14 }}>
                 {["active","draft"].map(s=>(
-                  <label key={s} onClick={()=>setForm(f=>({...f,status:s}))}
-                    style={{ display:"flex",alignItems:"center",gap:10,padding:"12px 14px",borderRadius:9,border:`1.5px solid ${form.status===s?"var(--sd-accent)":"var(--sd-border)"}`,background:form.status===s?"var(--sd-accent-dim)":"transparent",cursor:"pointer",transition:"all 0.15s" }}>
-                    <div style={{ width:18,height:18,borderRadius:"50%",border:`2px solid ${form.status===s?"var(--sd-accent)":"var(--sd-border)"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
-                      {form.status===s && <div style={{ width:8,height:8,borderRadius:"50%",background:"var(--sd-accent)" }}/>}
+                  <label key={s} onClick={()=>setForm(f=>({...f,status:s}))} className="dpd-status-radio"
+                    style={{ borderColor: form.status===s?"var(--sd-accent)":"var(--sd-border)", background: form.status===s?"var(--sd-accent-dim)":"transparent" }}>
+                    <div className="dpd-radio-dot" style={{ borderColor: form.status===s?"var(--sd-accent)":"var(--sd-border)" }}>
+                      {form.status===s && <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--sd-accent)" }}/>}
                     </div>
                     <div>
-                      <div style={{ fontSize:13,fontWeight:700,color:form.status===s?"var(--sd-accent)":"var(--sd-text)" }}>{s==="active"?"Active":"Draft"}</div>
-                      <div style={{ fontSize:11,color:"var(--sd-muted)" }}>{s==="active"?"Visible to buyers":"Hidden from marketplace"}</div>
+                      <div style={{ fontSize:13, fontWeight:700, color: form.status===s?"var(--sd-accent)":"var(--sd-text)" }}>{s==="active"?"Active":"Draft"}</div>
+                      <div style={{ fontSize:11, color:"var(--sd-muted)" }}>{s==="active"?"Visible to buyers":"Hidden from marketplace"}</div>
                     </div>
                   </label>
                 ))}
@@ -890,56 +811,50 @@ export default function DashboardProductDetail() {
               <Toggle checked={form.featured} onChange={()=>setForm(f=>({...f,featured:!f.featured}))} label="Featured Product" sub="Gets highlighted on your store page and trending sections"/>
             </Section>
 
-            {/* Product Options */}
+            {/* Options */}
             <Section title="Product Options" subtitle="Add size, color, storage, or any variant buyers can choose.">
               {form.customizations.length > 0 && (
-                <div style={{ display:"flex",flexDirection:"column",gap:12,marginBottom:14 }}>
+                <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:14 }}>
                   {form.customizations.map((group, gi) => (
-                    <div key={group.id} style={{ border:"1px solid var(--sd-border)",borderRadius:10,padding:"14px" }}>
-                      <div style={{ display:"flex",alignItems:"flex-start",gap:10,marginBottom:12 }}>
+                    <div key={group.id} className="dpd-opt-group">
+                      <div className="dpd-opt-group-head">
                         <div style={{ flex:1 }}>
-                          <label style={{ display:"block",fontSize:10,fontWeight:700,color:"var(--sd-muted)",textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:6 }}>Option Name</label>
+                          <label className="dpd-field-label">Option Name</label>
                           <input value={group.name}
                             onChange={e=>setForm(f=>({...f,customizations:f.customizations.map((g,i)=>i===gi?{...g,name:e.target.value}:g)}))}
                             placeholder="e.g. Size, Color, Storage"
-                            style={{ width:"100%",padding:"9px 12px",border:"1px solid var(--sd-border)",borderRadius:8,background:"var(--sd-bg)",color:"var(--sd-text)",fontSize:13,fontWeight:500,outline:"none",fontFamily:"var(--sd-font)",boxSizing:"border-box",transition:"border-color 0.15s" }}
-                            onFocus={e=>e.target.style.borderColor="var(--sd-accent)"}
-                            onBlur={e=>e.target.style.borderColor="var(--sd-border)"}/>
+                            style={inp()} onFocus={e=>e.target.style.borderColor="var(--sd-accent)"} onBlur={e=>e.target.style.borderColor="var(--sd-border)"}/>
                         </div>
-                        <div style={{ width:120,flexShrink:0 }}>
-                          <label style={{ display:"block",fontSize:10,fontWeight:700,color:"var(--sd-muted)",textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:6 }}>Display</label>
+                        <div style={{ width:120, flexShrink:0 }}>
+                          <label className="dpd-field-label">Display</label>
                           <select value={group.type}
                             onChange={e=>setForm(f=>({...f,customizations:f.customizations.map((g,i)=>i===gi?{...g,type:e.target.value}:g)}))}
-                            style={{ width:"100%",padding:"9px 12px",border:"1px solid var(--sd-border)",borderRadius:8,background:"var(--sd-bg)",color:"var(--sd-text)",fontSize:12,outline:"none",fontFamily:"var(--sd-font)",cursor:"pointer",appearance:"none",transition:"border-color 0.15s" }}>
+                            style={{ ...inp({ appearance:"none", fontSize:12, cursor:"pointer" }) }}>
                             <option value="buttons">Buttons</option>
                             <option value="select">Dropdown</option>
                           </select>
                         </div>
                         <button type="button" onClick={()=>setForm(f=>({...f,customizations:f.customizations.filter((_,i)=>i!==gi)}))}
-                          style={{ width:32,height:32,borderRadius:8,border:"1px solid rgba(220,38,38,0.2)",background:"rgba(220,38,38,0.06)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",marginTop:22,flexShrink:0 }}>
+                          style={{ width:32, height:32, borderRadius:8, border:"1px solid rgba(220,38,38,0.2)", background:"rgba(220,38,38,0.06)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", marginTop:22, flexShrink:0 }}>
                           <Ico d={IC.trash} size={13} color="var(--sd-danger)"/>
                         </button>
                       </div>
-                      <label style={{ display:"block",fontSize:10,fontWeight:700,color:"var(--sd-muted)",textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:8 }}>Values</label>
-                      <div style={{ display:"flex",flexDirection:"column",gap:7 }}>
+                      <label className="dpd-field-label">Values</label>
+                      <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
                         {group.values.map((val, vi) => (
-                          <div key={val.id} style={{ display:"flex",gap:8,alignItems:"center" }}>
+                          <div key={val.id} style={{ display:"flex", gap:8, alignItems:"center" }}>
                             <input value={val.label} placeholder="e.g. Small"
                               onChange={e=>setForm(f=>({...f,customizations:f.customizations.map((g,gi2)=>gi2!==gi?g:{...g,values:g.values.map((v,vi2)=>vi2===vi?{...v,label:e.target.value}:v)})}))}
-                              style={{ flex:2,padding:"8px 12px",border:"1px solid var(--sd-border)",borderRadius:8,background:"var(--sd-bg)",color:"var(--sd-text)",fontSize:13,outline:"none",fontFamily:"var(--sd-font)",transition:"border-color 0.15s" }}
-                              onFocus={e=>e.target.style.borderColor="var(--sd-accent)"}
-                              onBlur={e=>e.target.style.borderColor="var(--sd-border)"}/>
-                            <div style={{ position:"relative",flex:1 }}>
-                              <span style={{ position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",fontSize:11,fontWeight:700,color:"var(--sd-muted)",pointerEvents:"none" }}>±GHS</span>
+                              style={{ ...inp(), flex:2 }} onFocus={e=>e.target.style.borderColor="var(--sd-accent)"} onBlur={e=>e.target.style.borderColor="var(--sd-border)"}/>
+                            <div style={{ position:"relative", flex:1 }}>
+                              <span style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", fontSize:11, fontWeight:700, color:"var(--sd-muted)", pointerEvents:"none" }}>±GHS</span>
                               <input type="number" value={val.priceBump} placeholder="0"
                                 onChange={e=>setForm(f=>({...f,customizations:f.customizations.map((g,gi2)=>gi2!==gi?g:{...g,values:g.values.map((v,vi2)=>vi2===vi?{...v,priceBump:e.target.value}:v)})}))}
-                                style={{ width:"100%",padding:"8px 12px 8px 44px",border:"1px solid var(--sd-border)",borderRadius:8,background:"var(--sd-bg)",color:"var(--sd-text)",fontSize:13,outline:"none",fontFamily:"var(--sd-font)",boxSizing:"border-box",transition:"border-color 0.15s" }}
-                                onFocus={e=>e.target.style.borderColor="var(--sd-accent)"}
-                                onBlur={e=>e.target.style.borderColor="var(--sd-border)"}/>
+                                style={{ ...inp({ paddingLeft:44, width:"100%" }) }} onFocus={e=>e.target.style.borderColor="var(--sd-accent)"} onBlur={e=>e.target.style.borderColor="var(--sd-border)"}/>
                             </div>
                             <button type="button" disabled={group.values.length<=1}
                               onClick={()=>setForm(f=>({...f,customizations:f.customizations.map((g,gi2)=>gi2!==gi?g:{...g,values:g.values.filter((_,vi2)=>vi2!==vi)})}))}
-                              style={{ width:28,height:28,borderRadius:7,border:"1px solid var(--sd-border)",background:"transparent",cursor:group.values.length<=1?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",opacity:group.values.length<=1?0.3:1,flexShrink:0 }}>
+                              style={{ width:28, height:28, borderRadius:7, border:"1px solid var(--sd-border)", background:"transparent", cursor:group.values.length<=1?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", opacity:group.values.length<=1?0.3:1, flexShrink:0 }}>
                               <Ico d={IC.close} size={11} color="var(--sd-muted)"/>
                             </button>
                           </div>
@@ -947,7 +862,7 @@ export default function DashboardProductDetail() {
                       </div>
                       <button type="button"
                         onClick={()=>setForm(f=>({...f,customizations:f.customizations.map((g,gi2)=>gi2!==gi?g:{...g,values:[...g.values,makeOptVal()]})}))}
-                        style={{ marginTop:10,display:"flex",alignItems:"center",gap:5,fontSize:12,fontWeight:700,color:"var(--sd-accent)",background:"none",border:"none",cursor:"pointer",padding:"4px 0",fontFamily:"var(--sd-font)" }}>
+                        className="dpd-add-val-btn">
                         <Ico d={IC.plus} size={12} color="var(--sd-accent)"/> Add value
                       </button>
                     </div>
@@ -956,23 +871,20 @@ export default function DashboardProductDetail() {
               )}
               <button type="button"
                 onClick={()=>setForm(f=>({...f,customizations:[...f.customizations,makeOptGroup()]}))}
-                style={{ display:"flex",alignItems:"center",gap:8,width:"100%",padding:"10px 16px",borderRadius:9,border:"1.5px dashed var(--sd-border)",background:"transparent",cursor:"pointer",fontFamily:"var(--sd-font)",fontSize:13,fontWeight:600,color:"var(--sd-text)",justifyContent:"center",transition:"border-color 0.15s,background 0.15s" }}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--sd-accent)";e.currentTarget.style.background="var(--sd-accent-dim)"}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--sd-border)";e.currentTarget.style.background="transparent"}}>
+                className="dpd-add-group-btn">
                 <Ico d={IC.plus} size={14} color="var(--sd-accent)"/> Add option group
               </button>
             </Section>
-
           </div>
 
-          {/* ════ RIGHT: LIVE PREVIEW ════ */}
-          <div style={{ position:"sticky",top:70 }}>
-            <ProductPreview form={form} />
+          {/* ── RIGHT: Preview ── */}
+          <div className="dpd-preview-col">
+            <ProductPreview form={form}/>
             {shop && (
-              <div style={{ marginTop:12,padding:"12px 14px",background:"var(--sd-white)",border:"1px solid var(--sd-border)",borderRadius:12,fontSize:12 }}>
-                <div style={{ fontSize:10,fontWeight:700,color:"var(--sd-muted)",textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:6 }}>Store</div>
-                <div style={{ fontWeight:700,color:"var(--sd-text)",marginBottom:2 }}>{shop.shopName}</div>
-                <div style={{ color:"var(--sd-muted)" }}>
+              <div className="dpd-store-info-card">
+                <div className="dpd-field-label" style={{ marginBottom:6 }}>Store</div>
+                <div style={{ fontWeight:700, color:"var(--sd-text)", marginBottom:2 }}>{shop.shopName}</div>
+                <div style={{ color:"var(--sd-muted)", fontSize:12 }}>
                   {subscriptionPlan?.charAt(0).toUpperCase()+subscriptionPlan?.slice(1)} Plan ·{" "}
                   {allProducts.length}/{maxProds} products used
                 </div>
@@ -982,26 +894,338 @@ export default function DashboardProductDetail() {
         </div>
       </div>
 
-      {/* Mobile save bar */}
-      <div className="dpd-mobile-bar" style={{ position:"fixed",bottom:0,left:0,right:0,background:"var(--sd-white)",borderTop:"1px solid var(--sd-border)",padding:"12px 16px",display:"flex",gap:10,zIndex:50 }}>
-        <button type="button" onClick={()=>navigate("/seller-dashboard?tab=products")}
-          style={{ flex:1,padding:"12px",borderRadius:10,border:"1px solid var(--sd-border)",background:"transparent",fontSize:14,fontWeight:700,cursor:"pointer",color:"var(--sd-text)",fontFamily:"var(--sd-font)" }}>
+      {/* ── Mobile save bar ── */}
+      <div className="dpd-mobile-bar">
+        <button type="button" onClick={()=>navigate("/seller-dashboard?tab=products")} className="dpd-mobile-discard">
           Discard
         </button>
-        <button type="button" onClick={handleSave} disabled={saving||atLimit}
-          style={{ flex:2,padding:"12px",borderRadius:10,border:"none",background:saved?"#22c55e":"var(--sd-accent)",color:"#fff",fontSize:14,fontWeight:800,cursor:saving||atLimit?"not-allowed":"pointer",opacity:saving||atLimit?0.6:1,fontFamily:"var(--sd-font)" }}>
-          {saved?"Saved!":saving?"Saving…":isNew?"Add Product":"Save Changes"}
+        <button type="button" onClick={handleSave} disabled={saving||atLimit} className="dpd-mobile-save">
+          {saved ? "Saved!" : saving ? "Saving…" : isNew ? "Publish Product" : "Save Changes"}
         </button>
       </div>
 
       <style>{`
         @keyframes dpd-spin { to { transform: rotate(360deg); } }
-        @media(max-width:768px){
-          .dpd-mobile-bar { display: flex !important; }
-          [style*="grid-template-columns: 1fr 380px"] { grid-template-columns: 1fr !important; }
+        @keyframes dpd-shimmer {
+          0%   { background-position: -600px 0; }
+          100% { background-position: calc(600px + 100%) 0; }
         }
-        @media(min-width:769px){
-          .dpd-mobile-bar { display: none !important; }
+
+        /* Root */
+        .dpd-root {
+          min-height: 100vh;
+          background: var(--sd-white);
+          font-family: var(--sd-font, 'DM Sans', system-ui, sans-serif);
+          color: var(--sd-text);
+        }
+
+        /* Loading */
+        .dpd-loading {
+          min-height: 100vh; background: var(--sd-white);
+          display: flex; align-items: center; justify-content: center;
+          gap: 10px; color: var(--sd-muted); font-size: 14px;
+          font-family: var(--sd-font);
+        }
+
+        /* Spinners */
+        .dpd-spinner {
+          width: 22px; height: 22px; border-radius: 50%;
+          border: 2.5px solid var(--sd-border);
+          border-top-color: var(--sd-accent);
+          animation: dpd-spin 0.7s linear infinite;
+        }
+        .dpd-spinner-sm {
+          width: 10px; height: 10px; border-radius: 50%;
+          border: 2px solid var(--sd-accent); border-top-color: transparent;
+          animation: dpd-spin 0.8s linear infinite;
+          display: inline-block;
+        }
+
+        /* ── Topbar ── */
+        .dpd-topbar {
+          background: var(--sd-white);
+          border-bottom: 1px solid var(--sd-border);
+          padding: 0 16px; height: 54px;
+          display: flex; align-items: center; justify-content: space-between;
+          position: sticky; top: 0; z-index: 100; gap: 10px;
+        }
+        .dpd-back-btn {
+          display: flex; align-items: center; gap: 7px;
+          background: none; border: none; cursor: pointer;
+          color: var(--sd-text); font-size: 13px; font-weight: 600;
+          padding: 0; font-family: inherit; flex-shrink: 0;
+        }
+        .dpd-topbar-mid { flex: 1; display: flex; align-items: center; gap: 10px; }
+        .dpd-status-btn {
+          display: flex; align-items: center; gap: 6px;
+          padding: 5px 12px; border-radius: 8px;
+          border: 1px solid var(--sd-border); background: transparent;
+          cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600;
+          transition: all 0.15s;
+        }
+        .dpd-topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .dpd-discard-btn {
+          padding: 7px 14px; border-radius: 100px;
+          border: 1px solid var(--sd-border); background: transparent;
+          font-size: 12px; font-weight: 600; cursor: pointer;
+          color: var(--sd-text); font-family: inherit;
+          transition: background 0.15s;
+        }
+        .dpd-discard-btn:hover { background: var(--sd-border-light); }
+
+        /* Publish / Save button — pill, purple border + text, hover fills */
+        .dpd-save-btn {
+          display: flex; align-items: center; gap: 6px;
+          padding: 7px 18px; border-radius: 100px;
+          border: 1.5px solid var(--sd-accent);
+          background: transparent; color: var(--sd-accent);
+          font-size: 12px; font-weight: 700; cursor: pointer;
+          font-family: inherit; transition: background 0.18s, color 0.18s;
+          white-space: nowrap;
+        }
+        .dpd-save-btn:hover:not(:disabled) {
+          background: var(--sd-accent); color: #fff;
+        }
+        .dpd-save-btn--saved {
+          background: #22c55e; border-color: #22c55e; color: #fff;
+        }
+        .dpd-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Content */
+        .dpd-content { max-width: 1160px; margin: 0 auto; padding: 24px 16px 120px; }
+
+        .dpd-page-head   { margin-bottom: 20px; }
+        .dpd-page-title  { font-size: 22px; font-weight: 800; color: var(--sd-text); margin: 0 0 4px; letter-spacing: -0.03em; }
+        .dpd-page-sub    { font-size: 13px; color: var(--sd-muted); margin: 0; }
+
+        /* Alerts */
+        .dpd-alert {
+          padding: 12px 16px; border-radius: 10px;
+          display: flex; align-items: center; gap: 10px;
+          font-size: 13px; font-weight: 600; margin-bottom: 16px; border: 1px solid;
+        }
+        .dpd-alert--warn { background: rgba(245,158,11,0.07); border-color: rgba(245,158,11,0.25); color: #92400e; }
+        .dpd-alert--err  { background: var(--sd-danger-bg, rgba(220,38,38,0.06)); border-color: rgba(220,38,38,0.2); color: var(--sd-danger, #dc2626); }
+        .dpd-alert-link  { background: none; border: none; cursor: pointer; color: var(--sd-accent); font-weight: 700; font-size: 13px; font-family: inherit; padding: 0; }
+
+        /* Two-column grid */
+        .dpd-grid {
+          display: grid;
+          grid-template-columns: 1fr 360px;
+          gap: 20px; align-items: start;
+        }
+
+        /* Section */
+        .dpd-section {
+          background: var(--sd-white);
+          border: 1px solid var(--sd-border);
+          border-radius: 14px; overflow: hidden; margin-bottom: 14px;
+          transition: background 0.25s, border-color 0.25s;
+        }
+        .dpd-section-head  { padding: 16px 20px 0; }
+        .dpd-section-title { font-size: 13px; font-weight: 700; color: var(--sd-text); letter-spacing: -0.01em; }
+        .dpd-section-sub   { font-size: 11px; color: var(--sd-muted); margin-top: 2px; }
+        .dpd-section-body  { padding: 14px 20px 18px; }
+
+        /* Fields */
+        .dpd-field       { margin-bottom: 14px; }
+        .dpd-field-label {
+          display: block; font-size: 11px; font-weight: 700;
+          color: var(--sd-muted); text-transform: uppercase;
+          letter-spacing: 0.07em; margin-bottom: 7px;
+        }
+        .dpd-field-err { font-size: 11px; color: var(--sd-danger, #dc2626); font-weight: 600; margin-top: 4px; }
+        .dpd-hint      { font-size: 11px; color: var(--sd-muted); margin-top: 5px; }
+
+        /* 2-col grid inside sections */
+        .dpd-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        /* Price input */
+        .dpd-price-wrap {
+          display: flex; align-items: center;
+          border: 1px solid var(--sd-border); border-radius: 8px;
+          overflow: hidden; background: var(--sd-white);
+          transition: border-color 0.15s;
+        }
+        .dpd-price-prefix {
+          padding: 0 10px; font-size: 12px; font-weight: 700; color: var(--sd-muted);
+          border-right: 1px solid var(--sd-border); line-height: 42px; user-select: none; flex-shrink: 0;
+        }
+        .dpd-price-input {
+          flex: 1; padding: 10px 12px; border: none; background: transparent;
+          color: var(--sd-text); font-size: 14px; font-weight: 600;
+          outline: none; font-family: inherit;
+        }
+
+        .dpd-discount-note {
+          padding: 9px 12px; border-radius: 8px;
+          background: rgba(21,128,61,0.07); border: 1px solid rgba(21,128,61,0.2);
+          font-size: 12px; color: #15803d; font-weight: 600; margin-top: -4px;
+        }
+
+        /* Description head */
+        .dpd-desc-head {
+          display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+        }
+
+        /* AI button */
+        .dpd-ai-btn {
+          display: flex; align-items: center; gap: 5px;
+          padding: 5px 11px; border-radius: 8px;
+          border: 1px solid var(--sd-accent-border, rgba(124,58,237,0.2));
+          background: var(--sd-accent-dim); color: var(--sd-accent);
+          font-size: 11px; font-weight: 700; cursor: pointer;
+          font-family: inherit; transition: all 0.15s;
+        }
+        .dpd-ai-result {
+          padding: 14px 16px; background: rgba(21,128,61,0.04);
+          border-radius: 10px; border: 1px solid rgba(21,128,61,0.2); margin-top: 4px;
+        }
+        .dpd-ai-result-label { font-size: 10px; font-weight: 800; color: #16a34a; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+        .dpd-ai-result-sub   { font-size: 10px; font-weight: 700; color: var(--sd-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.06em; }
+        .dpd-ai-result-box   { font-size: 13px; font-weight: 700; color: var(--sd-text); background: var(--sd-white); padding: 8px 12px; border-radius: 7px; border: 1px solid var(--sd-border); }
+        .dpd-ai-apply-primary { padding: 7px 14px; border-radius: 8px; border: 1px solid var(--sd-accent); background: var(--sd-accent); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .dpd-ai-apply  { padding: 7px 14px; border-radius: 8px; border: 1px solid var(--sd-border); background: var(--sd-white); color: var(--sd-text); font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .dpd-ai-dismiss{ padding: 7px 12px; border-radius: 8px; border: none; background: none; color: var(--sd-muted); font-size: 12px; cursor: pointer; }
+
+        /* Image grid */
+        .dpd-img-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+        .dpd-img-cell {
+          position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden;
+          border: 1px solid var(--sd-border); background: var(--sd-border-light);
+        }
+        .dpd-img-main-badge {
+          position: absolute; top: 5px; left: 5px;
+          background: var(--sd-accent); color: #fff;
+          font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 100px;
+        }
+        .dpd-img-remove {
+          position: absolute; top: 5px; right: 5px;
+          width: 22px; height: 22px; border-radius: 50%;
+          background: rgba(0,0,0,0.55); border: none; color: #fff;
+          cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .dpd-img-add {
+          aspect-ratio: 1; border-radius: 10px;
+          border: 1.5px dashed var(--sd-border); background: var(--sd-white);
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 6px; cursor: pointer; color: var(--sd-muted); font-family: inherit;
+          transition: border-color 0.15s, background 0.15s;
+        }
+        .dpd-img-add:hover { border-color: var(--sd-accent); background: var(--sd-accent-dim); }
+        .dpd-img-add-label { font-size: 11px; font-weight: 600; color: var(--sd-muted); }
+
+        /* Toggle */
+        .dpd-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+        .dpd-toggle-label { font-size: 13px; font-weight: 600; color: var(--sd-text); }
+        .dpd-toggle-sub   { font-size: 11px; color: var(--sd-muted); margin-top: 2px; }
+        .dpd-toggle-track { width: 42px; height: 24px; border-radius: 12px; flex-shrink: 0; position: relative; transition: background 0.2s; cursor: pointer; }
+        .dpd-toggle-thumb { position: absolute; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.18); }
+
+        /* Status radio */
+        .dpd-status-radio {
+          display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+          border-radius: 9px; border: 1.5px solid; cursor: pointer; transition: all 0.15s;
+        }
+        .dpd-radio-dot {
+          width: 18px; height: 18px; border-radius: 50%; border: 2px solid;
+          display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+
+        /* Product options */
+        .dpd-opt-group { border: 1px solid var(--sd-border); border-radius: 10px; padding: 14px; }
+        .dpd-opt-group-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+        .dpd-add-val-btn {
+          margin-top: 10px; display: flex; align-items: center; gap: 5px;
+          font-size: 12px; font-weight: 700; color: var(--sd-accent);
+          background: none; border: none; cursor: pointer; padding: 4px 0; font-family: inherit;
+        }
+        .dpd-add-group-btn {
+          display: flex; align-items: center; gap: 8px; width: 100%;
+          padding: 10px 16px; border-radius: 9px;
+          border: 1.5px dashed var(--sd-border); background: transparent;
+          cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600;
+          color: var(--sd-text); justify-content: center; transition: border-color 0.15s, background 0.15s;
+        }
+        .dpd-add-group-btn:hover { border-color: var(--sd-accent); background: var(--sd-accent-dim); }
+
+        /* Accordion */
+        .dpd-accordion-btn {
+          width: 100%; display: flex; align-items: center; justify-content: space-between;
+          padding: 11px 0; background: none; border: none; cursor: pointer;
+          font-family: inherit; font-size: 12px; font-weight: 600;
+          color: var(--sd-text); text-align: left;
+        }
+
+        /* Preview */
+        .dpd-preview {
+          background: var(--sd-white); border: 1px solid var(--sd-border);
+          border-radius: 16px; overflow: hidden; font-family: inherit;
+        }
+        .dpd-preview-header {
+          padding: 12px 16px; border-bottom: 1px solid var(--sd-border);
+          display: flex; align-items: center; justify-content: space-between;
+          background: var(--sd-border-light);
+        }
+        .dpd-preview-label { font-size: 10px; font-weight: 700; color: var(--sd-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+        .dpd-preview-sub   { font-size: 11px; color: var(--sd-muted); margin-top: 1px; }
+        .dpd-preview-nav {
+          position: absolute; top: 50%; transform: translateY(-50%);
+          width: 28px; height: 28px; border-radius: 50%;
+          background: rgba(255,255,255,0.9); border: 1px solid var(--sd-border);
+          cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--sd-text);
+        }
+        .dpd-preview-nav--l { left: 8px; }
+        .dpd-preview-nav--r { right: 8px; }
+
+        /* Preview sticky col */
+        .dpd-preview-col { position: sticky; top: 70px; }
+        .dpd-store-info-card {
+          margin-top: 12px; padding: 12px 14px;
+          background: var(--sd-white); border: 1px solid var(--sd-border); border-radius: 12px; font-size: 12px;
+        }
+
+        /* Discount note */
+        .dpd-discount-note {
+          padding: 9px 12px; border-radius: 8px;
+          background: rgba(21,128,61,0.07); border: 1px solid rgba(21,128,61,0.2);
+          font-size: 12px; color: #15803d; font-weight: 600;
+        }
+
+        /* Mobile save bar */
+        .dpd-mobile-bar {
+          position: fixed; bottom: 0; left: 0; right: 0;
+          background: var(--sd-white); border-top: 1px solid var(--sd-border);
+          padding: 12px 16px; display: none; gap: 10px; z-index: 50;
+        }
+        .dpd-mobile-discard {
+          flex: 1; padding: 12px; border-radius: 10px;
+          border: 1px solid var(--sd-border); background: transparent;
+          font-size: 14px; font-weight: 700; cursor: pointer;
+          color: var(--sd-text); font-family: inherit;
+        }
+        .dpd-mobile-save {
+          flex: 2; padding: 12px; border-radius: 10px; border: none;
+          background: var(--sd-accent); color: #fff;
+          font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+          .dpd-grid { grid-template-columns: 1fr; }
+          .dpd-preview-col { position: static; }
+          .dpd-mobile-bar { display: flex; }
+          .dpd-topbar-right .dpd-save-btn { display: none; }
+          .dpd-topbar-right .dpd-discard-btn { display: none; }
+          .dpd-content { padding-bottom: 100px; }
+        }
+        @media (max-width: 480px) {
+          .dpd-2col { grid-template-columns: 1fr; }
+          .dpd-topbar { padding: 0 12px; }
+          .dpd-content { padding: 16px 12px 100px; }
+          .dpd-page-title { font-size: 18px; }
+          .dpd-img-grid { grid-template-columns: repeat(3, 1fr); }
+          .dpd-section-body { padding: 12px 14px 16px; }
         }
       `}</style>
     </div>

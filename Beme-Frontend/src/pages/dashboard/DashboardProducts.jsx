@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../../firebase";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
 import { useAuth } from "../../context/AuthContext";
 import { getSellerProducts, deleteSellerProduct } from "../../services/storeService";
@@ -22,39 +20,36 @@ const IC = {
   search: "M11 19a8 8 0 100-16 8 8 0 000 16z|M21 21l-4.35-4.35",
   edit:   "M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7|M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z",
   trash:  "M3 6h18|M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2",
-  eye:    "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z|M12 12a3 3 0 100-6 3 3 0 000 6",
-  eyeoff: "M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94|M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19|M1 1l22 22",
   box:    "M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z",
   img:    "M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14l4-4 3 3 3-3 4 4z",
-  tag:    "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z|M7 7h.01",
 };
 
 const STATUS_OPTS = ["All", "Active", "Draft", "Out of Stock"];
 
 function fmtMoney(n) {
-  return `GHS ${Number(n||0).toLocaleString("en-GH",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+  return `GHS ${Number(n || 0).toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function Confirm({ name, onConfirm, onCancel }) {
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.4)", zIndex:1000,
       display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
-      <div style={{ background:"#fff", borderRadius:18, padding:"28px 24px",
+      <div style={{ background:"var(--sd-white)", borderRadius:18, padding:"28px 24px",
         maxWidth:340, width:"100%", boxShadow:"0 20px 60px rgba(0,0,0,0.2)" }}>
         <div style={{ width:48, height:48, borderRadius:12, background:"rgba(239,68,68,0.08)",
           display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 14px" }}>
           <Ico d={IC.trash} size={22} color="#EF4444"/>
         </div>
-        <div style={{ fontSize:17, fontWeight:900, color:"#111", textAlign:"center", marginBottom:8 }}>
+        <div style={{ fontSize:17, fontWeight:900, color:"var(--sd-text)", textAlign:"center", marginBottom:8 }}>
           Delete Product?
         </div>
-        <div style={{ fontSize:13, color:"#6B7280", textAlign:"center", lineHeight:1.5, marginBottom:22 }}>
+        <div style={{ fontSize:13, color:"var(--sd-muted)", textAlign:"center", lineHeight:1.5, marginBottom:22 }}>
           "<strong>{name}</strong>" will be permanently removed. This cannot be undone.
         </div>
         <div style={{ display:"flex", gap:10 }}>
           <button type="button" onClick={onCancel}
-            style={{ flex:1, height:44, borderRadius:10, border:"1.5px solid rgba(0,0,0,0.1)",
-              background:"transparent", color:"#333", fontSize:14, fontWeight:700,
+            style={{ flex:1, height:44, borderRadius:10, border:"1.5px solid var(--sd-border)",
+              background:"transparent", color:"var(--sd-text)", fontSize:14, fontWeight:700,
               cursor:"pointer", fontFamily:"inherit" }}>
             Cancel
           </button>
@@ -70,70 +65,33 @@ function Confirm({ name, onConfirm, onCancel }) {
   );
 }
 
-// ─── NEW: Project-List-style card ──────────────────────────────────────────
 function ProductRow({ product, onEdit, onDelete, deleting }) {
   const img = (Array.isArray(product.images) ? product.images[0] : null) || product.imageUrl || "";
-
   return (
-    <div style={{
-      background: "#fff",
-      borderRadius: 14,
-      border: "1.5px dashed #D1D5DB",
-      display: "flex",
-      alignItems: "center",
-      padding: "12px 14px",
-      gap: 14,
-    }}>
-      {/* Thumbnail */}
-      <div style={{
-        width: 72, height: 72, borderRadius: 10,
-        background: "#F3F4F6", flexShrink: 0,
-        overflow: "hidden", display: "flex",
-        alignItems: "center", justifyContent: "center",
-      }}>
+    <div className="dp-product-row">
+      <div className="dp-product-thumb">
         {img
-          ? <img src={img} alt={product.name}
-              style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }}/>
-          : <Ico d={IC.img} size={26} color="#D1D5DB"/>
+          ? <img src={img} alt={product.name} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }}/>
+          : <Ico d={IC.img} size={26} color="var(--sd-border)"/>
         }
       </div>
-
-      {/* Name + subtitle */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          fontSize: 15, fontWeight: 800, color: "#111",
-          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-          lineHeight: 1.3,
-        }}>
-          {product.name}
-        </div>
-        <div style={{ fontSize: 13, color: "#9CA3AF", fontWeight: 500, marginTop: 3 }}>
-          {product.category || "No Category"}
-        </div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginTop: 4 }}>
-          {fmtMoney(product.price)}
-        </div>
+      <div className="dp-product-info">
+        <div className="dp-product-name">{product.name}</div>
+        <div className="dp-product-cat">{product.category || "No Category"}</div>
+        <div className="dp-product-price">{fmtMoney(product.price)}</div>
       </div>
-
-      {/* Edit + Delete icons */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
-        <button type="button" onClick={() => onEdit(product)}
-          style={{ background: "none", border: "none", cursor: "pointer", padding: 4,
-            color: "#9CA3AF", lineHeight: 0 }}>
-          <Ico d={IC.edit} size={18} color="#9CA3AF"/>
+      <div className="dp-product-actions">
+        <button type="button" onClick={() => onEdit(product)} className="dp-action-btn" title="Edit">
+          <Ico d={IC.edit} size={18} color="var(--sd-muted)"/>
         </button>
-        <button type="button" onClick={() => onDelete(product)}
-          disabled={deleting === product.id}
-          style={{ background: "none", border: "none", cursor: "pointer", padding: 4,
-            color: "#9CA3AF", lineHeight: 0,
-            opacity: deleting === product.id ? 0.4 : 1 }}>
-          <Ico d={IC.trash} size={18} color="#9CA3AF"/>
+        <button type="button" onClick={() => onDelete(product)} className="dp-action-btn" title="Delete"
+          disabled={deleting === product.id} style={{ opacity: deleting === product.id ? 0.4 : 1 }}>
+          <Ico d={IC.trash} size={18} color="var(--sd-muted)"/>
         </button>
       </div>
     </div>
   );
 }
-// ───────────────────────────────────────────────────────────────────────────
 
 export default function DashboardProducts() {
   const { showTutorial, markSeen } = useTutorial("products");
@@ -183,111 +141,75 @@ export default function DashboardProducts() {
     return matchSearch && matchStatus;
   });
 
-  const active     = products.filter(p => p.status === "active").length;
-  const draft      = products.filter(p => p.status === "draft").length;
   const FALLBACK_LIMITS = { basic:5, free:5, starter:10, growth:25, standard:25, pro:500 };
   const maxProds   = planLimits?.maxProducts || FALLBACK_LIMITS[(subscriptionPlan||"basic").toLowerCase()] || 5;
   const usedPct    = Math.min((products.length / maxProds) * 100, 100);
   const atLimit    = products.length >= maxProds;
   const planName   = (subscriptionPlan || "basic").charAt(0).toUpperCase() + (subscriptionPlan||"basic").slice(1);
-  const outOfStock = products.filter(p => p.inStock === false || p.stock === 0).length;
+
+  const goAdd = () => atLimit
+    ? navigate("/seller-dashboard?tab=subscription")
+    : navigate("/seller-dashboard/products/new");
 
   return (
-    <div style={{ fontFamily:"var(--font-main,'Nunito',sans-serif)", background:"#fff" }}>
+    <div className="dp-root">
 
       {/* ── Page header ── */}
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:6 }}>
+      <div className="dp-header">
         <div>
-          <div style={{ fontSize:22, fontWeight:900, color:"#111", letterSpacing:"-0.03em" }}>
-            Project List
-          </div>
-          <div style={{ fontSize:13, color:"#9CA3AF", fontWeight:500, marginTop:3 }}>
-            Setup your project list for your needs.
-          </div>
+          <div className="dp-title">Products</div>
+          <div className="dp-subtitle">Manage your store listings.</div>
         </div>
-        <button type="button"
-          onClick={() => atLimit ? navigate("/seller-dashboard?tab=subscription") : navigate("/seller-dashboard/products/new")}
-          style={{ display:"flex", alignItems:"center", gap:7, padding:"10px 20px",
-            borderRadius:12, border:"none",
-            background: atLimit ? "#F59E0B" : "#111",
-            color:"#fff", fontSize:14, fontWeight:800, cursor:"pointer",
-            fontFamily:"inherit", boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
-          <Ico d={IC.plus} size={15} color="#fff"/>
-          {atLimit ? "Upgrade Plan" : "+ Add Product"}
+
+        {/* Desktop: pill button — purple border + text, hover fills */}
+        <button type="button" onClick={goAdd} className="dp-add-desktop">
+          <Ico d={IC.plus} size={14} color="inherit"/>
+          {atLimit ? "Upgrade Plan" : "Publish New"}
+        </button>
+
+        {/* Mobile: square pill, + icon only */}
+        <button type="button" onClick={goAdd} className="dp-add-mobile"
+          title={atLimit ? "Upgrade Plan" : "Publish New"}>
+          <Ico d={IC.plus} size={18} color="var(--sd-accent)"/>
         </button>
       </div>
 
       {/* ── Plan usage bar ── */}
-      <div style={{ background:"#fff", borderRadius:14, border:"1px solid rgba(0,0,0,0.08)",
-        padding:"14px 18px", marginBottom:12, marginTop:16 }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-          <span style={{ fontSize:13, fontWeight:700, color:"#6B7280" }}>
-            Product Usage — {planName} Plan
-          </span>
-          <span style={{ fontSize:13, fontWeight:900, color: atLimit ? "#EF4444" : "#111" }}>
+      <div className="dp-panel">
+        <div className="dp-usage-row">
+          <span className="dp-usage-label">Product Usage — {planName} Plan</span>
+          <span className="dp-usage-count" style={{ color: atLimit ? "#EF4444" : "var(--sd-text)" }}>
             {products.length} / {maxProds}
           </span>
         </div>
-        <div style={{ height:5, background:"rgba(0,0,0,0.07)", borderRadius:3, overflow:"hidden" }}>
-          <div style={{ height:"100%", width:`${usedPct}%`,
-            background: atLimit ? "#EF4444" : usedPct > 80 ? "#F59E0B" : "#111",
-            borderRadius:3, transition:"width 0.5s ease" }}/>
+        <div className="dp-usage-track">
+          <div className="dp-usage-fill" style={{
+            width: `${usedPct}%`,
+            background: atLimit ? "#EF4444" : usedPct > 80 ? "#F59E0B" : "var(--sd-accent)",
+          }}/>
         </div>
         {atLimit && (
-          <div style={{ fontSize:12, color:"#EF4444", fontWeight:700, marginTop:6 }}>
+          <div className="dp-usage-warn">
             Product limit reached.{" "}
-            <button type="button"
-              onClick={() => navigate("/seller-dashboard?tab=subscription")}
-              style={{ background:"none", border:"none", cursor:"pointer", color:"#111",
-                fontWeight:800, fontSize:12, fontFamily:"inherit", padding:0, textDecoration:"underline" }}>
+            <button type="button" onClick={() => navigate("/seller-dashboard?tab=subscription")}
+              className="dp-upgrade-link">
               Upgrade your plan →
             </button>
           </div>
         )}
       </div>
 
-      {/* ── Stat tiles ── */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, marginBottom:14 }}>
-        {[
-          { label:"Active",       val:active,     color:"#22C55E" },
-          { label:"Draft",        val:draft,       color:"#9CA3AF" },
-          { label:"Out of Stock", val:outOfStock,  color:"#EF4444" },
-        ].map(s => (
-          <div key={s.label} style={{ background:"#fff", borderRadius:12,
-            border:"1px solid rgba(0,0,0,0.08)", padding:"14px 12px", textAlign:"center" }}>
-            <div style={{ fontSize:26, fontWeight:900, color:s.color, letterSpacing:"-0.03em", lineHeight:1 }}>
-              {s.val}
-            </div>
-            <div style={{ fontSize:11, color:"#9CA3AF", fontWeight:600, marginTop:4 }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
-
       {/* ── Search + filter ── */}
-      <div style={{ background:"#fff", borderRadius:14, border:"1px solid rgba(0,0,0,0.08)",
-        padding:"12px 14px", marginBottom:14 }}>
-        <div style={{ position:"relative", marginBottom:10 }}>
-          <div style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)",
-            color:"#9CA3AF", pointerEvents:"none" }}>
-            <Ico d={IC.search} size={15}/>
-          </div>
-          <input value={search} onChange={e=>setSearch(e.target.value)}
-            placeholder="Search products…"
-            style={{ width:"100%", height:40, paddingLeft:38, paddingRight:14,
-              border:"1.5px solid rgba(0,0,0,0.08)", borderRadius:10,
-              background:"#fafafa", color:"#111",
-              fontSize:14, fontWeight:500, outline:"none", fontFamily:"inherit",
-              boxSizing:"border-box" }}/>
+      <div className="dp-panel dp-search-panel">
+        <div className="dp-search-wrap">
+          <div className="dp-search-icon"><Ico d={IC.search} size={15} color="var(--sd-muted)"/></div>
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search products…" className="dp-search-input"/>
         </div>
-        <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+        <div className="dp-filter-row">
           {STATUS_OPTS.map(opt => (
             <button key={opt} type="button" onClick={() => setStatusFilter(opt)}
-              style={{ padding:"6px 14px", borderRadius:100, border:"1.5px solid",
-                borderColor: statusFilter===opt ? "#7c3aed" : "rgba(0,0,0,0.1)",
-                background: statusFilter===opt ? "#7c3aed" : "transparent",
-                color: statusFilter===opt ? "#fff" : "#333",
-                fontSize:12, fontWeight:700, cursor:"pointer",
-                fontFamily:"inherit", transition:"all 0.15s" }}>
+              className={`dp-filter-btn${statusFilter === opt ? " dp-filter-btn--on" : ""}`}>
               {opt}
             </button>
           ))}
@@ -297,44 +219,35 @@ export default function DashboardProducts() {
       {/* ── Product list ── */}
       {loading
         ? [1,2,3].map(i => (
-            <div key={i} style={{ background:"#fff", borderRadius:14,
-              border:"1.5px dashed #D1D5DB", height:96,
-              marginBottom:10, overflow:"hidden", display:"flex",
-              alignItems:"center", padding:"12px 14px", gap:14 }}>
-              <div style={{ width:72, height:72, borderRadius:10, background:"rgba(0,0,0,0.05)", flexShrink:0 }}/>
+            <div key={i} className="dp-product-row dp-skel-row">
+              <div className="dp-skel dp-product-thumb"/>
               <div style={{ flex:1 }}>
-                <div style={{ height:13, width:"55%", background:"rgba(0,0,0,0.07)", borderRadius:4, marginBottom:8 }}/>
-                <div style={{ height:11, width:"35%", background:"rgba(0,0,0,0.05)", borderRadius:4 }}/>
+                <div className="dp-skel" style={{ height:13, width:"55%", marginBottom:8, borderRadius:4 }}/>
+                <div className="dp-skel" style={{ height:11, width:"35%", borderRadius:4 }}/>
               </div>
             </div>
           ))
         : filtered.length === 0
           ? (
-            <div style={{ background:"#fff", borderRadius:16,
-              border:"1.5px dashed #D1D5DB", padding:"50px 20px", textAlign:"center" }}>
-              <div style={{ marginBottom:14 }}><Ico d={IC.box} size={44} color="rgba(0,0,0,0.12)"/></div>
-              <div style={{ fontSize:16, fontWeight:800, color:"#111", marginBottom:6 }}>
+            <div className="dp-empty">
+              <Ico d={IC.box} size={44} color="var(--sd-border)"/>
+              <div className="dp-empty-title">
                 {products.length === 0 ? "No products yet" : "No products match your search"}
               </div>
-              <div style={{ fontSize:13, color:"#9CA3AF", marginBottom:22, lineHeight:1.5 }}>
+              <div className="dp-empty-sub">
                 {products.length === 0
                   ? "Add your first product to start selling on Beme Market."
                   : "Try a different search or filter."}
               </div>
               {products.length === 0 && (
-                <button type="button"
-                  onClick={() => navigate("/seller-dashboard/products/new")}
-                  style={{ padding:"12px 28px", borderRadius:12, border:"none",
-                    background:"#111", color:"#fff", fontSize:14, fontWeight:800,
-                    cursor:"pointer", fontFamily:"inherit",
-                    boxShadow:"0 4px 14px rgba(0,0,0,0.15)" }}>
-                  + Add First Product
+                <button type="button" onClick={goAdd} className="dp-empty-btn">
+                  + Publish First Product
                 </button>
               )}
             </div>
           )
           : (
-            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            <div className="dp-list">
               {filtered.map(p => (
                 <ProductRow key={p.id} product={p}
                   onEdit={handleEdit}
@@ -346,18 +259,191 @@ export default function DashboardProducts() {
       }
 
       {confirmProd && (
-        <Confirm
-          name={confirmProd.name}
-          onConfirm={confirmDelete}
-          onCancel={() => setConfirmProd(null)}/>
+        <Confirm name={confirmProd.name} onConfirm={confirmDelete} onCancel={() => setConfirmProd(null)}/>
       )}
-    {showTutorial && (
-      <TutorialOverlay
-        steps={TUTORIAL_STEPS.products}
-        onFinish={markSeen}
-        pageTitle="Products"
-      />
-    )}
+
+      {showTutorial && (
+        <TutorialOverlay steps={TUTORIAL_STEPS.products} onFinish={markSeen} pageTitle="Products"/>
+      )}
+
+      <style>{`
+        @keyframes dp-shimmer {
+          0%   { background-position: -600px 0; }
+          100% { background-position: calc(600px + 100%) 0; }
+        }
+
+        .dp-root {
+          font-family: var(--sd-font, 'DM Sans', system-ui, sans-serif);
+          background: var(--sd-white);
+          color: var(--sd-text);
+          min-height: 100%;
+        }
+
+        /* Header */
+        .dp-header {
+          display: flex; align-items: flex-start; justify-content: space-between;
+          margin-bottom: 16px; gap: 12px;
+        }
+        .dp-title    { font-size: 22px; font-weight: 900; color: var(--sd-text); letter-spacing: -0.03em; }
+        .dp-subtitle { font-size: 13px; color: var(--sd-muted); font-weight: 500; margin-top: 3px; }
+
+        /* ── Desktop pill button ── */
+        .dp-add-desktop {
+          display: none;
+          align-items: center; gap: 7px;
+          padding: 9px 22px;
+          border-radius: 100px;
+          border: 1.5px solid var(--sd-accent);
+          background: transparent;
+          color: var(--sd-accent);
+          font-size: 13px; font-weight: 700;
+          cursor: pointer; font-family: inherit;
+          transition: background 0.18s, color 0.18s, border-color 0.18s;
+          white-space: nowrap; flex-shrink: 0;
+        }
+        .dp-add-desktop:hover {
+          background: var(--sd-accent);
+          color: #fff;
+        }
+
+        /* ── Mobile square icon button ── */
+        .dp-add-mobile {
+          display: flex;
+          align-items: center; justify-content: center;
+          width: 42px; height: 42px;
+          border-radius: 14px;
+          border: 1.5px solid var(--sd-accent);
+          background: var(--sd-white);
+          cursor: pointer; flex-shrink: 0;
+          transition: background 0.18s;
+        }
+        .dp-add-mobile:hover { background: var(--sd-accent-dim); }
+
+        @media (min-width: 640px) {
+          .dp-add-desktop { display: flex; }
+          .dp-add-mobile  { display: none; }
+        }
+
+        /* Panel */
+        .dp-panel {
+          background: var(--sd-white);
+          border-radius: 14px;
+          border: 1px solid var(--sd-border);
+          padding: 14px 16px;
+          margin-bottom: 12px;
+          transition: background 0.25s, border-color 0.25s;
+        }
+
+        /* Usage */
+        .dp-usage-row   { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .dp-usage-label { font-size: 13px; font-weight: 700; color: var(--sd-muted); }
+        .dp-usage-count { font-size: 13px; font-weight: 900; }
+        .dp-usage-track { height: 5px; background: var(--sd-border); border-radius: 3px; overflow: hidden; }
+        .dp-usage-fill  { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+        .dp-usage-warn  { font-size: 12px; color: #EF4444; font-weight: 700; margin-top: 6px; }
+        .dp-upgrade-link {
+          background: none; border: none; cursor: pointer; color: var(--sd-text);
+          font-weight: 800; font-size: 12px; font-family: inherit;
+          padding: 0; text-decoration: underline;
+        }
+
+        /* Search */
+        .dp-search-panel { padding: 12px 14px; }
+        .dp-search-wrap  { position: relative; margin-bottom: 10px; }
+        .dp-search-icon  { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+        .dp-search-input {
+          width: 100%; height: 40px; padding-left: 38px; padding-right: 14px;
+          border: 1.5px solid var(--sd-border); border-radius: 10px;
+          background: var(--sd-white); color: var(--sd-text);
+          font-size: 14px; font-weight: 500; outline: none; font-family: inherit;
+          box-sizing: border-box; transition: border-color 0.15s;
+        }
+        .dp-search-input:focus        { border-color: var(--sd-accent); }
+        .dp-search-input::placeholder { color: var(--sd-muted); }
+
+        .dp-filter-row { display: flex; gap: 6px; flex-wrap: wrap; }
+        .dp-filter-btn {
+          padding: 6px 14px; border-radius: 100px;
+          border: 1.5px solid var(--sd-border);
+          background: transparent; color: var(--sd-text2);
+          font-size: 12px; font-weight: 700; cursor: pointer;
+          font-family: inherit; transition: all 0.15s;
+        }
+        .dp-filter-btn--on {
+          border-color: var(--sd-accent);
+          background: var(--sd-accent);
+          color: #fff;
+        }
+
+        /* Product list */
+        .dp-list { display: flex; flex-direction: column; gap: 10px; }
+
+        .dp-product-row {
+          background: var(--sd-white);
+          border-radius: 14px;
+          border: 1px solid var(--sd-border);
+          display: flex; align-items: center;
+          padding: 12px 14px; gap: 14px;
+          transition: border-color 0.15s, background 0.25s;
+        }
+        .dp-product-row:hover { border-color: var(--sd-accent-border, rgba(124,58,237,0.25)); }
+
+        .dp-product-thumb {
+          width: 64px; height: 64px; border-radius: 10px;
+          background: var(--sd-border-light);
+          flex-shrink: 0; overflow: hidden;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .dp-product-info  { flex: 1; min-width: 0; }
+        .dp-product-name  {
+          font-size: 14px; font-weight: 800; color: var(--sd-text);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;
+        }
+        .dp-product-cat   { font-size: 12px; color: var(--sd-muted); font-weight: 500; margin-top: 2px; }
+        .dp-product-price { font-size: 13px; font-weight: 700; color: var(--sd-text2); margin-top: 3px; }
+
+        .dp-product-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .dp-action-btn {
+          background: none; border: none; cursor: pointer;
+          padding: 6px; border-radius: 8px; line-height: 0;
+          transition: background 0.12s;
+        }
+        .dp-action-btn:hover { background: var(--sd-border-light); }
+
+        /* Skeleton */
+        .dp-skel-row { margin-bottom: 10px; }
+        .dp-skel {
+          background: var(--sd-border-light);
+          background-image: linear-gradient(90deg, var(--sd-border-light) 25%, var(--sd-border) 50%, var(--sd-border-light) 75%);
+          background-size: 600px 100%;
+          animation: dp-shimmer 1.4s ease infinite;
+        }
+
+        /* Empty */
+        .dp-empty {
+          background: var(--sd-white);
+          border-radius: 16px; border: 1.5px dashed var(--sd-border);
+          padding: 50px 20px; text-align: center;
+          display: flex; flex-direction: column; align-items: center; gap: 8px;
+        }
+        .dp-empty-title { font-size: 16px; font-weight: 800; color: var(--sd-text); }
+        .dp-empty-sub   { font-size: 13px; color: var(--sd-muted); line-height: 1.5; max-width: 260px; }
+        .dp-empty-btn {
+          margin-top: 8px; padding: 11px 24px; border-radius: 100px;
+          border: 1.5px solid var(--sd-accent);
+          background: transparent; color: var(--sd-accent);
+          font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+          transition: background 0.18s, color 0.18s;
+        }
+        .dp-empty-btn:hover { background: var(--sd-accent); color: #fff; }
+
+        @media (max-width: 480px) {
+          .dp-title         { font-size: 18px; }
+          .dp-product-thumb { width: 52px; height: 52px; }
+          .dp-product-name  { font-size: 13px; }
+          .dp-filter-btn    { font-size: 11px; padding: 5px 10px; }
+        }
+      `}</style>
     </div>
   );
 }
