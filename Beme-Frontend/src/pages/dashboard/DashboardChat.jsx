@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useChat } from "../../hooks/useChat";
 import { useAuth } from "../../context/AuthContext";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
@@ -10,16 +10,30 @@ const API_URL = import.meta.env.VITE_API_URL || "https://beme-market-1.onrender.
 function fmtTime(ts) {
   if (!ts) return "";
   const d = ts?.toMillis ? new Date(ts.toMillis()) : new Date(ts);
-  return d.toLocaleTimeString("en-GH", { hour:"2-digit", minute:"2-digit" });
+  return d.toLocaleTimeString("en-GH", { hour: "2-digit", minute: "2-digit" });
 }
+
+/* ── Icons ── */
+function Ico({ d, size = 16, color = "currentColor", sw = 1.8 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
+      {String(d).split("|").map((seg, i) => <path key={i} d={seg} />)}
+    </svg>
+  );
+}
+const IC = {
+  back:    "M19 12H5|M12 19l-7-7 7-7",
+  chat:    "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
+  send:    "M22 2L11 13|M22 2L15 22l-4-9-9-4 20-7z",
+  sparkle: "M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z",
+};
 
 function EmptyConversations() {
   return (
-    <div style={{ padding:24, textAlign:"center", color:"#8B8FA8", fontSize:12 }}>
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="1.4" strokeLinecap="round" style={{ display:"block", margin:"0 auto 8px" }}>
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      </svg>
-      No conversations yet
+    <div className="dc-empty-convos">
+      <Ico d={IC.chat} size={32} color="var(--sd-border)"/>
+      <span>No conversations yet</span>
     </div>
   );
 }
@@ -27,17 +41,30 @@ function EmptyConversations() {
 export default function DashboardChat() {
   const { user }     = useAuth();
   const { planLimits, shop } = useSellerAuth();
-  const { conversations, activeChat, setActiveChat, messages, loading, sending, totalUnread, sendMessage, markRead } = useChat();
+  const {
+    conversations, activeChat, setActiveChat,
+    messages, loading, sending, totalUnread,
+    sendMessage, markRead,
+  } = useChat();
 
   const [text,         setText]         = useState("");
   const [aiLoading,    setAiLoading]    = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState(null);
   const [copiedId,     setCopiedId]     = useState(null);
-  const inputRef = useRef(null);
+  /* Mobile: "list" | "chat" */
+  const [mobileView,   setMobileView]   = useState("list");
 
-  const activeChatData  = conversations.find((c) => c.id === activeChat);
+  const inputRef   = useRef(null);
+  const bottomRef  = useRef(null);
+
+  const activeChatData  = conversations.find(c => c.id === activeChat);
   const aiPaused        = activeChatData?.aiPaused || false;
   const lastCustomerMsg = messages.filter(m => m.senderRole !== "seller").slice(-1)[0];
+
+  /* Auto-scroll to bottom on new messages */
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const togglePauseAI = async () => {
     if (!activeChat) return;
@@ -59,7 +86,16 @@ export default function DashboardChat() {
   };
 
   const handleSelectChat = (chatId) => {
-    setActiveChat(chatId); markRead(chatId); setAiSuggestion(null); setText("");
+    setActiveChat(chatId);
+    markRead(chatId);
+    setAiSuggestion(null);
+    setText("");
+    setMobileView("chat"); /* slide to chat on mobile */
+  };
+
+  const handleBack = () => {
+    setMobileView("list");
+    setActiveChat(null);
   };
 
   const handleAISuggest = async () => {
@@ -67,10 +103,10 @@ export default function DashboardChat() {
     setAiLoading(true); setAiSuggestion(null);
     try {
       const res = await fetch(`${API_URL}/api/ai/chat`, {
-        method:"POST", headers:{"Content-Type":"application/json"},
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages:[{ role:"user", content:`A customer sent this message to my store on Beme Market: "${lastCustomerMsg.text}"\n\nWrite a short, professional, friendly reply I can send as the seller. My store name is "${shop?.shopName || "my store"}". Keep it under 3 sentences. Reply only with the message text, no explanation.` }],
-          context:{ currentPage:"chat", shopName: shop?.shopName || "Store" },
+          messages: [{ role: "user", content: `A customer sent this message to my store on Beme Market: "${lastCustomerMsg.text}"\n\nWrite a short, professional, friendly reply I can send as the seller. My store name is "${shop?.shopName || "my store"}". Keep it under 3 sentences. Reply only with the message text, no explanation.` }],
+          context: { currentPage: "chat", shopName: shop?.shopName || "Store" },
         }),
       });
       const data = await res.json();
@@ -79,150 +115,483 @@ export default function DashboardChat() {
     finally { setAiLoading(false); }
   };
 
+  /* ── Plan gate ── */
   if (!planLimits?.hasChat) {
     return (
-      <div className="sd-empty" style={{ padding:64, textAlign:"center" }}>
-        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="1.3" strokeLinecap="round" style={{ marginBottom:12 }}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <div className="sd-empty-title">Live Chat requires Standard or Pro</div>
-        <div className="sd-empty-text">Upgrade your plan to chat with customers in real time.</div>
+      <div className="dc-locked">
+        <Ico d={IC.chat} size={44} color="var(--sd-border)"/>
+        <div className="dc-locked-title">Live Chat requires Standard or Pro</div>
+        <div className="dc-locked-sub">Upgrade your plan to chat with customers in real time.</div>
       </div>
     );
   }
 
-  return (
-    <div style={{ background:"#fff" }}>
-      <div className="sd-page-head" style={{ marginBottom:14 }}>
-        <div className="sd-page-title">Messages</div>
-        <div className="sd-page-sub">{conversations.length} conversations{totalUnread > 0 ? ` · ${totalUnread} unread` : ""}</div>
-      </div>
-
-      <div style={{ height:"calc(100vh - 180px)", minHeight:480 }}>
-        <div className="sd-chat-root" style={{ height:"100%" }}>
-
-          {/* Conversation list */}
-          <div className="sd-chat-list" style={{ background:"#fff", borderRight:"1px solid rgba(0,0,0,0.08)" }}>
-            <div style={{ fontWeight:800, fontSize:13, color:"#111", padding:"14px 16px", borderBottom:"1px solid rgba(0,0,0,0.08)" }}>Conversations</div>
-            {loading
-              ? [1,2,3].map(i => <div key={i} className="sd-skeleton" style={{ height:58, margin:8, borderRadius:8 }}/>)
-              : conversations.length === 0
-                ? <EmptyConversations/>
-                : conversations.map(c => (
-                    <div key={c.id} className={`sd-chat-item ${activeChat===c.id?"active":""}`}
-                      onClick={() => handleSelectChat(c.id)}
-                      style={{ borderLeft:activeChat===c.id?"3px solid #7c3aed":"3px solid transparent", cursor:"pointer", padding:"12px 16px", display:"flex", alignItems:"center", gap:10 }}>
-                      <div style={{ width:34, height:34, borderRadius:"50%", background:"rgba(124,58,237,0.08)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:13, color:"#7c3aed", flexShrink:0 }}>
-                        {(c.customerName||"?")[0].toUpperCase()}
-                      </div>
-                      <div style={{ minWidth:0, flex:1 }}>
-                        <div style={{ fontWeight:700, fontSize:13, color:"#111" }}>{c.customerName||"Customer"}</div>
-                        <div style={{ fontSize:12, color:"#9CA3AF", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.lastMessage||"No messages yet"}</div>
-                      </div>
-                      {c.unreadBySeller > 0 && (
-                        <div style={{ background:"#7c3aed", color:"#fff", borderRadius:"50%", width:18, height:18, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, flexShrink:0 }}>
-                          {c.unreadBySeller}
-                        </div>
-                      )}
-                    </div>
-                  ))
-            }
-          </div>
-
-          {/* Chat area */}
-          <div className="sd-chat-main" style={{ background:"#fff", display:"flex", flexDirection:"column" }}>
-            {!activeChat ? (
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%", flexDirection:"column" }}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" strokeWidth="1.3" strokeLinecap="round" style={{ marginBottom:10 }}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <div className="sd-empty-title">Select a conversation</div>
-              </div>
-            ) : (
-              <>
-                {/* Header */}
-                <div style={{ padding:"14px 16px", borderBottom:"1px solid rgba(0,0,0,0.08)", display:"flex", alignItems:"center", gap:12 }}>
-                  <div style={{ width:34, height:34, borderRadius:"50%", background:"rgba(124,58,237,0.08)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:13, color:"#7c3aed", flexShrink:0 }}>
-                    {(activeChatData?.customerName||"?")[0].toUpperCase()}
-                  </div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:13, fontWeight:700, color:"#111" }}>{activeChatData?.customerName||"Customer"}</div>
-                    <div style={{ fontSize:11, color:"#22C55E", display:"flex", alignItems:"center", gap:4 }}>
-                      <div style={{ width:6, height:6, borderRadius:"50%", background:"#22C55E" }}/>Online
-                    </div>
-                  </div>
-                  <button onClick={togglePauseAI}
-                    style={{ display:"flex", alignItems:"center", gap:6, padding:"5px 12px", borderRadius:20,
-                      border:`1px solid ${aiPaused?"#f59e0b":"rgba(124,58,237,0.2)"}`,
-                      background:aiPaused?"#fffbeb":"#f5f3ff",
-                      color:aiPaused?"#d97706":"#7c3aed",
-                      fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
-                    {aiPaused ? "⏸ AI Paused" : "✨ AI Active"}
-                  </button>
+  /* ── Conversation list panel ── */
+  const ConvoList = (
+    <div className={`dc-list-panel${mobileView === "chat" ? " dc-list-panel--hidden" : ""}`}>
+      <div className="dc-list-header">Conversations</div>
+      {loading
+        ? [1,2,3].map(i => <div key={i} className="dc-skel" style={{ height:58, margin:"8px", borderRadius:8 }}/>)
+        : conversations.length === 0
+          ? <EmptyConversations/>
+          : conversations.map(c => (
+              <div key={c.id}
+                className={`dc-convo-item${activeChat === c.id ? " dc-convo-item--active" : ""}`}
+                onClick={() => handleSelectChat(c.id)}>
+                <div className="dc-avatar">{(c.customerName||"?")[0].toUpperCase()}</div>
+                <div className="dc-convo-info">
+                  <div className="dc-convo-name">{c.customerName || "Customer"}</div>
+                  <div className="dc-convo-preview">{c.lastMessage || "No messages yet"}</div>
                 </div>
-
-                {/* Messages */}
-                <div className="sd-chat-messages" style={{ flex:1, overflowY:"auto", padding:16, display:"flex", flexDirection:"column", gap:4 }}>
-                  {messages.map(m => {
-                    const isSeller = m.senderRole === "seller";
-                    return (
-                      <div key={m.id}>
-                        <div style={{ display:"flex", justifyContent:isSeller?"flex-end":"flex-start" }}>
-                          <div style={{ maxWidth:"70%", padding:"10px 14px", borderRadius:12, fontSize:13, lineHeight:1.5,
-                            background:isSeller?"#111":"#f4f4f4", color:isSeller?"#fff":"#111" }}>
-                            {m.text}
-                            {(m.isAiGenerated||m.isAiReply) && <span style={{ fontSize:10, opacity:0.7, marginLeft:6 }}>✨ AI</span>}
-                            {m.imageUrl && <img src={m.imageUrl} alt="" style={{ maxWidth:"100%", borderRadius:6, marginTop:6 }}/>}
-                          </div>
-                        </div>
-                        <div style={{ display:"flex", alignItems:"center", gap:6, justifyContent:isSeller?"flex-end":"flex-start", marginTop:2 }}>
-                          <span style={{ fontSize:10, color:"#8B8FA8" }}>{fmtTime(m.createdAt)}</span>
-                          <button onClick={() => handleCopy(m.text, m.id)}
-                            style={{ background:"none", border:"none", cursor:"pointer", padding:"0 4px",
-                              fontSize:10, fontWeight:700, fontFamily:"inherit",
-                              color: copiedId===m.id ? "#22C55E" : "#D1D5DB", transition:"color 0.15s" }}>
-                            {copiedId===m.id ? "✓ Copied" : "Copy"}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* AI suggestion */}
-                {aiSuggestion && (
-                  <div style={{ margin:"0 16px 8px", padding:"10px 14px", background:"#f5f3ff", borderRadius:10, border:"1px solid #ddd6fe", fontSize:12, color:"#3b0764", fontWeight:600 }}>
-                    <div style={{ fontSize:10, fontWeight:700, color:"#7c3aed", marginBottom:4 }}>✨ AI Suggestion — edit or send as is</div>
-                    {aiSuggestion}
-                  </div>
+                {c.unreadBySeller > 0 && (
+                  <div className="dc-unread-badge">{c.unreadBySeller}</div>
                 )}
+              </div>
+            ))
+      }
+    </div>
+  );
 
-                {/* Input */}
-                <div style={{ padding:"12px 16px", borderTop:"1px solid rgba(0,0,0,0.08)", display:"flex", gap:8, alignItems:"flex-end" }}>
-                  {lastCustomerMsg && (
-                    <button onClick={handleAISuggest} disabled={aiLoading} title="Generate AI reply"
-                      style={{ height:42, width:42, borderRadius:10, border:"1px solid #e5e7eb",
-                        background:aiLoading?"#f0f0f0":"#f5f3ff", color:"#7c3aed",
-                        cursor:aiLoading?"wait":"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:16 }}>
-                      {aiLoading
-                        ? <div style={{ width:14, height:14, border:"2px solid #7c3aed", borderTopColor:"transparent", borderRadius:"50%", animation:"spin 0.8s linear infinite" }}/>
-                        : "✨"}
-                    </button>
-                  )}
-                  <input ref={inputRef} className="sd-input" value={text}
-                    onChange={e => { setText(e.target.value); if (aiSuggestion) setAiSuggestion(null); }}
-                    placeholder="Type a message or tap ✨ for AI reply…"
-                    style={{ flex:1, height:42, padding:"0 14px", border:"1.5px solid rgba(0,0,0,0.1)", borderRadius:10, fontSize:14, outline:"none", fontFamily:"inherit" }}
-                    onKeyDown={e => e.key==="Enter" && !e.shiftKey && handleSend()}
-                  />
-                  <button onClick={handleSend} disabled={sending || !text.trim()}
-                    style={{ padding:"0 20px", height:42, borderRadius:10, border:"none", background:"#111", color:"#fff", fontSize:13, fontWeight:800,
-                      cursor:sending||!text.trim()?"not-allowed":"pointer", opacity:sending||!text.trim()?0.5:1, fontFamily:"inherit" }}>
-                    {sending ? "…" : "Send"}
-                  </button>
-                </div>
-              </>
-            )}
+  /* ── Chat area panel ── */
+  const ChatArea = (
+    <div className={`dc-chat-panel${mobileView === "list" ? " dc-chat-panel--hidden" : ""}`}>
+      {!activeChat ? (
+        /* Desktop empty state */
+        <div className="dc-no-chat">
+          <Ico d={IC.chat} size={40} color="var(--sd-border)"/>
+          <div className="dc-no-chat-label">Select a conversation</div>
+        </div>
+      ) : (
+        <>
+          {/* Chat header */}
+          <div className="dc-chat-header">
+            {/* Back arrow — mobile only */}
+            <button type="button" onClick={handleBack} className="dc-back-btn" aria-label="Back to conversations">
+              <Ico d={IC.back} size={18} color="var(--sd-text)"/>
+            </button>
+
+            <div className="dc-avatar dc-avatar--sm">{(activeChatData?.customerName||"?")[0].toUpperCase()}</div>
+            <div className="dc-chat-header-info">
+              <div className="dc-chat-name">{activeChatData?.customerName || "Customer"}</div>
+              <div className="dc-online-row">
+                <div className="dc-online-dot"/>Online
+              </div>
+            </div>
+            <button onClick={togglePauseAI} className={`dc-ai-toggle${aiPaused ? " dc-ai-toggle--paused" : ""}`}>
+              {aiPaused ? "⏸ AI Paused" : "✨ AI Active"}
+            </button>
           </div>
+
+          {/* Messages */}
+          <div className="dc-messages">
+            {messages.map(m => {
+              const isSeller = m.senderRole === "seller";
+              return (
+                <div key={m.id} className="dc-msg-wrap">
+                  <div className={`dc-bubble${isSeller ? " dc-bubble--seller" : " dc-bubble--customer"}`}>
+                    {m.text}
+                    {(m.isAiGenerated || m.isAiReply) && (
+                      <span className="dc-ai-tag">✨ AI</span>
+                    )}
+                    {m.imageUrl && (
+                      <img src={m.imageUrl} alt="" className="dc-bubble-img"/>
+                    )}
+                  </div>
+                  <div className={`dc-msg-meta${isSeller ? " dc-msg-meta--right" : ""}`}>
+                    <span className="dc-msg-time">{fmtTime(m.createdAt)}</span>
+                    <button onClick={() => handleCopy(m.text, m.id)} className="dc-copy-btn"
+                      style={{ color: copiedId === m.id ? "#22C55E" : "var(--sd-border)" }}>
+                      {copiedId === m.id ? "✓ Copied" : "Copy"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={bottomRef}/>
+          </div>
+
+          {/* AI suggestion banner */}
+          {aiSuggestion && (
+            <div className="dc-ai-suggestion">
+              <div className="dc-ai-suggestion-label">✨ AI Suggestion — edit or send as is</div>
+              {aiSuggestion}
+            </div>
+          )}
+
+          {/* Input row */}
+          <div className="dc-input-row">
+            {lastCustomerMsg && (
+              <button onClick={handleAISuggest} disabled={aiLoading}
+                className="dc-ai-btn" title="Generate AI reply">
+                {aiLoading
+                  ? <div className="dc-spinner"/>
+                  : <Ico d={IC.sparkle} size={15} color="var(--sd-accent)"/>
+                }
+              </button>
+            )}
+            <input
+              ref={inputRef}
+              value={text}
+              onChange={e => { setText(e.target.value); if (aiSuggestion) setAiSuggestion(null); }}
+              placeholder="Type a message or tap ✨ for AI reply…"
+              className="dc-input"
+              onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleSend()}
+            />
+            <button onClick={handleSend} disabled={sending || !text.trim()} className="dc-send-btn"
+              title="Send message">
+              <Ico d={IC.send} size={16} color="#fff" sw={1.8}/>
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="dc-root">
+      {/* Page header */}
+      <div className="dc-page-head">
+        <div className="dc-page-title">Messages</div>
+        <div className="dc-page-sub">
+          {conversations.length} conversation{conversations.length !== 1 ? "s" : ""}
+          {totalUnread > 0 ? ` · ${totalUnread} unread` : ""}
         </div>
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      {/* Main chat shell */}
+      <div className="dc-shell">
+        {ConvoList}
+        {ChatArea}
+      </div>
+
+      <style>{`
+        @keyframes dc-spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes dc-shimmer {
+          0%   { background-position: -600px 0; }
+          100% { background-position: calc(600px + 100%) 0; }
+        }
+
+        /* ── Root ── */
+        .dc-root {
+          font-family: var(--sd-font, 'DM Sans', system-ui, sans-serif);
+          background: var(--sd-white);
+          color: var(--sd-text);
+          min-height: 100%;
+          display: flex;
+          flex-direction: column;
+        }
+
+        /* Page header */
+        .dc-page-head  { margin-bottom: 14px; }
+        .dc-page-title { font-size: 11px; font-weight: 700; color: var(--sd-muted); text-transform: uppercase; letter-spacing: 0.07em; }
+        .dc-page-sub   { font-size: 12px; color: var(--sd-muted); margin-top: 2px; }
+
+        /* Shell */
+        .dc-shell {
+          display: flex;
+          border: 1px solid var(--sd-border);
+          border-radius: 14px;
+          overflow: hidden;
+          height: calc(100vh - 180px);
+          min-height: 480px;
+          background: var(--sd-white);
+          transition: background 0.25s, border-color 0.25s;
+        }
+
+        /* ── Conversation list ── */
+        .dc-list-panel {
+          width: 260px;
+          flex-shrink: 0;
+          border-right: 1px solid var(--sd-border);
+          display: flex;
+          flex-direction: column;
+          overflow-y: auto;
+          background: var(--sd-white);
+          transition: background 0.25s, border-color 0.25s;
+        }
+        .dc-list-header {
+          font-weight: 800; font-size: 13px; color: var(--sd-text);
+          padding: 14px 16px;
+          border-bottom: 1px solid var(--sd-border);
+          flex-shrink: 0;
+        }
+
+        .dc-convo-item {
+          display: flex; align-items: center; gap: 10px;
+          padding: 12px 16px; cursor: pointer;
+          border-left: 3px solid transparent;
+          transition: background 0.12s;
+        }
+        .dc-convo-item:hover { background: var(--sd-border-light); }
+        .dc-convo-item--active {
+          background: var(--sd-accent-dim);
+          border-left-color: var(--sd-accent);
+        }
+
+        .dc-avatar {
+          width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+          background: var(--sd-accent-dim);
+          display: flex; align-items: center; justify-content: center;
+          font-weight: 700; font-size: 13px; color: var(--sd-accent);
+        }
+        .dc-avatar--sm { width: 32px; height: 32px; font-size: 12px; }
+
+        .dc-convo-info    { flex: 1; min-width: 0; }
+        .dc-convo-name    { font-weight: 700; font-size: 13px; color: var(--sd-text); }
+        .dc-convo-preview { font-size: 12px; color: var(--sd-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+
+        .dc-unread-badge {
+          background: var(--sd-accent); color: #fff;
+          border-radius: 50%; width: 18px; height: 18px;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 10px; font-weight: 700; flex-shrink: 0;
+        }
+
+        /* ── Chat panel ── */
+        .dc-chat-panel {
+          flex: 1; display: flex; flex-direction: column;
+          min-width: 0; background: var(--sd-white);
+          transition: background 0.25s;
+        }
+
+        /* Chat header */
+        .dc-chat-header {
+          display: flex; align-items: center; gap: 10px;
+          padding: 12px 16px;
+          border-bottom: 1px solid var(--sd-border);
+          flex-shrink: 0;
+        }
+        .dc-back-btn {
+          display: none; /* hidden on desktop */
+          background: none; border: none; cursor: pointer;
+          padding: 4px; border-radius: 8px; line-height: 0;
+          flex-shrink: 0;
+          transition: background 0.12s;
+        }
+        .dc-back-btn:hover { background: var(--sd-border-light); }
+
+        .dc-chat-header-info { flex: 1; }
+        .dc-chat-name  { font-size: 13px; font-weight: 700; color: var(--sd-text); }
+        .dc-online-row { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #22C55E; }
+        .dc-online-dot { width: 6px; height: 6px; border-radius: 50%; background: #22C55E; }
+
+        .dc-ai-toggle {
+          display: flex; align-items: center; gap: 6px;
+          padding: 5px 12px; border-radius: 20px;
+          border: 1px solid var(--sd-accent-border, rgba(124,58,237,0.2));
+          background: var(--sd-accent-dim); color: var(--sd-accent);
+          font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit;
+          white-space: nowrap; flex-shrink: 0;
+          transition: all 0.15s;
+        }
+        .dc-ai-toggle--paused {
+          border-color: rgba(245,158,11,0.3);
+          background: rgba(245,158,11,0.08);
+          color: #d97706;
+        }
+
+        /* Messages */
+        .dc-messages {
+          flex: 1; overflow-y: auto; padding: 16px;
+          display: flex; flex-direction: column; gap: 6px;
+          background: var(--sd-white);
+        }
+        .dc-msg-wrap { display: flex; flex-direction: column; }
+
+        /* ── Bubbles ── */
+        .dc-bubble {
+          max-width: 70%; padding: 10px 14px;
+          border-radius: 14px; font-size: 13px; line-height: 1.55;
+          word-break: break-word;
+        }
+        /* Customer bubble — neutral */
+        .dc-bubble--customer {
+          align-self: flex-start;
+          background: var(--sd-border-light);
+          color: var(--sd-text);
+          border-bottom-left-radius: 4px;
+        }
+        /* Seller bubble — translucent purple */
+        .dc-bubble--seller {
+          align-self: flex-end;
+          background: rgba(124, 58, 237, 0.14);
+          color: var(--sd-accent);
+          border-bottom-right-radius: 4px;
+          border: 1px solid rgba(124, 58, 237, 0.18);
+        }
+        /* Dark mode: deeper purple tint */
+        .sd-dark .dc-bubble--seller {
+          background: rgba(124, 58, 237, 0.28);
+          color: #c4b5fd;
+          border-color: rgba(124, 58, 237, 0.35);
+        }
+
+        .dc-ai-tag { font-size: 10px; opacity: 0.65; margin-left: 6px; }
+        .dc-bubble-img { max-width: 100%; border-radius: 6px; margin-top: 6px; display: block; }
+
+        .dc-msg-meta {
+          display: flex; align-items: center; gap: 6px;
+          margin-top: 3px; padding: 0 2px;
+        }
+        .dc-msg-meta--right { justify-content: flex-end; }
+        .dc-msg-time  { font-size: 10px; color: var(--sd-muted); }
+        .dc-copy-btn  {
+          background: none; border: none; cursor: pointer;
+          padding: 0 4px; font-size: 10px; font-weight: 700;
+          font-family: inherit; transition: color 0.15s;
+        }
+
+        /* AI suggestion */
+        .dc-ai-suggestion {
+          margin: 0 16px 8px;
+          padding: 10px 14px;
+          background: var(--sd-accent-dim);
+          border-radius: 10px;
+          border: 1px solid var(--sd-accent-border, rgba(124,58,237,0.2));
+          font-size: 12px; color: var(--sd-accent); font-weight: 600;
+        }
+        .dc-ai-suggestion-label {
+          font-size: 10px; font-weight: 700;
+          color: var(--sd-accent); margin-bottom: 4px;
+        }
+
+        /* Input row */
+        .dc-input-row {
+          display: flex; align-items: center; gap: 8px;
+          padding: 12px 16px;
+          border-top: 1px solid var(--sd-border);
+          background: var(--sd-white);
+          flex-shrink: 0;
+        }
+
+        .dc-ai-btn {
+          width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+          border: 1px solid var(--sd-border);
+          background: var(--sd-accent-dim);
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; transition: background 0.15s;
+        }
+        .dc-ai-btn:hover:not(:disabled) { background: var(--sd-accent-dim); }
+        .dc-ai-btn:disabled { opacity: 0.5; cursor: wait; }
+
+        .dc-input {
+          flex: 1; height: 42px; padding: 0 14px;
+          border: 1.5px solid var(--sd-border); border-radius: 100px;
+          background: var(--sd-white); color: var(--sd-text);
+          font-size: 14px; outline: none; font-family: inherit;
+          transition: border-color 0.15s;
+        }
+        .dc-input:focus { border-color: var(--sd-accent); }
+        .dc-input::placeholder { color: var(--sd-muted); }
+
+        /* ── Airplane send button ── */
+        .dc-send-btn {
+          width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+          border: none;
+          background: var(--sd-accent);
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer;
+          transition: background 0.15s, opacity 0.15s;
+          padding: 0;
+        }
+        .dc-send-btn:hover:not(:disabled) { background: var(--sd-accent2, #6d28d9); }
+        .dc-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Spinner */
+        .dc-spinner {
+          width: 14px; height: 14px; border-radius: 50%;
+          border: 2px solid var(--sd-accent); border-top-color: transparent;
+          animation: dc-spin 0.8s linear infinite;
+        }
+
+        /* Skeleton */
+        .dc-skel {
+          background: var(--sd-border-light);
+          background-image: linear-gradient(90deg, var(--sd-border-light) 25%, var(--sd-border) 50%, var(--sd-border-light) 75%);
+          background-size: 600px 100%;
+          animation: dc-shimmer 1.4s ease infinite;
+        }
+
+        /* Empty states */
+        .dc-empty-convos {
+          display: flex; flex-direction: column; align-items: center;
+          gap: 8px; padding: 32px 16px; text-align: center;
+          font-size: 12px; color: var(--sd-muted);
+        }
+        .dc-no-chat {
+          display: flex; flex-direction: column; align-items: center;
+          justify-content: center; height: 100%; gap: 10px;
+        }
+        .dc-no-chat-label { font-size: 14px; font-weight: 700; color: var(--sd-muted); }
+
+        /* Locked */
+        .dc-locked {
+          display: flex; flex-direction: column; align-items: center;
+          gap: 10px; padding: 64px 24px; text-align: center;
+        }
+        .dc-locked-title { font-size: 16px; font-weight: 800; color: var(--sd-text); }
+        .dc-locked-sub   { font-size: 13px; color: var(--sd-muted); max-width: 280px; line-height: 1.6; }
+
+        /* ════════════════════════════════════════
+           MOBILE  ≤ 768px
+           Show list OR chat, not both at once.
+        ════════════════════════════════════════ */
+        @media (max-width: 768px) {
+          .dc-shell {
+            border-radius: 12px;
+            height: calc(100vh - 160px);
+            position: relative;
+            overflow: hidden;
+          }
+
+          /* List panel — full width on mobile */
+          .dc-list-panel {
+            width: 100%;
+            border-right: none;
+            position: absolute; inset: 0;
+            z-index: 1;
+            transform: translateX(0);
+            transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+          }
+          /* Slide list out when chat is open */
+          .dc-list-panel--hidden {
+            transform: translateX(-100%);
+            pointer-events: none;
+          }
+
+          /* Chat panel — full width, slides in from right */
+          .dc-chat-panel {
+            width: 100%;
+            position: absolute; inset: 0;
+            z-index: 2;
+            transform: translateX(100%);
+            transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+          }
+          /* Slide chat in when active */
+          .dc-chat-panel:not(.dc-chat-panel--hidden) {
+            transform: translateX(0);
+          }
+          .dc-chat-panel--hidden {
+            transform: translateX(100%);
+            pointer-events: none;
+          }
+
+          /* Show back button on mobile */
+          .dc-back-btn { display: flex; }
+
+          .dc-bubble { max-width: 82%; }
+        }
+
+        @media (min-width: 769px) {
+          /* Desktop: always show both panels, no slide */
+          .dc-list-panel,
+          .dc-list-panel--hidden { transform: none !important; position: static !important; width: 260px; }
+          .dc-chat-panel,
+          .dc-chat-panel--hidden { transform: none !important; position: static !important; }
+        }
+      `}</style>
     </div>
   );
 }
