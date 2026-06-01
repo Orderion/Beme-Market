@@ -548,8 +548,8 @@ export default function DashboardAnalytics() {
           background: linear-gradient(135deg, #3730a3 0%, #7c3aed 38%, #a78bfa 70%, #ede9fe 100%);
         }
         .sd-dark .an-ai-card {
-          /* Dark: midnight → deep indigo → black */
-          background: linear-gradient(135deg, #0f0e2e 0%, #1e1b4b 32%, #312e81 65%, #09090f 100%);
+          /* Dark: #131416 base → subtle purple tint → near-black */
+          background: linear-gradient(135deg, #131416 0%, #1c1f22 32%, #21242a 65%, #131416 100%);
         }
         .an-bubble {
           position: absolute; border-radius: 50%; pointer-events: none;

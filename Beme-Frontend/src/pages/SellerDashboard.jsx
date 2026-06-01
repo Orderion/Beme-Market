@@ -267,14 +267,14 @@ export default function SellerDashboard() {
 
         /* ── Dark mode ── */
         .sd-dark {
-          --sd-bg:            #0e0b1a;
-          --sd-white:         #18152a;
-          --sd-border:        #2d2547;
-          --sd-border-light:  #231d38;
-          --sd-text:          #ede9fa;
-          --sd-text2:         #c4b5fd;
-          --sd-muted:         #7c6fab;
-          --sd-nav-icon:      #6b5f8a;
+          --sd-bg:            #131416;
+          --sd-white:         #1c1f22;
+          --sd-border:        #2a2d32;
+          --sd-border-light:  #21242a;
+          --sd-text:          #e8eaed;
+          --sd-text2:         #b0b8c4;
+          --sd-muted:         #6b7380;
+          --sd-nav-icon:      #565c66;
           --sd-accent-dim:    rgba(124,58,237,0.15);
           --sd-accent-border: rgba(124,58,237,0.30);
           --sd-danger-bg:     rgba(220,38,38,0.12);
