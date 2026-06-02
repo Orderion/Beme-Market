@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { collection, query, where, getDocs, orderBy, limit, Timestamp } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
@@ -27,7 +27,7 @@ function initials(name)     { if (!name) return "?"; const p = name.trim().split
 
 const DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const STATUS_COLOR = { paid: "#22C55E", delivered: "#22C55E", processing: "#7c3aed", shipped: "#7C3AED", pending: "#F59E0B", cancelled: "#EF4444" };
-const AVATAR_PAL   = ["#7c3aed", "#6d28d9", "#22C55E", "#F59E0B", "#EF4444", "#0891B2"];
+const AVATAR_PAL   = ["#7c3aed", "#6d28d9", "#0891B2", "#d97706", "#EF4444", "#22C55E"];
 
 function Ico({ d, size = 14, color = "currentColor" }) {
   return (
@@ -38,85 +38,32 @@ function Ico({ d, size = 14, color = "currentColor" }) {
   );
 }
 const IC = {
-  rev: "M12 1v22|M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
-  ord: "M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z",
-  chk: "M22 11.08V12a10 10 0 11-5.93-9.14|M22 4L12 14.01l-3-3",
-  usr: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2|M9 7a4 4 0 108 0 4 4 0 00-8 0|M23 21v-2a4 4 0 00-3-3.87|M16 3.13a4 4 0 010 7.75",
-  arr: "M23 6L13.5 15.5 8.5 10.5 1 18|M17 6h6v6",
-  up:  "M18 15l-6-6-6 6",
-  dn:  "M6 9l6 6 6-6",
+  rev:  "M12 1v22|M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
+  ord:  "M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z",
+  chk:  "M22 11.08V12a10 10 0 11-5.93-9.14|M22 4L12 14.01l-3-3",
+  usr:  "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2|M9 7a4 4 0 108 0 4 4 0 00-8 0",
+  up:   "M18 15l-6-6-6 6",
+  dn:   "M6 9l6 6 6-6",
+  grid: "M3 3h7v7H3z|M14 3h7v7h-7z|M3 14h7v7H3z|M14 14h7v7h-7z",
+  bell: "M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9|M13.73 21a2 2 0 01-3.46 0",
+  arr:  "M5 12h14|M12 5l7 7-7 7",
+  plus: "M12 5v14|M5 12h14",
+  pkg:  "M16.5 9.4l-9-5.19|M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z|M3.27 6.96L12 12.01l8.73-5.05|M12 22.08V12",
+  chart:"M18 20V10|M12 20V4|M6 20v-6",
 };
 
-/* ── Metric card — fully theme-aware ── */
-function MetricCard({ label, value, pctVal, icon, iconColor = "#7c3aed", loading }) {
-  const up   = pctVal >= 0;
-  const barW = Math.min(Math.abs(pctVal), 100);
-  return (
-    <div className="dh-metric-card">
-      <div className="dh-metric-top">
-        <span className="dh-metric-label">{label}</span>
-        <div className="dh-metric-icon" style={{ background: `${iconColor}18`, color: iconColor }}>
-          <Ico d={icon} size={14} color={iconColor} />
-        </div>
-      </div>
-
-      {loading
-        ? <div className="dh-skeleton" style={{ height: 34, width: "55%", marginBottom: 10 }} />
-        : <div className="dh-metric-value">{value}</div>
-      }
-
-      <div className="dh-metric-bar-track">
-        {!loading && (
-          <div className="dh-metric-bar-fill"
-            style={{ width: `${barW}%`, background: iconColor }} />
-        )}
-      </div>
-
-      {!loading && (
-        <div className="dh-metric-trend">
-          <span className="dh-trend-pct" style={{ color: up ? "#22C55E" : "#EF4444" }}>
-            <Ico d={up ? IC.up : IC.dn} size={10} color={up ? "#22C55E" : "#EF4444"} />
-            {Math.abs(pctVal)}%
-          </span>
-          <span className="dh-trend-sub">vs last month</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── Segmented tabs ── */
-function Tabs({ value, options, onChange }) {
-  return (
-    <div className="dh-tabs">
-      {options.map(o => (
-        <button key={o.v} type="button" onClick={() => onChange(o.v)}
-          className={`dh-tab${value === o.v ? " dh-tab--active" : ""}`}>
-          {o.l}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/* ── Chart tooltip ── */
-function Tip({ active, payload, label }) {
+function ChartTip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   const k = payload[0]?.dataKey;
   const v = payload[0]?.value;
   return (
-    <div className="dh-tooltip">
-      <div className="dh-tooltip-label">{label}</div>
-      <div className="dh-tooltip-val">
-        {k === "revenue" ? `GHS ${Number(v).toFixed(2)}` : `${v} orders`}
-      </div>
+    <div className="dh-tip">
+      <div className="dh-tip-label">{label}</div>
+      <div className="dh-tip-val">{k === "revenue" ? `GHS ${Number(v).toFixed(2)}` : `${v} orders`}</div>
     </div>
   );
 }
 
-/* ══════════════════════════════════════════
-   MAIN
-══════════════════════════════════════════ */
 export default function DashboardHome() {
   const { showTutorial, markSeen }          = useTutorial("home");
   const { user }                            = useAuth();
@@ -169,112 +116,205 @@ export default function DashboardHome() {
       return { day: DAY[d.getDay()], orders: slice.length, revenue: slice.reduce((s, o) => s + Number(o.pricing?.total || 0), 0) };
     });
     const recent = [...orders].sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0)).slice(0, 5);
+    const recentBuyers = [...new Map(recent.map(o => {
+      const name = [o.customer?.firstName, o.customer?.lastName].filter(Boolean).join(" ") || "Customer";
+      return [name, { name, avatar: AVATAR_PAL[Math.abs(name.charCodeAt(0)) % AVATAR_PAL.length] }];
+    })).values()].slice(0, 3);
     return { wkO: wkO.length, pwO: pwO.length, rev, pRev, apr: apr.length, pApr: pApr.length,
-      custs, pCusts, total: orders.length, avg: orders.length ? rev / orders.length : 0, bar, recent };
+      custs, pCusts, total: orders.length, avg: orders.length ? rev / orders.length : 0, bar, recent, recentBuyers };
   }, [orders, lastOrds]);
 
-  const dateStr = new Date().toLocaleDateString("en-GH", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const shopName = shop?.shopName || shop?.storeName || "Your Store";
+  const firstName = shopName.split(" ")[0];
+  const revUp = pct(m.rev, m.pRev);
 
   return (
     <div className="dh-root">
 
-      {/* ── Header ── */}
-      <div className="dh-header">
-        <div>
-          <div className="dh-title">Analytics</div>
-          <div className="dh-date">{dateStr}</div>
+      {/* ══ HERO CARD — wallet style ══ */}
+      <div className="dh-hero">
+        {/* Top row */}
+        <div className="dh-hero-top">
+          <div>
+            <div className="dh-greeting">Hi {firstName}! Welcome</div>
+            <div className="dh-subgreet">to your store</div>
+          </div>
+          <div className="dh-hero-icons">
+            <div className="dh-hero-icon"><Ico d={IC.grid} size={15} color="var(--sd-muted)"/></div>
+            <div className="dh-hero-icon"><Ico d={IC.bell} size={15} color="var(--sd-muted)"/></div>
+          </div>
         </div>
-        <div className="dh-live-badge">
-          <div className="dh-live-dot" />
-          Store Active
+
+        {/* Currency pill */}
+        <div className="dh-currency-pill">
+          <div className="dh-currency-dot"/>
+          GHS
+        </div>
+
+        {/* Big number */}
+        {loading
+          ? <div className="dh-skel" style={{ height:44, width:"60%", marginBottom:10 }}/>
+          : (
+            <div className="dh-hero-amount">
+              GHS {fmtMoney(m.rev)}
+              <span className="dh-hero-cents">.00</span>
+            </div>
+          )
+        }
+
+        {/* Trend pill */}
+        {!loading && (
+          <div className="dh-trend-pill" style={{ color: revUp >= 0 ? "#15803d" : "#dc2626", background: revUp >= 0 ? "rgba(34,197,94,0.10)" : "rgba(239,68,68,0.10)" }}>
+            <Ico d={revUp >= 0 ? IC.up : IC.dn} size={11} color={revUp >= 0 ? "#15803d" : "#dc2626"}/>
+            {revUp >= 0 ? "+" : ""}{revUp}% this month
+          </div>
+        )}
+
+        {/* 3 action buttons */}
+        <div className="dh-hero-actions">
+          <button className="dh-action-btn">
+            <Ico d={IC.pkg} size={14} color="var(--sd-text)"/> Products
+          </button>
+          <div className="dh-action-center">
+            <Ico d={IC.chart} size={17} color="#fff"/>
+          </div>
+          <button className="dh-action-btn">
+            <Ico d={IC.ord} size={14} color="var(--sd-text)"/> Orders
+          </button>
         </div>
       </div>
 
-      {/* ── 4 metric cards ── */}
-      <div className="dh-metrics-grid">
-        <MetricCard label="Revenue (Month)" value={`GHS ${fmtMoney(m.rev)}`}  pctVal={pct(m.rev,   m.pRev)}   icon={IC.rev} iconColor="#7c3aed" loading={loading} />
-        <MetricCard label="Orders (Week)"   value={m.wkO}                     pctVal={pct(m.wkO,   m.pwO)}    icon={IC.ord} iconColor="#7c3aed" loading={loading} />
-        <MetricCard label="Approved"        value={m.apr}                     pctVal={pct(m.apr,   m.pApr)}   icon={IC.chk} iconColor="#22C55E" loading={loading} />
-        <MetricCard label="Customers"       value={m.custs}                   pctVal={pct(m.custs, m.pCusts)} icon={IC.usr} iconColor="#F59E0B" loading={loading} />
+      {/* ══ 2-col lower row: recent buyers + mini chart ══ */}
+      <div className="dh-lower-row">
+
+        {/* Recent buyers card */}
+        <div className="dh-card">
+          <div className="dh-card-label">Recent buyers</div>
+          <div className="dh-buyers-grid">
+            {loading
+              ? [0,1,2].map(i => <div key={i} className="dh-buyer-cell"><div className="dh-skel" style={{ width:42,height:42,borderRadius:12 }}/><div className="dh-skel" style={{ height:9,width:32,marginTop:4 }}/></div>)
+              : m.recentBuyers.length === 0
+                ? [{ name:"—", avatar:"#9ca3af" },{ name:"—", avatar:"#9ca3af" }].map((b,i) => (
+                    <div key={i} className="dh-buyer-cell">
+                      <div className="dh-buyer-av" style={{ background: b.avatar }}>{b.name[0]}</div>
+                      <div className="dh-buyer-name">{b.name}</div>
+                    </div>
+                  ))
+                : m.recentBuyers.map((b, i) => (
+                    <div key={i} className="dh-buyer-cell">
+                      <div className="dh-buyer-av" style={{ background: b.avatar }}>{initials(b.name)}</div>
+                      <div className="dh-buyer-name">{b.name.split(" ")[0]}</div>
+                    </div>
+                  ))
+            }
+            <div className="dh-buyer-cell">
+              <div className="dh-buyer-add"><Ico d={IC.plus} size={14} color="var(--sd-muted)"/></div>
+              <div className="dh-buyer-name">More</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mini income chart card */}
+        <div className="dh-card dh-income-card">
+          <div className="dh-card-label">This month</div>
+          {loading
+            ? <div className="dh-skel" style={{ height:60, marginBottom:8 }}/>
+            : (
+              <ResponsiveContainer width="100%" height={60}>
+                <AreaChart data={m.bar} margin={{ top:2, right:0, left:0, bottom:0 }}>
+                  <defs>
+                    <linearGradient id="incGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%"   stopColor="#7c3aed" stopOpacity={0.3}/>
+                      <stop offset="100%" stopColor="#7c3aed" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <Area type="monotone" dataKey="revenue" stroke="#7c3aed" strokeWidth={2}
+                    fill="url(#incGrad)" dot={false}/>
+                </AreaChart>
+              </ResponsiveContainer>
+            )
+          }
+          <div className="dh-income-bottom">
+            <span className="dh-income-amount">GHS {fmtMoney(m.rev)}</span>
+            <span className="dh-income-pill" style={{ color: revUp >= 0 ? "#15803d" : "#dc2626", background: revUp >= 0 ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)" }}>
+              <Ico d={revUp >= 0 ? IC.up : IC.dn} size={9} color={revUp >= 0 ? "#15803d" : "#dc2626"}/>
+              {revUp >= 0 ? "+" : ""}{revUp}%
+            </span>
+          </div>
+          <div className="dh-income-sub">Revenue</div>
+        </div>
       </div>
 
-      {/* ── 2 mini strips ── */}
-      <div className="dh-mini-grid">
+      {/* ══ Metric strips row ══ */}
+      <div className="dh-strips">
         {[
-          { label: "Total Orders",     val: m.total,                  color: "#7c3aed", icon: IC.arr },
-          { label: "Avg. Order Value", val: `GHS ${fmtMoney(m.avg)}`, color: "#7c3aed", icon: IC.rev },
+          { label:"Orders (week)",  val: m.wkO,                    color:"#7c3aed" },
+          { label:"Approved",       val: m.apr,                     color:"#22C55E" },
+          { label:"Customers",      val: m.custs,                   color:"#F59E0B" },
+          { label:"Avg. order",     val: `GHS ${fmtMoney(m.avg)}`,  color:"#7c3aed" },
         ].map(s => (
-          <div key={s.label} className="dh-mini-card">
-            <div className="dh-mini-icon" style={{ background: `${s.color}15`, color: s.color }}>
-              <Ico d={s.icon} size={15} color={s.color} />
-            </div>
-            <div>
-              <div className="dh-mini-label">{s.label}</div>
-              {loading
-                ? <div className="dh-skeleton" style={{ height: 16, width: 50, marginTop: 4 }} />
-                : <div className="dh-mini-value">{s.val}</div>
-              }
-            </div>
+          <div key={s.label} className="dh-strip">
+            <div className="dh-strip-label">{s.label}</div>
+            {loading
+              ? <div className="dh-skel" style={{ height:18, width:"60%", marginTop:4 }}/>
+              : <div className="dh-strip-val" style={{ color: s.color }}>{s.val}</div>
+            }
           </div>
         ))}
       </div>
 
-      {/* ── Chart ── */}
+      {/* ══ Bar chart panel ══ */}
       <div className="dh-panel">
         <div className="dh-panel-head">
-          <span className="dh-panel-title">
-            {chartMode === "orders" ? "Orders" : "Revenue"} — Last 7 Days
-          </span>
-          <Tabs
-            value={chartMode}
-            options={[{ v: "orders", l: "Orders" }, { v: "revenue", l: "Revenue" }]}
-            onChange={setChartMode}
-          />
+          <span className="dh-panel-title">{chartMode === "orders" ? "Orders" : "Revenue"} — last 7 days</span>
+          <div className="dh-tabs">
+            {[{v:"orders",l:"Orders"},{v:"revenue",l:"Revenue"}].map(o => (
+              <button key={o.v} type="button" onClick={() => setChartMode(o.v)}
+                className={`dh-tab${chartMode === o.v ? " dh-tab--active" : ""}`}>{o.l}</button>
+            ))}
+          </div>
         </div>
-
         {loading
-          ? <div className="dh-skeleton" style={{ height: 150 }} />
+          ? <div className="dh-skel" style={{ height:140 }}/>
           : m.bar.every(d => (chartMode === "orders" ? d.orders : d.revenue) === 0)
-            ? <div className="dh-empty-chart">
-                <span>No data this week yet</span>
-              </div>
-            : <ResponsiveContainer width="100%" height={150}>
-                <BarChart data={m.bar} barSize={26}>
-                  <XAxis dataKey="day"
-                    tick={{ fontSize: 11, fill: "var(--sd-muted)", fontFamily: "inherit" }}
-                    axisLine={false} tickLine={false} />
-                  <YAxis
-                    tick={{ fontSize: 11, fill: "var(--sd-muted)", fontFamily: "inherit" }}
-                    axisLine={false} tickLine={false} />
-                  <Tooltip content={<Tip />} cursor={{ fill: "var(--sd-accent-dim)" }} />
-                  <Bar dataKey={chartMode} radius={[6, 6, 0, 0]} fill="var(--sd-accent)" />
+            ? <div className="dh-empty-chart">No data this week yet</div>
+            : (
+              <ResponsiveContainer width="100%" height={140}>
+                <BarChart data={m.bar} barSize={22}>
+                  <XAxis dataKey="day" tick={{ fontSize:11, fill:"var(--sd-muted)", fontFamily:"inherit" }} axisLine={false} tickLine={false}/>
+                  <YAxis tick={{ fontSize:11, fill:"var(--sd-muted)" }} axisLine={false} tickLine={false}/>
+                  <Tooltip content={<ChartTip/>} cursor={{ fill:"var(--sd-accent-dim)" }}/>
+                  <Bar dataKey={chartMode} radius={[6,6,0,0]} fill="var(--sd-accent)"/>
                 </BarChart>
               </ResponsiveContainer>
+            )
         }
       </div>
 
-      {/* ── Order list ── */}
+      {/* ══ Recent activity panel ══ */}
       <div className="dh-panel">
         <div className="dh-panel-head">
-          <span className="dh-panel-title">Order List</span>
-          <span className="dh-panel-sub">{m.total} orders this month</span>
+          <span className="dh-panel-title">Recent Activity</span>
+          <div className="dh-panel-arrow"><Ico d={IC.arr} size={13} color="var(--sd-muted)"/></div>
         </div>
 
         {loading
-          ? [1, 2, 3].map(i => (
+          ? [1,2,3].map(i => (
               <div key={i} className="dh-order-row">
-                <div className="dh-skeleton" style={{ width: 38, height: 38, borderRadius: 9, flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <div className="dh-skeleton" style={{ height: 11, width: "55%", marginBottom: 5 }} />
-                  <div className="dh-skeleton" style={{ height: 9,  width: "35%" }} />
+                <div className="dh-skel" style={{ width:36,height:36,borderRadius:10,flexShrink:0 }}/>
+                <div style={{ flex:1 }}>
+                  <div className="dh-skel" style={{ height:11,width:"55%",marginBottom:5 }}/>
+                  <div className="dh-skel" style={{ height:9,width:"35%" }}/>
                 </div>
               </div>
             ))
           : m.recent.length === 0
-            ? <div className="dh-empty-orders">
+            ? (
+              <div className="dh-empty-orders">
                 <div className="dh-empty-title">No orders yet</div>
                 <div className="dh-empty-sub">Your first order will appear here.</div>
               </div>
+            )
             : m.recent.map((o, i) => {
                 const cust = o.customer;
                 const name = [cust?.firstName, cust?.lastName].filter(Boolean).join(" ") || "Customer";
@@ -284,22 +324,23 @@ export default function DashboardHome() {
                 const badge = st === "paid" || st === "delivered" ? "Completed"
                             : st === "pending" ? "New Order"
                             : st.charAt(0).toUpperCase() + st.slice(1);
+                const isPos = ["paid","delivered","processing","shipped"].includes(st);
                 return (
                   <div key={o.id} className="dh-order-row"
                     style={{ borderBottom: i < m.recent.length - 1 ? "1px solid var(--sd-border-light)" : "none" }}>
-                    <div className="dh-order-avatar" style={{ background: av }}>
-                      {ini}
-                    </div>
+                    <div className="dh-order-av" style={{ background: av }}>{ini}</div>
                     <div className="dh-order-info">
                       <div className="dh-order-name">{name}</div>
                       <div className="dh-order-date">{fmtDate(o.createdAt)}</div>
                     </div>
-                    <div className="dh-order-amount">
-                      +GHS {Number(o.pricing?.total || 0).toFixed(2)}
-                    </div>
-                    <div className="dh-order-badge"
-                      style={{ background: `${STATUS_COLOR[st] || "#9CA3AF"}18`, color: STATUS_COLOR[st] || "var(--sd-muted)" }}>
-                      {badge}
+                    <div className="dh-order-right">
+                      <div className="dh-order-amt" style={{ color: isPos ? "#15803d" : "#dc2626" }}>
+                        {isPos ? "+" : ""}GHS {Number(o.pricing?.total || 0).toFixed(2)}
+                      </div>
+                      <div className="dh-order-badge"
+                        style={{ background:`${STATUS_COLOR[st]||"#9CA3AF"}18`, color:STATUS_COLOR[st]||"var(--sd-muted)" }}>
+                        {badge}
+                      </div>
                     </div>
                   </div>
                 );
@@ -307,15 +348,11 @@ export default function DashboardHome() {
         }
       </div>
 
-      {/* ── New store hint ── */}
       {!loading && m.total === 0 && (
         <div className="dh-hint">
           <div className="dh-hint-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" y1="16" x2="12" y2="12"/>
-              <line x1="12" y1="8"  x2="12.01" y2="8"/>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
             </svg>
           </div>
           <div>
@@ -326,143 +363,182 @@ export default function DashboardHome() {
       )}
 
       {showTutorial && (
-        <TutorialOverlay
-          steps={TUTORIAL_STEPS.home}
-          onFinish={markSeen}
-          pageTitle="Dashboard Home"
-        />
+        <TutorialOverlay steps={TUTORIAL_STEPS.home} onFinish={markSeen} pageTitle="Dashboard Home"/>
       )}
 
-      {/* ══════════════════════════════════════
-          STYLES — all colours via CSS vars
-          inherited from .sd-root / .sd-dark
-      ══════════════════════════════════════ */}
       <style>{`
         @keyframes dh-shimmer {
           0%   { background-position: -600px 0; }
           100% { background-position: calc(600px + 100%) 0; }
         }
         @keyframes dh-pulse {
-          0%, 100% { opacity: 1; }
-          50%       { opacity: 0.45; }
+          0%,100% { opacity:1; } 50% { opacity:0.4; }
         }
 
-        /* Root — white in light mode, deep purple-dark in dark mode */
         .dh-root {
-          font-family: var(--sd-font, 'DM Sans', system-ui, sans-serif);
-          background: var(--sd-white);
+          font-family: var(--sd-font,'DM Sans',system-ui,sans-serif);
+          background: var(--sd-bg);
           color: var(--sd-text);
           min-height: 100%;
+          padding-bottom: 24px;
         }
 
-        /* ── Header ── */
-        .dh-header {
-          display: flex; align-items: flex-start; justify-content: space-between;
-          margin-bottom: 22px;
-        }
-        .dh-title {
-          font-size: 22px; font-weight: 900; color: var(--sd-text);
-          letter-spacing: -0.03em; line-height: 1.1;
-        }
-        .dh-date { font-size: 13px; color: var(--sd-muted); font-weight: 500; margin-top: 3px; }
-
-        /* Live badge */
-        .dh-live-badge {
-          display: flex; align-items: center; gap: 7px;
-          font-size: 12px; font-weight: 700; color: #22C55E;
-          background: rgba(34,197,94,0.08);
-          padding: 6px 12px; border-radius: 100px;
-          border: 1px solid rgba(34,197,94,0.2);
-        }
-        .dh-live-dot {
-          width: 6px; height: 6px; border-radius: 50%; background: #22C55E;
-          animation: dh-pulse 1.8s ease infinite;
-        }
-
-        /* ── Metric cards ── */
-        .dh-metrics-grid {
-          display: grid; grid-template-columns: repeat(2, 1fr);
-          gap: 10px; margin-bottom: 10px;
-        }
-        .dh-metric-card {
+        /* ── Hero card ── */
+        .dh-hero {
           background: var(--sd-white);
-          border-radius: 16px;
-          padding: 20px 20px 16px;
+          border-radius: 22px;
           border: 1px solid var(--sd-border);
           box-shadow: var(--sd-shadow);
+          padding: 22px 22px 18px;
+          margin-bottom: 12px;
           transition: background 0.25s, border-color 0.25s;
         }
-        .dh-metric-top {
-          display: flex; align-items: center; justify-content: space-between;
+        .dh-hero-top {
+          display: flex; justify-content: space-between; align-items: flex-start;
+          margin-bottom: 18px;
+        }
+        .dh-greeting    { font-size: 14px; color: var(--sd-muted); font-weight: 500; }
+        .dh-subgreet    { font-size: 17px; font-weight: 800; color: var(--sd-text); letter-spacing: -0.02em; margin-top: 2px; }
+        .dh-hero-icons  { display: flex; gap: 8px; }
+        .dh-hero-icon   {
+          width: 34px; height: 34px; border-radius: 50%;
+          border: 1px solid var(--sd-border);
+          background: var(--sd-bg);
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; transition: background 0.15s;
+        }
+        .dh-hero-icon:hover { background: var(--sd-border-light); }
+
+        .dh-currency-pill {
+          display: inline-flex; align-items: center; gap: 6px;
+          background: var(--sd-bg);
+          border: 1px solid var(--sd-border);
+          border-radius: 100px; padding: 4px 12px;
+          font-size: 12px; font-weight: 700; color: var(--sd-muted);
           margin-bottom: 10px;
         }
-        .dh-metric-label {
-          font-size: 11px; font-weight: 800;
-          text-transform: uppercase; letter-spacing: 0.07em;
-          color: var(--sd-muted);
+        .dh-currency-dot {
+          width: 7px; height: 7px; border-radius: 50%;
+          background: var(--sd-accent);
         }
-        .dh-metric-icon {
-          width: 30px; height: 30px; border-radius: 8px;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-        }
-        .dh-metric-value {
-          font-size: 28px; font-weight: 900; color: var(--sd-text);
-          letter-spacing: -0.04em; line-height: 1; margin-bottom: 10px;
-        }
-        .dh-metric-bar-track {
-          height: 4px; background: var(--sd-border);
-          border-radius: 2px; overflow: hidden; margin-bottom: 8px;
-        }
-        .dh-metric-bar-fill {
-          height: 100%; border-radius: 2px;
-          transition: width 0.7s ease;
-        }
-        .dh-metric-trend {
-          display: flex; align-items: center; gap: 5px;
-          font-size: 12px; font-weight: 700;
-        }
-        .dh-trend-pct {
-          display: flex; align-items: center; gap: 2px;
-        }
-        .dh-trend-sub { color: var(--sd-muted); font-weight: 500; }
 
-        /* ── Mini strips ── */
-        .dh-mini-grid {
-          display: grid; grid-template-columns: 1fr 1fr;
-          gap: 10px; margin-bottom: 18px;
+        .dh-hero-amount {
+          font-size: 40px; font-weight: 900; color: var(--sd-text);
+          letter-spacing: -0.05em; line-height: 1;
         }
-        .dh-mini-card {
+        .dh-hero-cents {
+          font-size: 22px; font-weight: 500; color: var(--sd-muted); margin-left: 2px;
+        }
+
+        .dh-trend-pill {
+          display: inline-flex; align-items: center; gap: 5px;
+          border-radius: 100px; padding: 5px 12px;
+          font-size: 12px; font-weight: 700; margin-top: 10px;
+        }
+
+        .dh-hero-actions {
+          display: grid; grid-template-columns: 1fr 44px 1fr;
+          gap: 8px; margin-top: 18px; align-items: center;
+        }
+        .dh-action-btn {
+          height: 42px; border-radius: 100px;
+          border: 1px solid var(--sd-border);
+          background: var(--sd-bg);
+          color: var(--sd-text);
+          font-size: 13px; font-weight: 700;
+          display: flex; align-items: center; justify-content: center; gap: 6px;
+          cursor: pointer; font-family: inherit;
+          transition: background 0.15s;
+        }
+        .dh-action-btn:hover { background: var(--sd-border-light); }
+        .dh-action-center {
+          width: 44px; height: 44px; border-radius: 50%;
+          background: var(--sd-accent);
+          display: flex; align-items: center; justify-content: center;
+          box-shadow: 0 4px 14px rgba(124,58,237,0.35);
+        }
+
+        /* ── Lower 2-col row ── */
+        .dh-lower-row {
+          display: grid; grid-template-columns: 1fr 1fr;
+          gap: 10px; margin-bottom: 10px;
+        }
+        .dh-card {
+          background: var(--sd-white);
+          border-radius: 16px;
+          border: 1px solid var(--sd-border);
+          box-shadow: var(--sd-shadow);
+          padding: 16px;
+          transition: background 0.25s, border-color 0.25s;
+        }
+        .dh-card-label {
+          font-size: 11px; font-weight: 700; color: var(--sd-muted);
+          text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 12px;
+        }
+
+        /* Buyers grid */
+        .dh-buyers-grid {
+          display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+        }
+        .dh-buyer-cell  { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .dh-buyer-av    {
+          width: 42px; height: 42px; border-radius: 12px;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 13px; font-weight: 800; color: #fff;
+        }
+        .dh-buyer-name  { font-size: 10px; color: var(--sd-muted); text-align: center; line-height: 1.2; }
+        .dh-buyer-add   {
+          width: 42px; height: 42px; border-radius: 12px;
+          border: 1px solid var(--sd-border);
+          background: var(--sd-bg);
+          display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Income card */
+        .dh-income-card { display: flex; flex-direction: column; }
+        .dh-income-bottom {
+          display: flex; align-items: center; gap: 6px; margin-top: 6px;
+        }
+        .dh-income-amount {
+          font-size: 16px; font-weight: 900; color: var(--sd-text); letter-spacing: -0.03em;
+        }
+        .dh-income-pill {
+          display: inline-flex; align-items: center; gap: 3px;
+          border-radius: 100px; padding: 2px 7px;
+          font-size: 10px; font-weight: 700;
+        }
+        .dh-income-sub { font-size: 11px; color: var(--sd-muted); margin-top: 2px; }
+
+        /* ── Metric strips ── */
+        .dh-strips {
+          display: grid; grid-template-columns: 1fr 1fr;
+          gap: 8px; margin-bottom: 12px;
+        }
+        .dh-strip {
           background: var(--sd-white);
           border-radius: 12px;
           border: 1px solid var(--sd-border);
-          padding: 12px 14px;
-          display: flex; align-items: center; gap: 10px;
           box-shadow: var(--sd-shadow);
+          padding: 12px 14px;
           transition: background 0.25s, border-color 0.25s;
         }
-        .dh-mini-icon {
-          width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
-          display: flex; align-items: center; justify-content: center;
-        }
-        .dh-mini-label {
-          font-size: 10px; font-weight: 800;
+        .dh-strip-label {
+          font-size: 10px; font-weight: 700; color: var(--sd-muted);
           text-transform: uppercase; letter-spacing: 0.06em;
-          color: var(--sd-muted);
         }
-        .dh-mini-value {
-          font-size: 16px; font-weight: 900; color: var(--sd-text);
-          letter-spacing: -0.03em; line-height: 1.2; margin-top: 2px;
+        .dh-strip-val {
+          font-size: 20px; font-weight: 900; letter-spacing: -0.03em;
+          line-height: 1.2; margin-top: 4px;
         }
 
-        /* ── Panels (chart + orders) ── */
+        /* ── Panel (chart + orders) ── */
         .dh-panel {
           background: var(--sd-white);
           border-radius: 16px;
           border: 1px solid var(--sd-border);
-          padding: 18px 20px 14px;
-          margin-bottom: 14px;
           box-shadow: var(--sd-shadow);
+          padding: 18px 18px 14px;
+          margin-bottom: 12px;
           transition: background 0.25s, border-color 0.25s;
         }
         .dh-panel-head {
@@ -472,53 +548,45 @@ export default function DashboardHome() {
         .dh-panel-title {
           font-size: 14px; font-weight: 800; color: var(--sd-text);
         }
-        .dh-panel-sub {
-          font-size: 11px; font-weight: 600; color: var(--sd-muted);
-        }
+        .dh-panel-arrow { cursor: pointer; }
 
-        /* ── Tabs ── */
+        /* Tabs */
         .dh-tabs {
-          display: flex;
-          background: var(--sd-border-light);
+          display: flex; background: var(--sd-border-light);
           border-radius: 100px; padding: 3px;
           border: 1px solid var(--sd-border);
         }
         .dh-tab {
-          padding: 5px 12px; border-radius: 100px; border: none;
+          padding: 4px 11px; border-radius: 100px; border: none;
           background: transparent; color: var(--sd-muted);
-          font-size: 12px; font-weight: 700; cursor: pointer;
+          font-size: 11px; font-weight: 700; cursor: pointer;
           transition: all 0.15s; font-family: inherit;
         }
         .dh-tab--active {
-          background: var(--sd-white);
-          color: var(--sd-text);
-          box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+          background: var(--sd-white); color: var(--sd-text);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
-        /* ── Chart empty ── */
         .dh-empty-chart {
-          height: 150px; display: flex; align-items: center; justify-content: center;
+          height: 140px; display: flex; align-items: center; justify-content: center;
+          font-size: 13px; color: var(--sd-muted); font-weight: 600;
         }
-        .dh-empty-chart span { font-size: 13px; color: var(--sd-muted); font-weight: 600; }
 
-        /* ── Tooltip ── */
-        .dh-tooltip {
-          background: var(--sd-white);
-          border: 1px solid var(--sd-border);
-          border-radius: 10px; padding: 10px 14px;
-          font-size: 12px; font-weight: 600;
-          box-shadow: var(--sd-shadow-lg, 0 4px 20px rgba(0,0,0,0.1));
+        /* Chart tooltip */
+        .dh-tip {
+          background: var(--sd-white); border: 1px solid var(--sd-border);
+          border-radius: 10px; padding: 9px 13px; font-size: 12px; font-weight: 600;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.1);
         }
-        .dh-tooltip-label { color: var(--sd-muted); margin-bottom: 4px; }
-        .dh-tooltip-val   { color: var(--sd-text); }
+        .dh-tip-label { color: var(--sd-muted); margin-bottom: 3px; }
+        .dh-tip-val   { color: var(--sd-text); }
 
-        /* ── Order rows ── */
+        /* Order rows */
         .dh-order-row {
-          display: flex; align-items: center; gap: 12px;
-          padding: 10px 0;
+          display: flex; align-items: center; gap: 11px; padding: 10px 0;
         }
-        .dh-order-avatar {
-          width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0;
+        .dh-order-av {
+          width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
           display: flex; align-items: center; justify-content: center;
           font-size: 12px; font-weight: 800; color: #fff;
         }
@@ -527,57 +595,47 @@ export default function DashboardHome() {
           font-size: 13px; font-weight: 700; color: var(--sd-text);
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        .dh-order-date  { font-size: 11px; color: var(--sd-muted); font-weight: 500; }
-        .dh-order-amount{
-          font-size: 13px; font-weight: 800; color: var(--sd-text); flex-shrink: 0;
-        }
+        .dh-order-date  { font-size: 11px; color: var(--sd-muted); margin-top: 1px; }
+        .dh-order-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+        .dh-order-amt   { font-size: 13px; font-weight: 800; }
         .dh-order-badge {
-          padding: 4px 10px; border-radius: 100px; flex-shrink: 0;
-          font-size: 11px; font-weight: 700;
+          padding: 3px 9px; border-radius: 100px;
+          font-size: 10px; font-weight: 700; white-space: nowrap;
         }
 
-        /* ── Empty orders ── */
-        .dh-empty-orders { text-align: center; padding: 28px 0; }
+        .dh-empty-orders { text-align: center; padding: 24px 0; }
         .dh-empty-title  { font-size: 13px; color: var(--sd-muted); font-weight: 600; }
         .dh-empty-sub    { font-size: 12px; color: var(--sd-muted); margin-top: 3px; }
 
-        /* ── New store hint ── */
+        /* Hint */
         .dh-hint {
-          margin-top: 14px; padding: 14px 18px; border-radius: 12px;
-          background: var(--sd-accent-dim);
-          border: 1px solid var(--sd-accent-border);
+          padding: 14px 16px; border-radius: 12px;
+          background: var(--sd-accent-dim); border: 1px solid var(--sd-accent-border);
           display: flex; align-items: center; gap: 12px;
         }
         .dh-hint-icon {
-          width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+          width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
           background: var(--sd-border-light);
           display: flex; align-items: center; justify-content: center;
           color: var(--sd-text);
         }
         .dh-hint-title { font-size: 13px; font-weight: 800; color: var(--sd-text); }
-        .dh-hint-sub   { font-size: 12px; color: var(--sd-muted); font-weight: 500; margin-top: 2px; }
+        .dh-hint-sub   { font-size: 12px; color: var(--sd-muted); margin-top: 2px; }
         .dh-hint-sub strong { color: var(--sd-text); }
 
-        /* ── Skeleton shimmer ── */
-        .dh-skeleton {
-          border-radius: 6px;
-          background: var(--sd-border-light);
-          background-image: linear-gradient(
-            90deg,
-            var(--sd-border-light) 25%,
-            var(--sd-border)       50%,
-            var(--sd-border-light) 75%
-          );
+        /* Skeleton */
+        .dh-skel {
+          border-radius: 6px; background: var(--sd-border-light);
+          background-image: linear-gradient(90deg, var(--sd-border-light) 25%, var(--sd-border) 50%, var(--sd-border-light) 75%);
           background-size: 600px 100%;
           animation: dh-shimmer 1.4s ease infinite;
         }
 
-        /* ── Responsive ── */
+        /* Mobile */
         @media (max-width: 480px) {
-          .dh-metrics-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-          .dh-mini-grid    { grid-template-columns: 1fr 1fr; gap: 8px; }
-          .dh-metric-value { font-size: 22px; }
-          .dh-order-badge  { display: none; }
+          .dh-hero-amount { font-size: 32px; }
+          .dh-hero-cents  { font-size: 18px; }
+          .dh-strip-val   { font-size: 17px; }
         }
       `}</style>
     </div>
