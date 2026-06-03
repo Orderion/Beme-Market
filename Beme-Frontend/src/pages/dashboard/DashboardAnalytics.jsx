@@ -80,7 +80,7 @@ function Empty({ msg = "No data available for this period" }) {
   );
 }
 
-/* ── Card — uses theme variables ── */
+/* ── Card ── */
 function Card({ children, style = {} }) {
   return (
     <div style={{
@@ -257,7 +257,7 @@ export default function DashboardAnalytics() {
         </div>
       </div>
 
-      {/* ── AI Summary — gradient + floating bubbles ── */}
+      {/* ── AI Summary ── */}
       {(aiLoading || aiSummary) && (
         <div className="an-ai-card">
           <span className="an-bubble an-bubble--a"/>
@@ -303,7 +303,7 @@ export default function DashboardAnalytics() {
           value={`${data.conversionRate || 0}%`}/>
       </div>
 
-      {/* ── Main chart + quick stats — desktop two-col, mobile stacked ── */}
+      {/* ── Main chart + quick stats ── */}
       <div className="an-body-row">
         {/* Main chart */}
         <Card style={{ minWidth: 0 }}>
@@ -322,9 +322,10 @@ export default function DashboardAnalytics() {
                   style={{
                     padding: "6px 14px", borderRadius: 20,
                     border: `1.5px solid ${metric === m.key ? m.color : "var(--sd-border)"}`,
-                    background: metric === m.key ? `${m.color}12` : "transparent",
-                    color: metric === m.key ? m.color : "var(--sd-muted)",
+                    background: metric === m.key ? m.color : "transparent",
+                    color: metric === m.key ? "#fff" : "var(--sd-muted)",
                     fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                    transition: "all 0.15s",
                   }}>
                   {m.label}
                 </button>
@@ -522,7 +523,6 @@ export default function DashboardAnalytics() {
           STYLES
       ════════════════════════════════════════ */}
       <style>{`
-        /* Keyframes */
         @keyframes an-spin    { to { transform: rotate(360deg); } }
         @keyframes an-shimmer { 0%{background-position:-600px 0} 100%{background-position:calc(600px + 100%) 0} }
         @keyframes an-pulse   { 0%,100%{opacity:1} 50%{opacity:.4} }
@@ -544,18 +544,16 @@ export default function DashboardAnalytics() {
           overflow: hidden;
           border-radius: 18px;
           margin-bottom: 16px;
-          /* Light: blue-purple → lavender → near-white */
           background: linear-gradient(135deg, #3730a3 0%, #7c3aed 38%, #a78bfa 70%, #ede9fe 100%);
         }
         .sd-dark .an-ai-card {
-          /* Dark: #131416 base → subtle purple tint → near-black */
-          background: linear-gradient(135deg, #131416 0%, #1c1f22 32%, #21242a 65%, #131416 100%);
+          background: linear-gradient(135deg, #1e1b4b 0%, #2e1065 32%, #3b0764 65%, #1e1b4b 100%);
         }
         .an-bubble {
           position: absolute; border-radius: 50%; pointer-events: none;
           background: rgba(255,255,255,0.12);
         }
-        .sd-dark .an-bubble { background: rgba(129,140,248,0.14); }
+        .sd-dark .an-bubble { background: rgba(167,139,250,0.18); }
         .an-bubble--a { width:140px; height:140px; top:-50px; right:-40px; animation: an-float-a 7s ease-in-out infinite; }
         .an-bubble--b { width:90px;  height:90px;  bottom:-25px; left:10px; animation: an-float-b 9s ease-in-out infinite; }
         .an-bubble--c { width:58px;  height:58px;  top:20px; right:120px;  animation: an-float-c 5.5s ease-in-out infinite; }
@@ -567,15 +565,22 @@ export default function DashboardAnalytics() {
           border-radius: 8px; padding: 8px 12px;
           font-size: 12px; font-weight: 700; color: #fff; line-height: 1.5;
         }
-        .sd-dark .an-ai-tip { background: rgba(255,255,255,0.08); }
+        .sd-dark .an-ai-tip { background: rgba(167,139,250,0.2); }
         .an-ai-dismiss { margin-top:8px; background:none; border:none; color:rgba(255,255,255,.5); font-size:11px; cursor:pointer; padding:0; display:block; }
 
-        /* ── DESKTOP layout (default — preserves original) ── */
+        /* ── Metric tab buttons (active = purple filled) ── */
+        .an-metric-btn-active {
+          background: var(--sd-accent) !important;
+          color: #fff !important;
+          border-color: var(--sd-accent) !important;
+        }
+
+        /* ── DESKTOP layout ── */
         .an-stat-row {
           display: flex;
           gap: 14px;
           margin-bottom: 16px;
-          flex-wrap: nowrap;   /* 4 cards in one row on desktop */
+          flex-wrap: nowrap;
         }
         .an-body-row {
           display: grid;
@@ -591,46 +596,29 @@ export default function DashboardAnalytics() {
           margin-bottom: 16px;
         }
 
-        /* ════════════════════════════════════════
-           MOBILE  ≤ 768px
-           Stack everything like the reference image:
-           • header full width
-           • period tabs wrap
-           • stat cards: 2×2 grid
-           • chart full width, sidebar below
-           • two bar charts: 1×1 stack
-        ════════════════════════════════════════ */
+        /* ── MOBILE ── */
         @media (max-width: 768px) {
-          /* Stat cards: strict 2×2 grid */
           .an-stat-row {
             display: grid !important;
             grid-template-columns: 1fr 1fr !important;
             gap: 10px !important;
             flex-wrap: unset !important;
           }
-          /* Each stat card loses flex:1 and fills grid cell */
           .an-stat-row > div {
             flex: unset !important;
             min-width: 0 !important;
           }
-          /* Stat value smaller to avoid overflow */
           .an-stat-row [style*="fontSize:30"] {
             font-size: 20px !important;
           }
-
-          /* Chart + sidebar: full-width stack */
           .an-body-row {
             grid-template-columns: 1fr !important;
             gap: 12px !important;
           }
-
-          /* Two bar charts: stack */
           .an-grid2 {
             grid-template-columns: 1fr !important;
             gap: 12px !important;
           }
-
-          /* Period tabs: shrink text so they fit */
           .an-stat-row ~ div button,
           button[style*="8px 16px"] {
             padding: 6px 10px !important;
@@ -638,7 +626,6 @@ export default function DashboardAnalytics() {
           }
         }
 
-        /* Extra small: tighten up */
         @media (max-width: 400px) {
           .an-stat-row {
             gap: 8px !important;
