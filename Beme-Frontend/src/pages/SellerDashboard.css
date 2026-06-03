@@ -122,7 +122,8 @@ body.dark .sd-root {
 ══════════════════════════════════════ */
 .sd-root {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: var(--sd-bg);
   font-family: var(--sd-font);
   color: var(--sd-text);
@@ -837,55 +838,69 @@ body.dark .sd-table tbody tr:hover td { background: rgba(124,58,237,0.08); }
 
 /* ══════════════════════════════════════
    RESPONSIVE
+   Sidebar is position:fixed on ALL screen
+   sizes — it never scrolls with the page.
+   On tablet/mobile it hides off-screen
+   via transform and slides in as overlay.
 ══════════════════════════════════════ */
+
+/* ── Tablet (≤1024px): sidebar becomes hidden overlay ── */
 @media (max-width: 1024px) {
   .sd-sidebar {
-    position: fixed; left: 0; top: 0; bottom: 0;
-    transform: translateX(-100%);
-    z-index: 200;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
     width: var(--sd-sidebar-w) !important;
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.22,1,0.36,1), background 0.25s, border-color 0.25s;
+    z-index: 200;
     box-shadow: none;
   }
   .sd-sidebar--mobile-open,
   .sd-sidebar.mobile-open {
-    transform: translateX(0) !important;
-    box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+    transform: translateX(0);
+    box-shadow: 4px 0 20px rgba(0,0,0,0.18);
   }
-  .sd-sidebar-overlay { display: block; }
-  .sd-hamburger { display: flex; align-items: center; justify-content: center; }
-  /* On tablet/mobile the sidebar is an overlay — main takes full width */
-  .sd-main { margin-left: 0 !important; }
+  /* Sidebar is off-screen overlay — main takes full width */
+  .sd-main,
   .sd-main--collapsed { margin-left: 0 !important; }
+  .sd-sidebar-overlay { display: block; }
+  .sd-hamburger       { display: flex; align-items: center; justify-content: center; }
+  .sd-collapse-btn    { display: none !important; }
+  /* Always show full labels inside the overlay sidebar */
   .sd-nav-label, .sd-store-info, .sd-store-dot, .sd-footer-label {
     opacity: 1 !important; width: auto !important; display: block !important;
   }
   .sd-nav-item, .sd-footer-btn {
-    justify-content: flex-start !important; padding: 9px 8px !important; gap: 9px !important;
+    justify-content: flex-start !important;
+    padding: 9px 8px !important;
+    gap: 9px !important;
   }
-  .sd-store-header { justify-content: flex-start !important; padding: 16px 14px 12px !important; }
-  .sd-nav-icon     { width: 20px !important; min-width: 20px !important; justify-content: flex-start !important; }
-  .sd-ai-chip      { display: inline-flex !important; }
-  .sd-collapse-btn { display: none !important; }
-  .sd-content      { padding: 16px 16px 60px; }
+  .sd-store-header {
+    justify-content: flex-start !important;
+    padding: 16px 14px 12px !important;
+  }
+  .sd-nav-icon {
+    width: 20px !important;
+    min-width: 20px !important;
+    justify-content: flex-start !important;
+  }
+  .sd-ai-chip { display: inline-flex !important; }
+  .sd-content { padding: 16px 16px 60px; }
 }
+
+/* ── Mobile (≤768px): tighter padding ── */
 @media (max-width: 768px) {
-  .sd-sidebar {
-    position: fixed; left: -240px; top: 0; bottom: 0;
-    width: var(--sd-sidebar-w) !important;
-    transition: left 0.25s cubic-bezier(0.22,1,0.36,1), background 0.25s;
-    box-shadow: none; transform: none;
-  }
-  .sd-sidebar--mobile-open,
-  .sd-sidebar.mobile-open { left: 0; box-shadow: 4px 0 20px rgba(0,0,0,0.15); }
-  .sd-main { margin-left: 0 !important; }
-  .sd-content  { padding: 16px; }
-  .sd-topbar   { padding: 0 16px; }
-  .sd-stats-grid { grid-template-columns: 1fr 1fr; }
-  .sd-overview-grid { grid-template-columns: 1fr; }
+  .sd-content      { padding: 16px; }
+  .sd-topbar       { padding: 0 16px; }
+  .sd-stats-grid   { grid-template-columns: 1fr 1fr; }
+  .sd-overview-grid{ grid-template-columns: 1fr; }
 }
+
+/* ── Small mobile (≤480px) ── */
 @media (max-width: 480px) {
-  .sd-stats-grid  { grid-template-columns: 1fr; }
-  .sd-chat-list   { display: none; }
-  .sd-mini-stats  { flex-direction: column; }
-  .sd-live-badge  { display: none; }
+  .sd-stats-grid { grid-template-columns: 1fr; }
+  .sd-chat-list  { display: none; }
+  .sd-mini-stats { flex-direction: column; }
+  .sd-live-badge { display: none; }
 }
