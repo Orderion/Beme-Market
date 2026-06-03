@@ -165,21 +165,25 @@ export default function SellerDashboard() {
                 </span>
                 <span className="sd-nav-label">{item.label}</span>
                 {badge > 0 && <span className="sd-nav-badge">{badge > 99 ? "99+" : badge}</span>}
-                {item.id === "ai" && (
-                  <span className="sd-ai-chip">AI</span>
-                )}
+                {item.id === "ai" && <span className="sd-ai-chip">AI</span>}
               </button>
             );
           })}
         </nav>
 
-        {/* Footer */}
+        {/* Sidebar footer */}
         <div className="sd-sidebar-footer">
-          <button className="sd-footer-btn" onClick={toggleTheme} title={`Switch to ${isDark ? "light" : "dark"} mode`}>
-            <span className="sd-nav-icon"><Ico d={isDark ? D.sun : D.moon} size={16} color="var(--sd-muted)" /></span>
-            <span className="sd-nav-label sd-footer-label">{isDark ? "Light mode" : "Dark mode"}</span>
+          <button className="sd-footer-btn" onClick={toggleTheme}
+            title={`Switch to ${isDark ? "light" : "dark"} mode`}>
+            <span className="sd-nav-icon">
+              <Ico d={isDark ? D.sun : D.moon} size={16} color="var(--sd-muted)" />
+            </span>
+            <span className="sd-nav-label sd-footer-label">
+              {isDark ? "Light mode" : "Dark mode"}
+            </span>
           </button>
-          <button className="sd-footer-btn sd-collapse-btn" onClick={() => setCollapsed(c => !c)}
+          <button className="sd-footer-btn sd-collapse-btn"
+            onClick={() => setCollapsed(c => !c)}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
             <span className="sd-nav-icon">
               <Ico d={collapsed ? D.chevronRight : D.chevronLeft} size={16} color="var(--sd-muted)" />
@@ -189,18 +193,24 @@ export default function SellerDashboard() {
         </div>
       </aside>
 
-      {/* Mobile/tablet overlay backdrop */}
-      {sidebarOpen && <div className="sd-sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
+      {/* Mobile overlay backdrop */}
+      {sidebarOpen && (
+        <div className="sd-sidebar-overlay" onClick={() => setSidebarOpen(false)} />
+      )}
 
       {/* ══════ MAIN ══════ */}
       <div className={`sd-main${collapsed ? " sd-main--collapsed" : ""}`}>
 
         {/* Topbar */}
         <header className="sd-topbar">
-          <button className="sd-hamburger" onClick={() => setSidebarOpen(o => !o)} aria-label="Toggle sidebar">
-            <Ico d={D.menu} size={20} color="var(--sd-text)" />
-          </button>
-          <div className="sd-topbar-title">{TAB_TITLES[activeTab] || "Dashboard"}</div>
+          <div className="sd-topbar-left">
+            <button className="sd-hamburger"
+              onClick={() => setSidebarOpen(o => !o)}
+              aria-label="Toggle sidebar">
+              <Ico d={D.menu} size={20} color="var(--sd-muted)" />
+            </button>
+            <div className="sd-topbar-title">{TAB_TITLES[activeTab] || "Dashboard"}</div>
+          </div>
           <div className="sd-topbar-right">
             {isSellerActive && (
               <div className="sd-live-badge">
@@ -229,380 +239,6 @@ export default function SellerDashboard() {
           </Suspense>
         </main>
       </div>
-
-      {/* ══════ STYLES ══════ */}
-      <style>{`
-        @keyframes sd-spin  { to { transform: rotate(360deg); } }
-        @keyframes sd-sheet-up { from { transform: translateY(100%); } to { transform: none; } }
-        @keyframes sd-dd-in { from { opacity:0; transform: translateY(-6px) scale(0.97); } to { opacity:1; transform:none; } }
-        @keyframes sd-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-
-        /* ════ CSS VARIABLES ════ */
-        :root {
-          --sd-font:         'DM Sans', 'Nunito', system-ui, sans-serif;
-          --sd-accent:        #7c3aed;
-          --sd-accent2:       #6d28d9;
-          --sd-accent-dim:    rgba(124,58,237,0.08);
-          --sd-accent-border: rgba(124,58,237,0.18);
-          --sd-bg:            #ffffff;
-          --sd-white:         #ffffff;
-          --sd-border:        #e5e7eb;
-          --sd-border-light:  #f3f4f6;
-          --sd-text:          #111827;
-          --sd-text2:         #374151;
-          --sd-muted:         #6b7280;
-          --sd-nav-icon:      #9ca3af;
-          --sd-shadow:        0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-          --sd-shadow-lg:     0 4px 24px rgba(0,0,0,0.08);
-          --sd-danger:        #dc2626;
-          --sd-danger-bg:     rgba(220,38,38,0.06);
-          --sd-warning:       #f59e0b;
-          --sd-warning-bg:    rgba(245,158,11,0.07);
-          --sd-sidebar-w:     232px;
-          --sd-sidebar-collapsed-w: 64px;
-          --sd-topbar-h:      56px;
-        }
-
-        /* ── Dark mode ── */
-        .sd-dark {
-          --sd-bg:            #131416;
-          --sd-white:         #131416;
-          --sd-border:        #2a2d32;
-          --sd-border-light:  #1a1d21;
-          --sd-text:          #e8eaed;
-          --sd-text2:         #b0b8c4;
-          --sd-muted:         #6b7380;
-          --sd-nav-icon:      #565c66;
-          --sd-accent-dim:    rgba(124,58,237,0.18);
-          --sd-accent-border: rgba(124,58,237,0.35);
-          --sd-danger-bg:     rgba(220,38,38,0.12);
-          --sd-warning-bg:    rgba(245,158,11,0.12);
-          --sd-shadow:        0 1px 3px rgba(0,0,0,0.4);
-          --sd-shadow-lg:     0 4px 24px rgba(0,0,0,0.40);
-        }
-
-        /* ════ ROOT ════ */
-        .sd-root {
-          display: flex;
-          min-height: 100vh;
-          background: var(--sd-white);
-          font-family: var(--sd-font);
-          color: var(--sd-text);
-        }
-
-        /* ════ SIDEBAR ════ */
-        .sd-sidebar {
-          width: var(--sd-sidebar-w);
-          flex-shrink: 0;
-          background: var(--sd-white);
-          border-right: 1px solid var(--sd-border);
-          display: flex;
-          flex-direction: column;
-          height: 100vh;
-          position: sticky;
-          top: 0;
-          overflow-y: auto;
-          overflow-x: hidden;
-          z-index: 100;
-          transition: width 0.22s cubic-bezier(0.4,0,0.2,1);
-        }
-
-        /* ── Store header ── */
-        .sd-store-header {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 16px 14px 12px;
-          border-bottom: 1px solid var(--sd-border-light);
-          position: relative;
-          flex-shrink: 0;
-          overflow: hidden;
-        }
-        .sd-store-avatar {
-          width: 34px; height: 34px; border-radius: 10px;
-          background: var(--sd-accent); color: #fff;
-          font-size: 14px; font-weight: 900;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-          letter-spacing: -0.02em;
-        }
-        .sd-store-info { flex: 1; min-width: 0; overflow: hidden; }
-        .sd-store-name {
-          font-size: 13px; font-weight: 700; color: var(--sd-text);
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
-        .sd-store-plan { font-size: 11px; color: var(--sd-muted); font-weight: 500; margin-top: 1px; }
-        .sd-store-dot  {
-          width: 7px; height: 7px; border-radius: 50%; background: #22c55e;
-          position: absolute; top: 14px; right: 12px; flex-shrink: 0;
-        }
-
-        /* ── Nav ── */
-        .sd-nav { flex: 1; padding: 8px; display: flex; flex-direction: column; gap: 1px; overflow-y: auto; }
-        .sd-nav-item {
-          display: flex; align-items: center; gap: 9px;
-          width: 100%; padding: 9px 8px; border-radius: 8px;
-          border: none; background: transparent; cursor: pointer;
-          font-family: var(--sd-font); font-size: 13px; font-weight: 500;
-          color: var(--sd-text2); text-align: left;
-          transition: background 0.1s, color 0.1s;
-          white-space: nowrap; overflow: hidden;
-        }
-        .sd-nav-item:hover:not(.sd-nav-item--active) {
-          background: var(--sd-border-light);
-          color: var(--sd-text);
-        }
-        .sd-nav-item--active {
-          background: var(--sd-accent-dim);
-          color: var(--sd-accent);
-          font-weight: 700;
-        }
-        .sd-nav-icon  { display: flex; align-items: center; justify-content: center; width: 20px; min-width: 20px; }
-        .sd-nav-label { flex: 1; overflow: hidden; text-overflow: ellipsis; transition: opacity 0.15s; }
-        .sd-nav-badge {
-          min-width: 18px; height: 18px; border-radius: 9px;
-          background: var(--sd-accent); color: #fff;
-          font-size: 9px; font-weight: 800;
-          display: flex; align-items: center; justify-content: center; padding: 0 4px;
-        }
-        .sd-ai-chip {
-          font-size: 9px; font-weight: 800; padding: 2px 6px;
-          border-radius: 100px; background: var(--sd-accent-dim);
-          color: var(--sd-accent); letter-spacing: 0.04em;
-          flex-shrink: 0;
-          margin-left: auto;
-        }
-
-        /* ── Sidebar footer ── */
-        .sd-sidebar-footer {
-          padding: 8px;
-          border-top: 1px solid var(--sd-border-light);
-          display: flex; flex-direction: column; gap: 1px;
-          flex-shrink: 0;
-        }
-        .sd-footer-btn {
-          display: flex; align-items: center; gap: 9px;
-          width: 100%; padding: 9px 8px; border-radius: 8px;
-          border: none; background: transparent; cursor: pointer;
-          font-family: var(--sd-font); font-size: 13px; font-weight: 500;
-          color: var(--sd-muted); text-align: left;
-          white-space: nowrap; overflow: hidden;
-          transition: background 0.1s;
-        }
-        .sd-footer-btn:hover { background: var(--sd-border-light); }
-        .sd-footer-label { color: var(--sd-muted); font-size: 13px; }
-
-        /* ── DESKTOP COLLAPSED STATE ── */
-        .sd-sidebar--collapsed {
-          width: var(--sd-sidebar-collapsed-w);
-          position: fixed;
-          top: 0; left: 0; bottom: 0;
-          overflow: hidden;
-        }
-        .sd-sidebar--collapsed:hover {
-          width: var(--sd-sidebar-w);
-          overflow-y: auto;
-          box-shadow: 4px 0 20px rgba(0,0,0,0.12);
-        }
-        .sd-sidebar--collapsed:not(:hover) .sd-nav { padding-left: 0; padding-right: 0; }
-        .sd-sidebar--collapsed:not(:hover) .sd-sidebar-footer { padding-left: 0; padding-right: 0; }
-        .sd-sidebar--collapsed:not(:hover) .sd-store-header {
-          padding-left: 0; padding-right: 0;
-          justify-content: center; gap: 0;
-        }
-        .sd-sidebar--collapsed:not(:hover) .sd-nav-item {
-          justify-content: center;
-          padding-left: 0; padding-right: 0;
-          gap: 0;
-        }
-        .sd-sidebar--collapsed:not(:hover) .sd-footer-btn {
-          justify-content: center;
-          padding-left: 0; padding-right: 0;
-          gap: 0;
-        }
-        .sd-sidebar--collapsed:not(:hover) .sd-nav-icon {
-          width: 100%;
-          justify-content: center;
-          min-width: unset;
-        }
-        .sd-sidebar--collapsed:not(:hover) .sd-nav-label,
-        .sd-sidebar--collapsed:not(:hover) .sd-store-info,
-        .sd-sidebar--collapsed:not(:hover) .sd-store-dot,
-        .sd-sidebar--collapsed:not(:hover) .sd-footer-label,
-        .sd-sidebar--collapsed:not(:hover) .sd-ai-chip,
-        .sd-sidebar--collapsed:not(:hover) .sd-nav-badge { display: none; }
-        .sd-main--collapsed { margin-left: var(--sd-sidebar-collapsed-w); }
-
-
-        /* ════ MAIN AREA ════ */
-        .sd-main {
-          flex: 1; display: flex; flex-direction: column;
-          min-width: 0; overflow-x: hidden;
-        }
-        .sd-topbar {
-          position: sticky; top: 0; z-index: 90;
-          display: flex; align-items: center; gap: 12px;
-          padding: 0 20px; height: var(--sd-topbar-h);
-          background: var(--sd-white);
-          border-bottom: 1px solid var(--sd-border);
-        }
-
-        .sd-hamburger {
-          display: none; background: none; border: none;
-          cursor: pointer; padding: 6px; border-radius: 8px;
-        }
-        .sd-hamburger:hover { background: var(--sd-border-light); }
-
-        .sd-topbar-title {
-          font-size: 15px; font-weight: 700; color: var(--sd-text);
-          letter-spacing: -0.01em; flex: 1;
-        }
-        .sd-topbar-right { display: flex; align-items: center; gap: 8px; }
-        .sd-live-badge {
-          display: flex; align-items: center; gap: 5px;
-          padding: 4px 10px; border-radius: 100px;
-          background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2);
-          font-size: 11px; font-weight: 700; color: #16a34a;
-        }
-        .sd-live-dot {
-          width: 6px; height: 6px; border-radius: 50%; background: #22c55e;
-          animation: sd-pulse 1.8s ease infinite;
-        }
-        .sd-admin-btn {
-          width: 32px; height: 32px; border-radius: 8px;
-          display: flex; align-items: center; justify-content: center;
-          background: transparent; border: 1px solid var(--sd-border);
-          cursor: pointer; transition: background 0.1s;
-        }
-        .sd-admin-btn:hover { background: var(--sd-border-light); }
-        .sd-avatar-btn {
-          width: 34px; height: 34px; border-radius: 50%;
-          background: var(--sd-accent); color: #fff;
-          border: 2px solid transparent;
-          font-size: 13px; font-weight: 900; cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          font-family: var(--sd-font); transition: box-shadow 0.15s;
-        }
-        .sd-avatar-btn:hover, .sd-avatar-btn--open {
-          box-shadow: 0 0 0 3px var(--sd-accent-dim);
-        }
-        .sd-content {
-          flex: 1; padding: 24px 24px 60px;
-          max-width: 100%; overflow-x: hidden;
-          background: var(--sd-white);
-        }
-        .sd-inactive-banner {
-          display: flex; align-items: center; gap: 8px;
-          padding: 10px 14px; margin-bottom: 16px;
-          background: var(--sd-warning-bg);
-          border: 1px solid rgba(245,158,11,0.2);
-          border-radius: 10px; font-size: 13px; font-weight: 500;
-          color: #92400e;
-        }
-        .sd-inactive-banner button {
-          margin-left: 4px; color: var(--sd-accent); font-weight: 700;
-          background: none; border: none; cursor: pointer;
-          font-family: var(--sd-font); font-size: 13px; padding: 0;
-        }
-        .sd-page-spinner {
-          width: 32px; height: 32px; border-radius: 50%;
-          border: 2.5px solid var(--sd-border);
-          border-top-color: var(--sd-accent);
-          animation: sd-spin 0.7s linear infinite;
-        }
-
-        /* ── Sidebar overlay backdrop ── */
-        .sd-sidebar-overlay {
-          position: fixed; inset: 0;
-          background: rgba(0,0,0,0.36); z-index: 99;
-          display: none;
-        }
-
-        /* ── Shared component classes ── */
-        .sd-panel {
-          background: var(--sd-white);
-          border: 1px solid var(--sd-border);
-          border-radius: 12px; padding: 20px;
-        }
-        .sd-btn {
-          display: inline-flex; align-items: center; gap: 7px;
-          padding: 9px 16px; border-radius: 8px; border: none;
-          font-family: var(--sd-font); font-size: 13px; font-weight: 600;
-          cursor: pointer; transition: all 0.15s;
-        }
-        .sd-btn-primary  { background: var(--sd-accent); color: #fff; }
-        .sd-btn-primary:hover:not(:disabled) { background: var(--sd-accent2); }
-        .sd-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-        .sd-btn-ghost    { background: transparent; color: var(--sd-text); border: 1px solid var(--sd-border) !important; }
-        .sd-btn-ghost:hover { background: var(--sd-border-light); }
-        .sd-btn-danger   { background: var(--sd-danger-bg); color: var(--sd-danger); border: 1px solid rgba(220,38,38,0.15) !important; }
-        .sd-input, .sd-select, .sd-textarea {
-          width: 100%; padding: 9px 12px; border-radius: 8px;
-          border: 1px solid var(--sd-border);
-          background: var(--sd-bg); color: var(--sd-text);
-          font-size: 13.5px; font-weight: 400; outline: none;
-          font-family: var(--sd-font); transition: border-color 0.15s, box-shadow 0.15s;
-          box-sizing: border-box;
-        }
-        .sd-input:focus, .sd-select:focus, .sd-textarea:focus {
-          border-color: var(--sd-accent);
-          box-shadow: 0 0 0 3px var(--sd-accent-dim);
-        }
-        .sd-textarea { resize: vertical; min-height: 90px; }
-        .sd-label {
-          display: block; font-size: 11px; font-weight: 600;
-          color: var(--sd-muted); text-transform: uppercase;
-          letter-spacing: 0.07em; margin-bottom: 6px;
-        }
-        .sd-form-group { margin-bottom: 16px; }
-
-        /* ══════════════════════════════════════
-           RESPONSIVE
-        ══════════════════════════════════════ */
-
-        @media (max-width: 1024px) {
-          .sd-sidebar {
-            position: fixed; left: 0; top: 0; bottom: 0;
-            transform: translateX(-100%);
-            z-index: 200;
-            width: var(--sd-sidebar-w) !important;
-            box-shadow: none;
-          }
-          .sd-sidebar--mobile-open {
-            transform: translateX(0) !important;
-            box-shadow: 4px 0 20px rgba(0,0,0,0.15);
-          }
-          .sd-sidebar-overlay { display: block; }
-          .sd-hamburger { display: flex; align-items: center; justify-content: center; }
-          .sd-main--collapsed { margin-left: 0 !important; }
-          .sd-nav-label, .sd-store-info, .sd-store-dot, .sd-footer-label {
-            opacity: 1 !important;
-            width: auto !important;
-            display: block !important;
-          }
-          .sd-nav-item, .sd-footer-btn {
-            justify-content: flex-start !important;
-            padding: 9px 8px !important;
-            gap: 9px !important;
-          }
-          .sd-store-header {
-            justify-content: flex-start !important;
-            padding: 16px 14px 12px !important;
-          }
-          .sd-nav-icon {
-            width: 20px !important;
-            min-width: 20px !important;
-            justify-content: flex-start !important;
-          }
-          .sd-ai-chip { display: inline-flex !important; }
-          .sd-collapse-btn { display: none !important; }
-          .sd-content { padding: 16px 16px 60px; }
-        }
-
-        @media (max-width: 480px) {
-          .sd-live-badge { display: none; }
-        }
-      `}</style>
     </div>
   );
 }
