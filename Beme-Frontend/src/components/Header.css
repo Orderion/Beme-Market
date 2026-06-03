@@ -60,42 +60,95 @@ body.dark .hdr-icon:hover { background: rgba(255,255,255,0.08); }
 }
 .hdr-bar-wrap--open { transform: scaleX(1); opacity: 1; pointer-events: auto; }
 
+/* ── Search form — pill shape, sky blue border ── */
 .hdr-search-form {
-  display: flex; align-items: center; background: var(--card);
-  border: 2px solid var(--border); border-radius: 24px;
-  height: 40px; width: 100%; padding: 0 0 0 12px; gap: 6px;
-  overflow: hidden; box-sizing: border-box;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
-  transition: border-color 140ms ease, box-shadow 140ms ease;
+  display: flex;
+  align-items: center;
+  background: var(--card, #fff);
+  border: 1.5px solid #87CEEB;
+  border-radius: 999px;
+  height: 44px;
+  width: 100%;
+  padding: 0 6px 0 14px;
+  gap: 8px;
+  overflow: hidden;
+  box-sizing: border-box;
+  box-shadow: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 .hdr-search-form:focus-within {
-  border-color: #1a73e8;
-  box-shadow: 0 1px 6px rgba(26,115,232,0.2);
+  border-color: #38BDF8;
+  box-shadow: 0 0 0 3px rgba(56,189,248,0.18);
 }
-.hdr-search-icon-left { display: flex; align-items: center; color: var(--muted); flex-shrink: 0; }
-.hdr-search-icon-left .hdr-svg { width: 15px; height: 15px; }
+body.dark .hdr-search-form {
+  background: rgba(255,255,255,0.06);
+  border-color: #38BDF8;
+}
+body.dark .hdr-search-form:focus-within {
+  border-color: #7DD3FC;
+  box-shadow: 0 0 0 3px rgba(125,211,252,0.15);
+}
+
+/* Search icon — sky blue always */
+.hdr-search-icon-left {
+  display: flex;
+  align-items: center;
+  color: #38BDF8;
+  flex-shrink: 0;
+}
+.hdr-search-icon-left .hdr-svg { width: 16px; height: 16px; }
+
 .hdr-search-input {
-  flex: 1; border: none; outline: none; background: transparent;
-  color: var(--text); font-size: 13px; font-family: var(--font-main);
-  font-weight: 500; min-width: 0; line-height: 1;
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-family: var(--font-main);
+  font-weight: 400;
+  min-width: 0;
+  line-height: 1;
+  padding-right: 4px;
 }
-.hdr-search-input::placeholder { color: var(--muted); font-weight: 400; font-size: 13px; }
+.hdr-search-input::placeholder {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 14px;
+}
+
+/* Clear ✕ button — inside the bar, right side */
 .hdr-search-clear {
-  display: flex; align-items: center; justify-content: center;
-  background: none; border: none; outline: none; cursor: pointer;
-  padding: 0; color: var(--muted); flex-shrink: 0; width: 22px; height: 22px;
-  border-radius: 50%; transition: background 140ms ease, color 140ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.07);
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--muted);
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  transition: background 140ms ease, color 140ms ease;
 }
-.hdr-search-clear .hdr-svg { width: 13px; height: 13px; }
-.hdr-search-clear:hover { background: var(--soft); color: var(--text); }
-.hdr-search-submit {
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  width: 40px; height: 40px; border: none; border-left: 1px solid var(--border);
-  background: var(--grtheme); color: #fff; cursor: pointer; padding: 0; margin: 0;
-  border-radius: 0 22px 22px 0; transition: opacity 140ms ease;
+.hdr-search-clear .hdr-svg { width: 12px; height: 12px; }
+.hdr-search-clear:hover {
+  background: rgba(56,189,248,0.15);
+  color: #38BDF8;
 }
-.hdr-search-submit:hover { opacity: 0.88; }
-.hdr-search-submit .hdr-svg { width: 15px; height: 15px; }
+body.dark .hdr-search-clear {
+  background: rgba(255,255,255,0.1);
+}
+body.dark .hdr-search-clear:hover {
+  background: rgba(56,189,248,0.2);
+  color: #7DD3FC;
+}
+
+/* Hide submit button — not needed */
+.hdr-search-submit { display: none !important; }
 
 .hdr-search-pill { animation: pillIn 0.32s cubic-bezier(0.22,1,0.36,1) both; }
 @keyframes pillIn { from { opacity:0; transform:scale(0.5); } to { opacity:1; transform:scale(1); } }
@@ -331,7 +384,7 @@ body.dark .hdr-cat-mega-footer { border-top-color:rgba(255,255,255,0.06); }
   .hdr-bar-wrap, .hdr-bar-wrap:not(.hdr-bar-wrap--open) {
     position:relative !important; inset:unset !important;
     transform:scaleX(1) !important; opacity:1 !important;
-    pointer-events:auto !important; width:100%; height:40px;
+    pointer-events:auto !important; width:100%; height:44px;
   }
   .hdr-centre { justify-content:stretch; }
   .hdr-suggestions { min-width:340px; }
@@ -342,7 +395,7 @@ body.dark .hdr-cat-mega-footer { border-top-color:rgba(255,255,255,0.06); }
   .hdr { padding:0 16px; gap:10px; grid-template-columns:48px 1fr auto; }
   .hdr--has-pill { grid-template-columns:48px 1fr auto; }
   .hdr-centre { justify-content:center; }
-  .hdr-bar-wrap { position:relative; inset:unset; width:min(460px,100%); height:40px; }
+  .hdr-bar-wrap { position:relative; inset:unset; width:min(460px,100%); height:44px; }
   .hdr-suggestions { min-width:320px; }
 }
 
@@ -352,8 +405,7 @@ body.dark .hdr-cat-mega-footer { border-top-color:rgba(255,255,255,0.06); }
   .hdr--has-pill { grid-template-columns:44px 1fr 88px; }
   .hdr-icon { width:36px; height:36px; }
   .hdr-logo { width:44px; height:44px; }
-  .hdr-search-form { height:38px; }
-  .hdr-search-submit { width:38px; height:38px; }
+  .hdr-search-form { height:42px; }
   .hdr-sug-chips { padding:6px 12px 10px; gap:5px; }
   .hdr-sug-chip { font-size:10px; padding:5px 10px; }
 }
@@ -366,34 +418,3 @@ body.dark .hdr-cat-mega-footer { border-top-color:rgba(255,255,255,0.06); }
     transition: none !important; animation: none !important;
   }
 }
-
-
-/* ── Remove submit button, clean pill search ── */
-.hdr-search-submit { display: none !important; }
-
-/* Border stays subtle always — no blue highlight */
-.hdr-search-form {
-  border: 1.5px solid rgba(0,0,0,0.15) !important;
-  border-radius: 24px !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
-}
-.hdr-search-form:focus-within {
-  border-color: rgba(0,0,0,0.2) !important;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.1) !important;
-}
-body.dark .hdr-search-form {
-  border-color: rgba(255,255,255,0.15) !important;
-}
-body.dark .hdr-search-form:focus-within {
-  border-color: rgba(255,255,255,0.25) !important;
-}
-
-/* Remove the divider line (black character) */
-.hdr-search-submit,
-.hdr-search-form > button[type="submit"] { display: none !important; }
-
-/* Input takes full width now */
-.hdr-search-input { padding-right: 8px !important; }
-
-/* Search icon left — Pinterest gray */
-.hdr-search-icon-left { color: #9aa0a6 !important; opacity: 1 !important; }
