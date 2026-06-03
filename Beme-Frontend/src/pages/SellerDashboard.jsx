@@ -112,8 +112,8 @@ export default function SellerDashboard() {
 
   const tabParam = searchParams.get("tab");
   const [activeTab,   setActiveTab]   = useState(tabParam && TAB_TITLES[tabParam] ? tabParam : "home");
-  const [sidebarOpen, setSidebarOpen] = useState(false);   // mobile/tablet overlay
-  const [collapsed,   setCollapsed]   = useState(false);   // desktop collapse only
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed,   setCollapsed]   = useState(false);
 
   useEffect(() => {
     if (tabParam && TAB_TITLES[tabParam] && tabParam !== activeTab) setActiveTab(tabParam);
@@ -179,7 +179,6 @@ export default function SellerDashboard() {
             <span className="sd-nav-icon"><Ico d={isDark ? D.sun : D.moon} size={16} color="var(--sd-muted)" /></span>
             <span className="sd-nav-label sd-footer-label">{isDark ? "Light mode" : "Dark mode"}</span>
           </button>
-          {/* Collapse toggle — desktop ONLY, hidden on mobile/tablet via CSS */}
           <button className="sd-footer-btn sd-collapse-btn" onClick={() => setCollapsed(c => !c)}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
             <span className="sd-nav-icon">
@@ -190,7 +189,7 @@ export default function SellerDashboard() {
         </div>
       </aside>
 
-      {/* Mobile/tablet overlay backdrop — closes sidebar on outside tap */}
+      {/* Mobile/tablet overlay backdrop */}
       {sidebarOpen && <div className="sd-sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
 
       {/* ══════ MAIN ══════ */}
@@ -198,7 +197,6 @@ export default function SellerDashboard() {
 
         {/* Topbar */}
         <header className="sd-topbar">
-          {/* Hamburger — visible on mobile AND tablet (≤1024px) */}
           <button className="sd-hamburger" onClick={() => setSidebarOpen(o => !o)} aria-label="Toggle sidebar">
             <Ico d={D.menu} size={20} color="var(--sd-text)" />
           </button>
@@ -268,19 +266,19 @@ export default function SellerDashboard() {
         /* ── Dark mode ── */
         .sd-dark {
           --sd-bg:            #131416;
-          --sd-white:         #1c1f22;
+          --sd-white:         #131416;
           --sd-border:        #2a2d32;
-          --sd-border-light:  #21242a;
+          --sd-border-light:  #1a1d21;
           --sd-text:          #e8eaed;
           --sd-text2:         #b0b8c4;
           --sd-muted:         #6b7380;
           --sd-nav-icon:      #565c66;
-          --sd-accent-dim:    rgba(124,58,237,0.15);
-          --sd-accent-border: rgba(124,58,237,0.30);
+          --sd-accent-dim:    rgba(124,58,237,0.18);
+          --sd-accent-border: rgba(124,58,237,0.35);
           --sd-danger-bg:     rgba(220,38,38,0.12);
           --sd-warning-bg:    rgba(245,158,11,0.12);
-          --sd-shadow:        0 1px 3px rgba(0,0,0,0.3);
-          --sd-shadow-lg:     0 4px 24px rgba(0,0,0,0.30);
+          --sd-shadow:        0 1px 3px rgba(0,0,0,0.4);
+          --sd-shadow-lg:     0 4px 24px rgba(0,0,0,0.40);
         }
 
         /* ════ ROOT ════ */
@@ -449,7 +447,6 @@ export default function SellerDashboard() {
           border-bottom: 1px solid var(--sd-border);
         }
 
-        /* Hamburger hidden on desktop, shown on mobile+tablet */
         .sd-hamburger {
           display: none; background: none; border: none;
           cursor: pointer; padding: 6px; border-radius: 8px;
@@ -561,35 +558,23 @@ export default function SellerDashboard() {
 
         /* ══════════════════════════════════════
            RESPONSIVE
-           ≤ 1024px  →  hamburger + overlay sidebar (mobile & tablet)
-           > 1024px  →  always-visible sidebar with collapse toggle
         ══════════════════════════════════════ */
 
-        /* Tablet + Mobile */
         @media (max-width: 1024px) {
-          /* Sidebar slides in from left as overlay */
           .sd-sidebar {
             position: fixed; left: 0; top: 0; bottom: 0;
             transform: translateX(-100%);
             z-index: 200;
             width: var(--sd-sidebar-w) !important;
             box-shadow: none;
-            /* Override any collapsed state on small screens */
           }
           .sd-sidebar--mobile-open {
             transform: translateX(0) !important;
             box-shadow: 4px 0 20px rgba(0,0,0,0.15);
           }
-          /* Show overlay backdrop when sidebar is open */
           .sd-sidebar-overlay { display: block; }
-
-          /* Show hamburger */
           .sd-hamburger { display: flex; align-items: center; justify-content: center; }
-
-          /* Remove desktop collapsed margin */
           .sd-main--collapsed { margin-left: 0 !important; }
-
-          /* Ensure full labels are visible inside the overlay sidebar */
           .sd-nav-label, .sd-store-info, .sd-store-dot, .sd-footer-label {
             opacity: 1 !important;
             width: auto !important;
@@ -610,10 +595,7 @@ export default function SellerDashboard() {
             justify-content: flex-start !important;
           }
           .sd-ai-chip { display: inline-flex !important; }
-
-          /* Hide the collapse button — only useful on desktop */
           .sd-collapse-btn { display: none !important; }
-
           .sd-content { padding: 16px 16px 60px; }
         }
 
