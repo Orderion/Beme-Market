@@ -131,9 +131,8 @@ export default function DashboardHome() {
   return (
     <div className="dh-root">
 
-      {/* ══ HERO CARD — wallet style ══ */}
+      {/* ══ HERO CARD ══ */}
       <div className="dh-hero">
-        {/* Top row */}
         <div className="dh-hero-top">
           <div>
             <div className="dh-greeting">Hi {firstName}! Welcome</div>
@@ -145,13 +144,11 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        {/* Currency pill */}
         <div className="dh-currency-pill">
           <div className="dh-currency-dot"/>
           GHS
         </div>
 
-        {/* Big number */}
         {loading
           ? <div className="dh-skel" style={{ height:44, width:"60%", marginBottom:10 }}/>
           : (
@@ -162,7 +159,6 @@ export default function DashboardHome() {
           )
         }
 
-        {/* Trend pill */}
         {!loading && (
           <div className="dh-trend-pill" style={{ color: revUp >= 0 ? "#15803d" : "#dc2626", background: revUp >= 0 ? "rgba(34,197,94,0.10)" : "rgba(239,68,68,0.10)" }}>
             <Ico d={revUp >= 0 ? IC.up : IC.dn} size={11} color={revUp >= 0 ? "#15803d" : "#dc2626"}/>
@@ -170,7 +166,6 @@ export default function DashboardHome() {
           </div>
         )}
 
-        {/* 3 action buttons */}
         <div className="dh-hero-actions">
           <button className="dh-action-btn">
             <Ico d={IC.pkg} size={14} color="var(--sd-text)"/> Products
@@ -184,10 +179,9 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {/* ══ 2-col lower row: recent buyers + mini chart ══ */}
+      {/* ══ 2-col lower row ══ */}
       <div className="dh-lower-row">
 
-        {/* Recent buyers card */}
         <div className="dh-card">
           <div className="dh-card-label">Recent buyers</div>
           <div className="dh-buyers-grid">
@@ -214,7 +208,6 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        {/* Mini income chart card */}
         <div className="dh-card dh-income-card">
           <div className="dh-card-label">This month</div>
           {loading
@@ -563,8 +556,9 @@ export default function DashboardHome() {
           transition: all 0.15s; font-family: inherit;
         }
         .dh-tab--active {
-          background: var(--sd-white); color: var(--sd-text);
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          background: var(--sd-accent);
+          color: #fff;
+          box-shadow: 0 1px 3px rgba(124,58,237,0.35);
         }
 
         .dh-empty-chart {
