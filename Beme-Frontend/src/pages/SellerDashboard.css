@@ -6,24 +6,24 @@
 :root {
   --sd-font:              'DM Sans', 'Nunito', system-ui, sans-serif;
   --sd-white:             #ffffff;
-  --sd-bg:                #f7f5ff;
-  --sd-border:            #e8e4f5;
-  --sd-border-light:      #f0edfb;
+  --sd-bg:                #ffffff;
+  --sd-border:            #e5e7eb;
+  --sd-border-light:      #f3f4f6;
   --sd-text:              #111111;
-  --sd-text2:             #4a4060;
-  --sd-muted:             #8b7faa;
+  --sd-text2:             #374151;
+  --sd-muted:             #6b7280;
   --sd-nav-icon:          #9ca3af;
   --sd-accent:            #7c3aed;
   --sd-accent2:           #6d28d9;
   --sd-accent-lt:         #f5f3ff;
-  --sd-accent-dim:        rgba(124,58,237,0.08);
-  --sd-accent-border:     rgba(124,58,237,0.18);
+  --sd-accent-dim:        rgba(124,58,237,0.06);
+  --sd-accent-border:     rgba(124,58,237,0.15);
   --sd-black-btn:         #111111;
   --sd-black-btn2:        #2a2a2a;
   --sd-success:           #15803d;
   --sd-success-bg:        #f0fdf4;
   --sd-warning:           #b45309;
-  --sd-warning-bg:        #fffbeb;
+  --sd-warning-bg:        #fef9c3;
   --sd-danger:            #dc2626;
   --sd-danger-bg:         rgba(220,38,38,0.06);
   --sd-radius-sm:         6px;
@@ -37,9 +37,9 @@
   --sd-topbar-h:          56px;
   /* legacy aliases */
   --white:                var(--sd-white);
-  --bg:                   var(--sd-bg);
-  --border:               var(--sd-border);
-  --border-light:         var(--sd-border-light);
+  --bg:                   #ffffff;
+  --border:               #e5e7eb;
+  --border-light:         #f3f4f6;
   --text-primary:         var(--sd-text);
   --text-secondary:       var(--sd-text2);
   --text-muted:           var(--sd-muted);
@@ -84,7 +84,7 @@ body.dark .sd-root {
   --sd-black-btn:     #7c3aed;
   --sd-black-btn2:    #6d28d9;
   --sd-success-bg:    rgba(21,128,61,0.15);
-  --sd-warning-bg:    rgba(180,83,9,0.15);
+  --sd-warning-bg:    rgba(234,179,8,0.12);
   --sd-danger-bg:     rgba(220,38,38,0.12);
   --sd-shadow-sm:     0 1px 3px rgba(0,0,0,0.4);
   --sd-shadow:        0 2px 8px rgba(0,0,0,0.5);
@@ -101,7 +101,7 @@ body.dark .sd-root {
   --black-btn:        #7c3aed;
   --black-btn-hover:  #6d28d9;
   --success-bg:       rgba(21,128,61,0.15);
-  --warning-bg:       rgba(180,83,9,0.15);
+  --warning-bg:       rgba(234,179,8,0.12);
   --danger-bg:        rgba(220,38,38,0.12);
   --purple-bg:        rgba(124,58,237,0.14);
 }

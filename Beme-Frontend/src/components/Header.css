@@ -153,13 +153,7 @@ body.dark .hdr-search-clear:hover {
 .hdr-search-pill { animation: pillIn 0.32s cubic-bezier(0.22,1,0.36,1) both; }
 @keyframes pillIn { from { opacity:0; transform:scale(0.5); } to { opacity:1; transform:scale(1); } }
 
-/* ── Backdrop behind suggestions ── */
-.hdr-sug-backdrop {
-  position: fixed; inset: 0; top: 0;
-  background: rgba(0,0,0,0.25); z-index: 198; cursor: pointer;
-  animation: sug-backdrop-in 0.15s ease;
-}
-@keyframes sug-backdrop-in { from { opacity:0; } to { opacity:1; } }
+/* ── Backdrop behind suggestions — removed to keep page unaffected ── */
 
 /* ── Suggestions dropdown ── */
 .hdr-suggestions {
