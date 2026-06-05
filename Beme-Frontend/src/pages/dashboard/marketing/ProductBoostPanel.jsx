@@ -4,7 +4,7 @@
  * Same payment pattern as DashboardGift.jsx — uses /api/payments/initialize.
  */
 import { useState } from "react";
-import { BOOST_PRICING } from "../../services/marketingService";
+import { BOOST_PRICING } from "../../../services/marketingService";
 
 function Ico({ d, size = 16, color = "currentColor", sw = 1.8 }) {
   return (

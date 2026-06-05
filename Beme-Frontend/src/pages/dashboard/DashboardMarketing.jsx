@@ -17,10 +17,29 @@
 import { useSellerAuth }     from "../../hooks/useSellerAuth";
 import { useAuth }           from "../../context/AuthContext";
 import { useMarketing }      from "../../hooks/useMarketing";
-import { MARKETING_ICONS }   from "../../components/icons/SellerIcons";
 import { useState, useEffect } from "react";
 import { incrementUsage }    from "../../services/aiUsageService";
 import { getSellerProducts } from "../../services/storeService";
+
+// Inline SVG icon paths for each marketing tool — no external dependency needed
+const TOOL_ICON_PATHS = {
+  flash:    "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
+  discount: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z|M7 7h.01",
+  boost:    "M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z|M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z|M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0|M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5",
+  ai:       "M9.937 15.5A2 2 0 008.5 14.063l-6.135-1.582a.5.5 0 010-.962L8.5 9.936A2 2 0 009.937 8.5l1.582-6.135a.5.5 0 01.963 0L14.063 8.5A2 2 0 0015.5 9.937l6.135 1.581a.5.5 0 010 .964L15.5 14.063a2 2 0 00-1.437 1.437l-1.582 6.135a.5.5 0 01-.963 0z",
+  referral: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2|M9 7a4 4 0 108 0 4 4 0 00-8 0|M23 21v-2a4 4 0 00-3-3.87|M16 3.13a4 4 0 010 7.75",
+  loyalty:  "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+};
+
+function ToolIcon({ id, size = 22, color = "currentColor" }) {
+  const d = TOOL_ICON_PATHS[id] || "M12 12h.01";
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {d.split("|").map((seg, i) => <path key={i} d={seg} />)}
+    </svg>
+  );
+}
 
 // Panel components (lazy via dynamic import would also work — keeping it simple)
 import FlashSalePanel      from "./marketing/FlashSalePanel";
@@ -314,7 +333,6 @@ export default function DashboardMarketing() {
       <div className="mkt-grid">
         {TOOLS.map((t) => {
           const locked    = !canAccess(t.plan);
-          const IconComp  = MARKETING_ICONS[t.id];
           const iconColor = ICON_COLORS[t.id] || "#7c3aed";
           return (
             <div key={t.id} className={`mkt-tool-card${locked ? " mkt-tool-card--locked" : ""}`}>
@@ -324,7 +342,7 @@ export default function DashboardMarketing() {
                 </span>
               )}
               <div className="mkt-icon-wrap" style={{ background:`${iconColor}12`, border:`1px solid ${iconColor}22` }}>
-                <IconComp size={22} color={iconColor}/>
+                <ToolIcon id={t.id} size={22} color={iconColor} />
               </div>
               <div className="mkt-tool-label">{t.label}</div>
               <div className="mkt-tool-desc">{t.desc}</div>

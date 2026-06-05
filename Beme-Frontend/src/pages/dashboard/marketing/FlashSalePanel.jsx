@@ -4,7 +4,6 @@
  * Uses sd-* CSS classes from SellerDashboard.css.
  */
 import { useState } from "react";
-import { useSellerAuth } from "../../hooks/useSellerAuth";
 
 function Ico({ d, size = 16, color = "currentColor", sw = 1.8 }) {
   return (

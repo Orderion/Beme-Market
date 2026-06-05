@@ -254,7 +254,10 @@ export default function DashboardSubscription() {
 
           return (
             <div key={plan.id} style={{
-              background:"#fff", borderRadius:18, padding:"22px 18px",
+              background: plan.popular && !isCurrent
+                ? "linear-gradient(#fff,#fff) padding-box, linear-gradient(135deg,#7c3aed,#6366F1,#7C3AED) border-box"
+                : "#fff",
+              borderRadius:18, padding:"22px 18px",
               position:"relative", display:"flex", flexDirection:"column",
               border: isCurrent
                 ? "2px solid #7c3aed"
@@ -262,9 +265,6 @@ export default function DashboardSubscription() {
                   ? "2px solid transparent"
                   : "1.5px solid rgba(0,0,0,0.08)",
               boxShadow: isCurrent ? "0 0 0 4px rgba(124,58,237,0.10)" : "0 2px 12px rgba(0,0,0,0.05)",
-              background: plan.popular && !isCurrent
-                ? "linear-gradient(#fff,#fff) padding-box, linear-gradient(135deg,#7c3aed,#6366F1,#7C3AED) border-box"
-                : "#fff",
             }}>
               {plan.popular && !isCurrent && (
                 <div style={{position:"absolute",top:-12,left:"50%",transform:"translateX(-50%)",
