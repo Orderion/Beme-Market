@@ -303,7 +303,7 @@ export default function LearnMore() {
       </div>
 
       {/* Main content */}
-      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 20, alignItems: "start" }}>
+      <div className="learn-main-grid">
 
         {/* Left sidebar nav — hidden on mobile when content is showing */}
         <aside className={mobileShowContent ? "learn-aside learn-aside--hidden" : "learn-aside"} style={{ background: "var(--sd-white)", borderRadius: 16, border: "1px solid var(--sd-border)", padding: "12px 8px", position: "sticky", top: 80 }}>
@@ -428,29 +428,72 @@ export default function LearnMore() {
         </div>
       </div>
 
-      <style>{`
-        /* ── Mobile: single-column, list ↔ detail navigation ── */
-        @media (max-width: 768px) {
-          /* Grid becomes single column */
-          [style*="gridTemplateColumns: \"220px 1fr\""] {
-            grid-template-columns: 1fr !important;
-          }
-          /* Sidebar: full-width list, hidden when content is active */
-          .learn-aside { display: block !important; }
-          .learn-aside--hidden { display: none !important; }
-          /* Content: hidden by default on mobile, shown when active */
-          .learn-content { display: none !important; }
-          .learn-content--active { display: block !important; }
-          /* Back button: only show on mobile */
-          .learn-back-btn { display: flex !important; }
-          /* Sidebar items: bigger tap targets on mobile */
-          .learn-aside button { padding: 12px 10px !important; font-size: 14px !important; }
+            <style>{`
+
+        /* ════ MAIN GRID ════ */
+        .learn-main-grid {
+          display: grid;
+          grid-template-columns: 220px 1fr;
+          gap: 20px;
+          align-items: start;
         }
-        /* ── Desktop: always show both columns ── */
-        @media (min-width: 769px) {
-          .learn-aside { display: block !important; }
-          .learn-content { display: block !important; }
-          .learn-back-btn { display: none !important; }
+
+        /* ════ SIDEBAR ════ */
+        .learn-aside {
+          background: var(--sd-white);
+          border-radius: 16px;
+          border: 1px solid var(--sd-border);
+          padding: 12px 8px;
+          position: sticky;
+          top: 80px;
+        }
+
+        /* ════ CONTENT ════ */
+        .learn-content { display: block; }
+
+        /* ════ BACK BUTTON — desktop hidden ════ */
+        .learn-back-btn { display: none !important; }
+
+        /* ════ MOBILE ════ */
+        @media (max-width: 768px) {
+
+          /* Single block — no grid */
+          .learn-main-grid {
+            display: block;
+          }
+
+          /* Sidebar fills full width */
+          .learn-aside {
+            display: block;
+            width: 100%;
+            position: static;
+            border-radius: 12px;
+            box-sizing: border-box;
+          }
+          .learn-aside--hidden {
+            display: none !important;
+          }
+
+          /* Content fills full width, hidden until section tapped */
+          .learn-content {
+            display: none;
+            width: 100%;
+          }
+          .learn-content--active {
+            display: block !important;
+            width: 100%;
+          }
+
+          /* Back button visible on mobile */
+          .learn-back-btn {
+            display: flex !important;
+          }
+
+          /* Bigger tap targets on mobile sidebar rows */
+          .learn-aside button {
+            padding: 13px 12px !important;
+            font-size: 14px !important;
+          }
         }
       `}</style>
     </div>
