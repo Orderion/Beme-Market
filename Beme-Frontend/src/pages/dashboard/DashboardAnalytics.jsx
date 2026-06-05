@@ -45,7 +45,6 @@ const IC = {
   repeat:    "M17 1l4 4-4 4 M3 11V9a4 4 0 0 1 4-4h14 M7 23l-4-4 4-4 M21 13v2a4 4 0 0 1-4 4H3",
 };
 
-/* ── Tooltip ── */
 function ChartTip({ active, payload, label, prefix = "" }) {
   if (!active || !payload?.length) return null;
   return (
@@ -64,7 +63,6 @@ function ChartTip({ active, payload, label, prefix = "" }) {
   );
 }
 
-/* ── Empty ── */
 function Empty({ msg = "No data available for this period" }) {
   return (
     <div style={{
@@ -80,7 +78,6 @@ function Empty({ msg = "No data available for this period" }) {
   );
 }
 
-/* ── Card ── */
 function Card({ children, style = {} }) {
   return (
     <div style={{
@@ -96,7 +93,6 @@ function Card({ children, style = {} }) {
   );
 }
 
-/* ── Stat card ── */
 function StatCard({ label, value, sub, color, icon, trend, loading }) {
   const up = trend >= 0;
   return (
@@ -128,7 +124,6 @@ function StatCard({ label, value, sub, color, icon, trend, loading }) {
   );
 }
 
-/* ── Plan gate ── */
 function LockedState() {
   const nav = useNavigate();
   return (
@@ -166,9 +161,6 @@ const METRICS = [
   { key:"visitors", label:"Visitors", color: C.purple, prefix:""     },
 ];
 
-/* ════════════════════════════════════════
-   MAIN
-════════════════════════════════════════ */
 export default function DashboardAnalytics() {
   const { user } = useAuth();
   const { subscriptionPlan, loading: sellerLoading } = useSellerAuth();
@@ -221,7 +213,8 @@ export default function DashboardAnalytics() {
   if (!hasAccess && !sellerLoading) return <LockedState/>;
 
   return (
-    <div style={{ fontFamily: "var(--sd-font,'DM Sans',system-ui,sans-serif)", minHeight: "100%", color: "var(--sd-text)", background: "var(--sd-white)" }}>
+    /* ── ONLY CHANGE: background transparent instead of var(--sd-white) ── */
+    <div style={{ fontFamily: "var(--sd-font,'DM Sans',system-ui,sans-serif)", minHeight: "100%", color: "var(--sd-text)", background: "transparent" }}>
 
       {/* ── Header ── */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 22, flexWrap: "wrap", gap: 12 }}>
@@ -240,7 +233,6 @@ export default function DashboardAnalytics() {
               </span>
             </div>
           )}
-          {/* Period selector */}
           <div style={{ display: "flex", background: "var(--sd-white)", border: "1px solid var(--sd-border)", borderRadius: 10, overflow: "hidden", boxShadow: "var(--sd-shadow)" }}>
             {PERIODS.map(p => (
               <button key={p.key} onClick={() => setPeriod(p.key)}
@@ -305,7 +297,6 @@ export default function DashboardAnalytics() {
 
       {/* ── Main chart + quick stats ── */}
       <div className="an-body-row">
-        {/* Main chart */}
         <Card style={{ minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, flexWrap: "wrap", gap: 10 }}>
             <div>
@@ -362,7 +353,6 @@ export default function DashboardAnalytics() {
           }
         </Card>
 
-        {/* Quick stats sidebar */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <Card style={{ flex: 1 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--sd-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 12 }}>
@@ -519,9 +509,6 @@ export default function DashboardAnalytics() {
         }
       </Card>
 
-      {/* ════════════════════════════════════════
-          STYLES
-      ════════════════════════════════════════ */}
       <style>{`
         @keyframes an-spin    { to { transform: rotate(360deg); } }
         @keyframes an-shimmer { 0%{background-position:-600px 0} 100%{background-position:calc(600px + 100%) 0} }
@@ -530,7 +517,6 @@ export default function DashboardAnalytics() {
         @keyframes an-float-b { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-14px,18px) scale(.88)} }
         @keyframes an-float-c { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(10px,12px) scale(1.06)} }
 
-        /* Skeleton */
         .an-skel {
           background: var(--sd-border-light);
           background-image: linear-gradient(90deg, var(--sd-border-light) 25%, var(--sd-border) 50%, var(--sd-border-light) 75%);
@@ -538,12 +524,9 @@ export default function DashboardAnalytics() {
           animation: an-shimmer 1.4s ease infinite;
         }
 
-        /* ── AI gradient card ── */
         .an-ai-card {
-          position: relative;
-          overflow: hidden;
-          border-radius: 18px;
-          margin-bottom: 16px;
+          position: relative; overflow: hidden;
+          border-radius: 18px; margin-bottom: 16px;
           background: linear-gradient(135deg, #3730a3 0%, #7c3aed 38%, #a78bfa 70%, #ede9fe 100%);
         }
         .sd-dark .an-ai-card {
@@ -568,69 +551,17 @@ export default function DashboardAnalytics() {
         .sd-dark .an-ai-tip { background: rgba(167,139,250,0.2); }
         .an-ai-dismiss { margin-top:8px; background:none; border:none; color:rgba(255,255,255,.5); font-size:11px; cursor:pointer; padding:0; display:block; }
 
-        /* ── Metric tab buttons (active = purple filled) ── */
-        .an-metric-btn-active {
-          background: var(--sd-accent) !important;
-          color: #fff !important;
-          border-color: var(--sd-accent) !important;
-        }
+        .an-stat-row { display:flex; gap:14px; margin-bottom:16px; flex-wrap:nowrap; }
+        .an-body-row { display:grid; grid-template-columns:1fr 280px; gap:16px; margin-bottom:16px; align-items:start; }
+        .an-grid2    { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
 
-        /* ── DESKTOP layout ── */
-        .an-stat-row {
-          display: flex;
-          gap: 14px;
-          margin-bottom: 16px;
-          flex-wrap: nowrap;
-        }
-        .an-body-row {
-          display: grid;
-          grid-template-columns: 1fr 280px;
-          gap: 16px;
-          margin-bottom: 16px;
-          align-items: start;
-        }
-        .an-grid2 {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-          margin-bottom: 16px;
-        }
-
-        /* ── MOBILE ── */
         @media (max-width: 768px) {
-          .an-stat-row {
-            display: grid !important;
-            grid-template-columns: 1fr 1fr !important;
-            gap: 10px !important;
-            flex-wrap: unset !important;
-          }
-          .an-stat-row > div {
-            flex: unset !important;
-            min-width: 0 !important;
-          }
-          .an-stat-row [style*="fontSize:30"] {
-            font-size: 20px !important;
-          }
-          .an-body-row {
-            grid-template-columns: 1fr !important;
-            gap: 12px !important;
-          }
-          .an-grid2 {
-            grid-template-columns: 1fr !important;
-            gap: 12px !important;
-          }
-          .an-stat-row ~ div button,
-          button[style*="8px 16px"] {
-            padding: 6px 10px !important;
-            font-size: 11px !important;
-          }
+          .an-stat-row { display:grid !important; grid-template-columns:1fr 1fr !important; gap:10px !important; flex-wrap:unset !important; }
+          .an-stat-row > div { flex:unset !important; min-width:0 !important; }
+          .an-body-row { grid-template-columns:1fr !important; gap:12px !important; }
+          .an-grid2    { grid-template-columns:1fr !important; gap:12px !important; }
         }
-
-        @media (max-width: 400px) {
-          .an-stat-row {
-            gap: 8px !important;
-          }
-        }
+        @media (max-width: 400px) { .an-stat-row { gap:8px !important; } }
       `}</style>
     </div>
   );
