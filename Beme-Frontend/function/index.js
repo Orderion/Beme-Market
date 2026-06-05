@@ -1,316 +1,488 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { applyActionCode, reload } from "firebase/auth";
-import { getFunctions, httpsCallable } from "firebase/functions";
-import { auth } from "../firebase";
-import { useAuth } from "../context/AuthContext";
-import "./Auth.css";
+/* ================================================================
+   FILE: functions/index.js
+   — All existing logic unchanged —
+   — Marketing Cloud Functions added at the bottom —
+================================================================ */
+const { setGlobalOptions }    = require("firebase-functions/v2");
+const { onCall, HttpsError }  = require("firebase-functions/v2/https");
+const { onDocumentWritten }   = require("firebase-functions/v2/firestore");
+const { onSchedule }          = require("firebase-functions/v2/scheduler");
+const { auth }                = require("firebase-functions/v1");
+const admin                   = require("firebase-admin");
+const nodemailer              = require("nodemailer");
 
-const cloudResend      = httpsCallable(getFunctions(), "resendVerificationEmail");
-const RESEND_COOLDOWN_S = 60;
+admin.initializeApp();
 
-/* ── Icons ── */
-function MailIcon() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="1.6"
-      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="2" y="4" width="20" height="16" rx="2" />
-      <path d="M2 7l10 7 10-7" />
-    </svg>
-  );
+setGlobalOptions({ maxInstances: 10 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRANSPORTER — unchanged
+// ─────────────────────────────────────────────────────────────────────────────
+let _transporter = null;
+
+function getTransporter() {
+  if (_transporter) return _transporter;
+  _transporter = nodemailer.createTransport({
+    host:   "smtp-relay.brevo.com",
+    port:   587,
+    secure: false,
+    auth: {
+      user: process.env.BREVO_SMTP_USER,
+      pass: process.env.BREVO_SMTP_KEY,
+    },
+  });
+  return _transporter;
 }
 
-function CheckCircleIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2.2"
-      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="9 12 11 14 15 10" />
-    </svg>
-  );
+// ─────────────────────────────────────────────────────────────────────────────
+// EMAIL TEMPLATE — unchanged
+// ─────────────────────────────────────────────────────────────────────────────
+function buildVerificationEmail(link, name) {
+  const safeName = name || "there";
+
+  return /* html */ `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Verify your Beme Market account</title>
+</head>
+<body style="margin:0;padding:0;background:#FCFAF2;
+             font-family:'Arial',Helvetica,sans-serif;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" border="0"
+         style="background:#FCFAF2;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table width="480" cellpadding="0" cellspacing="0" border="0"
+               style="max-width:480px;width:100%;background:#ffffff;
+                      border:2px solid #111111;
+                      box-shadow:5px 5px 0 0 #111111;">
+
+          <tr>
+            <td style="background:#111111;padding:14px 24px;text-align:center;">
+              <span style="color:#FCFAF2;font-size:10px;font-weight:900;
+                           letter-spacing:0.12em;text-transform:uppercase;">
+                Welcome to Beme Market &mdash; Ghana&rsquo;s favourite shop &#127468;&#127469;
+              </span>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:36px 32px 0;text-align:center;">
+              <h1 style="margin:0;font-size:34px;font-weight:900;
+                         letter-spacing:-0.04em;color:#111111;
+                         border-bottom:3px solid #111111;
+                         display:inline-block;padding-bottom:4px;">
+                Beme Market
+              </h1>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:24px 32px 0;">
+              <h2 style="margin:0 0 14px;font-size:20px;font-weight:900;color:#111111;">
+                Verify your email address
+              </h2>
+              <p style="margin:0 0 8px;font-size:14px;color:#555555;line-height:1.7;">
+                Hi ${safeName},
+              </p>
+              <p style="margin:0 0 20px;font-size:14px;color:#555555;line-height:1.7;">
+                Thanks for signing up! Click the button below to verify your
+                email and fully activate your account &mdash; including your
+                <strong style="color:#111111;">10&nbsp;% first-order discount</strong>.
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:0 32px 28px;">
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td align="center">
+                    <a href="${link}"
+                       style="display:inline-block;background:#111111;
+                              color:#FCFAF2;padding:16px 36px;
+                              font-size:13px;font-weight:900;
+                              letter-spacing:0.1em;text-transform:uppercase;
+                              text-decoration:none;border:2px solid #111111;
+                              box-shadow:4px 4px 0 0 #0066FF;">
+                      Verify my email address &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:0 32px 24px;">
+              <table cellpadding="0" cellspacing="0" border="0" width="100%"
+                     style="background:#E0EEFF;border:1.5px solid #111111;
+                            border-radius:2px;padding:12px 16px;">
+                <tr>
+                  <td style="font-size:12px;color:#111111;font-weight:700;line-height:1.6;">
+                    &#9432;&nbsp; This link expires in <strong>24&nbsp;hours</strong>.
+                    If expired, log in and request a new one from the verification page.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:0 32px 28px;">
+              <p style="margin:0;font-size:11px;color:#888888;line-height:1.7;">
+                Button not working? Paste this into your browser:<br />
+                <a href="${link}" style="color:#0066FF;word-break:break-all;">
+                  ${link}
+                </a>
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="background:#FCFAF2;border-top:2px solid #111111;padding:16px 32px;">
+              <p style="margin:0;font-size:11px;color:#888888;line-height:1.7;">
+                If you didn&rsquo;t create a Beme Market account, ignore this email.<br />
+                &copy; ${new Date().getFullYear()} Beme Market &middot; Ghana &#127468;&#127469;
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
-function SuccessIcon() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="1.6"
-      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="9 12 11 14 15 10" />
-    </svg>
-  );
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED SEND HELPER — unchanged
+// ─────────────────────────────────────────────────────────────────────────────
+async function dispatchVerificationEmail(email, displayName) {
+  const link = await admin.auth().generateEmailVerificationLink(email);
+  const html = buildVerificationEmail(link, displayName);
+
+  await getTransporter().sendMail({
+    from:    `"${process.env.BREVO_FROM_NAME || "Beme Market"}" <${process.env.BREVO_FROM_EMAIL}>`,
+    to:      email,
+    subject: "Verify your Beme Market account",
+    html,
+    text: [
+      `Hi ${displayName || "there"},`,
+      "",
+      "Verify your Beme Market account:",
+      "",
+      link,
+      "",
+      "Link expires in 24 hours.",
+      "",
+      "If you didn't sign up, ignore this email.",
+      `© ${new Date().getFullYear()} Beme Market · Ghana`,
+    ].join("\n"),
+  });
 }
 
-function Spinner() {
-  return <span className="auth-spinner" aria-hidden="true" />;
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// TRIGGER — fires on every new user signup — unchanged
+// ─────────────────────────────────────────────────────────────────────────────
+exports.sendVerificationOnSignup = auth.user().onCreate(async (user) => {
+  if (!user.email || user.emailVerified) return null;
 
-export default function VerifyEmail() {
-  const { user }         = useAuth();
-  const navigate         = useNavigate();
-  const [searchParams]   = useSearchParams();
+  try {
+    await dispatchVerificationEmail(user.email, user.displayName);
+    console.log(`[verify] Sent to ${user.email}`);
+  } catch (err) {
+    console.error(`[verify] Failed for ${user.email}:`, err);
+  }
 
-  // URL params from email link (e.g. ?mode=verifyEmail&oobCode=xxx)
-  const mode    = searchParams.get("mode");
-  const oobCode = searchParams.get("oobCode");
+  return null;
+});
 
-  const [applying,  setApplying]  = useState(false);
-  const [applyDone, setApplyDone] = useState(false);
-  const [applyErr,  setApplyErr]  = useState("");
+// ─────────────────────────────────────────────────────────────────────────────
+// CALLABLE — resend verification email on demand — unchanged
+// ─────────────────────────────────────────────────────────────────────────────
+exports.resendVerificationEmail = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError(
+      "unauthenticated",
+      "You must be signed in to request a new verification email."
+    );
+  }
 
-  const [checking,  setChecking]  = useState(false);
-  const [resending, setResending] = useState(false);
-  const [checkErr,  setCheckErr]  = useState("");
-  const [resendMsg, setResendMsg] = useState("");
-  const [resendErr, setResendErr] = useState("");
-  const [cooldown,  setCooldown]  = useState(0);
+  const uid = request.auth.uid;
 
-  const currentUser  = auth.currentUser;
-  const displayEmail = currentUser?.email || user?.email || "";
+  let userRecord;
+  try {
+    userRecord = await admin.auth().getUser(uid);
+  } catch (err) {
+    console.error(`[resend] getUser failed for ${uid}:`, err);
+    throw new HttpsError("internal", "Could not fetch user record.");
+  }
 
-  // ── Handle email link click (mode=verifyEmail&oobCode=xxx) ──────────────
-  // This runs when the user clicks the link from their email and
-  // lands on /verify-email?mode=verifyEmail&oobCode=...
-  useEffect(() => {
-    if (mode !== "verifyEmail" || !oobCode) return;
+  if (userRecord.emailVerified) {
+    throw new HttpsError("already-exists", "This email address is already verified.");
+  }
 
-    setApplying(true);
-    setApplyErr("");
+  if (!userRecord.email) {
+    throw new HttpsError("failed-precondition", "No email address is associated with this account.");
+  }
 
-    applyActionCode(auth, oobCode)
-      .then(async () => {
-        // Code applied — reload the user token to get fresh emailVerified = true
-        if (auth.currentUser) {
-          await reload(auth.currentUser);
-        }
-        setApplyDone(true);
-        setApplying(false);
-        // Redirect after a short pause so the user sees the success state
-        setTimeout(() => navigate("/onboarding", { replace: true }), 1800);
-      })
-      .catch((err) => {
-        const code = err?.code || "";
-        if (code === "auth/expired-action-code")
-          setApplyErr("This verification link has expired. Request a new one below.");
-        else if (code === "auth/invalid-action-code")
-          setApplyErr("This link has already been used or is invalid. Request a new one below.");
-        else if (code === "auth/user-disabled")
-          setApplyErr("This account has been disabled. Contact support.");
-        else
-          setApplyErr("Could not verify your email. Please request a new link.");
-        setApplying(false);
-      });
-  }, [mode, oobCode, navigate]);
+  try {
+    await dispatchVerificationEmail(userRecord.email, userRecord.displayName);
+    console.log(`[resend] Sent to ${userRecord.email}`);
+    return { success: true };
+  } catch (err) {
+    console.error(`[resend] Failed for ${userRecord.email}:`, err);
+    throw new HttpsError("internal", "Failed to send the verification email. Please try again.");
+  }
+});
 
-  // ── Guard: already verified (no oobCode in URL) ────────────────────────
-  useEffect(() => {
-    if (mode === "verifyEmail") return; // Let oobCode handler manage this
-    if (currentUser?.emailVerified) navigate("/onboarding", { replace: true });
-  }, [currentUser, navigate, mode]);
+// ─────────────────────────────────────────────────────────────────────────────
+// TOTP / MFA — unchanged
+// ─────────────────────────────────────────────────────────────────────────────
+const {
+  setupTOTP,
+  enableTOTP,
+  verifyTOTP,
+  disableTOTP,
+} = require("./src/auth/twoFactor");
 
-  // ── Guard: not logged in ───────────────────────────────────────────────
-  useEffect(() => {
-    if (mode === "verifyEmail") return; // Allow even if not logged in
-    if (!currentUser) navigate("/signup", { replace: true });
-  }, [currentUser, navigate, mode]);
+exports.setupTOTP   = setupTOTP;
+exports.enableTOTP  = enableTOTP;
+exports.verifyTOTP  = verifyTOTP;
+exports.disableTOTP = disableTOTP;
 
-  // ── Auto-poll every 5s ─────────────────────────────────────────────────
-  useEffect(() => {
-    if (mode === "verifyEmail") return; // oobCode handler already running
-    const interval = setInterval(async () => {
-      if (!auth.currentUser) return;
+// ─────────────────────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+//
+//  MARKETING CLOUD FUNCTIONS — NEW
+//  All functions below are additive. Nothing above is touched.
+//
+// ═════════════════════════════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────────────────
+
+const db = admin.firestore();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// onOrderComplete_marketing
+// ─────────────────────────────────────────────────────────────────────────────
+// Triggered whenever an order document is created or updated.
+// Does two things:
+//   1. Awards loyalty points to the customer for the selling store.
+//   2. Activates a pending referral if this is the referred seller's first sale.
+//
+// Fires on: orders/{orderId}
+// ─────────────────────────────────────────────────────────────────────────────
+exports.onOrderComplete_marketing = onDocumentWritten(
+  "orders/{orderId}",
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after  = event.data?.after?.data();
+
+    // Guard: document must exist after write
+    if (!after) return null;
+
+    // Only run when the order reaches a completed state for the first time.
+    // "delivered" covers physical delivery; "paid" covers digital/instant orders.
+    const isNowComplete =
+      after.status === "delivered" ||
+      after.paymentStatus === "paid";
+
+    const wasAlreadyComplete =
+      before?.status === "delivered" ||
+      before?.paymentStatus === "paid";
+
+    // Skip if already completed before this write (prevents double awards)
+    if (!isNowComplete || wasAlreadyComplete) return null;
+
+    const storeId    = after.primaryShop || after.shops?.[0] || null;
+    const customerId = after.userId || null;
+    const orderTotal = Number(after.pricing?.total || 0);
+
+    // ── 1. AWARD LOYALTY POINTS ──────────────────────────────────────────
+    if (storeId && customerId) {
       try {
-        await reload(auth.currentUser);
-        if (auth.currentUser.emailVerified) navigate("/onboarding", { replace: true });
-      } catch (_) {}
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [navigate, mode]);
+        const configSnap = await db.doc(`loyaltyConfig/${storeId}`).get();
 
-  // ── Cooldown countdown ─────────────────────────────────────────────────
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const t = setInterval(() => {
-      setCooldown(c => { if (c <= 1) { clearInterval(t); return 0; } return c - 1; });
-    }, 1000);
-    return () => clearInterval(t);
-  }, [cooldown]);
+        if (configSnap.exists && configSnap.data().enabled === true) {
+          const { earnRate, redeemRate } = configSnap.data();
+          const pointsEarned = Math.floor(orderTotal * Number(earnRate || 1));
 
-  // ── Manual check ──────────────────────────────────────────────────────
-  const handleCheck = async () => {
-    if (!auth.currentUser) return;
-    setCheckErr(""); setResendMsg(""); setResendErr("");
-    setChecking(true);
-    try {
-      await reload(auth.currentUser);
-      if (auth.currentUser.emailVerified) navigate("/onboarding", { replace: true });
-      else setCheckErr("Email not verified yet — click the link in your inbox first.");
-    } catch {
-      setCheckErr("Could not check verification status. Try again.");
-    } finally { setChecking(false); }
-  };
+          if (pointsEarned > 0) {
+            // Composite key: storeId_customerId — one doc per customer per store
+            const pointsDocId = `${storeId}_${customerId}`;
 
-  // ── Resend via Cloud Function ─────────────────────────────────────────
-  const handleResend = async () => {
-    if (!auth.currentUser || cooldown > 0 || resending) return;
-    setResendErr(""); setResendMsg(""); setCheckErr("");
-    setResending(true);
-    try {
-      await cloudResend();
-      setResendMsg("Verification email resent — check your inbox (and spam folder).");
-      setCooldown(RESEND_COOLDOWN_S);
-    } catch (e) {
-      const code = e?.code || "";
-      if (code === "functions/already-exists")
-        setResendErr("Your email is already verified — try logging in.");
-      else if (code === "functions/unauthenticated")
-        setResendErr("Session expired. Please log in again.");
-      else
-        setResendErr("Could not resend the email. Try again in a moment.");
-    } finally { setResending(false); }
-  };
+            await db.doc(`loyaltyPoints/${pointsDocId}`).set(
+              {
+                storeId,
+                customerId,
+                pointsBalance: admin.firestore.FieldValue.increment(pointsEarned),
+                totalEarned:   admin.firestore.FieldValue.increment(pointsEarned),
+                // totalRedeemed stays unchanged on earn — only updated at checkout
+                totalRedeemed: admin.firestore.FieldValue.increment(0),
+                earnRate:      Number(earnRate),
+                redeemRate:    Number(redeemRate),
+                updatedAt:     admin.firestore.FieldValue.serverTimestamp(),
+              },
+              { merge: true } // merge so we don't wipe existing balance on first write
+            );
 
-  // ═══════════════════════════════════════════════════════════════
-  // STATE 1: Applying oobCode from email link
-  // ═══════════════════════════════════════════════════════════════
-  if (applying) {
-    return (
-      <div className="auth-page auth-page--centered">
-        <div className="auth-centered-wrap">
-          <div className="verify-card">
-            <div className="verify-icon-wrap">
-              <div className="verify-icon">
-                <Spinner />
-              </div>
-            </div>
-            <h2 className="verify-title">Verifying your email…</h2>
-            <p className="verify-subtitle">Just a moment, please don't close this page.</p>
-          </div>
-        </div>
-      </div>
-    );
+            console.log(
+              `[loyalty] Awarded ${pointsEarned} pts to customer ${customerId} ` +
+              `for store ${storeId} (order total GHS ${orderTotal})`
+            );
+          }
+        }
+      } catch (err) {
+        // Non-fatal — log and continue so referral logic still runs
+        console.error(`[loyalty] error for order ${event.params.orderId}:`, err);
+      }
+    }
+
+    // ── 2. ACTIVATE REFERRAL ─────────────────────────────────────────────
+    // A referral activates when the REFERRED SELLER completes their first sale,
+    // not when a customer buys. We check if the selling shop's owner was referred.
+    if (storeId) {
+      try {
+        const shopSnap = await db.doc(`shops/${storeId}`).get();
+        if (!shopSnap.exists) return null;
+
+        const ownerUid = shopSnap.data()?.ownerId;
+        if (!ownerUid) return null;
+
+        // Look for a pending referral where this seller is the referred party
+        const refQuery = await db.collection("referrals")
+          .where("referredUid", "==", ownerUid)
+          .where("status", "==", "pending")
+          .limit(1)
+          .get();
+
+        if (!refQuery.empty) {
+          const refDoc  = refQuery.docs[0];
+          const refData = refDoc.data();
+
+          // GHS 10 wallet credit per activated referral
+          // Beme earns: 10% of referred seller's first month subscription
+          // before paying out — handled manually or via subscription webhook.
+          const rewardAmount = 10;
+
+          // Mark referral as activated
+          await refDoc.ref.update({
+            status:       "activated",
+            rewardAmount,
+            activatedAt:  admin.firestore.FieldValue.serverTimestamp(),
+            referredShopName: shopSnap.data()?.shopName || "",
+          });
+
+          // Credit the referring seller's wallet on their shop doc
+          await db.doc(`shops/${refData.referrerId}`).update({
+            walletBalance: admin.firestore.FieldValue.increment(rewardAmount),
+          });
+
+          console.log(
+            `[referral] Activated referral ${refDoc.id}. ` +
+            `Credited GHS ${rewardAmount} to shop ${refData.referrerId}`
+          );
+        }
+      } catch (err) {
+        console.error(`[referral] error for order ${event.params.orderId}:`, err);
+      }
+    }
+
+    return null;
   }
+);
 
-  // ═══════════════════════════════════════════════════════════════
-  // STATE 2: Successfully verified via link — show success briefly
-  // ═══════════════════════════════════════════════════════════════
-  if (applyDone) {
-    return (
-      <div className="auth-page auth-page--centered">
-        <div className="auth-centered-wrap">
-          <div className="verify-card">
-            <div className="verify-icon-wrap">
-              <div className="verify-icon" style={{ background: "#EEFFF5", color: "#006633" }}>
-                <SuccessIcon />
-              </div>
-            </div>
-            <h2 className="verify-title">Email verified! 🎉</h2>
-            <p className="verify-subtitle">
-              Your account is now active. Redirecting you to set up your profile…
-            </p>
-            <div className="verify-auto-row">
-              <span className="verify-pulse" aria-hidden="true" />
-              <span className="verify-auto-label">Redirecting now…</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+// ─────────────────────────────────────────────────────────────────────────────
+// expireFlashSales
+// ─────────────────────────────────────────────────────────────────────────────
+// Scheduled every 10 minutes.
+// Finds all flash sales where endAt has passed and status is still "active",
+// then batch-updates them to status: "ended".
+//
+// This is the server-side safety net. The frontend already filters by endAt
+// for display purposes, but this keeps Firestore clean so marketplace queries
+// using where("status","==","active") stay accurate.
+// ─────────────────────────────────────────────────────────────────────────────
+exports.expireFlashSales = onSchedule(
+  {
+    schedule: "every 10 minutes",
+    timeZone: "Africa/Accra",
+  },
+  async () => {
+    const now = admin.firestore.Timestamp.now();
+
+    let snap;
+    try {
+      snap = await db.collection("flashSales")
+        .where("status", "==", "active")
+        .where("endAt", "<=", now)
+        .get();
+    } catch (err) {
+      console.error("[expireFlashSales] query error:", err);
+      return null;
+    }
+
+    if (snap.empty) {
+      console.log("[expireFlashSales] No sales to expire.");
+      return null;
+    }
+
+    // Firestore batch limit is 500 writes — split if needed
+    const BATCH_SIZE = 400;
+    const docs = snap.docs;
+
+    for (let i = 0; i < docs.length; i += BATCH_SIZE) {
+      const chunk = docs.slice(i, i + BATCH_SIZE);
+      const batch = db.batch();
+      chunk.forEach((doc) => {
+        batch.update(doc.ref, {
+          status:  "ended",
+          endedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      });
+      await batch.commit();
+    }
+
+    console.log(`[expireFlashSales] Expired ${docs.length} sale(s).`);
+    return null;
   }
+);
 
-  // ═══════════════════════════════════════════════════════════════
-  // STATE 3: Error applying oobCode (expired/invalid link)
-  // Falls through to the normal page with the error showing
-  // ═══════════════════════════════════════════════════════════════
-
-  // ═══════════════════════════════════════════════════════════════
-  // STATE 4: Normal waiting page
-  // ═══════════════════════════════════════════════════════════════
-  return (
-    <div className="auth-page auth-page--centered">
-
-      <div className="auth-banner">
-        Welcome to Beme Market — Ghana's favourite shop 🇬🇭
-      </div>
-
-      <div className="auth-centered-wrap">
-
-        {/* Logo */}
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <Link to="/" className="auth-logo" style={{ justifyContent: "center" }}>
-            <div className="auth-logo-mark">
-              <img src="/Favicon-white.PNG" alt="" width="22" height="22"
-                style={{ objectFit: "contain" }} />
-            </div>
-            <span className="auth-logo-name">Beme Market</span>
-          </Link>
-        </div>
-
-        <div className="verify-card">
-
-          <div className="verify-icon-wrap">
-            <div className="verify-icon">
-              <MailIcon />
-            </div>
-          </div>
-
-          <h2 className="verify-title">Check your email</h2>
-          <p className="verify-subtitle">We sent a verification link to</p>
-
-          <div className="verify-email-pill">
-            {displayEmail || "your email address"}
-          </div>
-
-          <p className="verify-instructions">
-            Open the email and click <strong>"Verify email address"</strong>.
-            Once verified, this page redirects you automatically — or press the button below.
-          </p>
-
-          {/* Show applyErr if link was expired/invalid */}
-          {applyErr  && <div className="auth-alert auth-alert--error" role="alert">{applyErr}</div>}
-          {checkErr  && <div className="auth-alert auth-alert--error" role="alert">{checkErr}</div>}
-          {resendErr && <div className="auth-alert auth-alert--error" role="alert">{resendErr}</div>}
-          {resendMsg && <div className="auth-alert auth-alert--ok"    role="status">{resendMsg}</div>}
-
-          <button className="auth-btn-primary verify-cta" onClick={handleCheck}
-            disabled={checking} type="button">
-            {checking
-              ? <><Spinner /> Checking…</>
-              : <><CheckCircleIcon /> I've verified my email</>}
-          </button>
-
-          <div className="auth-divider">or</div>
-
-          <button className="auth-btn-ghost" onClick={handleResend}
-            disabled={resending || cooldown > 0} type="button">
-            {resending ? <><Spinner /> Sending…</>
-              : cooldown > 0 ? `Resend in ${cooldown}s`
-              : "Resend verification email"}
-          </button>
-
-          <div className="verify-auto-row">
-            <span className="verify-pulse" aria-hidden="true" />
-            <span className="verify-auto-label">Checking automatically every 5 seconds</span>
-          </div>
-
-          <details className="verify-tips">
-            <summary className="verify-tips-toggle">Didn't get the email?</summary>
-            <ul className="verify-tips-list">
-              <li>Check your <strong>spam</strong> or <strong>junk</strong> folder — mark it as Not Spam.</li>
-              <li>Make sure <strong>{displayEmail}</strong> is correct.</li>
-              <li>Wait a minute — delivery can sometimes be slightly delayed.</li>
-              <li>Press <strong>Resend</strong> above if it's been over 5 minutes.</li>
-            </ul>
-          </details>
-
-          <div className="verify-back">
-            <Link className="auth-link" to="/login">← Back to login</Link>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  );
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// NOTE: Product Boost webhook
+// ─────────────────────────────────────────────────────────────────────────────
+// Product Boosts are paid via Paystack. The webhook already lives on your
+// Express server at beme-market-1.onrender.com.
+//
+// In your existing webhook handler (after HMAC-SHA512 verification), add:
+//
+//   if (event.data.metadata?.type === "boost") {
+//     const {
+//       storeId, sellerId, productId, productName, durationDays, amountGHS,
+//     } = event.data.metadata;
+//
+//     const expiresAt = new Date();
+//     expiresAt.setDate(expiresAt.getDate() + Number(durationDays));
+//
+//     await admin.firestore().collection("boosts").add({
+//       storeId,
+//       sellerId,
+//       productId,
+//       productName:  productName || "",
+//       durationDays: Number(durationDays),
+//       amountPaid:   Number(amountGHS),
+//       paystackRef:  event.data.reference,
+//       boostedAt:    admin.firestore.FieldValue.serverTimestamp(),
+//       expiresAt,
+//       status:       "active",
+//     });
+//   }
+//
+// The boosts collection already has rules (allow read: if true; create by seller).
+// Admin SDK bypasses rules, so this write works without any rule change.
+// ─────────────────────────────────────────────────────────────────────────────

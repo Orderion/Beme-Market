@@ -6,12 +6,12 @@ import AdminRoute    from "./components/AdminRoute";
 import RequireAdmin  from "./components/auth/RequireAdmin";
 import SellerRoute   from "./components/SellerRoute";
 
-import Header       from "./components/Header";
-import Sidebar      from "./components/Sidebar";
-import CartDrawer   from "./components/CartDrawer";
-import Footer       from "./components/Footer";
+import Header        from "./components/Header";
+import Sidebar       from "./components/Sidebar";
+import CartDrawer    from "./components/CartDrawer";
+import Footer        from "./components/Footer";
 import LoaderOverlay from "./components/LoaderOverlay";
-import BottomNav    from "./components/navigation/BottomNav.jsx";
+import BottomNav     from "./components/navigation/BottomNav.jsx";
 
 /* ── PUBLIC PAGES ── */
 import Home            from "./pages/Home";
@@ -25,11 +25,11 @@ import FlashDeals      from "./pages/FlashDeals";
 import Chat            from "./pages/Chat";
 
 /* ── AUTH ── */
-import Login        from "./pages/Login";
-import Signup       from "./pages/Signup";
-import VerifyEmail  from "./pages/VerifyEmail";
-import Onboarding   from "./pages/Onboarding";
-import AdminLogin   from "./pages/AdminLogin";
+import Login         from "./pages/Login";
+import Signup        from "./pages/Signup";
+import VerifyEmail   from "./pages/VerifyEmail";
+import Onboarding    from "./pages/Onboarding";
+import AdminLogin    from "./pages/AdminLogin";
 import ResetPassword from "./pages/ResetPassword";
 
 /* ── ADMIN ── */
@@ -63,8 +63,8 @@ import ManageAccount     from "./pages/ManageAccount";
 import PaymentMethods    from "./pages/PaymentMethods";
 import AccountManagement from "./pages/AccountManagement";
 import { SavedItems, Notifications, HelpSupport, ContactUs } from "./pages/AccountSubPages";
-import UserRequests      from "./pages/UserRequests";
-import ProductRequests   from "./pages/ProductRequests";
+import UserRequests  from "./pages/UserRequests";
+import ProductRequests from "./pages/ProductRequests";
 
 /* ── SELLER PUBLIC ── */
 import GetAStore           from "./pages/GetAStore";
@@ -87,10 +87,43 @@ import DashboardProductDetail from "./pages/dashboard/DashboardProductDetail";
 import StoreFront from "./pages/StoreFront";
 
 /* ── ADMIN SELLER MANAGEMENT ── */
-import SellerPayoutRequests  from "./pages/admin/PayoutRequests";
-import VerificationRequests  from "./pages/admin/VerificationRequests";
-import StoreModeration       from "./pages/admin/StoreModeration";
+import SellerPayoutRequests from "./pages/admin/PayoutRequests";
+import VerificationRequests from "./pages/admin/VerificationRequests";
+import StoreModeration      from "./pages/admin/StoreModeration";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// REFERRAL JOIN REDIRECT
+// ─────────────────────────────────────────────────────────────────────────────
+// Handles links like: bememarket.store/join?ref=ABC123
+// Stores the referral code in sessionStorage then redirects to /get-a-store
+// so the sign-up flow can pick it up and create the referral doc in Firestore.
+//
+// How to read it on the sign-up / store-onboarding side:
+//   const refCode = sessionStorage.getItem("beme_referral_code");
+//   if (refCode) { /* write to Firestore referrals collection */ }
+//
+function ReferralJoinRedirect() {
+  const location = useLocation();
+  const params   = new URLSearchParams(location.search);
+  const refCode  = params.get("ref");
+
+  useEffect(() => {
+    if (refCode) {
+      // Persist across the sign-up flow (sessionStorage clears on tab close)
+      sessionStorage.setItem("beme_referral_code", refCode.toUpperCase());
+    }
+  }, [refCode]);
+
+  // Send them to the seller sign-up landing page with the code preserved in the URL
+  // so it survives even if sessionStorage is blocked.
+  const destination = refCode
+    ? `/get-a-store?ref=${encodeURIComponent(refCode.toUpperCase())}`
+    : "/get-a-store";
+
+  return <Navigate to={destination} replace />;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 function SuperAdminOnly({ children }) {
   const { loading, isSuperAdmin } = useAuth();
   if (loading) return null;
@@ -98,7 +131,7 @@ function SuperAdminOnly({ children }) {
   return children;
 }
 
-// ── Routes that never show the public header/footer/nav ──
+// ── Routes that never show the public header/footer/nav ──────────────────────
 const FULL_SCREEN_ROUTES = new Set([
   "/login",
   "/signup",
@@ -145,7 +178,7 @@ function isFullScreen(pathname) {
   return false;
 }
 
-// ── Paths that require email verification ──
+// ── Paths that require email verification ────────────────────────────────────
 const VERIFY_REQUIRED_PREFIXES = [
   "/account",
   "/saved",
@@ -173,6 +206,7 @@ function RequireVerified({ children }) {
   return children;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 function AppShell() {
   const location = useLocation();
   const { loading: authLoading } = useAuth();
@@ -227,11 +261,11 @@ function AppShell() {
             <Route path="/messages"      element={<Chat />} />
 
             {/* ── AUTH ── */}
-            <Route path="/login"         element={<Login />} />
-            <Route path="/signup"        element={<Signup />} />
-            <Route path="/verify-email"  element={<VerifyEmail />} />
-            <Route path="/onboarding"    element={<Onboarding />} />
-            <Route path="/admin-login"   element={<AdminLogin />} />
+            <Route path="/login"          element={<Login />} />
+            <Route path="/signup"         element={<Signup />} />
+            <Route path="/verify-email"   element={<VerifyEmail />} />
+            <Route path="/onboarding"     element={<Onboarding />} />
+            <Route path="/admin-login"    element={<AdminLogin />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* ── ACCOUNT ── */}
@@ -265,6 +299,11 @@ function AppShell() {
             {/* ── PUBLIC STOREFRONT ── */}
             <Route path="/store/:storeSlug" element={<StoreFront />} />
 
+            {/* ── REFERRAL JOIN ── */}
+            {/* Handles bememarket.store/join?ref=ABC123                   */}
+            {/* Saves the ref code to sessionStorage then goes to /get-a-store */}
+            <Route path="/join" element={<ReferralJoinRedirect />} />
+
             {/* ── SELLER ONBOARDING ── */}
             <Route path="/store-onboarding"
               element={<SellerRoute requireOnly="auth"><StoreOnboarding /></SellerRoute>} />
@@ -281,6 +320,9 @@ function AppShell() {
                 SELLER DASHBOARD
                 All tab navigation is handled internally via
                 ?tab= query params inside SellerDashboard.jsx.
+                Marketing panels (Flash Sales, Discount Codes,
+                Product Boosts, Referral, Loyalty Rewards) all
+                render inside ?tab=marketing — no new routes needed.
                 Tabs: home | products | orders | customers |
                       chat | marketing | analytics | withdrawals |
                       appearance | ai | subscription | settings |
@@ -310,17 +352,17 @@ function AppShell() {
             <Route path="/admin/settings"      element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
 
             {/* ── Legacy admin redirects ── */}
-            <Route path="/admin-orders"                  element={<Navigate to="/admin/orders"    replace />} />
-            <Route path="/admin-review-queue"            element={<Navigate to="/admin"           replace />} />
-            <Route path="/analytics"                     element={<Navigate to="/admin/analytics" replace />} />
-            <Route path="/payout-requests"               element={<Navigate to="/admin/payouts"   replace />} />
-            <Route path="/shop-applications"             element={<Navigate to="/admin/stores"    replace />} />
-            <Route path="/account-management"            element={<Navigate to="/admin/admins"    replace />} />
-            <Route path="/admin/product-manager"         element={<Navigate to="/admin/products"  replace />} />
-            <Route path="/admin/product-requests"        element={<Navigate to="/admin/products"  replace />} />
-            <Route path="/admin/seller-payouts"          element={<Navigate to="/admin/payouts"   replace />} />
-            <Route path="/admin/verification-requests"   element={<Navigate to="/admin/stores"    replace />} />
-            <Route path="/admin/store-moderation"        element={<Navigate to="/admin/stores"    replace />} />
+            <Route path="/admin-orders"                element={<Navigate to="/admin/orders"    replace />} />
+            <Route path="/admin-review-queue"          element={<Navigate to="/admin"           replace />} />
+            <Route path="/analytics"                   element={<Navigate to="/admin/analytics" replace />} />
+            <Route path="/payout-requests"             element={<Navigate to="/admin/payouts"   replace />} />
+            <Route path="/shop-applications"           element={<Navigate to="/admin/stores"    replace />} />
+            <Route path="/account-management"          element={<Navigate to="/admin/admins"    replace />} />
+            <Route path="/admin/product-manager"       element={<Navigate to="/admin/products"  replace />} />
+            <Route path="/admin/product-requests"      element={<Navigate to="/admin/products"  replace />} />
+            <Route path="/admin/seller-payouts"        element={<Navigate to="/admin/payouts"   replace />} />
+            <Route path="/admin/verification-requests" element={<Navigate to="/admin/stores"    replace />} />
+            <Route path="/admin/store-moderation"      element={<Navigate to="/admin/stores"    replace />} />
 
             {/* ── SUPER ADMIN ONLY ── */}
             <Route path="/own-a-shop"
