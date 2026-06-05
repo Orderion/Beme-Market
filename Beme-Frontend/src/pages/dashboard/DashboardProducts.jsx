@@ -161,7 +161,7 @@ export default function DashboardProducts() {
           <div className="dp-subtitle">Manage your store listings.</div>
         </div>
 
-        {/* Desktop: pill button — purple border + text, hover fills */}
+        {/* Desktop: pill button — purple border + text + plus icon, hover fills */}
         <button type="button" onClick={goAdd} className="dp-add-desktop">
           <Ico d={IC.plus} size={14} color="inherit"/>
           {atLimit ? "Upgrade Plan" : "Publish New"}
@@ -272,9 +272,10 @@ export default function DashboardProducts() {
           100% { background-position: calc(600px + 100%) 0; }
         }
 
+        /* ── Root: page bg matches dashboard bg, NOT card bg ── */
         .dp-root {
           font-family: var(--sd-font, 'DM Sans', system-ui, sans-serif);
-          background: var(--sd-white);
+          background: var(--sd-bg);
           color: var(--sd-text);
           min-height: 100%;
         }
@@ -287,11 +288,11 @@ export default function DashboardProducts() {
         .dp-title    { font-size: 22px; font-weight: 900; color: var(--sd-text); letter-spacing: -0.03em; }
         .dp-subtitle { font-size: 13px; color: var(--sd-muted); font-weight: 500; margin-top: 3px; }
 
-        /* ── Desktop pill button ── */
+        /* ── Desktop pill button — always shows + icon + label ── */
         .dp-add-desktop {
           display: none;
           align-items: center; gap: 7px;
-          padding: 9px 22px;
+          padding: 9px 20px 9px 16px;
           border-radius: 100px;
           border: 1.5px solid var(--sd-accent);
           background: transparent;
@@ -324,7 +325,7 @@ export default function DashboardProducts() {
           .dp-add-mobile  { display: none; }
         }
 
-        /* Panel */
+        /* Panel — card surface lifts off bg */
         .dp-panel {
           background: var(--sd-white);
           border-radius: 14px;
@@ -354,7 +355,7 @@ export default function DashboardProducts() {
         .dp-search-input {
           width: 100%; height: 40px; padding-left: 38px; padding-right: 14px;
           border: 1.5px solid var(--sd-border); border-radius: 10px;
-          background: var(--sd-white); color: var(--sd-text);
+          background: var(--sd-bg); color: var(--sd-text);
           font-size: 14px; font-weight: 500; outline: none; font-family: inherit;
           box-sizing: border-box; transition: border-color 0.15s;
         }
@@ -378,6 +379,7 @@ export default function DashboardProducts() {
         /* Product list */
         .dp-list { display: flex; flex-direction: column; gap: 10px; }
 
+        /* Product row — card surface */
         .dp-product-row {
           background: var(--sd-white);
           border-radius: 14px;
@@ -386,7 +388,7 @@ export default function DashboardProducts() {
           padding: 12px 14px; gap: 14px;
           transition: border-color 0.15s, background 0.25s;
         }
-        .dp-product-row:hover { border-color: var(--sd-accent-border, rgba(124,58,237,0.25)); }
+        .dp-product-row:hover { border-color: rgba(124,58,237,0.3); }
 
         .dp-product-thumb {
           width: 64px; height: 64px; border-radius: 10px;
