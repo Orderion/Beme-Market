@@ -90,16 +90,13 @@ const ILLUSTRATIONS = {
     </svg>
   ),
   analytics: (
-    <svg viewBox="0 0 200 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="200" height="140" rx="16" fill="url(#g5)"/>
-      <defs><linearGradient id="g5" x1="0" y1="0" x2="200" y2="140" gradientUnits="userSpaceOnUse"><stop stopColor="#6366f1" stopOpacity="0.1"/><stop offset="1" stopColor="#7c3aed" stopOpacity="0.05"/></linearGradient></defs>
-      <path d="M16,110 C40,90 60,100 80,70 C100,40 120,80 140,50 C160,20 180,40 184,30" stroke="#7c3aed" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-      <path d="M16,110 C40,90 60,100 80,70 C100,40 120,80 140,50 C160,20 180,40 184,30 L184,120 L16,120 Z" fill="#7c3aed" fillOpacity="0.06"/>
-      <path d="M16,118 C40,105 60,112 80,95 C100,78 120,100 140,80 C160,60 180,75 184,65" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeDasharray="4,3" fill="none"/>
-      {[80,120,160].map((x,i)=><circle key={i} cx={x} cy={[70,50,30][i]} r={4} fill="#7c3aed" stroke="white" strokeWidth="2"/>)}
-      <rect x="16" y="16" width="45" height="20" rx="6" fill="white" fillOpacity="0.8" stroke="#e8e4f5" strokeWidth="1"/>
-      <text x="38" y="30" textAnchor="middle" fill="#7c3aed" fontSize="9" fontWeight="800">Revenue</text>
-    </svg>
+    <div style={{ width:"100%", borderRadius:16, overflow:"hidden", background:"#f8f9ff", display:"flex", alignItems:"center", justifyContent:"center", padding:"8px 0 0" }}>
+      <img
+        src="/Control_Panel-cuate.svg"
+        alt="Analytics control panel illustration"
+        style={{ width:"100%", maxHeight:300, objectFit:"contain", display:"block" }}
+      />
+    </div>
   ),
   chat: (
     <svg viewBox="0 0 200 140" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -448,10 +445,11 @@ export default function LearnMore() {
     <div style={{ fontFamily: "var(--sd-font)", minHeight: "calc(100vh - 100px)" }}>
 
       {/* Hero */}
-      <div style={{ background: "linear-gradient(135deg, var(--sd-accent) 0%, #9333ea 60%, #6366f1 100%)", borderRadius: 20, padding: "40px 36px", marginBottom: 28, position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: -40, right: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
-        <div style={{ position: "absolute", bottom: -60, left: 60, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
-        <div style={{ position: "relative", zIndex: 1, maxWidth: 520 }}>
+      <div style={{ background: "linear-gradient(135deg, var(--sd-accent) 0%, #9333ea 60%, #6366f1 100%)", borderRadius: 20, marginBottom: 28, position: "relative", overflow: "hidden", display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center" }}>
+
+        {/* Left: text + search */}
+        <div style={{ padding: "40px 36px", position: "relative", zIndex: 1 }}>
+          <div style={{ position: "absolute", bottom: -60, left: 60, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.15)", borderRadius: 100, padding: "5px 14px", marginBottom: 16 }}>
             <Ico d={IC.star} size={13} color="#fff" sw={2} />
             <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>Beme Seller Guide</span>
@@ -464,6 +462,15 @@ export default function LearnMore() {
               placeholder="Search guides…"
               style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 14, color: "#fff", fontFamily: "var(--sd-font)", fontWeight: 500 }} />
           </div>
+        </div>
+
+        {/* Right: Learning illustration filling the hero */}
+        <div style={{ width: 340, flexShrink: 0, alignSelf: "stretch", display: "flex", alignItems: "flex-end", justifyContent: "center", overflow: "hidden", position: "relative" }}>
+          <img
+            src="/Learning-cuate.svg"
+            alt="Seller learning illustration"
+            style={{ width: "100%", height: 320, objectFit: "contain", objectPosition: "bottom center", display: "block", filter: "drop-shadow(0 -8px 24px rgba(0,0,0,0.18))" }}
+          />
         </div>
       </div>
 
@@ -596,6 +603,8 @@ export default function LearnMore() {
       <style>{`
         @media (max-width: 768px) {
           .learn-grid { grid-template-columns: 1fr !important; }
+          .learn-hero  { grid-template-columns: 1fr !important; }
+          .learn-hero-img { display: none !important; }
         }
       `}</style>
     </div>
