@@ -272,10 +272,10 @@ export default function DashboardProducts() {
           100% { background-position: calc(600px + 100%) 0; }
         }
 
-        /* ── Root: page bg matches dashboard bg, NOT card bg ── */
+        /* ── Root: transparent so sd-root background shows through ── */
         .dp-root {
           font-family: var(--sd-font, 'DM Sans', system-ui, sans-serif);
-          background: var(--sd-bg);
+          background: transparent;
           color: var(--sd-text);
           min-height: 100%;
         }
@@ -362,7 +362,7 @@ export default function DashboardProducts() {
         .dp-search-input {
           width: 100%; height: 40px; padding-left: 38px; padding-right: 14px;
           border: 1.5px solid var(--sd-border); border-radius: 10px;
-          background: var(--sd-bg); color: var(--sd-text);
+          background: var(--sd-white); color: var(--sd-text);
           font-size: 14px; font-weight: 500; outline: none; font-family: inherit;
           box-sizing: border-box; transition: border-color 0.15s;
         }

@@ -199,7 +199,14 @@ export default function SellerDashboard() {
       )}
 
       {/* ══════ MAIN ══════ */}
-      <div className={`sd-main${collapsed ? " sd-main--collapsed" : ""}`}>
+      <div
+        className="sd-main"
+        style={{
+          marginLeft: collapsed
+            ? "var(--sd-sidebar-collapsed-w)"
+            : sidebarOpen ? 0 : "var(--sd-sidebar-w)",
+        }}
+      >
 
         {/* Topbar */}
         <header className="sd-topbar">

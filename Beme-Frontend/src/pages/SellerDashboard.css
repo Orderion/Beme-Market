@@ -122,12 +122,14 @@ body.dark .sd-root {
 ══════════════════════════════════════ */
 .sd-root {
   display: flex;
+  min-height: 100vh;
   height: 100vh;
-  overflow: hidden;
   background: var(--sd-bg);
   font-family: var(--sd-font);
   color: var(--sd-text);
   transition: background 0.25s, color 0.25s;
+  overflow-x: hidden;
+  overflow-y: hidden;
 }
 
 /* ══════════════════════════════════════
@@ -420,7 +422,7 @@ body.dark .sd-root {
 .sd-content {
   flex: 1; padding: 24px 24px 60px;
   max-width: 100%; overflow-x: hidden; overflow-y: auto;
-  background: var(--sd-bg);
+  background: transparent;
   transition: background 0.25s;
 }
 
