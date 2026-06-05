@@ -13,7 +13,6 @@ function fmtTime(ts) {
   return d.toLocaleTimeString("en-GH", { hour: "2-digit", minute: "2-digit" });
 }
 
-/* ── Icons ── */
 function Ico({ d, size = 16, color = "currentColor", sw = 1.8 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
@@ -51,7 +50,6 @@ export default function DashboardChat() {
   const [aiLoading,    setAiLoading]    = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState(null);
   const [copiedId,     setCopiedId]     = useState(null);
-  /* Mobile: "list" | "chat" */
   const [mobileView,   setMobileView]   = useState("list");
 
   const inputRef   = useRef(null);
@@ -61,7 +59,6 @@ export default function DashboardChat() {
   const aiPaused        = activeChatData?.aiPaused || false;
   const lastCustomerMsg = messages.filter(m => m.senderRole !== "seller").slice(-1)[0];
 
-  /* Auto-scroll to bottom on new messages */
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -90,7 +87,7 @@ export default function DashboardChat() {
     markRead(chatId);
     setAiSuggestion(null);
     setText("");
-    setMobileView("chat"); /* slide to chat on mobile */
+    setMobileView("chat");
   };
 
   const handleBack = () => {
@@ -115,7 +112,6 @@ export default function DashboardChat() {
     finally { setAiLoading(false); }
   };
 
-  /* ── Plan gate ── */
   if (!planLimits?.hasChat) {
     return (
       <div className="dc-locked">
@@ -126,7 +122,6 @@ export default function DashboardChat() {
     );
   }
 
-  /* ── Conversation list panel ── */
   const ConvoList = (
     <div className={`dc-list-panel${mobileView === "chat" ? " dc-list-panel--hidden" : ""}`}>
       <div className="dc-list-header">Conversations</div>
@@ -152,24 +147,19 @@ export default function DashboardChat() {
     </div>
   );
 
-  /* ── Chat area panel ── */
   const ChatArea = (
     <div className={`dc-chat-panel${mobileView === "list" ? " dc-chat-panel--hidden" : ""}`}>
       {!activeChat ? (
-        /* Desktop empty state */
         <div className="dc-no-chat">
           <Ico d={IC.chat} size={40} color="var(--sd-border)"/>
           <div className="dc-no-chat-label">Select a conversation</div>
         </div>
       ) : (
         <>
-          {/* Chat header */}
           <div className="dc-chat-header">
-            {/* Back arrow — mobile only */}
             <button type="button" onClick={handleBack} className="dc-back-btn" aria-label="Back to conversations">
               <Ico d={IC.back} size={18} color="var(--sd-text)"/>
             </button>
-
             <div className="dc-avatar dc-avatar--sm">{(activeChatData?.customerName||"?")[0].toUpperCase()}</div>
             <div className="dc-chat-header-info">
               <div className="dc-chat-name">{activeChatData?.customerName || "Customer"}</div>
@@ -182,7 +172,6 @@ export default function DashboardChat() {
             </button>
           </div>
 
-          {/* Messages */}
           <div className="dc-messages">
             {messages.map(m => {
               const isSeller = m.senderRole === "seller";
@@ -210,7 +199,6 @@ export default function DashboardChat() {
             <div ref={bottomRef}/>
           </div>
 
-          {/* AI suggestion banner */}
           {aiSuggestion && (
             <div className="dc-ai-suggestion">
               <div className="dc-ai-suggestion-label">✨ AI Suggestion — edit or send as is</div>
@@ -218,7 +206,6 @@ export default function DashboardChat() {
             </div>
           )}
 
-          {/* Input row */}
           <div className="dc-input-row">
             {lastCustomerMsg && (
               <button onClick={handleAISuggest} disabled={aiLoading}
@@ -249,7 +236,6 @@ export default function DashboardChat() {
 
   return (
     <div className="dc-root">
-      {/* Page header */}
       <div className="dc-page-head">
         <div className="dc-page-title">Messages</div>
         <div className="dc-page-sub">
@@ -258,7 +244,6 @@ export default function DashboardChat() {
         </div>
       </div>
 
-      {/* Main chat shell */}
       <div className="dc-shell">
         {ConvoList}
         {ChatArea}
@@ -273,22 +258,21 @@ export default function DashboardChat() {
           100% { background-position: calc(600px + 100%) 0; }
         }
 
-        /* ── Root ── */
+        /* ── Root — transparent so sd-root bg shows through ── */
         .dc-root {
           font-family: var(--sd-font, 'DM Sans', system-ui, sans-serif);
-          background: var(--sd-white);
+          background: transparent;
           color: var(--sd-text);
           min-height: 100%;
           display: flex;
           flex-direction: column;
         }
 
-        /* Page header */
         .dc-page-head  { margin-bottom: 14px; }
         .dc-page-title { font-size: 11px; font-weight: 700; color: var(--sd-muted); text-transform: uppercase; letter-spacing: 0.07em; }
         .dc-page-sub   { font-size: 12px; color: var(--sd-muted); margin-top: 2px; }
 
-        /* Shell */
+        /* Shell — card surface with border, transparent bg */
         .dc-shell {
           display: flex;
           border: 1px solid var(--sd-border);
@@ -308,8 +292,8 @@ export default function DashboardChat() {
           display: flex;
           flex-direction: column;
           overflow-y: auto;
-          background: var(--sd-white);
-          transition: background 0.25s, border-color 0.25s;
+          background: transparent;
+          transition: border-color 0.25s;
         }
         .dc-list-header {
           font-weight: 800; font-size: 13px; color: var(--sd-text);
@@ -352,11 +336,10 @@ export default function DashboardChat() {
         /* ── Chat panel ── */
         .dc-chat-panel {
           flex: 1; display: flex; flex-direction: column;
-          min-width: 0; background: var(--sd-white);
+          min-width: 0; background: transparent;
           transition: background 0.25s;
         }
 
-        /* Chat header */
         .dc-chat-header {
           display: flex; align-items: center; gap: 10px;
           padding: 12px 16px;
@@ -364,11 +347,10 @@ export default function DashboardChat() {
           flex-shrink: 0;
         }
         .dc-back-btn {
-          display: none; /* hidden on desktop */
+          display: none;
           background: none; border: none; cursor: pointer;
           padding: 4px; border-radius: 8px; line-height: 0;
-          flex-shrink: 0;
-          transition: background 0.12s;
+          flex-shrink: 0; transition: background 0.12s;
         }
         .dc-back-btn:hover { background: var(--sd-border-light); }
 
@@ -383,8 +365,7 @@ export default function DashboardChat() {
           border: 1px solid var(--sd-accent-border, rgba(124,58,237,0.2));
           background: var(--sd-accent-dim); color: var(--sd-accent);
           font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit;
-          white-space: nowrap; flex-shrink: 0;
-          transition: all 0.15s;
+          white-space: nowrap; flex-shrink: 0; transition: all 0.15s;
         }
         .dc-ai-toggle--paused {
           border-color: rgba(245,158,11,0.3);
@@ -392,28 +373,25 @@ export default function DashboardChat() {
           color: #d97706;
         }
 
-        /* Messages */
+        /* Messages area — transparent */
         .dc-messages {
           flex: 1; overflow-y: auto; padding: 16px;
           display: flex; flex-direction: column; gap: 6px;
-          background: var(--sd-white);
+          background: transparent;
         }
         .dc-msg-wrap { display: flex; flex-direction: column; }
 
-        /* ── Bubbles ── */
         .dc-bubble {
           max-width: 70%; padding: 10px 14px;
           border-radius: 14px; font-size: 13px; line-height: 1.55;
           word-break: break-word;
         }
-        /* Customer bubble — neutral */
         .dc-bubble--customer {
           align-self: flex-start;
           background: var(--sd-border-light);
           color: var(--sd-text);
           border-bottom-left-radius: 4px;
         }
-        /* Seller bubble — translucent purple */
         .dc-bubble--seller {
           align-self: flex-end;
           background: rgba(124, 58, 237, 0.14);
@@ -421,7 +399,6 @@ export default function DashboardChat() {
           border-bottom-right-radius: 4px;
           border: 1px solid rgba(124, 58, 237, 0.18);
         }
-        /* Dark mode: deeper purple tint */
         .sd-dark .dc-bubble--seller {
           background: rgba(124, 58, 237, 0.28);
           color: #c4b5fd;
@@ -443,7 +420,6 @@ export default function DashboardChat() {
           font-family: inherit; transition: color 0.15s;
         }
 
-        /* AI suggestion */
         .dc-ai-suggestion {
           margin: 0 16px 8px;
           padding: 10px 14px;
@@ -457,12 +433,12 @@ export default function DashboardChat() {
           color: var(--sd-accent); margin-bottom: 4px;
         }
 
-        /* Input row */
+        /* Input row — transparent */
         .dc-input-row {
           display: flex; align-items: center; gap: 8px;
           padding: 12px 16px;
           border-top: 1px solid var(--sd-border);
-          background: var(--sd-white);
+          background: transparent;
           flex-shrink: 0;
         }
 
@@ -486,27 +462,21 @@ export default function DashboardChat() {
         .dc-input:focus { border-color: var(--sd-accent); }
         .dc-input::placeholder { color: var(--sd-muted); }
 
-        /* ── Airplane send button ── */
         .dc-send-btn {
           width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
-          border: none;
-          background: var(--sd-accent);
+          border: none; background: var(--sd-accent);
           display: flex; align-items: center; justify-content: center;
-          cursor: pointer;
-          transition: background 0.15s, opacity 0.15s;
-          padding: 0;
+          cursor: pointer; transition: background 0.15s, opacity 0.15s; padding: 0;
         }
         .dc-send-btn:hover:not(:disabled) { background: var(--sd-accent2, #6d28d9); }
         .dc-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        /* Spinner */
         .dc-spinner {
           width: 14px; height: 14px; border-radius: 50%;
           border: 2px solid var(--sd-accent); border-top-color: transparent;
           animation: dc-spin 0.8s linear infinite;
         }
 
-        /* Skeleton */
         .dc-skel {
           background: var(--sd-border-light);
           background-image: linear-gradient(90deg, var(--sd-border-light) 25%, var(--sd-border) 50%, var(--sd-border-light) 75%);
@@ -514,7 +484,6 @@ export default function DashboardChat() {
           animation: dc-shimmer 1.4s ease infinite;
         }
 
-        /* Empty states */
         .dc-empty-convos {
           display: flex; flex-direction: column; align-items: center;
           gap: 8px; padding: 32px 16px; text-align: center;
@@ -526,7 +495,6 @@ export default function DashboardChat() {
         }
         .dc-no-chat-label { font-size: 14px; font-weight: 700; color: var(--sd-muted); }
 
-        /* Locked */
         .dc-locked {
           display: flex; flex-direction: column; align-items: center;
           gap: 10px; padding: 64px 24px; text-align: center;
@@ -534,10 +502,6 @@ export default function DashboardChat() {
         .dc-locked-title { font-size: 16px; font-weight: 800; color: var(--sd-text); }
         .dc-locked-sub   { font-size: 13px; color: var(--sd-muted); max-width: 280px; line-height: 1.6; }
 
-        /* ════════════════════════════════════════
-           MOBILE  ≤ 768px
-           Show list OR chat, not both at once.
-        ════════════════════════════════════════ */
         @media (max-width: 768px) {
           .dc-shell {
             border-radius: 12px;
@@ -545,47 +509,32 @@ export default function DashboardChat() {
             position: relative;
             overflow: hidden;
           }
-
-          /* List panel — full width on mobile */
           .dc-list-panel {
-            width: 100%;
-            border-right: none;
-            position: absolute; inset: 0;
-            z-index: 1;
+            width: 100%; border-right: none;
+            position: absolute; inset: 0; z-index: 1;
             transform: translateX(0);
             transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
           }
-          /* Slide list out when chat is open */
           .dc-list-panel--hidden {
             transform: translateX(-100%);
             pointer-events: none;
           }
-
-          /* Chat panel — full width, slides in from right */
           .dc-chat-panel {
             width: 100%;
-            position: absolute; inset: 0;
-            z-index: 2;
+            position: absolute; inset: 0; z-index: 2;
             transform: translateX(100%);
             transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
           }
-          /* Slide chat in when active */
-          .dc-chat-panel:not(.dc-chat-panel--hidden) {
-            transform: translateX(0);
-          }
+          .dc-chat-panel:not(.dc-chat-panel--hidden) { transform: translateX(0); }
           .dc-chat-panel--hidden {
             transform: translateX(100%);
             pointer-events: none;
           }
-
-          /* Show back button on mobile */
           .dc-back-btn { display: flex; }
-
           .dc-bubble { max-width: 82%; }
         }
 
         @media (min-width: 769px) {
-          /* Desktop: always show both panels, no slide */
           .dc-list-panel,
           .dc-list-panel--hidden { transform: none !important; position: static !important; width: 260px; }
           .dc-chat-panel,
