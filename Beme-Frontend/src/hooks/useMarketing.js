@@ -167,6 +167,24 @@ export function useMarketing() {
     finally { setSubmitting(false); }
   }, [storeId]);
 
+  const updateSale = useCallback(async (saleId, updates) => {
+    if (!storeId) throw new Error("Not authenticated.");
+    setSubmitting(true); setError(null);
+    try {
+      const { updateDoc, doc, serverTimestamp } = await import("firebase/firestore");
+      const { db: firestoreDb } = await import("../firebase");
+      const payload = { updatedAt: serverTimestamp() };
+      if (updates.discountValue !== undefined) payload.discountValue = Number(updates.discountValue);
+      if (updates.endAt !== undefined) payload.endAt = updates.endAt instanceof Date ? updates.endAt : new Date(updates.endAt);
+      await updateDoc(doc(firestoreDb, "flashSales", saleId), payload);
+    } catch (e) {
+      setError(e.message);
+      throw e;
+    } finally {
+      setSubmitting(false);
+    }
+  }, [storeId]);
+
   // ─────────────────────────────────────────────────────────
   // WRITE ACTIONS — Discount Codes
   // ─────────────────────────────────────────────────────────
@@ -267,7 +285,7 @@ export function useMarketing() {
   return {
     // Flash Sales
     flashSales, activeSales, flashLoading,
-    createSale, endSale, removeSale,
+    createSale, endSale, removeSale, updateSale,
 
     // Discount Codes
     discountCodes, activeCodes, codesLoading,

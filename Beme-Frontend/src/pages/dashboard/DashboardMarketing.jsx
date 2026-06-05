@@ -164,6 +164,7 @@ export default function DashboardMarketing() {
           createSale={mkt.createSale}
           endSale={mkt.endSale}
           removeSale={mkt.removeSale}
+          updateSale={mkt.updateSale}
           submitting={mkt.submitting}
         />
         <style>{BASE_STYLES}</style>
