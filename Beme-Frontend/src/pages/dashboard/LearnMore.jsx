@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 
 function Ico({ d, size = 20, color = "currentColor", sw = 1.8 }) {
   return (
@@ -90,13 +90,11 @@ const ILLUSTRATIONS = {
     </svg>
   ),
   analytics: (
-    <div style={{ width:"100%", borderRadius:16, overflow:"hidden", background:"#f8f9ff", display:"flex", alignItems:"center", justifyContent:"center", padding:"8px 0 0" }}>
-      <img
-        src="/Control_Panel-cuate.svg"
-        alt="Analytics control panel illustration"
-        style={{ width:"100%", maxHeight:300, objectFit:"contain", display:"block" }}
-      />
-    </div>
+    <img
+      src="/Control_Panel-cuate.svg"
+      alt="Analytics dashboard control panel"
+      style={{ width:"100%", display:"block", borderRadius:16 }}
+    />
   ),
   chat: (
     <svg viewBox="0 0 200 140" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -425,18 +423,9 @@ const SECTIONS = [
 
 export default function LearnMore() {
   const [activeId, setActiveId]   = useState("home");
-  const [search, setSearch]       = useState("");
   const [openFaqs, setOpenFaqs]   = useState({});
 
-  const filtered = useMemo(() => {
-    if (!search.trim()) return SECTIONS;
-    const q = search.toLowerCase();
-    return SECTIONS.filter(s =>
-      s.label.toLowerCase().includes(q) ||
-      s.intro.toLowerCase().includes(q) ||
-      s.steps.some(st => st.title.toLowerCase().includes(q) || st.desc.toLowerCase().includes(q))
-    );
-  }, [search]);
+
 
   const active = SECTIONS.find(s => s.id === activeId) || SECTIONS[0];
   const toggleFaq = (key) => setOpenFaqs(f => ({ ...f, [key]: !f[key] }));
@@ -444,34 +433,13 @@ export default function LearnMore() {
   return (
     <div style={{ fontFamily: "var(--sd-font)", minHeight: "calc(100vh - 100px)" }}>
 
-      {/* Hero */}
-      <div style={{ background: "linear-gradient(135deg, var(--sd-accent) 0%, #9333ea 60%, #6366f1 100%)", borderRadius: 20, marginBottom: 28, position: "relative", overflow: "hidden", display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center" }}>
-
-        {/* Left: text + search */}
-        <div style={{ padding: "40px 36px", position: "relative", zIndex: 1 }}>
-          <div style={{ position: "absolute", bottom: -60, left: 60, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.04)", pointerEvents: "none" }} />
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.15)", borderRadius: 100, padding: "5px 14px", marginBottom: 16 }}>
-            <Ico d={IC.star} size={13} color="#fff" sw={2} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>Beme Seller Guide</span>
-          </div>
-          <h1 style={{ fontSize: 32, fontWeight: 900, color: "#fff", margin: "0 0 10px", letterSpacing: "-0.04em", lineHeight: 1.15 }}>Everything you need to sell on Beme</h1>
-          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.85)", margin: "0 0 24px", lineHeight: 1.65 }}>Step-by-step guides for every feature. Practical tips from sellers who are already growing. Search or browse by section.</p>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.15)", borderRadius: 12, padding: "10px 16px", border: "1px solid rgba(255,255,255,0.2)", maxWidth: 400, backdropFilter: "blur(8px)" }}>
-            <Ico d={IC.search} size={16} color="rgba(255,255,255,0.7)" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search guides…"
-              style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 14, color: "#fff", fontFamily: "var(--sd-font)", fontWeight: 500 }} />
-          </div>
-        </div>
-
-        {/* Right: Learning illustration filling the hero */}
-        <div style={{ width: 340, flexShrink: 0, alignSelf: "stretch", display: "flex", alignItems: "flex-end", justifyContent: "center", overflow: "hidden", position: "relative" }}>
-          <img
-            src="/Learning-cuate.svg"
-            alt="Seller learning illustration"
-            style={{ width: "100%", height: 320, objectFit: "contain", objectPosition: "bottom center", display: "block", filter: "drop-shadow(0 -8px 24px rgba(0,0,0,0.18))" }}
-          />
-        </div>
+      {/* Hero — Learning illustration */}
+      <div style={{ borderRadius: 20, overflow: "hidden", marginBottom: 28, border: "1px solid var(--sd-border)" }}>
+        <img
+          src="/Learning-cuate.svg"
+          alt="Beme seller learning guide"
+          style={{ width: "100%", display: "block", maxHeight: 380, objectFit: "cover", objectPosition: "center top" }}
+        />
       </div>
 
       {/* Stats row */}
@@ -490,8 +458,8 @@ export default function LearnMore() {
         {/* Left sidebar nav */}
         <aside style={{ background: "var(--sd-white)", borderRadius: 16, border: "1px solid var(--sd-border)", padding: "12px 8px", position: "sticky", top: 80 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: "var(--sd-muted)", textTransform: "uppercase", letterSpacing: "0.1em", padding: "4px 8px", marginBottom: 6 }}>Sections</div>
-          {(search ? filtered : SECTIONS).map(sec => (
-            <button key={sec.id} onClick={() => { setActiveId(sec.id); setSearch(""); }}
+          {SECTIONS.map(sec => (
+            <button key={sec.id} onClick={() => setActiveId(sec.id)}
               style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 10px", borderRadius: 9, border: "none", background: activeId === sec.id ? "var(--sd-accent-dim)" : "transparent", cursor: "pointer", fontFamily: "var(--sd-font)", fontSize: 13, fontWeight: activeId === sec.id ? 700 : 500, color: activeId === sec.id ? "var(--sd-accent)" : "var(--sd-text2)", textAlign: "left", transition: "background 0.12s", marginBottom: 1 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={activeId === sec.id ? "var(--sd-accent)" : "var(--sd-muted)"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 {sec.icon.split("|").map((d, i) => <path key={i} d={d} />)}
