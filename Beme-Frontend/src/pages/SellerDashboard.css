@@ -268,12 +268,11 @@ body.dark .sd-root {
 }
 .sd-support-btn:hover { background: var(--sd-accent2); }
 
-/* Collapsed desktop state */
+/* Collapsed desktop state — stays fixed but width animates */
 .sd-sidebar--collapsed {
   width: var(--sd-sidebar-collapsed-w);
-  position: fixed;
-  top: 0; left: 0; bottom: 0;
   overflow: hidden;
+  transition: width 0.28s cubic-bezier(0.4,0,0.2,1), background 0.25s, border-color 0.25s;
 }
 .sd-sidebar--collapsed:hover {
   width: var(--sd-sidebar-w);
@@ -293,6 +292,8 @@ body.dark .sd-root {
 .sd-sidebar--collapsed:not(:hover) .sd-ai-chip,
 .sd-sidebar--collapsed:not(:hover) .sd-support,
 .sd-sidebar--collapsed:not(:hover) .sd-nav-badge     { display: none; }
+
+/* Main area margin shrinks to match collapsed sidebar — transition makes it smooth */
 .sd-main--collapsed { margin-left: var(--sd-sidebar-collapsed-w); }
 
 /* Collapsed legacy */
@@ -357,7 +358,7 @@ body.dark .sd-root {
   flex: 1; display: flex; flex-direction: column;
   min-width: 0; overflow-x: hidden;
   margin-left: var(--sd-sidebar-w);
-  transition: margin-left 0.22s cubic-bezier(0.4,0,0.2,1);
+  transition: margin-left 0.28s cubic-bezier(0.4,0,0.2,1);
 }
 
 .sd-topbar {
@@ -427,9 +428,14 @@ body.dark .sd-root {
   display: flex; align-items: center; gap: 8px;
   padding: 10px 14px; margin-bottom: 16px;
   background: var(--sd-warning-bg);
-  border: 1px solid rgba(245,158,11,0.2);
+  border: 1px solid rgba(234,179,8,0.25);
   border-radius: 10px; font-size: 13px; font-weight: 500;
-  color: #92400e;
+  color: var(--sd-warning);
+}
+.sd-dark .sd-inactive-banner {
+  background: rgba(234,179,8,0.10);
+  border-color: rgba(234,179,8,0.22);
+  color: #fbbf24;
 }
 .sd-inactive-banner button {
   margin-left: 4px; color: var(--sd-accent); font-weight: 700;

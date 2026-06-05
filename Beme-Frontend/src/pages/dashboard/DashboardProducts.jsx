@@ -163,7 +163,7 @@ export default function DashboardProducts() {
 
         {/* Desktop: pill button — purple border + text + plus icon, hover fills */}
         <button type="button" onClick={goAdd} className="dp-add-desktop">
-          <Ico d={IC.plus} size={14} color="inherit"/>
+          <Ico d={IC.plus} size={15} color="var(--sd-accent)"/>
           {atLimit ? "Upgrade Plan" : "Publish New"}
         </button>
 
@@ -292,7 +292,7 @@ export default function DashboardProducts() {
         .dp-add-desktop {
           display: none;
           align-items: center; gap: 7px;
-          padding: 9px 20px 9px 16px;
+          padding: 9px 20px 9px 14px;
           border-radius: 100px;
           border: 1.5px solid var(--sd-accent);
           background: transparent;
@@ -301,11 +301,18 @@ export default function DashboardProducts() {
           cursor: pointer; font-family: inherit;
           transition: background 0.18s, color 0.18s, border-color 0.18s;
           white-space: nowrap; flex-shrink: 0;
+          line-height: 1;
+        }
+        .dp-add-desktop svg {
+          stroke: var(--sd-accent);
+          transition: stroke 0.18s;
+          flex-shrink: 0;
         }
         .dp-add-desktop:hover {
           background: var(--sd-accent);
           color: #fff;
         }
+        .dp-add-desktop:hover svg { stroke: #fff; }
 
         /* ── Mobile square icon button ── */
         .dp-add-mobile {
