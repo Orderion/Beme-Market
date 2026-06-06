@@ -17,7 +17,7 @@ import LoaderOverlay from "../components/LoaderOverlay.jsx";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { startPaystackCheckout } from "../lib/checkout";
-import { createCodOrder } from "../services/api";
+import { createCodOrder, getMyOrders } from "../services/api";
 import { validateDiscountCode } from "../services/marketingService";
 import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
@@ -258,6 +258,8 @@ export default function Checkout() {
   const [touched,                setTouched]                = useState({});
   const [errors,                 setErrors]                 = useState({});
   const [showCODInfo,            setShowCODInfo]            = useState(false);
+  const [checkingHistory,        setCheckingHistory]        = useState(true);
+  const [hasPaidOrder,           setHasPaidOrder]           = useState(false);
   const [paystackError,          setPaystackError]          = useState("");
   const [discountApplied,        setDiscountApplied]        = useState(null); // { code, discountType, discountValue, codeId }
   const [sellerDelivery,         setSellerDelivery]         = useState(null); // loaded from shops/{storeId}/delivery
@@ -321,6 +323,7 @@ export default function Checkout() {
   const hasAbroadItem         = useMemo(() => safeCartItems.some(i=>i?.shipsFromAbroad===true), [safeCartItems]);
   const unavailableItems      = useMemo(() => safeCartItems.map(i=>({...i,unavailableReason:getUnavailableReason(i)})).filter(i=>i.unavailableReason), [safeCartItems]);
   const hasUnavailable        = unavailableItems.length > 0;
+  const needsFirstPaystack    = !false && !hasPaidOrder;
 
   /* Primary storeId for discount code validation */
   const primaryStoreId = useMemo(() => {
@@ -346,6 +349,7 @@ export default function Checkout() {
   const codDisabledReason = useMemo(() => {
     if (hasUnavailable)        return "Pay on Delivery unavailable — cart contains unavailable items.";
     if (hasAbroadItem)         return "Pay on Delivery unavailable — cart contains shipped from abroad items.";
+    if (needsFirstPaystack)    return "Pay on Delivery available after your first Paystack payment.";
     return "";
   }, [hasUnavailable, hasAbroadItem]);
 
@@ -875,6 +879,7 @@ const buildOrderPayload = (paymentMethod) => {
                   </div>
                 )}
                 {showError("paymentMethod")&&<div className="co-field-error">{errors.paymentMethod}</div>}
+                {false&&}
 
                 <SafetyBanner/>
 

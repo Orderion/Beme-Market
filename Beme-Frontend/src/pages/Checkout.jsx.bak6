@@ -17,7 +17,7 @@ import LoaderOverlay from "../components/LoaderOverlay.jsx";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { startPaystackCheckout } from "../lib/checkout";
-import { createCodOrder } from "../services/api";
+import { createCodOrder, getMyOrders } from "../services/api";
 import { validateDiscountCode } from "../services/marketingService";
 import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
@@ -258,6 +258,8 @@ export default function Checkout() {
   const [touched,                setTouched]                = useState({});
   const [errors,                 setErrors]                 = useState({});
   const [showCODInfo,            setShowCODInfo]            = useState(false);
+  const [checkingHistory,        setCheckingHistory]        = useState(true);
+  const [hasPaidOrder,           setHasPaidOrder]           = useState(false);
   const [paystackError,          setPaystackError]          = useState("");
   const [discountApplied,        setDiscountApplied]        = useState(null); // { code, discountType, discountValue, codeId }
   const [sellerDelivery,         setSellerDelivery]         = useState(null); // loaded from shops/{storeId}/delivery
@@ -283,7 +285,30 @@ export default function Checkout() {
     return () => { window.removeEventListener("pageshow",restore); window.removeEventListener("focus",restore); document.removeEventListener("visibilitychange",handleVis); };
   }, []);
 
-  // Order history check removed — COD available to all buyers
+  /* Check order history — 55s timeout to handle Render cold-starts */
+  useEffect(() => {
+    let active = true;
+    const check = async () => {
+      if (authLoading) return;
+      if (!user?.uid) { if(active){setHasPaidOrder(false);setCheckingHistory(false);} return; }
+      setCheckingHistory(true);
+      try {
+        const data = await getMyOrders();
+        if (!active) return;
+        const rows = Array.isArray(data?.orders) ? data.orders : [];
+        setHasPaidOrder(rows.some(isOrderPaid));
+      } catch(e) {
+        console.error("Failed to check order history:", e);
+        if (!active) return;
+        // On timeout/error, don't block checkout — assume eligible
+        setHasPaidOrder(true);
+      } finally {
+        if (active) setCheckingHistory(false);
+      }
+    };
+    check();
+    return () => { active=false; };
+  }, [user, authLoading]);
 
   /* ── Load seller delivery settings ── */
   useEffect(() => {
@@ -321,6 +346,7 @@ export default function Checkout() {
   const hasAbroadItem         = useMemo(() => safeCartItems.some(i=>i?.shipsFromAbroad===true), [safeCartItems]);
   const unavailableItems      = useMemo(() => safeCartItems.map(i=>({...i,unavailableReason:getUnavailableReason(i)})).filter(i=>i.unavailableReason), [safeCartItems]);
   const hasUnavailable        = unavailableItems.length > 0;
+  const needsFirstPaystack    = !checkingHistory && !hasPaidOrder;
 
   /* Primary storeId for discount code validation */
   const primaryStoreId = useMemo(() => {
@@ -346,8 +372,9 @@ export default function Checkout() {
   const codDisabledReason = useMemo(() => {
     if (hasUnavailable)        return "Pay on Delivery unavailable — cart contains unavailable items.";
     if (hasAbroadItem)         return "Pay on Delivery unavailable — cart contains shipped from abroad items.";
+    if (needsFirstPaystack)    return "Pay on Delivery available after your first Paystack payment.";
     return "";
-  }, [hasUnavailable, hasAbroadItem]);
+  }, [hasUnavailable, hasAbroadItem, needsFirstPaystack]);
 
   const isCODBlocked   = !!codDisabledReason;
 
@@ -356,13 +383,9 @@ export default function Checkout() {
     !sellerPaymentTypes.includes("paystack") &&
     !sellerPaymentTypes.includes("both");
 
-  // sellerBlocksCOD: only block if seller explicitly set paystack-only
   const sellerBlocksCOD = sellerPaymentTypes.length > 0 &&
     !sellerPaymentTypes.includes("cod") &&
-    !sellerPaymentTypes.includes("both") &&
-    !sellerPaymentTypes.includes("paystack_and_cod") &&
-    // ["paystack","cod"] together = both allowed
-    !(sellerPaymentTypes.includes("paystack") && sellerPaymentTypes.includes("cod"));
+    !sellerPaymentTypes.includes("both");
 
   const sellerPaymentNote = sellerPaymentTypes.length > 0 && !sellerPaymentTypes.includes("both")
     ? sellerPaymentTypes.includes("paystack")
@@ -545,7 +568,7 @@ const buildOrderPayload = (paymentMethod) => {
   };
 
   const placeCOD = async () => {
-    if(loading||isCODBlocked||hasUnavailable)return;
+    if(loading||isCODBlocked||checkingHistory||hasUnavailable)return;
     const err=validateRequired(); if(err)return;
     setLoadingMode("cod"); setLoading(true);
     try {
@@ -561,7 +584,7 @@ const buildOrderPayload = (paymentMethod) => {
 
   const payWithPaystack = async () => {
     setPaystackError("");
-    if(loading||hasUnavailable||!user)return;
+    if(loading||checkingHistory||hasUnavailable||!user)return;
     setLoadingMode("paystack"); setLoading(true);
     setTouched({email:true,firstName:true,lastName:true,phone:true,address:true,region:true,city:true,area:true,deliveryMethod:true,paymentMethod:true});
     const currentErrors=validate(form);
@@ -616,7 +639,7 @@ const buildOrderPayload = (paymentMethod) => {
     method==="paystack"?"Pay with Paystack":
     method==="cod"?"Place Order — Pay on Delivery":"";
 
-  const isCheckoutDisabled = inputsDisabled||!!errors.cart||!user||authLoading||hasUnavailable||(method==="cod"&&isCODBlocked);
+  const isCheckoutDisabled = inputsDisabled||!!errors.cart||!user||authLoading||checkingHistory||hasUnavailable||(method==="cod"&&isCODBlocked);
 
   /* ─────────── RENDER ─────────── */
   return (
@@ -846,7 +869,7 @@ const buildOrderPayload = (paymentMethod) => {
                 <div className="co-pay-methods">
                   {/* Paystack */}
                   <label className={`co-pay-card${method==="paystack"?" co-pay-card--active":""}`}>
-                    <input type="radio" name="payMethod" value="paystack" checked={method==="paystack"} onChange={handleMethodChange} disabled={inputsDisabled||sellerBlocksPaystack} className="co-pay-radio"/>
+                    <input type="radio" name="payMethod" value="paystack" checked={method==="paystack"} onChange={handleMethodChange} disabled={inputsDisabled||checkingHistory||sellerBlocksPaystack} className="co-pay-radio"/>
                     <img src="/Paystack logo.JPG" alt="Paystack" className="co-pay-logo" onError={e=>{e.currentTarget.style.display="none";}}/>
                     <div className="co-pay-info">
                       <span className="co-pay-name">Pay with Paystack</span>
@@ -875,6 +898,7 @@ const buildOrderPayload = (paymentMethod) => {
                   </div>
                 )}
                 {showError("paymentMethod")&&<div className="co-field-error">{errors.paymentMethod}</div>}
+                {checkingHistory&&<p className="co-hint">Checking eligibility…</p>}
 
                 <SafetyBanner/>
 
