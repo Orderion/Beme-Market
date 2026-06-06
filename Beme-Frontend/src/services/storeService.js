@@ -161,23 +161,19 @@ export async function getSellerOrders(shopId, limitCount = 100) {
     }
   };
 
-  // Primary: shops array contains shopId
+  // Query by shops array — order contains seller's shop.id
   await tryQuery(
     'shops array-contains',
     query(collection(db, "orders"), where("shops", "array-contains", shopId), limit(limitCount))
   );
 
-  // Fallback: primaryShop field
+  // Query by primaryShop field
   await tryQuery(
     'primaryShop ==',
     query(collection(db, "orders"), where("primaryShop", "==", shopId), limit(limitCount))
   );
 
-  // Fallback: userId matches (for stores where userId == shopId)
-  await tryQuery(
-    'userId ==',
-    query(collection(db, "orders"), where("userId", "==", shopId), limit(limitCount))
-  );
+  // NOTE: No userId fallback — that matches buyer orders, not seller orders
 
   return Array.from(results.values()).sort((a, b) => {
     const ta = a.createdAt?.toMillis?.() || 0;
