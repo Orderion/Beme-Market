@@ -12,6 +12,7 @@ import { SHOPS, HOME_FILTER_OPTIONS } from "../constants/catalog";
 import { useWishlist } from "../hooks/useWishlist";
 import WishlistModal from "../components/WishlistModal";
 import ChatModal from "../components/ChatModal";
+import { useFlashPrice } from "../hooks/useFlashPrice";
 import "./ProductDetails.css";
 
 /* ─── helpers ─── */
@@ -151,6 +152,39 @@ function getAvatarColor(name) {
   return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
 }
 
+/* ─── Flash helpers ─── */
+function padTwo(n) { return String(n).padStart(2, "0"); }
+
+function FlashCountdown({ endsAt }) {
+  const calc = () => {
+    const diff = endsAt - Date.now();
+    if (diff <= 0) return null;
+    return { h: Math.floor(diff/3600000), m: Math.floor((diff%3600000)/60000), s: Math.floor((diff%60000)/1000) };
+  };
+  const [cd, setCd] = useState(calc);
+  useEffect(() => {
+    const t = setInterval(() => setCd(calc()), 1000);
+    return () => clearInterval(t);
+  }, [endsAt]);
+  if (!cd) return null;
+  return (
+    <span style={{
+      display:"inline-flex", alignItems:"center", gap:4,
+      fontSize:11, fontWeight:800, color:"#EF4444",
+      fontFamily:"var(--font-main)", letterSpacing:"0.04em",
+      fontVariantNumeric:"tabular-nums",
+    }}>
+      <span style={{ width:6, height:6, borderRadius:"50%", background:"#EF4444",
+        flexShrink:0, animation:"pd-flash-pulse 1.1s ease-in-out infinite" }}/>
+      {cd.h > 0 && `${padTwo(cd.h)}:`}{padTwo(cd.m)}:{padTwo(cd.s)}
+    </span>
+  );
+}
+
+function BoltIcon() {
+  return <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" style={{flexShrink:0}}><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>;
+}
+
 /* ─── icons ─── */
 function ChevronLeft() { return <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>; }
 function ChevronRight() { return <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>; }
@@ -237,7 +271,6 @@ function SellerInfoPanel({ shopId, sellerId }) {
       .catch(() => {});
   }, [shopId, currentUser?.uid]);
 
-  /* Fetch up to 4 more products from same seller */
   useEffect(() => {
     if (!sellerId) return;
     const run = async () => {
@@ -258,12 +291,9 @@ function SellerInfoPanel({ shopId, sellerId }) {
     if (!currentUser) { navigate("/login"); return; }
     if (!shopId) return;
     setFollowLoading(true);
-
-    // Optimistic update immediately so UI feels instant
     const wasFollowing = following;
     setFollowing(!wasFollowing);
     setFollowerCount(c => wasFollowing ? Math.max(0, c - 1) : c + 1);
-
     try {
       const followRef = doc(db, "shops", shopId, "followers", currentUser.uid);
       if (wasFollowing) {
@@ -273,7 +303,6 @@ function SellerInfoPanel({ shopId, sellerId }) {
         await setDoc(followRef, { uid: currentUser.uid, createdAt: serverTimestamp() });
         await updateDoc(doc(db, "shops", shopId), { followersCount: increment(1) });
       }
-      // Sync with authoritative server count (prevents drift / negative values)
       const snap = await getDoc(doc(db, "shops", shopId));
       if (snap.exists()) {
         const real = snap.data().followersCount;
@@ -281,7 +310,6 @@ function SellerInfoPanel({ shopId, sellerId }) {
       }
     } catch (e) {
       console.error("[SellerPanel] follow:", e);
-      // Revert optimistic update on error
       setFollowing(wasFollowing);
       setFollowerCount(c => wasFollowing ? c + 1 : Math.max(0, c - 1));
     } finally {
@@ -292,22 +320,13 @@ function SellerInfoPanel({ shopId, sellerId }) {
   if (!shopId && !sellerId) return null;
   if (panelLoading) return <div style={{ height:6, background:"rgba(0,0,0,0.04)", borderRadius:3, margin:"20px 16px" }}/>;
 
-  // If no shop doc exists (Cloud Functions never ran), build a fallback from what we have
-  // so the panel still renders with basic info
   const effectiveShop = shop || (sellerId ? {
-    id:          shopId || sellerId,
-    shopName:    "Seller Store",
-    slug:        shopId || sellerId,
-    logoUrl:     "",
-    verified:    false,
-    sellerScore: 0,
-    performance: {},
-    followersCount: 0,
-    ownerId:     sellerId,
+    id: shopId || sellerId, shopName: "Seller Store", slug: shopId || sellerId,
+    logoUrl: "", verified: false, sellerScore: 0, performance: {}, followersCount: 0, ownerId: sellerId,
   } : null);
 
   if (!effectiveShop) return null;
-  const shop2 = effectiveShop;  // alias so the rest of the code below is unchanged
+  const shop2 = effectiveShop;
 
   const perf = shop2.performance || {};
   const metrics = [
@@ -320,16 +339,10 @@ function SellerInfoPanel({ shopId, sellerId }) {
 
   return (
     <div className="pd-seller-panel">
-      {/* Header */}
       <div className="pd-seller-panel__head">
         <span className="pd-seller-panel__title">SELLER INFORMATION</span>
-        <button className="pd-seller-panel__link"
-          onClick={() => navigate(`/store/${shop2.slug || shop2.id}`)}>
-          See Store →
-        </button>
+        <button className="pd-seller-panel__link" onClick={() => navigate(`/store/${shop2.slug || shop2.id}`)}>See Store →</button>
       </div>
-
-      {/* Identity row */}
       <div className="pd-seller-identity">
         <div className="pd-seller-avatar">
           {shop2.logoUrl
@@ -342,19 +355,13 @@ function SellerInfoPanel({ shopId, sellerId }) {
             {shop2.shopName}
             {shop2.verified && <span style={{ marginLeft:5, display:"inline-flex", verticalAlign:"middle" }}><VerifiedIcon/></span>}
           </div>
-          {shop2.sellerScore > 0 && (
-            <div className="pd-seller-identity__score">{shop2.sellerScore}% Seller Score</div>
-          )}
+          {shop2.sellerScore > 0 && <div className="pd-seller-identity__score">{shop2.sellerScore}% Seller Score</div>}
           <div className="pd-seller-identity__followers">{followerCount.toLocaleString()} Followers</div>
         </div>
-        <button
-          className={`pd-follow-btn ${following ? "pd-follow-btn--following" : ""}`}
-          onClick={handleFollow} disabled={followLoading}>
+        <button className={`pd-follow-btn ${following ? "pd-follow-btn--following" : ""}`} onClick={handleFollow} disabled={followLoading}>
           {followLoading ? "…" : following ? "Following ✓" : "Follow"}
         </button>
       </div>
-
-      {/* Performance */}
       {metrics.length > 0 && (
         <div className="pd-seller-perf">
           <div className="pd-seller-perf__title">Seller Performance</div>
@@ -367,21 +374,15 @@ function SellerInfoPanel({ shopId, sellerId }) {
           ))}
         </div>
       )}
-
-      {/* Action buttons */}
       <div className="pd-seller-actions">
-        <button className="pd-seller-action-btn pd-seller-action-btn--outline"
-          onClick={() => navigate(`/store/${shop2.slug || shop2.id}`)}>
+        <button className="pd-seller-action-btn pd-seller-action-btn--outline" onClick={() => navigate(`/store/${shop2.slug || shop2.id}`)}>
           <StoreIcon/> Visit Store
         </button>
-        <button className="pd-seller-action-btn pd-seller-action-btn--primary"
-          onClick={() => setShowChat(true)}>
+        <button className="pd-seller-action-btn pd-seller-action-btn--primary" onClick={() => setShowChat(true)}>
           <ChatIcon/> Chat Seller
         </button>
       </div>
-        {showChat && shop2 && <ChatModal shop={shop2} onClose={() => setShowChat(false)} />}
-
-      {/* More from this store */}
+      {showChat && shop2 && <ChatModal shop={shop2} onClose={() => setShowChat(false)} />}
       {moreProducts.length > 1 && (
         <div className="pd-seller-more">
           <div className="pd-seller-more__title">More from {shop2.shopName}</div>
@@ -389,9 +390,7 @@ function SellerInfoPanel({ shopId, sellerId }) {
             {moreProducts.slice(0, 4).map((p) => {
               const img = (Array.isArray(p.images) ? p.images[0] : null) || p.imageUrl || "";
               return (
-                <button key={p.id} type="button"
-                  className="pd-seller-more__card"
-                  onClick={() => navigate(`/product/${p.id}`)}>
+                <button key={p.id} type="button" className="pd-seller-more__card" onClick={() => navigate(`/product/${p.id}`)}>
                   <div className="pd-seller-more__img">
                     {img ? <img src={img} alt={p.name} style={{ width:"100%", height:"100%", objectFit:"cover" }}/> : <span style={{ fontSize:20 }}>📦</span>}
                   </div>
@@ -409,9 +408,9 @@ function SellerInfoPanel({ shopId, sellerId }) {
 
 /* ─── Ask Me Anything ─── */
 function AskAnything({ product }) {
-  const [open, setOpen]     = useState(false);
-  const [input, setInput]   = useState("");
-  const [messages, setMsgs] = useState([]);
+  const [open, setOpen]       = useState(false);
+  const [input, setInput]     = useState("");
+  const [messages, setMsgs]   = useState([]);
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
   const CHIPS = ["How does the fit run?","What sizes are available?","What's the return policy?","How long is delivery?"];
@@ -617,27 +616,29 @@ function ReviewsSection({ productId }) {
   );
 }
 
-/* ─── Main Component ─── */
+/* ════════════════════════════════════════════════════════════
+   MAIN COMPONENT
+════════════════════════════════════════════════════════════ */
 export default function ProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const [product, setProduct]           = useState(null);
-  const [qty, setQty]                   = useState(1);
-  const [loading, setLoading]           = useState(true);
-  const [selectedOptions, setSelectedOptions] = useState({});
-  const [optionError, setOptionError]   = useState("");
+  const [product, setProduct]                   = useState(null);
+  const [qty, setQty]                           = useState(1);
+  const [loading, setLoading]                   = useState(true);
+  const [selectedOptions, setSelectedOptions]   = useState({});
+  const [optionError, setOptionError]           = useState("");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [addedFeedback, setAddedFeedback] = useState(false);
-  const [cartFeedback, setCartFeedback] = useState("");
+  const [addedFeedback, setAddedFeedback]       = useState(false);
+  const [cartFeedback, setCartFeedback]         = useState("");
   const [showWishlistModal, setShowWishlistModal] = useState(false);
   const openWishlistModal  = useCallback(() => setShowWishlistModal(true), []);
   const closeWishlistModal = useCallback(() => setShowWishlistModal(false), []);
-  const [suggestions, setSuggestions]   = useState([]);
-  const [openSection, setOpenSection]   = useState(null);
+  const [suggestions, setSuggestions]           = useState([]);
+  const [openSection, setOpenSection]           = useState(null);
   const toggleSection = (key) => setOpenSection((v) => v===key?null:key);
-  const [dragOffset, setDragOffset]     = useState(0);
-  const [isDragging, setIsDragging]     = useState(false);
+  const [dragOffset, setDragOffset]             = useState(0);
+  const [isDragging, setIsDragging]             = useState(false);
   const feedbackTimerRef = useRef(null);
   const touchStartXRef   = useRef(0);
   const dragStartedRef   = useRef(false);
@@ -663,21 +664,31 @@ export default function ProductDetails() {
       .catch((err) => console.error("Suggestions fetch error:",err));
   }, [id]);
 
-  const customizations = useMemo(() => normalizeCustomizations(product?.customizations), [product?.customizations]);
-  const images         = useMemo(() => normalizeImages(product), [product]);
-  const basePrice      = useMemo(() => Number(product?.price||0), [product]);
-  const oldPrice       = useMemo(() => Number(product?.oldPrice||0), [product]);
-  const shopKey        = useMemo(() => normalizeShop(product?.shop), [product?.shop]);
-  const shopLabel      = useMemo(() => formatShopLabel(product?.shop), [product?.shop]);
-  const homeSlot       = useMemo(() => normalizeHomeSlot(product?.homeSlot||"others"), [product?.homeSlot]);
-  const homeSlotLabel  = useMemo(() => formatHomeSlotLabel(product?.homeSlot||"others"), [product?.homeSlot]);
-  const brand          = useMemo(() => String(product?.brand||"").trim(), [product]);
-  const shippingSource = useMemo(() => normalizeShippingSource(product), [product]);
+  /* ── Derived product data ── */
+  const customizations  = useMemo(() => normalizeCustomizations(product?.customizations), [product?.customizations]);
+  const images          = useMemo(() => normalizeImages(product), [product]);
+  const basePrice       = useMemo(() => Number(product?.price||0), [product]);
+  const oldPrice        = useMemo(() => Number(product?.oldPrice||0), [product]);
+  const shopKey         = useMemo(() => normalizeShop(product?.shop), [product?.shop]);
+  const shopLabel       = useMemo(() => formatShopLabel(product?.shop), [product?.shop]);
+  const homeSlot        = useMemo(() => normalizeHomeSlot(product?.homeSlot||"others"), [product?.homeSlot]);
+  const homeSlotLabel   = useMemo(() => formatHomeSlotLabel(product?.homeSlot||"others"), [product?.homeSlot]);
+  const brand           = useMemo(() => String(product?.brand||"").trim(), [product]);
+  const shippingSource  = useMemo(() => normalizeShippingSource(product), [product]);
   const shippingBadgeLabel = useMemo(() => getShippingBadgeLabel(shippingSource), [shippingSource]);
   const shipsFromAbroad = useMemo(() => shippingSource==="abroad"||parseBooleanish(product?.shipFromAbroad,false)||parseBooleanish(product?.shipsFromAbroad,false), [shippingSource,product]);
-  const stock          = useMemo(() => getNumericStock(product), [product]);
+  const stock           = useMemo(() => getNumericStock(product), [product]);
   const abroadDeliveryFee = useMemo(() => getAbroadDeliveryFee(product), [product]);
-  const isOutOfStock   = useMemo(() => parseBooleanish(product?.inStock,true)===false, [product]);
+  const isOutOfStock    = useMemo(() => parseBooleanish(product?.inStock,true)===false, [product]);
+
+  /* ── Flash price — checks both flashSales (seller) and FlashDeals (admin) ── */
+  const {
+    hasFlashDeal,
+    flashPrice,
+    discountPct:  flashDiscountPct,
+    discountAmt:  flashDiscountAmt,
+    saleEndsAt,
+  } = useFlashPrice(product?.id || null, basePrice);
 
   const wishlistProduct = useMemo(() => {
     if (!product) return null;
@@ -702,8 +713,27 @@ export default function ProductDetails() {
     return details;
   }, [customizations,selectedOptions]);
 
-  const optionPriceTotal = useMemo(() => selectedOptionDetails.reduce((s,i)=>s+(Number(i.priceBump||0)||0),0), [selectedOptionDetails]);
-  const finalUnitPrice   = useMemo(() => basePrice+optionPriceTotal, [basePrice,optionPriceTotal]);
+  const optionPriceTotal = useMemo(
+    () => selectedOptionDetails.reduce((s,i)=>s+(Number(i.priceBump||0)||0),0),
+    [selectedOptionDetails]
+  );
+
+  /* ── finalUnitPrice: use flash price when active ── */
+  const finalUnitPrice = useMemo(() => {
+    const base = hasFlashDeal && flashPrice !== null ? flashPrice : basePrice;
+    return base + optionPriceTotal;
+  }, [hasFlashDeal, flashPrice, basePrice, optionPriceTotal]);
+
+  /* ── displayOldPrice: what to show struck-through ── */
+  const displayOldPrice = useMemo(() => {
+    if (hasFlashDeal) return basePrice + optionPriceTotal;
+    return oldPrice;
+  }, [hasFlashDeal, basePrice, oldPrice, optionPriceTotal]);
+
+  /* ── hasDiscount ── */
+  const hasDiscount = hasFlashDeal
+    ? flashPrice !== null && flashPrice < basePrice
+    : oldPrice > finalUnitPrice;
 
   const setOptionValue = (groupName, value) => { setSelectedOptions((p)=>({...p,[groupName]:value})); setOptionError(""); setCartFeedback(""); };
 
@@ -712,9 +742,16 @@ export default function ProductDetails() {
   const buildCartItem = () => {
     if (!product) return null;
     return {
-      id:product.id, name:product.name, price:Number(finalUnitPrice||0),
-      basePrice:Number(basePrice||0), optionPriceTotal:Number(optionPriceTotal||0),
-      oldPrice:product?.oldPrice!==undefined&&product?.oldPrice!==null&&product?.oldPrice!==""?Number(product.oldPrice||0):null,
+      id:product.id, name:product.name,
+      price:            Number(finalUnitPrice||0),
+      basePrice:        Number(hasFlashDeal && flashPrice !== null ? flashPrice : basePrice),
+      optionPriceTotal: Number(optionPriceTotal||0),
+      oldPrice: hasFlashDeal
+        ? Number(basePrice||0)
+        : (product?.oldPrice!==undefined&&product?.oldPrice!==null&&product?.oldPrice!==""?Number(product.oldPrice||0):null),
+      flashDeal: hasFlashDeal
+        ? { flashPrice, discountPct:flashDiscountPct, discountAmt:flashDiscountAmt, saleEndsAt }
+        : null,
       image:String(product.image||images[0]||"").trim(), images, qty, stock,
       inStock:parseBooleanish(product?.inStock,true), shop:shopKey||"", homeSlot,
       selectedOptions, selectedOptionsLabel:buildSelectedOptionsLabel(selectedOptions),
@@ -783,22 +820,19 @@ export default function ProductDetails() {
     );
   }
 
-  const name            = product?.name ?? "Untitled";
-  const desc            = product?.description ?? "This is a premium product from Beme Market.";
-  const careInfo        = product?.careInfo ?? "";
-  const qtyLimitReached = stock!==null && qty>=stock;
-  const sliderTranslate = `calc(${-activeImageIndex*100}% + ${dragOffset}px)`;
-  const hasDiscount     = oldPrice>finalUnitPrice;
-  const colorGroup = customizations.find((g) => g.name.toLowerCase().includes("color")||g.name.toLowerCase().includes("colour"));
-  const socialLinks = [
-    { label:"Facebook", href:"#", icon:<FacebookIcon/>  },
-    { label:"X",        href:"#", icon:<XIcon/>         },
-    { label:"Instagram",href:"#", icon:<InstagramIcon/>},
-    { label:"TikTok",   href:"#", icon:<TikTokIcon/>   },
+  const name             = product?.name ?? "Untitled";
+  const desc             = product?.description ?? "This is a premium product from Beme Market.";
+  const careInfo         = product?.careInfo ?? "";
+  const qtyLimitReached  = stock!==null && qty>=stock;
+  const sliderTranslate  = `calc(${-activeImageIndex*100}% + ${dragOffset}px)`;
+  const colorGroup       = customizations.find((g) => g.name.toLowerCase().includes("color")||g.name.toLowerCase().includes("colour"));
+  const socialLinks      = [
+    { label:"Facebook",  href:"#", icon:<FacebookIcon/>  },
+    { label:"X",         href:"#", icon:<XIcon/>         },
+    { label:"Instagram", href:"#", icon:<InstagramIcon/>},
+    { label:"TikTok",    href:"#", icon:<TikTokIcon/>   },
   ];
-
-  // Determine if this is a seller product
-  const isSellerProduct = !!(product.shopId || (product.ownerType === "seller" && product.sellerId));
+  const isSellerProduct  = !!(product.shopId || (product.ownerType === "seller" && product.sellerId));
 
   return (
     <div className="pd-page">
@@ -818,7 +852,12 @@ export default function ProductDetails() {
                 <div className={`pd-slider ${isDragging?"is-dragging":""}`} style={{transform:`translate3d(${sliderTranslate},0,0)`}}>
                   {images.map((src,i) => <div className="pd-slide" key={`${src}-${i}`}><img className="pd-hero-img" src={src} alt={`${name} ${i+1}`} draggable="false"/></div>)}
                 </div>
-                {shippingBadgeLabel && <div className={`pd-ship-badge${shipsFromAbroad?" pd-ship-badge--abroad":""}${shippingSource==="uni"?" pd-ship-badge--uni":""}`}>{shippingBadgeLabel}</div>}
+                {shippingBadgeLabel && !hasFlashDeal && <div className={`pd-ship-badge${shipsFromAbroad?" pd-ship-badge--abroad":""}${shippingSource==="uni"?" pd-ship-badge--uni":""}`}>{shippingBadgeLabel}</div>}
+                {hasFlashDeal && flashDiscountPct > 0 && (
+                  <div className="pd-flash-img-badge">
+                    <BoltIcon/> {flashDiscountPct}% OFF
+                  </div>
+                )}
                 {isOutOfStock && <div className="pd-oos-badge">Out of stock</div>}
                 {images.length>1 && <div className="pd-gallery-counter">{activeImageIndex+1} / {images.length}</div>}
                 {images.length>1 && <><button type="button" className="pd-arrow pd-arrow--left" onClick={goPrev}><ChevronLeft/></button><button type="button" className="pd-arrow pd-arrow--right" onClick={goNext}><ChevronRight/></button></>}
@@ -844,11 +883,37 @@ export default function ProductDetails() {
             {homeSlotLabel && <span className="pd-badge pd-badge--soft">{homeSlotLabel}</span>}
             {product.category && <span className="pd-badge pd-badge--soft">{product.category}</span>}
           </div>
+
+          {/* ── PRICE ROW ── */}
           <div className="pd-price-row">
-            <span className="pd-price">{formatMoney(finalUnitPrice)}</span>
-            {hasDiscount && <><span className="pd-old-price">{formatMoney(oldPrice)}</span><span className="pd-save-badge">Save {formatMoney(oldPrice-finalUnitPrice)}</span></>}
-            {optionPriceTotal>0 && <span className="pd-option-bump">+{formatMoney(optionPriceTotal)} options</span>}
+            {hasFlashDeal && (
+              <div className="pd-flash-strip">
+                <BoltIcon/>
+                <span>Flash deal</span>
+                {saleEndsAt && <FlashCountdown endsAt={saleEndsAt.getTime()} />}
+              </div>
+            )}
+            <div className="pd-price-line">
+              <span className={`pd-price${hasFlashDeal ? " pd-price--flash" : ""}`}>
+                {formatMoney(finalUnitPrice)}
+              </span>
+              {hasDiscount && (
+                <span className="pd-old-price">{formatMoney(displayOldPrice)}</span>
+              )}
+              {hasFlashDeal && flashDiscountAmt > 0 && (
+                <span className="pd-save-badge pd-save-badge--flash">
+                  <BoltIcon/> Save {formatMoney(flashDiscountAmt)}
+                </span>
+              )}
+              {!hasFlashDeal && hasDiscount && (
+                <span className="pd-save-badge">Save {formatMoney(oldPrice - finalUnitPrice)}</span>
+              )}
+              {optionPriceTotal > 0 && (
+                <span className="pd-option-bump">+{formatMoney(optionPriceTotal)} options</span>
+              )}
+            </div>
           </div>
+
           {brand && <div className="pd-section"><h3 className="pd-section-label">Brand</h3><div className="pd-brand-pill">{brand}</div></div>}
 
           {colorGroup && (
@@ -896,9 +961,10 @@ export default function ProductDetails() {
             <button type="button" className="pd-btn pd-btn--outline" onClick={handleAdd} disabled={isOutOfStock}><CartIcon/>{isOutOfStock?"Unavailable":"Add to cart"}</button>
             <button type="button" className="pd-btn pd-btn--primary" onClick={handleBuyNow} disabled={isOutOfStock}>{isOutOfStock?"Out of stock":"Buy now"}</button>
           </div>
-          <button type="button" className="pd-btn pd-btn--pay" style={{marginBottom:6}} onClick={handleBuyNow} disabled={isOutOfStock}>{isOutOfStock?"Unavailable":"Pay now · "+formatMoney(finalUnitPrice*qty)}</button>
+          <button type="button" className="pd-btn pd-btn--pay" style={{marginBottom:6}} onClick={handleBuyNow} disabled={isOutOfStock}>
+            {isOutOfStock ? "Unavailable" : `Pay now · ${formatMoney(finalUnitPrice * qty)}`}
+          </button>
 
-          {/* ── SELLER INFO PANEL — shown for seller products ── */}
           {isSellerProduct && (
             <SellerInfoPanel shopId={product.shopId} sellerId={product.sellerId}/>
           )}
@@ -940,84 +1006,64 @@ export default function ProductDetails() {
 
       {showWishlistModal&&wishlistProduct&&<WishlistModal product={wishlistProduct} onClose={closeWishlistModal}/>}
 
-      {/* Seller panel CSS */}
       <style>{`
-        .pd-seller-panel {
-          margin: 18px 0 0;
-          border: 1px solid rgba(0,0,0,0.09);
-          border-radius: var(--pd-radius,8px);
-          background: var(--card);
-          overflow: hidden;
+        @keyframes pd-flash-pulse {
+          0%,100%{ opacity:1; transform:scale(1); }
+          50%    { opacity:.3; transform:scale(.7); }
         }
-        .pd-seller-panel__head {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 12px 16px 10px;
-          border-bottom: 1px solid rgba(0,0,0,0.07);
+        .pd-flash-img-badge {
+          position: absolute; top: 12px; left: 12px;
+          display: inline-flex; align-items: center; gap: 4px;
+          padding: 5px 11px; background: #EF4444; color: #fff;
+          font-size: 10px; font-weight: 900; letter-spacing: 0.05em;
+          text-transform: uppercase; border-radius: 100px;
+          font-family: var(--font-main,system-ui); pointer-events: none;
         }
-        .pd-seller-panel__title {
-          font-size: 11px; font-weight: 800; letter-spacing: 0.07em;
-          text-transform: uppercase; color: var(--muted,#9CA3AF);
+        .pd-flash-strip {
+          flex: 0 0 100%;
+          display: flex; align-items: center; gap: 6px;
+          margin-bottom: 8px; padding: 8px 12px;
+          background: rgba(239,68,68,0.07);
+          border: 1px solid rgba(239,68,68,0.18);
+          border-radius: 7px;
+          font-size: 12px; font-weight: 700; color: #EF4444;
           font-family: var(--font-main,system-ui);
         }
-        .pd-seller-panel__link {
-          font-size: 12px; font-weight: 700; color: var(--grtheme,#046EF2);
-          background: none; border: none; cursor: pointer; font-family: inherit;
-          transition: opacity 0.15s;
+        .pd-price-row { flex-wrap: wrap; }
+        .pd-price-line {
+          display: flex; align-items: baseline; flex-wrap: wrap;
+          gap: 10px; width: 100%;
         }
+        .pd-price--flash { color: #EF4444 !important; }
+        .pd-save-badge--flash {
+          background: rgba(239,68,68,0.08) !important;
+          border-color: rgba(239,68,68,0.2) !important;
+          color: #EF4444 !important;
+          display: inline-flex; align-items: center; gap: 3px;
+        }
+        .pd-seller-panel { margin: 18px 0 0; border: 1px solid rgba(0,0,0,0.09); border-radius: var(--pd-radius,8px); background: var(--card); overflow: hidden; }
+        .pd-seller-panel__head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 10px; border-bottom: 1px solid rgba(0,0,0,0.07); }
+        .pd-seller-panel__title { font-size: 11px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted,#9CA3AF); font-family: var(--font-main,system-ui); }
+        .pd-seller-panel__link { font-size: 12px; font-weight: 700; color: var(--grtheme,#046EF2); background: none; border: none; cursor: pointer; font-family: inherit; transition: opacity 0.15s; }
         .pd-seller-panel__link:hover { opacity: 0.75; }
-        .pd-seller-identity {
-          display: flex; align-items: center; gap: 12px;
-          padding: 14px 16px;
-          border-bottom: 1px solid rgba(0,0,0,0.07);
-        }
-        .pd-seller-avatar {
-          width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
-          background: rgba(4,110,242,0.08); border: 1.5px solid rgba(4,110,242,0.18);
-          display: flex; align-items: center; justify-content: center;
-          overflow: hidden; font-size: 18px; font-weight: 900;
-        }
+        .pd-seller-identity { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid rgba(0,0,0,0.07); }
+        .pd-seller-avatar { width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0; background: rgba(4,110,242,0.08); border: 1.5px solid rgba(4,110,242,0.18); display: flex; align-items: center; justify-content: center; overflow: hidden; font-size: 18px; font-weight: 900; }
         .pd-seller-identity__info { flex: 1; min-width: 0; }
-        .pd-seller-identity__name {
-          font-size: 15px; font-weight: 800; color: var(--text,#111);
-          letter-spacing: -0.02em; display: flex; align-items: center;
-        }
+        .pd-seller-identity__name { font-size: 15px; font-weight: 800; color: var(--text,#111); letter-spacing: -0.02em; display: flex; align-items: center; }
         .pd-seller-identity__score { font-size: 12px; font-weight: 700; color: #046EF2; margin-top: 2px; }
         .pd-seller-identity__followers { font-size: 12px; color: var(--muted,#9CA3AF); margin-top: 2px; font-weight: 500; }
-        .pd-follow-btn {
-          padding: 8px 18px; border-radius: 100px; border: 1.5px solid var(--grtheme,#046EF2);
-          background: var(--grtheme,#046EF2); color: #fff;
-          font-size: 13px; font-weight: 800; cursor: pointer; flex-shrink: 0;
-          font-family: var(--font-main,system-ui); transition: opacity 0.15s;
-          white-space: nowrap;
-        }
+        .pd-follow-btn { padding: 8px 18px; border-radius: 100px; border: 1.5px solid var(--grtheme,#046EF2); background: var(--grtheme,#046EF2); color: #fff; font-size: 13px; font-weight: 800; cursor: pointer; flex-shrink: 0; font-family: var(--font-main,system-ui); transition: opacity 0.15s; white-space: nowrap; }
         .pd-follow-btn--following { background: transparent; color: var(--grtheme,#046EF2); }
         .pd-follow-btn:hover { opacity: 0.85; }
-        .pd-seller-perf {
-          padding: 12px 16px;
-          border-bottom: 1px solid rgba(0,0,0,0.07);
-        }
-        .pd-seller-perf__title {
-          font-size: 11px; font-weight: 800; letter-spacing: 0.06em;
-          text-transform: uppercase; color: var(--muted,#9CA3AF);
-          margin-bottom: 10px; font-family: var(--font-main,system-ui);
-        }
+        .pd-seller-perf { padding: 12px 16px; border-bottom: 1px solid rgba(0,0,0,0.07); }
+        .pd-seller-perf__title { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted,#9CA3AF); margin-bottom: 10px; font-family: var(--font-main,system-ui); }
         .pd-seller-perf__row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; font-size: 13px; color: var(--text,#111); font-family: var(--font-main,system-ui); }
         .pd-seller-perf__row:last-child { margin-bottom: 0; }
         .pd-seller-perf__dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
         .pd-seller-perf__label { color: var(--muted,#9CA3AF); font-size: 12px; }
         .pd-seller-perf__val { font-size: 13px; }
-        .pd-seller-actions {
-          display: grid; grid-template-columns: 1fr 1fr;
-          gap: 8px; padding: 12px 16px;
-        }
-        .pd-seller-action-btn {
-          display: flex; align-items: center; justify-content: center; gap: 6px;
-          padding: 10px 14px; border-radius: 8px;
-          font-size: 13px; font-weight: 800;
-          cursor: pointer; font-family: var(--font-main,system-ui);
-          transition: opacity 0.15s, transform 0.1s;
-          border: none;
-        }
+        .pd-seller-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 16px; }
+        .pd-seller-action-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 800; cursor: pointer; font-family: var(--font-main,system-ui); transition: opacity 0.15s, transform 0.1s; border: none; }
         .pd-seller-action-btn:hover { opacity: 0.88; transform: translateY(-1px); }
         .pd-seller-action-btn--outline { background: var(--soft,#F4F6F8); color: var(--text,#111); border: 1px solid rgba(0,0,0,0.1) !important; }
         .pd-seller-action-btn--primary { background: var(--grtheme,#046EF2); color: #fff; box-shadow: 0 3px 10px rgba(4,110,242,0.25); }
