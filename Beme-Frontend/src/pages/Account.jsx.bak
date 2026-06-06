@@ -449,7 +449,7 @@ export default function Account() {
             <NavLink icon={ICONS.notif}    label="Notifications"    onClick={()=>navigate("/account/notifications")} badge={unreadCount} badgeRed/>
               {isAdminUser && (
                 <NavLink icon={ICONS.chart} label="Admin Panel" onClick={()=>setShowAdminGate(true)}/>
-              )}
+              )}/>
             )}
           </div>
 
