@@ -15,31 +15,40 @@ const ALLOWED_PAYMENT_STATUS = new Set(["pending"]);
 const MAX_CART_ITEMS = 100;
 const MAX_ITEM_QTY = 20;
 
-/* Delivery methods — matches paystack.js */
+/* Secure backend delivery config */
 const DELIVERY_METHODS = {
-  HOME_DELIVERY: "home_delivery",   // courier
-  SELF_DELIVERY: "self_delivery",   // seller arranges
-  SELLER_DIRECT: "seller_direct",   // alias
+  MALL_PICKUP: "mall_pickup",
+  HOME_DELIVERY: "home_delivery",
 };
 
-/* Regional courier fees */
-const COURIER_FEES = {
-  "Greater Accra": 25,
-  "Ashanti":       35,
-  "Western":       45,
-  "Central":       45,
-  "Eastern":       45,
-  "Northern":      55,
-  "Upper East":    55,
-  "Upper West":    55,
-  "Volta":         50,
-  "Brong-Ahafo":   50,
-  "Oti":           55,
-  "Ahafo":         50,
-  "Bono East":     50,
-  "North East":    55,
-  "Savannah":      55,
-  "Western North": 50,
+const OUTSIDE_ACCRA_DELIVERY_FEE = 50;
+const HOME_DELIVERY_FLAT_FEE = 150;
+
+const ACCRA_MALL_PICKUP_OPTIONS = {
+  "accra-mall": {
+    id: "accra-mall",
+    label: "Accra Mall Pickup",
+    area: "Tetteh Quarshie / Spintex",
+    fee: 0,
+  },
+  "achimota-mall": {
+    id: "achimota-mall",
+    label: "Achimota Mall Pickup",
+    area: "Achimota",
+    fee: 5,
+  },
+  "marina-mall": {
+    id: "marina-mall",
+    label: "Marina Mall Pickup",
+    area: "Airport",
+    fee: 10,
+  },
+  "west-hills-mall": {
+    id: "west-hills-mall",
+    label: "West Hills Mall Pickup",
+    area: "Weija",
+    fee: 15,
+  },
 };
 
 function safeTrim(value) {
@@ -280,51 +289,65 @@ function sanitizeCustomer(customer = {}) {
 
 function sanitizeDelivery(delivery = {}, customer = {}, abroadDeliveryFeeTotal = 0) {
   const method = sanitizeText(delivery?.method, 40).toLowerCase();
-  const provider = sanitizeText(delivery?.provider, 80);
   const customerRegion = sanitizeText(customer?.region, 80);
-  const abroadFee = Math.max(0, toNumber(abroadDeliveryFeeTotal, 0));
+  const isGreaterAccra = customerRegion === "Greater Accra";
+
+  let regionalBaseFee = isGreaterAccra ? 0 : OUTSIDE_ACCRA_DELIVERY_FEE;
+  let methodFee = 0;
+  let label = "";
+
+  let mallPickup = null;
+  let homeDelivery = null;
 
   if (!method) {
     throw new Error("Delivery method is required.");
   }
 
-  const VALID = [
-    DELIVERY_METHODS.HOME_DELIVERY,
-    DELIVERY_METHODS.SELF_DELIVERY,
-    DELIVERY_METHODS.SELLER_DIRECT,
-  ];
+  if (method === DELIVERY_METHODS.HOME_DELIVERY) {
+    methodFee = HOME_DELIVERY_FLAT_FEE;
+    label = "Home Delivery";
+    homeDelivery = {
+      label: "Home Delivery",
+      fee: HOME_DELIVERY_FLAT_FEE,
+    };
+  } else if (method === DELIVERY_METHODS.MALL_PICKUP) {
+    if (!isGreaterAccra) {
+      throw new Error("Mall pickup is only available in Greater Accra.");
+    }
 
-  if (!VALID.includes(method)) {
+    const mallId = sanitizeText(delivery?.mallPickup?.id || delivery?.mallId, 80);
+    const safeMall = ACCRA_MALL_PICKUP_OPTIONS[mallId];
+
+    if (!safeMall) {
+      throw new Error("Invalid mall pickup option selected.");
+    }
+
+    methodFee = safeMall.fee;
+    label = safeMall.label;
+    mallPickup = {
+      id: safeMall.id,
+      label: safeMall.label,
+      area: safeMall.area,
+      fee: safeMall.fee,
+    };
+  } else {
     throw new Error("Invalid delivery method.");
   }
 
-  let methodFee = 0;
-  let label = "";
-
-  if (method === DELIVERY_METHODS.HOME_DELIVERY) {
-    // Courier — use regional fee or frontend-provided fee
-    const regionalFee = COURIER_FEES[customerRegion] ?? 40;
-    const frontendFee = Math.max(0, toNumber(delivery?.fee, 0));
-    methodFee = frontendFee > 0 ? frontendFee : regionalFee;
-    label = provider ? `${provider} Delivery` : "Courier Delivery";
-  } else {
-    // Seller arranges (self_delivery / seller_direct)
-    const frontendFee = Math.max(0, toNumber(delivery?.fee, 0));
-    methodFee = frontendFee;
-    label = "Seller Delivery";
-  }
-
-  const totalFee = methodFee + abroadFee;
+  const abroadFee = Math.max(0, toNumber(abroadDeliveryFeeTotal, 0));
+  const totalFee = regionalBaseFee + methodFee + abroadFee;
 
   return {
     method,
     label,
     fee: totalFee,
-    provider: provider || "",
     breakdown: {
+      regionalBaseFee,
       methodFee,
       abroadFee,
     },
+    mallPickup,
+    homeDelivery,
   };
 }
 
