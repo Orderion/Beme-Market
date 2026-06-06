@@ -76,7 +76,7 @@ const TAB_TITLES = {
 };
 
 const PAGE_MAP = {
-  home: <DashboardHome onNav={goTab} />,
+  home: <DashboardHome onNav={setActiveTab} />,
   products:     <DashboardProducts />,
   orders:       <DashboardOrders />,
   customers:    <DashboardCustomers />,
@@ -242,7 +242,7 @@ export default function SellerDashboard() {
             </div>
           )}
           <Suspense fallback={<PageSpinner />}>
-            {PAGE_MAP[activeTab] ?? <DashboardHome onNav={goTab} />}
+            {PAGE_MAP[activeTab] ?? <DashboardHome onNav={setActiveTab} />}
           </Suspense>
         </main>
       </div>
