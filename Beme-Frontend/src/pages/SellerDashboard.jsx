@@ -1,3 +1,4 @@
+// src/pages/SellerDashboard.jsx
 import { useState, useCallback, useEffect, lazy, Suspense } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth }       from "../context/AuthContext";
@@ -16,6 +17,7 @@ const DashboardMarketing    = lazy(() => import("./dashboard/DashboardMarketing"
 const DashboardAnalytics    = lazy(() => import("./dashboard/DashboardAnalytics"));
 const DashboardWithdrawals  = lazy(() => import("./dashboard/DashboardWithdrawals"));
 const DashboardAppearance   = lazy(() => import("./dashboard/DashboardAppearance"));
+const DashboardDelivery     = lazy(() => import("./dashboard/DashboardDelivery"));
 const DashboardSubscription = lazy(() => import("./dashboard/DashboardSubscription"));
 const AIAssistant           = lazy(() => import("./dashboard/AIAssistant"));
 const DashboardSettings     = lazy(() => import("./dashboard/DashboardSettings"));
@@ -42,6 +44,7 @@ const D = {
   analytics:    "M18 20V10|M12 20V4|M6 20v-6",
   withdrawals:  "M21 12V7H5a2 2 0 0 1 0-4h14v4|M3 5v14a2 2 0 0 0 2 2h16v-5|M18 12h.01",
   appearance:   "M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z",
+  delivery:     "M1 3h15v13H1z|M16 8h4l3 3v5h-7V8z|M5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z|M18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
   ai:           "M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z",
   subscription: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
   settings:     "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z|M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z",
@@ -53,25 +56,26 @@ const D = {
 };
 
 const NAV = [
-  { id: "home",         label: "Home",          icon: D.home },
-  { id: "products",     label: "Products",      icon: D.products },
-  { id: "orders",       label: "Orders",        icon: D.orders },
-  { id: "customers",    label: "Customers",     icon: D.customers },
-  { id: "chat",         label: "Messages",      icon: D.chat },
-  { id: "marketing",    label: "Marketing",     icon: D.marketing },
-  { id: "analytics",    label: "Analytics Pro", icon: D.analytics },
-  { id: "withdrawals",  label: "Withdrawals",   icon: D.withdrawals },
-  { id: "appearance",   label: "Store Design",  icon: D.appearance },
-  { id: "ai",           label: "Beme AI",       icon: D.ai },
+  { id: "home",         label: "Home",          icon: D.home         },
+  { id: "products",     label: "Products",      icon: D.products     },
+  { id: "orders",       label: "Orders",        icon: D.orders       },
+  { id: "customers",    label: "Customers",     icon: D.customers    },
+  { id: "chat",         label: "Messages",      icon: D.chat         },
+  { id: "marketing",    label: "Marketing",     icon: D.marketing    },
+  { id: "analytics",    label: "Analytics Pro", icon: D.analytics    },
+  { id: "withdrawals",  label: "Withdrawals",   icon: D.withdrawals  },
+  { id: "appearance",   label: "Store Design",  icon: D.appearance   },
+  { id: "delivery",     label: "Delivery",      icon: D.delivery     },
+  { id: "ai",           label: "Beme AI",       icon: D.ai           },
   { id: "subscription", label: "Subscription",  icon: D.subscription },
-  { id: "settings",     label: "Settings",      icon: D.settings },
+  { id: "settings",     label: "Settings",      icon: D.settings     },
 ];
 
 const TAB_TITLES = {
   home:"Home", products:"Products", orders:"Orders", customers:"Customers",
   chat:"Messages", marketing:"Marketing", analytics:"Analytics Pro",
-  withdrawals:"Withdrawals", appearance:"Store Design", ai:"Beme AI",
-  subscription:"Subscription", settings:"Settings",
+  withdrawals:"Withdrawals", appearance:"Store Design", delivery:"Delivery",
+  ai:"Beme AI", subscription:"Subscription", settings:"Settings",
   help:"Get Help", learn:"Learn More", gift:"Gift Beme",
 };
 
@@ -120,6 +124,7 @@ export default function SellerDashboard() {
     analytics:    <DashboardAnalytics />,
     withdrawals:  <DashboardWithdrawals />,
     appearance:   <DashboardAppearance />,
+    delivery:     <DashboardDelivery />,
     ai:           <AIAssistant />,
     subscription: <DashboardSubscription />,
     settings:     <DashboardSettings />,
@@ -208,7 +213,6 @@ export default function SellerDashboard() {
             : sidebarOpen ? 0 : "var(--sd-sidebar-w)",
         }}
       >
-
         {/* Topbar */}
         <header className="sd-topbar">
           <div className="sd-topbar-left">
