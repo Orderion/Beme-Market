@@ -75,24 +75,6 @@ const TAB_TITLES = {
   help:"Get Help", learn:"Learn More", gift:"Gift Beme",
 };
 
-const PAGE_MAP = {
-  home: <DashboardHome onNav={setActiveTab} />,
-  products:     <DashboardProducts />,
-  orders:       <DashboardOrders />,
-  customers:    <DashboardCustomers />,
-  chat:         <DashboardChat />,
-  marketing:    <DashboardMarketing />,
-  analytics:    <DashboardAnalytics />,
-  withdrawals:  <DashboardWithdrawals />,
-  appearance:   <DashboardAppearance />,
-  ai:           <AIAssistant />,
-  subscription: <DashboardSubscription />,
-  settings:     <DashboardSettings />,
-  help:         <DashboardHelp />,
-  learn:        <LearnMore />,
-  gift:         <DashboardGift />,
-};
-
 const BADGE = { orders: 0, chat: 0 };
 
 function PageSpinner() {
@@ -126,6 +108,25 @@ export default function SellerDashboard() {
     setSidebarOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [setSearchParams]);
+
+  // PAGE_MAP lives inside the component so goTab is in scope
+  const PAGE_MAP = {
+    home:         <DashboardHome onNav={goTab} />,
+    products:     <DashboardProducts />,
+    orders:       <DashboardOrders />,
+    customers:    <DashboardCustomers />,
+    chat:         <DashboardChat />,
+    marketing:    <DashboardMarketing />,
+    analytics:    <DashboardAnalytics />,
+    withdrawals:  <DashboardWithdrawals />,
+    appearance:   <DashboardAppearance />,
+    ai:           <AIAssistant />,
+    subscription: <DashboardSubscription />,
+    settings:     <DashboardSettings />,
+    help:         <DashboardHelp />,
+    learn:        <LearnMore />,
+    gift:         <DashboardGift />,
+  };
 
   if (shopLoading) return <PageSpinner />;
 
@@ -242,7 +243,7 @@ export default function SellerDashboard() {
             </div>
           )}
           <Suspense fallback={<PageSpinner />}>
-            {PAGE_MAP[activeTab] ?? <DashboardHome onNav={setActiveTab} />}
+            {PAGE_MAP[activeTab] ?? <DashboardHome onNav={goTab} />}
           </Suspense>
         </main>
       </div>
