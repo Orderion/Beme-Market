@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaCh
 import { collection, query, where, getDocs, orderBy, limit, Timestamp } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
+import { useChat } from "../../hooks/useChat";
 import { useAuth } from "../../context/AuthContext";
 import TutorialOverlay from "../../components/ai/TutorialOverlay";
 import { TUTORIAL_STEPS } from "../../components/ai/tutorialSteps";
@@ -64,14 +65,17 @@ function ChartTip({ active, payload, label }) {
   );
 }
 
-export default function DashboardHome() {
+export default function DashboardHome({ onNav }) {
   const { showTutorial, markSeen }          = useTutorial("home");
   const { user }                            = useAuth();
   const { shop, storeId, subscriptionPlan } = useSellerAuth();
+  const { totalUnread } = useChat();
   const [orders,    setOrders]    = useState([]);
   const [lastOrds,  setLastOrds]  = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [chartMode, setChartMode] = useState("orders");
+  const [showLauncher, setShowLauncher] = useState(false);
+  const [tabVisits,    setTabVisits]    = useState(() => { try { return JSON.parse(localStorage.getItem("beme_tab_visits") || "{}"); } catch { return {}; } });
 
   useEffect(() => {
     const sid = storeId || shop?.id;
@@ -124,6 +128,15 @@ export default function DashboardHome() {
       custs, pCusts, total: orders.length, avg: orders.length ? rev / orders.length : 0, bar, recent, recentBuyers };
   }, [orders, lastOrds]);
 
+
+  const goTo = (tab) => {
+    const updated = { ...tabVisits, [tab]: (tabVisits[tab] || 0) + 1 };
+    setTabVisits(updated);
+    try { localStorage.setItem("beme_tab_visits", JSON.stringify(updated)); } catch {}
+    setShowLauncher(false);
+    if (onNav) onNav(tab);
+  };
+
   const shopName = shop?.shopName || shop?.storeName || "Your Store";
   const firstName = shopName.split(" ")[0];
   const revUp = pct(m.rev, m.pRev);
@@ -139,8 +152,23 @@ export default function DashboardHome() {
             <div className="dh-subgreet">to your store</div>
           </div>
           <div className="dh-hero-icons">
-            <div className="dh-hero-icon"><Ico d={IC.grid} size={15} color="var(--sd-muted)"/></div>
-            <div className="dh-hero-icon"><Ico d={IC.bell} size={15} color="var(--sd-muted)"/></div>
+            {/* ── Grid launcher ── */}
+            <div className="dh-hero-icon dh-launcher-btn" onClick={() => setShowLauncher(v => !v)}
+              title="All pages">
+              <Ico d={IC.grid} size={15} color="var(--sd-muted)"/>
+            </div>
+            {/* ── Bell (messages only, no click action) ── */}
+            <div className="dh-hero-icon dh-bell-wrap" style={{ position:"relative" }}>
+              <Ico d={IC.bell} size={15} color="var(--sd-muted)"/>
+              {totalUnread > 0 && (
+                <span className="dh-bell-badge">{totalUnread > 9 ? "9+" : totalUnread}</span>
+              )}
+              <div className="dh-bell-tooltip">
+                {totalUnread > 0
+                  ? `${totalUnread} message${totalUnread !== 1 ? "s" : ""} received`
+                  : "No new messages"}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -167,13 +195,13 @@ export default function DashboardHome() {
         )}
 
         <div className="dh-hero-actions">
-          <button className="dh-action-btn">
+          <button className="dh-action-btn" onClick={() => goTo("products")}>
             <Ico d={IC.pkg} size={14} color="var(--sd-text)"/> Products
           </button>
-          <div className="dh-action-center">
+          <button className="dh-action-center" onClick={() => goTo("analytics")}>
             <Ico d={IC.chart} size={17} color="#fff"/>
-          </div>
-          <button className="dh-action-btn">
+          </button>
+          <button className="dh-action-btn" onClick={() => goTo("orders")}>
             <Ico d={IC.ord} size={14} color="var(--sd-text)"/> Orders
           </button>
         </div>
@@ -357,6 +385,51 @@ export default function DashboardHome() {
 
       {showTutorial && (
         <TutorialOverlay steps={TUTORIAL_STEPS.home} onFinish={markSeen} pageTitle="Dashboard Home"/>
+      )}
+
+
+      {/* ══ APP LAUNCHER OVERLAY ══ */}
+      {showLauncher && (
+        <div className="dh-launcher-overlay" onClick={() => setShowLauncher(false)}/>
+      )}
+      {showLauncher && (
+        <div className="dh-launcher">
+          <div className="dh-launcher-title">Your favorites</div>
+          <div className="dh-launcher-grid">
+            {(() => {
+              const ALL_PAGES = [
+                { tab:"home",         label:"Home",        ic:"M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z|M9 22V12h6v10",                   color:"#7c3aed" },
+                { tab:"products",     label:"Products",    ic:"M16.5 9.4l-9-5.19|M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z|M3.27 6.96L12 12.01l8.73-5.05|M12 22.08V12", color:"#0891B2" },
+                { tab:"orders",       label:"Orders",      ic:"M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z", color:"#F59E0B" },
+                { tab:"analytics",    label:"Analytics",   ic:"M18 20V10|M12 20V4|M6 20v-6",                                                    color:"#7c3aed" },
+                { tab:"customers",    label:"Customers",   ic:"M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2|M9 7a4 4 0 108 0 4 4 0 00-8 0|M23 21v-2a4 4 0 00-3-3.87|M16 3.13a4 4 0 010 7.75", color:"#22C55E" },
+                { tab:"marketing",    label:"Marketing",   ic:"M22 12h-4l-3 9L9 3l-3 9H2",                                                      color:"#EF4444" },
+                { tab:"chat",         label:"Messages",    ic:"M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z",                      color:"#0891B2", badge: totalUnread },
+                { tab:"withdrawals",  label:"Withdrawals", ic:"M12 1v22|M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",                        color:"#22C55E" },
+                { tab:"settings",     label:"Settings",    ic:"M12 20a8 8 0 100-16 8 8 0 000 16z|M12 14a2 2 0 100-4 2 2 0 000 4z",             color:"#6B7280" },
+                { tab:"subscription", label:"Subscription",ic:"M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z", color:"#F59E0B" },
+                { tab:"delivery",     label:"Delivery",    ic:"M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11a2 2 0 012 2v3m-4 12a2 2 0 104 0 2 2 0 00-4 0|M13 11l9 2-2 2-2 4-5-8z", color:"#7c3aed" },
+                { tab:"appearance",   label:"Store Design",ic:"M12 20h9|M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z",               color:"#0891B2" },
+              ];
+              // Sort by most visited — stable sort keeps original order for ties
+              const sorted = [...ALL_PAGES].sort((a, b) =>
+                (tabVisits[b.tab] || 0) - (tabVisits[a.tab] || 0)
+              );
+              return sorted.map(pg => (
+                <button key={pg.tab} className="dh-launcher-item" onClick={() => goTo(pg.tab)}>
+                  <div className="dh-launcher-ic" style={{ background: `${pg.color}18`, color: pg.color }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      {pg.ic.split("|").map((seg, i) => <path key={i} d={seg}/>)}
+                    </svg>
+                    {pg.badge > 0 && <span className="dh-launcher-badge">{pg.badge > 9 ? "9+" : pg.badge}</span>}
+                  </div>
+                  <span className="dh-launcher-label">{pg.label}</span>
+                </button>
+              ));
+            })()}
+          </div>
+        </div>
       )}
 
       <style>{`
@@ -624,6 +697,113 @@ export default function DashboardHome() {
           background-size: 600px 100%;
           animation: dh-shimmer 1.4s ease infinite;
         }
+
+
+        /* ══ App Launcher ══ */
+        .dh-launcher-overlay {
+          position: fixed; inset: 0; z-index: 98;
+        }
+        .dh-launcher {
+          position: absolute; top: 48px; right: 0;
+          z-index: 99;
+          background: var(--sd-white);
+          border: 1px solid var(--sd-border);
+          border-radius: 18px;
+          padding: 18px 16px 16px;
+          width: 260px;
+          box-shadow: 0 8px 40px rgba(0,0,0,0.14);
+          animation: dh-launcher-in 0.18s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes dh-launcher-in {
+          from { opacity:0; transform:scale(0.88) translateY(-8px); }
+          to   { opacity:1; transform:scale(1) translateY(0); }
+        }
+        .dh-launcher-title {
+          font-size: 13px; font-weight: 800; color: var(--sd-text);
+          margin-bottom: 14px; letter-spacing: -0.01em;
+        }
+        .dh-launcher-grid {
+          display: grid; grid-template-columns: repeat(3, 1fr);
+          gap: 6px;
+        }
+        .dh-launcher-item {
+          display: flex; flex-direction: column; align-items: center;
+          gap: 6px; padding: 10px 4px; border-radius: 12px;
+          border: none; background: transparent; cursor: pointer;
+          transition: background 0.13s;
+          font-family: inherit;
+        }
+        .dh-launcher-item:hover { background: var(--sd-bg); }
+        .dh-launcher-ic {
+          width: 44px; height: 44px; border-radius: 12px;
+          display: flex; align-items: center; justify-content: center;
+          position: relative; flex-shrink: 0;
+          transition: transform 0.13s;
+        }
+        .dh-launcher-item:hover .dh-launcher-ic { transform: scale(1.08); }
+        .dh-launcher-label {
+          font-size: 10px; font-weight: 700; color: var(--sd-muted);
+          text-align: center; line-height: 1.2; white-space: nowrap;
+          overflow: hidden; text-overflow: ellipsis; max-width: 64px;
+        }
+        .dh-launcher-badge {
+          position: absolute; top: -4px; right: -4px;
+          background: #EF4444; color: #fff;
+          font-size: 9px; font-weight: 900; min-width: 16px; height: 16px;
+          border-radius: 100px; padding: 0 4px;
+          display: flex; align-items: center; justify-content: center;
+          border: 2px solid var(--sd-white);
+        }
+        .dh-launcher-btn { position: relative; }
+
+        /* ══ Bell notification ══ */
+        .dh-bell-wrap {
+          cursor: default !important;
+          position: relative;
+        }
+        .dh-bell-badge {
+          position: absolute; top: -4px; right: -4px;
+          background: #EF4444; color: #fff;
+          font-size: 9px; font-weight: 900; min-width: 16px; height: 16px;
+          border-radius: 100px; padding: 0 4px;
+          display: flex; align-items: center; justify-content: center;
+          border: 2px solid var(--sd-white);
+          animation: dh-pulse 2s ease-in-out infinite;
+          pointer-events: none;
+        }
+        .dh-bell-tooltip {
+          position: absolute; top: calc(100% + 8px); right: 0;
+          background: var(--sd-text); color: var(--sd-bg);
+          font-size: 11px; font-weight: 700;
+          padding: 6px 11px; border-radius: 8px;
+          white-space: nowrap; pointer-events: none;
+          opacity: 0; transform: translateY(-4px);
+          transition: opacity 0.15s, transform 0.15s;
+          z-index: 100;
+        }
+        .dh-bell-tooltip::before {
+          content: "";
+          position: absolute; bottom: 100%; right: 10px;
+          border: 5px solid transparent;
+          border-bottom-color: var(--sd-text);
+        }
+        .dh-bell-wrap:hover .dh-bell-tooltip {
+          opacity: 1; transform: translateY(0);
+        }
+        .dh-bell-wrap:hover { background: var(--sd-bg); }
+
+        /* hero-icons container needs relative for launcher positioning */
+        .dh-hero-icons { position: relative; }
+
+        /* Make action center a button */
+        button.dh-action-center {
+          border: none; cursor: pointer;
+          font-family: inherit;
+          transition: opacity 0.15s, transform 0.12s;
+        }
+        button.dh-action-center:hover { opacity: 0.88; transform: scale(1.06); }
+        button.dh-action-center:active { transform: scale(0.96); }
+        .dh-action-btn:active { transform: scale(0.97); }
 
         /* Mobile */
         @media (max-width: 480px) {
