@@ -31,15 +31,18 @@ function EmptyOrders() {
 
 export default function DashboardOrders() {
   const { showTutorial, markSeen } = useTutorial("orders");
-  const { storeId } = useSellerAuth();
+  const { storeId, shop } = useSellerAuth();
+  // Use shop.id (the actual Firestore doc ID) as primary key
+  // storeId may be user.uid which differs from the shop doc ID
+  const queryId = shop?.id || storeId;
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("all");
 
   useEffect(() => {
-    if (!storeId) return;
-    getSellerOrders(storeId).then((d) => { setOrders(d); setLoading(false); }).catch(() => setLoading(false));
-  }, [storeId]);
+    if (!queryId) return;
+    getSellerOrders(queryId).then((d) => { setOrders(d); setLoading(false); }).catch(() => setLoading(false));
+  }, [queryId]);
 
   const filtered = tab === "all" ? orders : orders.filter((o) => o.status === tab || o.fulfillmentStatus === tab);
 
