@@ -352,6 +352,8 @@ function normalizeIncomingItems(items) {
         stock,
         inStock: item?.inStock !== false,
         shop: normalizeShopKey(item?.shop || "main"),
+        storeId: String(item?.storeId || item?.shopId || "").trim(),
+        shopId:  String(item?.shopId  || item?.storeId || "").trim(),
         selectedOptions: sanitizeSelectedOptions(item?.selectedOptions),
         selectedOptionsLabel: sanitizeOptionalText(
           item?.selectedOptionsLabel,
@@ -678,6 +680,12 @@ router.post("/", async (req, res) => {
     const shops = Array.from(
       new Set(lineItems.map((item) => normalizeShopKey(item.shop)).filter(Boolean))
     );
+    // Also collect storeIds for seller dashboard queries
+    const storeIds = Array.from(
+      new Set(lineItems.map((item) => (item.storeId || item.shopId || "").trim()).filter(Boolean))
+    );
+    // Merge shops + storeIds so getSellerOrders finds orders by either
+    const allShopRefs = Array.from(new Set([...shops, ...storeIds]));
 
     const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
     const initialState = createInitialCodState();
@@ -702,8 +710,10 @@ router.post("/", async (req, res) => {
       customer,
       delivery,
       items: lineItems,
-      shops,
-      primaryShop: shops[0] || "main",
+      shops: allShopRefs,
+      primaryShop: storeIds[0] || shops[0] || "main",
+      storeId: storeIds[0] || null,
+      sellerId: storeIds[0] || null,
       pricing,
       paymentMethod: "cod",
       paymentStatus: "pending",
