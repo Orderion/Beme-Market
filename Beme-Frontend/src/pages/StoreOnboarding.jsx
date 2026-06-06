@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useSellerAuth } from "../hooks/useSellerAuth";
 import { saveApplicationStep } from "../services/storeService";
@@ -50,14 +50,25 @@ function CatSvg({ id, size=20, color="#9CA3AF" }) {
 }
 
 export default function StoreOnboarding() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  const navigate           = useNavigate();
+  const [searchParams]     = useSearchParams();
+  const { user }           = useAuth();
   const { shop, isSeller } = useSellerAuth();
-  const [selected, setSelected] = useState(null);
-  const [saving,   setSaving]   = useState(false);
+  const [selected,  setSelected]  = useState(null);
+  const [saving,    setSaving]    = useState(false);
+  const [refCode,   setRefCode]   = useState("");
+  const [refValid,  setRefValid]  = useState(null); // null | true | false
+
+  // Pre-fill referral code from URL param (?ref=CODE) or sessionStorage
+  useEffect(() => {
+    const fromUrl     = searchParams.get("ref");
+    const fromSession = typeof window !== "undefined" ? sessionStorage.getItem("beme_referral_code") : null;
+    const code        = fromUrl || fromSession || "";
+    if (code) setRefCode(code.toUpperCase());
+  }, [searchParams]);
 
   const appliedUid = typeof window !== "undefined" ? localStorage.getItem("beme_seller_applied") : null;
-  const hasStore = !!(shop?.id || isSeller || (appliedUid && user && appliedUid === user?.uid));
+  const hasStore   = !!(shop?.id || isSeller || (appliedUid && user && appliedUid === user?.uid));
   if (user && hasStore) { navigate("/get-a-store", { replace: true }); return null; }
 
   const handleContinue = async () => {
@@ -65,10 +76,20 @@ export default function StoreOnboarding() {
     if (!user) { navigate("/login?redirect=/store-onboarding"); return; }
     setSaving(true);
     try {
-      await saveApplicationStep(user.uid, 1, { businessType: selected });
+      // Save business type + referral code (if provided)
+      const stepData = { businessType: selected };
+      if (refCode.trim()) {
+        stepData.referralCode = refCode.trim().toUpperCase();
+        // Persist in sessionStorage so StoreSurvey + final onboarding step can access it
+        sessionStorage.setItem("beme_referral_code", refCode.trim().toUpperCase());
+      }
+      await saveApplicationStep(user.uid, 1, stepData);
       navigate("/store-survey");
-    } catch { alert("Failed to save. Please try again."); }
-    finally { setSaving(false); }
+    } catch {
+      alert("Failed to save. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const selectedType = TYPES.find(t => t.id === selected);
@@ -76,41 +97,66 @@ export default function StoreOnboarding() {
   return (
     <div className="so-wrap">
 
-      {/* ── Sticky header with top-right Continue ── */}
+      {/* ── Sticky header ── */}
       <div className="so-header">
         <button className="so-back" onClick={() => navigate("/get-a-store")}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
           Back
         </button>
-
         <div className="so-progress">
           <div className="so-progress-fill" style={{ width:"25%" }}/>
         </div>
-
         <span className="so-step-lbl">Step 1 of 4</span>
-
-        {/* ── Continue button TOP RIGHT ── */}
-        <button className="so-continue-top" onClick={handleContinue}
-          disabled={!selected || saving}>
+        <button className="so-continue-top" onClick={handleContinue} disabled={!selected || saving}>
           {saving ? "Saving…" : "Continue →"}
         </button>
       </div>
 
-      {/* ── Gradient hero ── */}
+      {/* ── Hero ── */}
       <div className="so-hero">
         <div className="so-orb so-orb-1"/>
         <div className="so-orb so-orb-2"/>
         <div className="so-hero-content">
           <h1 className="so-hero-title">What do you sell?</h1>
-          <p className="so-hero-sub">
-            Choose the category that best describes your business.
-            You can sell across multiple categories after setup.
-          </p>
+          <p className="so-hero-sub">Choose the category that best describes your business.</p>
         </div>
       </div>
 
-      {/* ── Category list ── */}
+      {/* ── Body ── */}
       <div className="so-body">
+
+        {/* ── Referral code field ── */}
+        <div className="so-ref-block">
+          <label className="so-ref-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+              <path d="M16 3.13a4 4 0 010 7.75"/>
+            </svg>
+            Referral code <span className="so-ref-optional">(optional)</span>
+          </label>
+          <div className="so-ref-row">
+            <input
+              className="so-ref-input"
+              type="text"
+              placeholder="e.g. BEMEXYZ123"
+              value={refCode}
+              onChange={e => { setRefCode(e.target.value.toUpperCase()); setRefValid(null); }}
+              maxLength={20}
+            />
+            {refCode && (
+              <button type="button" className="so-ref-clear" onClick={() => { setRefCode(""); setRefValid(null); sessionStorage.removeItem("beme_referral_code"); }}>
+                ×
+              </button>
+            )}
+          </div>
+          <p className="so-ref-hint">
+            Got a referral link from another seller? Enter their code here and both of you earn rewards.
+          </p>
+        </div>
+
+        {/* ── Category list ── */}
         <div className="so-list">
           {TYPES.map(bt => {
             const sel = selected === bt.id;
@@ -118,24 +164,16 @@ export default function StoreOnboarding() {
               <button key={bt.id} type="button"
                 className={`so-item ${sel ? "so-item--sel" : ""}`}
                 onClick={() => setSelected(bt.id)}>
-
-                <div className="so-item-icon" style={{
-                  background: sel ? `${bt.color}18` : "rgba(0,0,0,0.04)",
-                }}>
+                <div className="so-item-icon" style={{ background: sel ? `${bt.color}18` : "rgba(0,0,0,0.04)" }}>
                   <CatSvg id={bt.id} size={20} color={sel ? bt.color : "#9CA3AF"}/>
                 </div>
-
                 <div className="so-item-text">
-                  <div className="so-item-label" style={{ color: sel ? bt.color : "#111" }}>
-                    {bt.label}
-                  </div>
+                  <div className="so-item-label" style={{ color: sel ? bt.color : "#111" }}>{bt.label}</div>
                   <div className="so-item-desc">{bt.desc}</div>
                 </div>
-
                 {sel && (
                   <div className="so-item-check">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-                      stroke="#fff" strokeWidth="3.5" strokeLinecap="round">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round">
                       <polyline points="20 6 9 17 4 12"/>
                     </svg>
                   </div>
@@ -145,7 +183,6 @@ export default function StoreOnboarding() {
           })}
         </div>
 
-        {/* Bottom hint */}
         {selected && (
           <div className="so-hint">
             Selected: <strong style={{ color:"#046EF2" }}>{selectedType?.label}</strong>

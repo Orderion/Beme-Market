@@ -1491,3 +1491,192 @@ body.dark .co-refund-banner__body p {
   .co-refund-banner__body strong { font-size: 12px; }
   .co-refund-banner__body p { font-size: 11.5px; }
 }
+/* ── Add these to the bottom of Checkout.css ── */
+
+/* Delivery seller info strip */
+.co-delivery-seller-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--pd-blue-bg, rgba(4,110,242,0.06));
+  border: 1px solid rgba(4,110,242,0.15);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--muted, #6B7280);
+  margin-bottom: 14px;
+}
+
+/* Discount code section */
+.co-discount-section {
+  margin: 10px 0;
+}
+
+.co-discount-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  position: relative;
+}
+
+.co-discount-input {
+  flex: 1;
+  min-width: 140px;
+  font-family: var(--font-main, system-ui);
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  font-size: 13px !important;
+}
+
+.co-discount-btn {
+  height: 46px;
+  padding: 0 18px;
+  background: var(--text, #111);
+  color: var(--bg, #fff);
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.co-discount-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.co-discount-btn:not(:disabled):hover { opacity: 0.85; }
+
+.co-discount-error {
+  width: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  color: #c0392b;
+  margin-top: 4px;
+}
+
+/* Applied discount badge */
+.co-discount-applied {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(34,197,94,0.08);
+  border: 1px solid rgba(34,197,94,0.25);
+  border-radius: 8px;
+  color: #15803d;
+}
+.co-discount-applied__info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.co-discount-applied__code {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+.co-discount-applied__desc {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.75;
+}
+.co-discount-applied__remove {
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: #c0392b;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+.co-discount-applied__remove:hover { background: rgba(192,57,43,0.08); }
+
+/* Discount line in summary */
+.co-sum-line--discount {
+  color: #15803d;
+  font-weight: 700;
+}
+.co-sum-line--discount span:last-child {
+  font-weight: 900;
+}
+
+/* ── Add these to StoreOnboarding.css ── */
+
+.so-ref-block {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.so-ref-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #111;
+  margin-bottom: 10px;
+}
+
+.so-ref-optional {
+  font-weight: 500;
+  color: #9CA3AF;
+  font-size: 12px;
+}
+
+.so-ref-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.so-ref-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 36px 0 14px;
+  border: 1.5px solid rgba(0,0,0,0.10);
+  border-radius: 10px;
+  background: #f8f9fb;
+  color: #111;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+.so-ref-input:focus {
+  border-color: #046EF2;
+  box-shadow: 0 0 0 3px rgba(4,110,242,0.10);
+  background: #fff;
+}
+.so-ref-input::placeholder { font-weight: 500; color: #9CA3AF; letter-spacing: 0; }
+
+.so-ref-clear {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #9CA3AF;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+.so-ref-clear:hover { color: #111; }
+
+.so-ref-hint {
+  font-size: 12px;
+  color: #9CA3AF;
+  margin: 8px 0 0;
+  line-height: 1.5;
+  font-weight: 500;
+}
