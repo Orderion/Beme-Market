@@ -756,6 +756,11 @@ export default function ProductDetails() {
       inStock:parseBooleanish(product?.inStock,true), shop:shopKey||"", homeSlot,
       selectedOptions, selectedOptionsLabel:buildSelectedOptionsLabel(selectedOptions),
       selectedOptionDetails, customizations, shippingSource, shipsFromAbroad, abroadDeliveryFee, productId:product.id,
+      storeId:     String(product.shopId || product.sellerId || ""),
+      shopId:      String(product.shopId || ""),
+      sellerId:    String(product.sellerId || ""),
+      paymentType: String(product.paymentType || "both"),
+      sellerDeliveryMethod: String(product.deliveryMethod || ""),
     };
   };
 

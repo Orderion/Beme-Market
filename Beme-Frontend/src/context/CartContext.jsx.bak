@@ -250,6 +250,11 @@ function normalizeCartItem(product) {
     abroadDeliveryFee: getAbroadDeliveryFee(product),
     shop: sanitizeText(product?.shop || "main", 60).toLowerCase() || "main",
     productId: sanitizeText(product?.productId || product?.id, 120),
+    storeId:   sanitizeText(product?.storeId || product?.shopId || "", 120),
+    shopId:    sanitizeText(product?.shopId || "", 120),
+    sellerId:  sanitizeText(product?.sellerId || "", 120),
+    paymentType: sanitizeText(product?.paymentType || "both", 20),
+    sellerDeliveryMethod: sanitizeText(product?.sellerDeliveryMethod || product?.deliveryMethod || "", 20),
   };
 
   if (!normalized.selectedOptionsLabel) {
@@ -397,7 +402,8 @@ export const CartProvider = ({ children }) => {
             Number(prevItem.basePrice) !== Number(item.basePrice) ||
             Number(prevItem.optionPriceTotal) !== Number(item.optionPriceTotal) ||
             Number(prevItem.abroadDeliveryFee) !== Number(item.abroadDeliveryFee) ||
-            prevItem.selectedOptionsLabel !== item.selectedOptionsLabel
+            prevItem.selectedOptionsLabel !== item.selectedOptionsLabel ||
+            prevItem.storeId !== item.storeId
           );
         });
 
