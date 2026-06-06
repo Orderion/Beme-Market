@@ -263,7 +263,6 @@ export default function Checkout() {
   const [paystackError,          setPaystackError]          = useState("");
   const [discountApplied,        setDiscountApplied]        = useState(null); // { code, discountType, discountValue, codeId }
   const [sellerDelivery,         setSellerDelivery]         = useState(null); // loaded from shops/{storeId}/delivery
-  const [sellerPaymentTypes,     setSellerPaymentTypes]     = useState([]); // [] = no restriction, ["paystack"] = paystack only, ["cod"] = cod only
 
   /* ── auth redirect ── */
   useEffect(() => {
@@ -377,23 +376,6 @@ export default function Checkout() {
   }, [hasUnavailable, hasAbroadItem, needsFirstPaystack]);
 
   const isCODBlocked   = !!codDisabledReason;
-
-  // Seller-level payment restrictions
-  const sellerBlocksPaystack = sellerPaymentTypes.length > 0 &&
-    !sellerPaymentTypes.includes("paystack") &&
-    !sellerPaymentTypes.includes("both");
-
-  const sellerBlocksCOD = sellerPaymentTypes.length > 0 &&
-    !sellerPaymentTypes.includes("cod") &&
-    !sellerPaymentTypes.includes("both");
-
-  const sellerPaymentNote = sellerPaymentTypes.length > 0 && !sellerPaymentTypes.includes("both")
-    ? sellerPaymentTypes.includes("paystack")
-      ? "This seller only accepts Paystack payments (card, bank transfer)."
-      : sellerPaymentTypes.includes("cod")
-        ? "This seller only accepts Pay on Delivery."
-        : ""
-    : "";
   const inputsDisabled = loading;
 
   /* Delivery fee */
@@ -446,8 +428,6 @@ export default function Checkout() {
 
   /* ── side-effects ── */
   useEffect(() => { if(isCODBlocked&&method==="cod")setMethod(""); }, [isCODBlocked,method]);
-  useEffect(() => { if(sellerBlocksPaystack&&method==="paystack")setMethod(""); }, [sellerBlocksPaystack,method]);
-  useEffect(() => { if(sellerBlocksCOD&&method==="cod")setMethod(""); }, [sellerBlocksCOD,method]);
   useEffect(() => { if(form.region&&form.region!=="Greater Accra"&&delivery.method==="glovo")setDelivery({method:""}); }, [form.region,delivery.method]);
   useEffect(() => {
     const isCourier = DELIVERY_PROVIDERS.some(p=>p.id===delivery.method);
@@ -645,6 +625,8 @@ const buildOrderPayload = (paymentMethod) => {
   return (
     <div className="co-page">
       <div className="co-wrap">
+        <RefundGuaranteeBanner/>
+
         {cancelledPayment && (
           <div className="co-notice" role="status">
             <div className="co-notice__body"><strong>Payment cancelled.</strong><span>Your order was not completed.</span></div>
@@ -869,7 +851,7 @@ const buildOrderPayload = (paymentMethod) => {
                 <div className="co-pay-methods">
                   {/* Paystack */}
                   <label className={`co-pay-card${method==="paystack"?" co-pay-card--active":""}`}>
-                    <input type="radio" name="payMethod" value="paystack" checked={method==="paystack"} onChange={handleMethodChange} disabled={inputsDisabled||checkingHistory||sellerBlocksPaystack} className="co-pay-radio"/>
+                    <input type="radio" name="payMethod" value="paystack" checked={method==="paystack"} onChange={handleMethodChange} disabled={inputsDisabled||checkingHistory} className="co-pay-radio"/>
                     <img src="/Paystack logo.JPG" alt="Paystack" className="co-pay-logo" onError={e=>{e.currentTarget.style.display="none";}}/>
                     <div className="co-pay-info">
                       <span className="co-pay-name">Pay with Paystack</span>
@@ -880,7 +862,7 @@ const buildOrderPayload = (paymentMethod) => {
 
                   {/* Pay on Delivery */}
                   <label className={`co-pay-card co-pay-card--cod${method==="cod"?" co-pay-card--active":""}${isCODBlocked?" co-pay-card--blocked":""}`}>
-                    <input type="radio" name="payMethod" value="cod" checked={method==="cod"} onChange={handleMethodChange} disabled={inputsDisabled||isCODBlocked||sellerBlocksCOD} className="co-pay-radio"/>
+                    <input type="radio" name="payMethod" value="cod" checked={method==="cod"} onChange={handleMethodChange} disabled={inputsDisabled||isCODBlocked} className="co-pay-radio"/>
                     <div className="co-pay-icon-wrap"><TruckIcon/></div>
                     <div className="co-pay-info">
                       <span className="co-pay-name">Pay on Delivery{isCODBlocked?" (Unavailable)":""}</span>
@@ -892,11 +874,6 @@ const buildOrderPayload = (paymentMethod) => {
                   </label>
                 </div>
 
-                {sellerPaymentNote && (
-                  <div className="co-seller-payment-note">
-                    <InfoIcon/> {sellerPaymentNote}
-                  </div>
-                )}
                 {showError("paymentMethod")&&<div className="co-field-error">{errors.paymentMethod}</div>}
                 {checkingHistory&&<p className="co-hint">Checking eligibility…</p>}
 

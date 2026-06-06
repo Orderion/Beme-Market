@@ -161,10 +161,176 @@ function VerificationTab(){const{user}=useAuth();const{shop}=useSellerAuth();con
   return(<div style={{ maxWidth:560 }}><div style={{ display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:24 }}><div><h2 className="ds-content-title">Store Verification</h2><p style={{ fontSize:13,color:"var(--sd-muted)",margin:0 }}>Earn a verified badge and unlock higher limits.</p></div>{!loading&&<StatusBadge/>}</div>{isVerified&&(<div style={{ background:"linear-gradient(135deg,#7c3aed,#22C55E)",borderRadius:16,padding:"24px 22px",marginBottom:20,display:"flex",alignItems:"center",gap:14 }}><div style={{ width:48,height:48,borderRadius:14,background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}><Ico d={IC.shieldOk} size={24} color="#fff"/></div><div><div style={{ fontSize:16,fontWeight:900,color:"#fff" }}>{shop?.shopName||"Your store"} is Verified</div><div style={{ fontSize:12,color:"rgba(255,255,255,0.8)",marginTop:2 }}>Verified badge is visible on your store and all products.</div></div></div>)}<div className="sd-panel" style={{ marginBottom:16 }}><div style={{ fontSize:14,fontWeight:800,color:"var(--sd-text)",marginBottom:14 }}>Why Get Verified?</div><div style={{ display:"flex",flexDirection:"column",gap:10 }}>{BENEFITS.map(b=>(<div key={b.title} style={{ display:"flex",alignItems:"flex-start",gap:12,padding:"12px",borderRadius:10,background:"var(--sd-bg)",border:"1px solid var(--sd-border)" }}><div style={{ width:36,height:36,borderRadius:9,background:b.color+"18",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}><Ico d={b.icon} size={16} color={b.color}/></div><div><div style={{ fontSize:13,fontWeight:800,color:"var(--sd-text)",marginBottom:2 }}>{b.title}</div><div style={{ fontSize:12,color:"var(--sd-muted)",lineHeight:1.5 }}>{b.desc}</div></div></div>))}</div></div>{!isVerified&&(<div className="sd-panel" style={{ marginBottom:16 }}><div style={{ fontSize:14,fontWeight:800,color:"var(--sd-text)",marginBottom:14 }}>What You'll Need</div>{[{icon:IC.user,label:"Government-issued ID",desc:"Ghana Card, Passport, or Driver's Licence"},{icon:IC.file,label:"Business registration",desc:"Optional but speeds up verification"},{icon:IC.file,label:"Proof of address",desc:"Utility bill or bank statement (last 3 months)"}].map(d=>(<div key={d.label} style={{ display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:"1px solid var(--sd-border-light)" }}><div style={{ width:34,height:34,borderRadius:9,background:"var(--sd-accent-dim)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}><Ico d={d.icon} size={15} color="var(--sd-accent)"/></div><div><div style={{ fontSize:13,fontWeight:700,color:"var(--sd-text)" }}>{d.label}</div><div style={{ fontSize:11,color:"var(--sd-muted)" }}>{d.desc}</div></div></div>))}</div>)}{!isVerified&&!request&&(<div className="sd-panel"><div style={{ fontSize:14,fontWeight:800,color:"var(--sd-text)",marginBottom:4 }}>Request Verification</div><div style={{ fontSize:13,color:"var(--sd-muted)",marginBottom:16 }}>Our team reviews requests within 2–3 business days.</div><div className="sd-form-group"><label className="sd-label">Note for our team (optional)</label><textarea className="sd-textarea" rows={3} value={message} onChange={e=>setMessage(e.target.value)} placeholder="Tell us about your store…"/></div><button className="sd-btn sd-btn-primary" style={{ width:"100%",justifyContent:"center" }} onClick={handleSubmit} disabled={sending}>{sending?"Submitting…":<><Ico d={IC.send} size={14}/>Submit Request</>}</button></div>)}{!isVerified&&request?.status==="pending"&&(<div style={{ padding:20,background:"rgba(245,158,11,0.05)",borderRadius:14,border:"1px solid rgba(245,158,11,0.2)" }}><div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:10 }}><Ico d={IC.clock} size={20} color="#F59E0B"/><div style={{ fontSize:14,fontWeight:800,color:"#F59E0B" }}>Review in Progress · 2–3 business days</div></div><div style={{ fontSize:13,color:"var(--sd-muted)",lineHeight:1.6 }}>Your request has been submitted. We'll notify you once the review is complete.</div></div>)}{sent&&(<div style={{ marginTop:12,padding:"12px 16px",borderRadius:10,background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.2)",fontSize:13,fontWeight:700,color:"#22C55E",display:"flex",alignItems:"center",gap:8 }}><Ico d={IC.check} size={16} color="#22C55E"/>Request submitted successfully!</div>)}</div>);
 }
 
-// ── DELIVERY TAB ──
-const GH_REGIONS=["Greater Accra","Ashanti","Western","Eastern","Central","Northern","Upper East","Upper West","Volta","Brong-Ahafo","Oti","Bono","Bono East","Ahafo","Savannah","North East","Western North"];
-function DeliveryTab(){const{user}=useAuth();const[method,setMethod]=useState("self");const[feeType,setFeeType]=useState("flat");const[flatFee,setFlatFee]=useState("15");const[threshold,setThreshold]=useState("100");const[zones,setZones]=useState(["Greater Accra"]);const[cutoff,setCutoff]=useState("14:00");const[minOrder,setMinOrder]=useState("0");const[saving,setSaving]=useState(false);const[saved,setSaved]=useState(false);const toggleZone=(r)=>setZones(z=>z.includes(r)?z.filter(x=>x!==r):[...z,r]);const handleSave=async()=>{setSaving(true);try{const{setDoc}=await import("firebase/firestore");if(user?.uid)await setDoc(doc(db,"shops",user.uid),{deliverySettings:{method,feeType,flatFee:parseFloat(flatFee)||0,threshold:parseFloat(threshold)||0,zones,cutoff,minOrder:parseFloat(minOrder)||0,updatedAt:serverTimestamp()}},{merge:true});setSaved(true);setTimeout(()=>setSaved(false),3000);}catch(e){console.error(e);}finally{setSaving(false);}};const METHODS=[{id:"self",label:"Self Delivery",desc:"You handle delivery yourself",icon:IC.truck},{id:"beme",label:"Beme Network",desc:"Beme coordinates couriers (Growth+)",icon:IC.package},{id:"pickup",label:"Pickup Only",desc:"Customers collect from your location",icon:IC.map}];
-  return(<div style={{ maxWidth:620 }}><h2 className="ds-content-title">Delivery Settings</h2><p className="ds-content-sub">Configure how you deliver orders to customers.</p><div className="sd-panel" style={{ marginBottom:16 }}><div style={{ fontSize:12,fontWeight:700,color:"var(--sd-muted)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:14 }}>Delivery Method</div><div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10 }}>{METHODS.map(m=>(<button key={m.id} onClick={()=>setMethod(m.id)} style={{ display:"flex",flexDirection:"column",gap:10,padding:"14px 12px",borderRadius:12,border:`1.5px solid ${method===m.id?"var(--sd-accent)":"var(--sd-border)"}`,background:method===m.id?"var(--sd-accent-dim)":"var(--sd-bg)",cursor:"pointer",textAlign:"left",fontFamily:"var(--sd-font)",transition:"all 0.12s",boxShadow:method===m.id?"0 0 0 3px rgba(124,58,237,0.10)":"none" }}><div style={{ width:36,height:36,borderRadius:9,background:method===m.id?"var(--sd-accent)":"var(--sd-white)",display:"flex",alignItems:"center",justifyContent:"center" }}><Ico d={m.icon} size={16} color={method===m.id?"#fff":"var(--sd-muted)"}/></div><div><div style={{ fontSize:13,fontWeight:700,color:"var(--sd-text)",marginBottom:2 }}>{m.label}</div><div style={{ fontSize:11,color:"var(--sd-muted)",lineHeight:1.4 }}>{m.desc}</div></div></button>))}</div></div>{method!=="pickup"&&(<div className="sd-panel" style={{ marginBottom:16 }}><div style={{ fontSize:12,fontWeight:700,color:"var(--sd-muted)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:14 }}>Delivery Fee</div><div style={{ display:"flex",flexDirection:"column",gap:8,marginBottom:16 }}>{[{id:"flat",label:"Flat fee",desc:"Charge the same fee for every order"},{id:"free",label:"Free delivery",desc:"No charge — absorb delivery cost"},{id:"threshold",label:"Free above amount",desc:"Free delivery when cart exceeds a threshold"}].map(f=>(<label key={f.id} onClick={()=>setFeeType(f.id)} style={{ display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:10,border:`1.5px solid ${feeType===f.id?"var(--sd-accent)":"var(--sd-border)"}`,background:feeType===f.id?"var(--sd-accent-dim)":"var(--sd-bg)",cursor:"pointer" }}><div style={{ width:18,height:18,borderRadius:"50%",border:`2px solid ${feeType===f.id?"var(--sd-accent)":"var(--sd-border)"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>{feeType===f.id&&<div style={{ width:8,height:8,borderRadius:"50%",background:"var(--sd-accent)" }}/>}</div><div><div style={{ fontSize:13,fontWeight:700,color:"var(--sd-text)" }}>{f.label}</div><div style={{ fontSize:11,color:"var(--sd-muted)" }}>{f.desc}</div></div></label>))}</div>{feeType==="flat"&&(<div className="sd-form-group"><label className="sd-label">Flat Delivery Fee (GHS)</label><div style={{ display:"flex",alignItems:"center",border:"1.5px solid var(--sd-border)",borderRadius:10,overflow:"hidden",background:"var(--sd-bg)" }}><span style={{ padding:"0 12px",fontSize:13,fontWeight:700,color:"var(--sd-muted)",borderRight:"1px solid var(--sd-border)",lineHeight:"42px" }}>GHS</span><input type="number" value={flatFee} onChange={e=>setFlatFee(e.target.value)} min="0" style={{ border:"none",background:"transparent",padding:"10px 13px",fontSize:14,fontWeight:700,color:"var(--sd-text)",outline:"none",fontFamily:"var(--sd-font)",width:120 }}/></div></div>)}{feeType==="threshold"&&(<div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}><div className="sd-form-group"><label className="sd-label">Fee below threshold (GHS)</label><div style={{ display:"flex",alignItems:"center",border:"1.5px solid var(--sd-border)",borderRadius:10,overflow:"hidden",background:"var(--sd-bg)" }}><span style={{ padding:"0 10px",fontSize:13,fontWeight:700,color:"var(--sd-muted)",borderRight:"1px solid var(--sd-border)",lineHeight:"42px" }}>GHS</span><input type="number" value={flatFee} onChange={e=>setFlatFee(e.target.value)} min="0" style={{ border:"none",background:"transparent",padding:"10px 13px",fontSize:14,fontWeight:700,color:"var(--sd-text)",outline:"none",fontFamily:"var(--sd-font)" }}/></div></div><div className="sd-form-group"><label className="sd-label">Free above (GHS)</label><div style={{ display:"flex",alignItems:"center",border:"1.5px solid var(--sd-border)",borderRadius:10,overflow:"hidden",background:"var(--sd-bg)" }}><span style={{ padding:"0 10px",fontSize:13,fontWeight:700,color:"var(--sd-muted)",borderRight:"1px solid var(--sd-border)",lineHeight:"42px" }}>GHS</span><input type="number" value={threshold} onChange={e=>setThreshold(e.target.value)} min="0" style={{ border:"none",background:"transparent",padding:"10px 13px",fontSize:14,fontWeight:700,color:"var(--sd-text)",outline:"none",fontFamily:"var(--sd-font)" }}/></div></div></div>)}</div>)}<div className="sd-panel" style={{ marginBottom:16 }}><div style={{ fontSize:12,fontWeight:700,color:"var(--sd-muted)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:4 }}>Delivery Zones</div><div style={{ fontSize:12,color:"var(--sd-muted)",marginBottom:14 }}>Select regions you deliver to.</div><div style={{ display:"flex",flexWrap:"wrap",gap:7 }}>{GH_REGIONS.map(r=>(<button key={r} onClick={()=>toggleZone(r)} style={{ padding:"7px 13px",borderRadius:100,border:`1.5px solid ${zones.includes(r)?"var(--sd-accent)":"var(--sd-border)"}`,background:zones.includes(r)?"var(--sd-accent)":"var(--sd-bg)",color:zones.includes(r)?"#fff":"var(--sd-text)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"var(--sd-font)",transition:"all 0.12s" }}>{r}</button>))}</div></div><div className="sd-panel" style={{ marginBottom:20 }}><div style={{ fontSize:12,fontWeight:700,color:"var(--sd-muted)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:14 }}>Order Settings</div><div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14 }}><div className="sd-form-group" style={{ marginBottom:0 }}><label className="sd-label">Same-day cut-off time</label><input type="time" value={cutoff} onChange={e=>setCutoff(e.target.value)} className="sd-input"/></div><div className="sd-form-group" style={{ marginBottom:0 }}><label className="sd-label">Min. order amount (GHS)</label><div style={{ display:"flex",alignItems:"center",border:"1.5px solid var(--sd-border)",borderRadius:8,overflow:"hidden",background:"var(--sd-bg)" }}><span style={{ padding:"0 10px",fontSize:13,fontWeight:700,color:"var(--sd-muted)",borderRight:"1px solid var(--sd-border)",lineHeight:"42px" }}>GHS</span><input type="number" value={minOrder} onChange={e=>setMinOrder(e.target.value)} min="0" style={{ border:"none",background:"transparent",padding:"10px 13px",fontSize:14,fontWeight:700,color:"var(--sd-text)",outline:"none",fontFamily:"var(--sd-font)" }}/></div></div></div></div>{saved&&(<div style={{ padding:"10px 14px",borderRadius:8,background:"rgba(21,128,61,0.08)",border:"1px solid rgba(21,128,61,0.2)",color:"#15803d",fontSize:13,fontWeight:600,marginBottom:14,display:"flex",alignItems:"center",gap:8 }}><Ico d={IC.check} size={15} color="#15803d" sw={2.5}/>Delivery settings saved.</div>)}<button className="sd-btn sd-btn-primary" onClick={handleSave} disabled={saving}>{saving?"Saving…":"Save Delivery Settings"}</button></div>);
+// ── PAYMENT PREFERENCES TAB ──
+function PaymentPreferencesTab() {
+  const { user } = useAuth();
+  const { storeId, shop } = useSellerAuth();
+  const shopDocId = storeId || user?.uid;
+  const [paymentTypes, setPaymentTypes] = useState(["paystack", "cod"]);
+  const [loading, setLoading]   = useState(true);
+  const [saving,  setSaving]    = useState(false);
+  const [saved,   setSaved]     = useState(false);
+  const [error,   setError]     = useState("");
+
+  useEffect(() => {
+    if (!shopDocId) { setLoading(false); return; }
+    getDoc(doc(db, "shops", shopDocId))
+      .then(snap => {
+        if (snap.exists()) {
+          const pt = snap.data().paymentTypes;
+          if (Array.isArray(pt) && pt.length > 0) setPaymentTypes(pt);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [shopDocId]);
+
+  const OPTIONS = [
+    {
+      id: "both",
+      label: "Both — Paystack & Pay on Delivery",
+      desc: "Buyers choose their preferred payment method at checkout.",
+      icon: IC.verify,
+      color: "#22C55E",
+    },
+    {
+      id: "paystack",
+      label: "Paystack Only",
+      desc: "Card, bank transfer, and mobile money via Paystack. No cash on delivery.",
+      icon: IC.lock,
+      color: "#046EF2",
+    },
+    {
+      id: "cod",
+      label: "Pay on Delivery Only",
+      desc: "Buyers pay cash or MoMo when the order arrives. No online payment.",
+      icon: IC.truck,
+      color: "#F59E0B",
+    },
+  ];
+
+  const selected = paymentTypes.includes("paystack") && paymentTypes.includes("cod")
+    ? "both"
+    : paymentTypes.includes("paystack") ? "paystack"
+    : paymentTypes.includes("cod") ? "cod"
+    : "both";
+
+  const handleSelect = (val) => {
+    if (val === "both") setPaymentTypes(["paystack", "cod"]);
+    else setPaymentTypes([val]);
+  };
+
+  const handleSave = async () => {
+    setSaving(true); setError(""); setSaved(false);
+    try {
+      const { updateDoc } = await import("firebase/firestore");
+      await updateDoc(doc(db, "shops", shopDocId), {
+        paymentTypes,
+        updatedAt: serverTimestamp(),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e) {
+      setError("Failed to save. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div style={{ padding:"40px 0", color:"var(--sd-muted)", fontSize:14 }}>Loading…</div>;
+
+  return (
+    <div style={{ maxWidth: 560 }}>
+      <h2 className="ds-content-title">Payment Preferences</h2>
+      <p className="ds-content-sub">
+        Choose which payment methods buyers can use at checkout for your products.
+      </p>
+
+      <div className="sd-panel" style={{ marginBottom: 16 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:"var(--sd-muted)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:14 }}>
+          Accepted Payment Methods
+        </div>
+
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {OPTIONS.map(opt => (
+            <label key={opt.id}
+              onClick={() => handleSelect(opt.id)}
+              style={{
+                display:"flex", alignItems:"center", gap:14, padding:"14px 16px",
+                borderRadius:12, border:`1.5px solid ${selected===opt.id?"var(--sd-accent)":"var(--sd-border)"}`,
+                background:selected===opt.id?"var(--sd-accent-dim)":"var(--sd-bg)",
+                cursor:"pointer", transition:"all 0.12s",
+                boxShadow:selected===opt.id?"0 0 0 3px rgba(124,58,237,0.08)":"none",
+              }}>
+              {/* Icon */}
+              <div style={{
+                width:42, height:42, borderRadius:11,
+                background:selected===opt.id?`${opt.color}18`:"var(--sd-white)",
+                border:`1px solid ${selected===opt.id?opt.color:"var(--sd-border)"}`,
+                display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0,
+                transition:"all 0.12s",
+              }}>
+                <Ico d={opt.icon} size={18} color={selected===opt.id?opt.color:"var(--sd-muted)"}/>
+              </div>
+              {/* Text */}
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:14, fontWeight:800, color:"var(--sd-text)", marginBottom:3 }}>
+                  {opt.label}
+                </div>
+                <div style={{ fontSize:12, color:"var(--sd-muted)", lineHeight:1.5 }}>
+                  {opt.desc}
+                </div>
+              </div>
+              {/* Radio dot */}
+              <div style={{
+                width:20, height:20, borderRadius:"50%", flexShrink:0,
+                border:`2px solid ${selected===opt.id?"var(--sd-accent)":"var(--sd-border)"}`,
+                display:"flex", alignItems:"center", justifyContent:"center",
+                background:selected===opt.id?"var(--sd-accent-dim)":"transparent",
+                transition:"all 0.12s",
+              }}>
+                {selected===opt.id && (
+                  <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--sd-accent)" }}/>
+                )}
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Info box */}
+      <div style={{
+        padding:"14px 16px", borderRadius:12,
+        background:"rgba(4,110,242,0.05)", border:"1px solid rgba(4,110,242,0.15)",
+        display:"flex", alignItems:"flex-start", gap:10, marginBottom:20,
+      }}>
+        <Ico d={IC.info} size={16} color="#046EF2"/>
+        <div style={{ fontSize:12, color:"var(--sd-text)", lineHeight:1.65 }}>
+          {selected === "both"
+            ? "Buyers will see both Paystack and Pay on Delivery at checkout and can choose freely."
+            : selected === "paystack"
+              ? "Only Paystack will appear at checkout. Pay on Delivery will be hidden for your products."
+              : "Only Pay on Delivery will appear. Paystack will be hidden for your products."}
+        </div>
+      </div>
+
+      {error && (
+        <div style={{ padding:"10px 14px", borderRadius:8, background:"var(--sd-danger-bg)", color:"var(--sd-danger)", fontSize:13, fontWeight:600, marginBottom:14 }}>
+          {error}
+        </div>
+      )}
+      {saved && (
+        <div style={{ padding:"10px 14px", borderRadius:8, background:"rgba(21,128,61,0.08)", border:"1px solid rgba(21,128,61,0.2)", color:"#15803d", fontSize:13, fontWeight:600, marginBottom:14, display:"flex", alignItems:"center", gap:8 }}>
+          <Ico d={IC.check} size={15} color="#15803d" sw={2.5}/>
+          Payment preferences saved.
+        </div>
+      )}
+
+      <button className="sd-btn sd-btn-primary" onClick={handleSave} disabled={saving}>
+        {saving ? "Saving…" : "Save Payment Preferences"}
+      </button>
+    </div>
+  );
 }
 
 // ── AI CAPABILITIES TAB ──
@@ -190,7 +356,7 @@ const SECTIONS = [
     { id:"verification", label:"Verification",      icon:IC.verify  },
   ]},
   { group:"Store", items:[
-    { id:"delivery",     label:"Delivery Settings", icon:IC.truck   },
+    { id:"payment",      label:"Payment Preferences", icon:IC.lock  },
     { id:"ai",           label:"AI Capabilities",   icon:IC.sparkle },
   ]},
   { group:"Preferences", items:[
@@ -204,7 +370,7 @@ const SECTIONS = [
 const TAB_CONTENT = {
   security:     <SecurityTab/>,
   verification: <VerificationTab/>,
-  delivery:     <DeliveryTab/>,
+  payment:      <PaymentPreferencesTab/>,
   ai:           <AICapabilitiesTab/>,
   preferences:  <PreferencesTab/>,
   delete:       <DeleteAccountTab/>,
