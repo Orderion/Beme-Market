@@ -71,6 +71,8 @@ const EMPTY_FORM = {
   name:"", description:"", images:[], price:"", comparePrice:"", stock:"",
   sku:"", category:"", subcategory:"", status:"active",
   inStock:true, featured:false, trackInventory:true, lowStockAlert:"", customizations:[],
+  paymentType:"both",       // "paystack_only" | "cod_allowed" | "both"
+  deliveryMethod:"self",    // "self" | "beme" | "both"
 };
 
 function makeOptVal()   { return { id: crypto.randomUUID(), label: "", priceBump: "" }; }
@@ -455,6 +457,8 @@ export default function DashboardProductDetail() {
             })):[],
             sku:p.sku||"",category:p.category||"",subcategory:p.subcategory||"",
             status:p.status||"active",inStock:p.inStock!==false,featured:!!p.featured,
+            paymentType:p.paymentType||"both",
+            deliveryMethod:p.deliveryMethod||"self",
           });
         }
       } catch(e) { console.error(e); }
@@ -541,6 +545,8 @@ export default function DashboardProductDetail() {
         status:form.status, inStock:form.inStock, trackInventory:form.trackInventory,
         lowStockAlert:form.trackInventory&&form.lowStockAlert!==""?Number(form.lowStockAlert):null,
         featured:form.featured,
+        paymentType:form.paymentType||"both",
+        deliveryMethod:form.deliveryMethod||"self",
       };
       const eff = { storeId:storeId||user.uid, shopName:shop?.shopName||"", plan:subscriptionPlan||"basic" };
       if (isNew) await addSellerProduct(user.uid, eff.storeId, eff.shopName, eff.plan, payload);
@@ -812,6 +818,56 @@ export default function DashboardProductDetail() {
             </Section>
 
             {/* Options */}
+            
+            {/* ── Payment & Delivery Settings ── */}
+            <Section title="Payment & Delivery" subtitle="Control how buyers pay and how orders are delivered.">
+
+              <Field label="Accepted Payment Methods">
+                <div className="dpd-2col" style={{ marginBottom:0 }}>
+                  {[
+                    { v:"both",          label:"Paystack + Pay on Delivery", sub:"Buyers choose at checkout" },
+                    { v:"paystack_only", label:"Paystack Only",              sub:"Card, bank, MoMo via Paystack" },
+                    { v:"cod_allowed",   label:"Pay on Delivery Only",       sub:"Cash or MoMo on arrival" },
+                  ].map(o => (
+                    <label key={o.v} onClick={()=>setForm(f=>({...f,paymentType:o.v}))}
+                      className="dpd-status-radio"
+                      style={{ borderColor:form.paymentType===o.v?"var(--sd-accent)":"var(--sd-border)", background:form.paymentType===o.v?"var(--sd-accent-dim)":"transparent" }}>
+                      <div className="dpd-radio-dot" style={{ borderColor:form.paymentType===o.v?"var(--sd-accent)":"var(--sd-border)" }}>
+                        {form.paymentType===o.v&&<div style={{ width:8,height:8,borderRadius:"50%",background:"var(--sd-accent)" }}/>}
+                      </div>
+                      <div>
+                        <div style={{ fontSize:13,fontWeight:700,color:form.paymentType===o.v?"var(--sd-accent)":"var(--sd-text)" }}>{o.label}</div>
+                        <div style={{ fontSize:11,color:"var(--sd-muted)" }}>{o.sub}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </Field>
+
+              <Field label="Delivery Method" hint="Controls which delivery options buyers see at checkout for this product.">
+                <div className="dpd-2col" style={{ marginBottom:0 }}>
+                  {[
+                    { v:"self", label:"Self Delivery",     sub:"You arrange and ship it" },
+                    { v:"beme", label:"Beme Delivery",      sub:"Courier partners (Growth+ plan)" },
+                    { v:"both", label:"Both Options",       sub:"Buyer chooses at checkout" },
+                  ].map(o => (
+                    <label key={o.v} onClick={()=>setForm(f=>({...f,deliveryMethod:o.v}))}
+                      className="dpd-status-radio"
+                      style={{ borderColor:form.deliveryMethod===o.v?"var(--sd-accent)":"var(--sd-border)", background:form.deliveryMethod===o.v?"var(--sd-accent-dim)":"transparent" }}>
+                      <div className="dpd-radio-dot" style={{ borderColor:form.deliveryMethod===o.v?"var(--sd-accent)":"var(--sd-border)" }}>
+                        {form.deliveryMethod===o.v&&<div style={{ width:8,height:8,borderRadius:"50%",background:"var(--sd-accent)" }}/>}
+                      </div>
+                      <div>
+                        <div style={{ fontSize:13,fontWeight:700,color:form.deliveryMethod===o.v?"var(--sd-accent)":"var(--sd-text)" }}>{o.label}</div>
+                        <div style={{ fontSize:11,color:"var(--sd-muted)" }}>{o.sub}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </Field>
+
+            </Section>
+
             <Section title="Product Options" subtitle="Add size, color, storage, or any variant buyers can choose.">
               {form.customizations.length > 0 && (
                 <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:14 }}>

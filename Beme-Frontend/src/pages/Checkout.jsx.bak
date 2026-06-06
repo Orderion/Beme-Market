@@ -126,7 +126,6 @@ function buildSafeCartItems(items){
     inStock:i.inStock!==false,stock:getNumericStock(i),
     storeId:sanitizeText(i.storeId||"",80),
     sellerDeliveryMethod:sanitizeText(i.sellerDeliveryMethod||"",20),
-    paymentType:sanitizeText(i.paymentType||"both",20),
   }));
 }
 function isOrderPaid(o){
@@ -479,39 +478,30 @@ export default function Checkout() {
 
   /* ── Build delivery payload with normalized type the server expects ── */
   const buildDeliveryPayload = () => {
-    const isSellerDirect =
-      delivery.method === SELLER_DIRECT_ID || delivery.method === "seller_direct";
+    const isSellerDirect = delivery.method === SELLER_DIRECT_ID;
     const provider = selectedProvider;
 
-    // Map to what backend accepts:
-    //   courier → "home_delivery"
-    //   seller arranges → "self_delivery"
-    let backendMethod;
+    // Normalize type to what server expects: "courier" | "self" | "beme_self"
+    let deliveryType;
     if (isSellerDirect) {
-      backendMethod = "self_delivery";
+      deliveryType = "self"; // seller arranges it
     } else if (provider) {
-      backendMethod = "home_delivery";
+      deliveryType = "courier"; // third-party courier
     } else {
-      backendMethod = "self_delivery";
+      deliveryType = "self";
     }
 
     return {
-      method:   backendMethod,          // ← backend validates this
-      provider: provider?.name || (isSellerDirect ? "Seller" : ""),
-      label:    provider
-        ? `${provider.name} Delivery`
-        : isSellerDirect ? "Seller Arranged Delivery" : "Seller Delivery",
+      type:     deliveryType,          // ← what backend validates
+      method:   delivery.method,       // raw selection (cheetah / seller_direct / etc)
+      provider: provider?.name || (isSellerDirect ? "Seller Arranged" : ""),
+      label:    provider ? `${provider.name} Delivery` : (isSellerDirect ? "Seller Arranged Delivery" : ""),
       fee:      deliveryFeeUI,
       isBeme:   !isSellerDirect,
       region:   form.region,
       eta:      provider ? getProviderEta(provider, form.region) : "",
-      breakdown: {
-        courierFee:     courierFeeUI,
-        abroadFee:      abroadFeeUI,
-        sellerArranged: isSellerDirect,
-      },
+      breakdown:{ courierFee:courierFeeUI, abroadFee:abroadFeeUI, sellerArranged:isSellerDirect },
     };
-  };
   };
 
   const buildOrderPayload = (paymentMethod) => {
@@ -975,3 +965,4 @@ export default function Checkout() {
       />
     </div>
   );
+}
