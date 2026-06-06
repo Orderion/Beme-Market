@@ -124,7 +124,7 @@ function buildSafeCartItems(items){
     customizations:Array.isArray(i.customizations)?i.customizations:[],
     shipsFromAbroad:i.shipsFromAbroad===true,abroadDeliveryFee:getItemAbroadFee(i),
     inStock:i.inStock!==false,stock:getNumericStock(i),
-    storeId:sanitizeText(i.storeId||i.shopId||i.sellerId||"",80),
+    storeId:sanitizeText(i.storeId||"",80),
     sellerDeliveryMethod:sanitizeText(i.sellerDeliveryMethod||"",20),
     paymentType:sanitizeText(i.paymentType||"both",20),
   }));

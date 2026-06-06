@@ -146,23 +146,30 @@ export async function uploadStoreImage(uid, file, type = "logo") {
 
 // ─── ORDERS (seller view) ────────────────────────────────────
 export async function getSellerOrders(shopId, limitCount = 100) {
-  try {
-    const snap = await getDocs(
-      query(
-        collection(db, "orders"),
-        where("shops", "array-contains", shopId),
-        orderBy("createdAt", "desc"),
-        limit(limitCount)
-      )
-    );
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  } catch {
-    // Fallback without orderBy if composite index not built
-    const snap = await getDocs(
-      query(collection(db, "orders"), where("shops", "array-contains", shopId), limit(limitCount))
-    );
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  }
+  const results = new Map();
+
+  const runQuery = async (q) => {
+    try {
+      const snap = await getDocs(q);
+      snap.docs.forEach((d) => { if (!results.has(d.id)) results.set(d.id, { id: d.id, ...d.data() }); });
+    } catch {}
+  };
+
+  // Query 1: shops array contains the storeId (new orders)
+  await runQuery(query(collection(db, "orders"), where("shops", "array-contains", shopId), limit(limitCount)));
+
+  // Query 2: primaryShop field matches (some orders use this)
+  await runQuery(query(collection(db, "orders"), where("primaryShop", "==", shopId), limit(limitCount)));
+
+  // Query 3: sellerId field (if orders store sellerId directly)
+  await runQuery(query(collection(db, "orders"), where("sellerId", "==", shopId), limit(limitCount)));
+
+  // Sort by createdAt descending
+  return Array.from(results.values()).sort((a, b) => {
+    const ta = a.createdAt?.toMillis?.() || a.createdAt || 0;
+    const tb = b.createdAt?.toMillis?.() || b.createdAt || 0;
+    return tb - ta;
+  }).slice(0, limitCount);
 }
 
 // ─── STORE APPLICATION ───────────────────────────────────────
