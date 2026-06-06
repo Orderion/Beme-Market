@@ -3,7 +3,6 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaCh
 import { collection, query, where, getDocs, orderBy, limit, Timestamp } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
-import { useChat } from "../../hooks/useChat";
 import { useAuth } from "../../context/AuthContext";
 import TutorialOverlay from "../../components/ai/TutorialOverlay";
 import { TUTORIAL_STEPS } from "../../components/ai/tutorialSteps";
@@ -69,7 +68,23 @@ export default function DashboardHome({ onNav }) {
   const { showTutorial, markSeen }          = useTutorial("home");
   const { user }                            = useAuth();
   const { shop, storeId, subscriptionPlan } = useSellerAuth();
-  const { totalUnread } = useChat();
+  // Lightweight unread count — direct query, no hook dependency
+  const [totalUnread, setTotalUnread] = useState(0);
+  useEffect(() => {
+    const sid = storeId || shop?.id;
+    if (!sid) return;
+    let alive = true;
+    import("firebase/firestore").then(({ collection, query, where, getDocs }) => {
+      getDocs(query(
+        collection(db, "chats"),
+        where("storeId",        "==",    sid),
+        where("sellerUnread",   ">",     0)
+      ))
+      .then(snap => { if (alive) setTotalUnread(snap.size); })
+      .catch(() => {});
+    });
+    return () => { alive = false; };
+  }, [storeId, shop?.id]);
   const [orders,    setOrders]    = useState([]);
   const [lastOrds,  setLastOrds]  = useState([]);
   const [loading,   setLoading]   = useState(true);
