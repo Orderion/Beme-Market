@@ -677,15 +677,17 @@ router.post("/", async (req, res) => {
     );
 
     const pricing = buildReviewPricing(rawPricing, lineItems);
-    const shops = Array.from(
-      new Set(lineItems.map((item) => normalizeShopKey(item.shop)).filter(Boolean))
-    );
-    // Also collect storeIds for seller dashboard queries
+    // Collect storeIds first — this is what seller dashboard queries by
     const storeIds = Array.from(
       new Set(lineItems.map((item) => (item.storeId || item.shopId || "").trim()).filter(Boolean))
     );
-    // Merge shops + storeIds so getSellerOrders finds orders by either
-    const allShopRefs = Array.from(new Set([...shops, ...storeIds]));
+    // Also keep shop slugs for backward compat
+    const shopSlugs = Array.from(
+      new Set(lineItems.map((item) => normalizeShopKey(item.shop)).filter(Boolean))
+    );
+    // storeId goes first so primaryShop matches seller's storeId
+    const allShopRefs = Array.from(new Set([...storeIds, ...shopSlugs]));
+    const shops = allShopRefs;
 
     const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
     const initialState = createInitialCodState();
@@ -711,7 +713,7 @@ router.post("/", async (req, res) => {
       delivery,
       items: lineItems,
       shops: allShopRefs,
-      primaryShop: storeIds[0] || shops[0] || "main",
+      primaryShop: storeIds[0] || shopSlugs[0] || "main",
       storeId: storeIds[0] || null,
       sellerId: storeIds[0] || null,
       pricing,
