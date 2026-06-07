@@ -44,25 +44,37 @@ export function useAnalyticsData(periodDays = 7) {
     if (!sellerId) { setLoading(false); return; }
     const { start } = dateRange(periodDays);
     setLoading(true);
+    (async () => {
+    // Query by shopOwnerId (seller's Firebase auth uid stored on order)
+    const results = new Map();
 
-    const q = query(
-      collection(db, "orders"),
-      where("shops", "array-contains", sellerId),
-      orderBy("createdAt", "desc")
-    );
+    const runQ = async (q) => {
+      try {
+        const snap = await getDocs(q);
+        snap.docs.forEach(d => {
+          if (!results.has(d.id)) results.set(d.id, { id: d.id, ...d.data() });
+        });
+      } catch (e) {
+        console.warn("[useAnalyticsData] query failed:", e?.code);
+      }
+    };
 
-    getDocs(q).then(snap => {
-      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setOrders(all.filter(o => {
-        const ts = o.createdAt?.toMillis?.() || o.createdAt?.seconds * 1000 || 0;
-        return ts >= start.getTime();
-      }));
-      setLoading(false);
-    }).catch(e => {
-      console.error("[useAnalyticsData] orders:", e);
-      setLoading(false);
-    });
-  }, [sellerId, periodDays]);
+    await runQ(query(collection(db, "orders"), where("shopOwnerId", "==", sellerId)));
+
+    // Also try shop.id if different from uid
+    const shopId = shop?.id;
+    if (shopId && shopId !== sellerId) {
+      await runQ(query(collection(db, "orders"), where("shopOwnerId", "==", shopId)));
+    }
+
+    const all = Array.from(results.values());
+    setOrders(all.filter(o => {
+      const ts = o.createdAt?.toMillis?.() || (o.createdAt?.seconds || 0) * 1000 || 0;
+      return ts >= start.getTime();
+    }));
+    setLoading(false);
+    })();
+  }, [sellerId, shop?.id, periodDays]);
 
   /* ── Fetch daily tracking (visits, productViews) ── */
   useEffect(() => {
