@@ -17,7 +17,7 @@ function assertBaseUrl() {
   }
 }
 
-function waitForAuthReady(timeoutMs = 8000) {
+function waitForAuthReady(timeoutMs = 12000) {
   return new Promise((resolve, reject) => {
     if (auth.currentUser) {
       resolve(auth.currentUser);
@@ -146,7 +146,7 @@ async function request(path, options = {}, authRequired = false, forceRefresh = 
   assertBaseUrl();
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const timeout = setTimeout(() => controller.abort(), 60000);
 
   try {
     const authHeaders = await getAuthHeaders(authRequired, forceRefresh);
