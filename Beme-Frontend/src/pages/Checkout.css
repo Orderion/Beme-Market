@@ -1680,3 +1680,73 @@ body.dark .co-refund-banner__body p {
   line-height: 1.5;
   font-weight: 500;
 }
+/* =============================================
+   CHECKOUT MOBILE FIX
+   Append to bottom of Checkout.css
+============================================= */
+
+/* Force box-sizing everywhere in checkout */
+.co-page, .co-page *, .co-page *::before, .co-page *::after {
+  box-sizing: border-box;
+}
+
+/* Wrap never overflows viewport */
+.co-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* All inputs fill container, never overflow */
+.co-input {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Section never overflows */
+.co-section {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* ── Mobile: single column everything ── */
+@media (max-width: 640px) {
+  /* First name / Last name → stack */
+  .co-row2 {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+
+  /* Courier cards → single column on small screens */
+  .co-del-grid--couriers {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Discount row → stack */
+  .co-discount-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .co-discount-input { width: 100%; min-width: 0; }
+  .co-discount-btn   { width: 100%; height: 44px; }
+
+  /* Steps: hide label text to prevent overflow */
+  .co-step__label { display: none; }
+
+  /* Pay cards full width */
+  .co-pay-card { width: 100%; }
+
+  /* Tighter wrap padding */
+  .co-wrap { padding-left: 12px; padding-right: 12px; }
+}
+
+@media (max-width: 380px) {
+  .co-del-grid--couriers {
+    grid-template-columns: 1fr !important;
+  }
+  .co-wrap { padding-left: 10px; padding-right: 10px; }
+  .co-section { padding: 12px 10px; }
+}
