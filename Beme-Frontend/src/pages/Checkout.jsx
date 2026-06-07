@@ -511,6 +511,7 @@ export default function Checkout() {
   };
 
 const buildOrderPayload = (paymentMethod) => {
+    const shopOwnerId = cartItems.find(i => i.sellerId)?.sellerId || null;
     const items = safeCartItems.map(item=>({
       id:item.id||"",productId:item.productId||item.id||"",name:item.name||"",
       price:Number(item.price)||0,basePrice:Number(item.basePrice??item.price??0)||0,
@@ -542,7 +543,7 @@ const buildOrderPayload = (paymentMethod) => {
         total:totalUI,currency:"GHS",
       },
       paymentMethod,paymentStatus:"pending",
-      status:paymentMethod==="cod"?"pending":"pending_payment",source:"web",
+      status:paymentMethod==="cod"?"pending":"pending_payment",source:"web",shopOwnerId,
     };
   };
 
