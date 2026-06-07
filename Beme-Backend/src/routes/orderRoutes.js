@@ -717,6 +717,8 @@ router.post("/", async (req, res) => {
       storeId: storeIds[0] || null,
       sellerId: storeIds[0] || null,
       shopOwnerId: req.body?.shopOwnerId || null,
+      progressStep:   -1,
+      progressStages: [],
       pricing,
       paymentMethod: "cod",
       paymentStatus: "pending",
