@@ -590,6 +590,8 @@ function sanitizeOrderForResponse(docSnap) {
     supplierTrackingUrl: data.supplierTrackingUrl || "",
     reviewFlags: Array.isArray(data.reviewFlags) ? data.reviewFlags : [],
     stockCheckSummary: data.stockCheckSummary || null,
+    progressStep:   typeof data.progressStep === "number" ? data.progressStep : -1,
+    progressStages: Array.isArray(data.progressStages) ? data.progressStages : [],
   };
 }
 
