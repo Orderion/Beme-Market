@@ -446,6 +446,8 @@ function normalizeIncomingItems(items) {
         shipsFrom: sanitizeOptionalText(item?.shipsFrom, 120),
         supplierApiType: normalizeSupplierType(item?.supplierApiType),
         syncEnabled: item?.syncEnabled !== false,
+        storeId: String(item?.storeId || item?.shopId || "").trim(),
+        shopId:  String(item?.shopId  || item?.storeId || "").trim(),
       };
     })
     .filter((item) => item.id)
@@ -795,8 +797,12 @@ router.post("/checkout/init", async (req, res) => {
     const orderRef = adminDb.collection("orders").doc();
     const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
 
+    // Collect storeIds from items (seller's shop doc ID)
+    const storeIds = Array.from(
+      new Set(lineItems.map((item) => (item.storeId || item.shopId || "").trim()).filter(Boolean))
+    );
     const shops = Array.from(
-      new Set(lineItems.map((item) => normalizeShopKey(item.shop)).filter(Boolean))
+      new Set([...storeIds, ...lineItems.map((item) => normalizeShopKey(item.shop)).filter(Boolean)])
     );
 
     const rawPricing = {
@@ -864,7 +870,10 @@ router.post("/checkout/init", async (req, res) => {
       },
       items: lineItems,
       shops,
-      primaryShop: shops[0] || "main",
+      primaryShop: storeIds[0] || shops[0] || "main",
+      storeId: storeIds[0] || null,
+      sellerId: storeIds[0] || null,
+      shopOwnerId: req.body?.shopOwnerId || null,
 
       fulfillmentStatus: initialState.fulfillmentStatus,
       supplierPushStatus: initialState.supplierPushStatus,

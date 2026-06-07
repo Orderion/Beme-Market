@@ -149,30 +149,16 @@ export async function getSellerOrders(shopId, limitCount = 100) {
   if (!shopId) return [];
   const results = new Map();
 
-  const tryQuery = async (label, q) => {
-    try {
-      const snap = await getDocs(q);
-      snap.docs.forEach((d) => {
-        if (!results.has(d.id)) results.set(d.id, { id: d.id, ...d.data() });
-      });
-      console.log(`[getSellerOrders] ${label}: ${snap.size} results`);
-    } catch (e) {
-      console.warn(`[getSellerOrders] ${label} failed:`, e?.code, e?.message);
-    }
-  };
-
-  // Primary query — uses shopOwnerId field stored on order (seller's auth uid)
-  // This works for collection queries without needing get() in Firestore rules
-  await tryQuery(
-    'shopOwnerId ==',
-    query(collection(db, "orders"), where("shopOwnerId", "==", shopId), limit(limitCount))
-  );
-
-  // Fallback — shops array contains the shop doc ID (for orders that have it)
-  await tryQuery(
-    'shops array-contains',
-    query(collection(db, "orders"), where("shops", "array-contains", shopId), limit(limitCount))
-  );
+  try {
+    // Query by shopOwnerId — seller's Firebase auth uid stored on order at creation
+    const snap = await getDocs(
+      query(collection(db, "orders"), where("shopOwnerId", "==", shopId), limit(limitCount))
+    );
+    snap.docs.forEach((d) => results.set(d.id, { id: d.id, ...d.data() }));
+    console.log("[getSellerOrders] shopOwnerId ==:", snap.size, "results");
+  } catch (e) {
+    console.warn("[getSellerOrders] query failed:", e?.code, e?.message);
+  }
 
   return Array.from(results.values()).sort((a, b) => {
     const ta = a.createdAt?.toMillis?.() || 0;
