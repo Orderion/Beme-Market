@@ -161,19 +161,18 @@ export async function getSellerOrders(shopId, limitCount = 100) {
     }
   };
 
-  // Query by shops array — order contains seller's shop.id
+  // Primary query — uses shopOwnerId field stored on order (seller's auth uid)
+  // This works for collection queries without needing get() in Firestore rules
+  await tryQuery(
+    'shopOwnerId ==',
+    query(collection(db, "orders"), where("shopOwnerId", "==", shopId), limit(limitCount))
+  );
+
+  // Fallback — shops array contains the shop doc ID (for orders that have it)
   await tryQuery(
     'shops array-contains',
     query(collection(db, "orders"), where("shops", "array-contains", shopId), limit(limitCount))
   );
-
-  // Query by primaryShop field
-  await tryQuery(
-    'primaryShop ==',
-    query(collection(db, "orders"), where("primaryShop", "==", shopId), limit(limitCount))
-  );
-
-  // NOTE: No userId fallback — that matches buyer orders, not seller orders
 
   return Array.from(results.values()).sort((a, b) => {
     const ta = a.createdAt?.toMillis?.() || 0;
