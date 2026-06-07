@@ -1,3 +1,84 @@
+#!/bin/bash
+# Fix: store ownerId on order so Firestore rules can check without get()
+# Run from: C:\Users\user\Documents\Beme Project\
+
+ROOT="/c/Users/user/Documents/Beme Project"
+cd "$ROOT"
+
+# ── 1. Backend: save ownerId on every order ──
+node << 'NODEEOF'
+const fs = require('fs');
+
+// Fix orderRoutes.js (COD)
+const codPath = 'Beme-Backend/src/routes/orderRoutes.js';
+let cod = fs.readFileSync(codPath, 'utf8');
+
+// Add ownerId to payload — get it from the shop doc
+// The shops array already has the shop ID as first element
+// We need to look up the shop to get ownerId
+// Simplest: the seller uid IS the ownerId — we need to pass it from frontend
+
+// Actually the order already has userId = buyer uid
+// We need shopOwnerId = seller uid
+// Frontend must send it in the payload
+
+// Add shopOwnerId to orderAllowedCreateKeys check in rules
+// And save it from the lineItems storeId
+
+cod = cod.replace(
+  `      storeId: storeIds[0] || null,
+      sellerId: storeIds[0] || null,`,
+  `      storeId: storeIds[0] || null,
+      sellerId: storeIds[0] || null,
+      shopOwnerId: req.body?.shopOwnerId || null,`
+);
+
+fs.writeFileSync(codPath, cod, 'utf8');
+console.log('✅ orderRoutes.js: shopOwnerId saved on COD order');
+
+// Fix paystack.js (Paystack orders)
+const psPath = 'Beme-Backend/src/routes/paystack.js';
+if (fs.existsSync(psPath)) {
+  let ps = fs.readFileSync(psPath, 'utf8');
+  // Find where order payload is built and add shopOwnerId
+  ps = ps.replace(
+    /sellerId:\s*storeIds\[0\]\s*\|\|\s*null,/,
+    `sellerId: storeIds[0] || null,
+      shopOwnerId: req.body?.shopOwnerId || null,`
+  );
+  fs.writeFileSync(psPath, ps, 'utf8');
+  console.log('✅ paystack.js: shopOwnerId saved on Paystack order');
+}
+NODEEOF
+
+# ── 2. Frontend: send shopOwnerId (seller's auth uid) in order payload ──
+node << 'NODEEOF'
+const fs = require('fs');
+const path = 'Beme-Frontend/src/pages/Checkout.jsx';
+let src = fs.readFileSync(path, 'utf8');
+
+// Add shopOwnerId to buildOrderPayload
+// The seller's uid comes from the product's sellerId field on cart items
+src = src.replace(
+  `function buildOrderPayload(method) {`,
+  `function buildOrderPayload(method) {
+    // shopOwnerId = the seller's Firebase auth uid (for Firestore rules)
+    const shopOwnerId = cartItems[0]?.sellerId || null;`
+);
+
+// Add shopOwnerId to the returned payload object
+src = src.replace(
+  `    source:"web",`,
+  `    source:"web",
+    shopOwnerId,`
+);
+
+fs.writeFileSync(path, src, 'utf8');
+console.log('✅ Checkout.jsx: shopOwnerId added to order payload');
+NODEEOF
+
+# ── 3. Firestore rules: use shopOwnerId field directly — no get() needed ──
+cat > firestore.rules << 'RULESEOF'
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -570,3 +651,12 @@ service cloud.firestore {
     match /{document=**} { allow read, write: if false; }
   }
 }
+RULESEOF
+
+echo "✅ firestore.rules written — $(wc -l < firestore.rules) lines"
+
+echo ""
+echo "Push:"
+echo "  git add firestore.rules Beme-Frontend/src/pages/Checkout.jsx Beme-Backend/src/routes/orderRoutes.js Beme-Backend/src/routes/paystack.js"
+echo "  git commit -m 'fix: store shopOwnerId on orders so Firestore rules can check without get()'"
+echo "  git push"

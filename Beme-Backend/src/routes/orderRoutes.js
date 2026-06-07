@@ -716,6 +716,7 @@ router.post("/", async (req, res) => {
       primaryShop: storeIds[0] || shopSlugs[0] || "main",
       storeId: storeIds[0] || null,
       sellerId: storeIds[0] || null,
+      shopOwnerId: req.body?.shopOwnerId || null,
       pricing,
       paymentMethod: "cod",
       paymentStatus: "pending",
