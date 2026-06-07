@@ -1,9 +1,20 @@
+// src/components/navigation/BottomNav.jsx
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useEffect, useRef, useState } from "react";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase";
 import "./BottomNav.css";
+
+/* ─── Routes where bottom nav should be hidden ─── */
+const HIDDEN_ROUTES = [
+  "/checkout",
+  "/order-success",
+  "/login",
+  "/register",
+  "/signup",
+  "/seller-dashboard",
+];
 
 /* ─── Icons ─── */
 function IconHome() {
@@ -72,6 +83,11 @@ export default function BottomNav() {
   const location   = useLocation();
   const { user }   = useAuth();
 
+  /* Hide on specific routes */
+  const shouldHide = HIDDEN_ROUTES.some(route =>
+    location.pathname === route || location.pathname.startsWith(route + "/")
+  );
+
   /* Unread messages count */
   const [unread, setUnread] = useState(0);
 
@@ -114,6 +130,9 @@ export default function BottomNav() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  /* Don't render at all on hidden routes */
+  if (shouldHide) return null;
 
   const scrollToTop = () => { window.scrollTo({ top: 0, behavior: "smooth" }); setNavVisible(true); };
   const isActive    = (path) => location.pathname === path;
