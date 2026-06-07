@@ -73,6 +73,8 @@ const EMPTY_FORM = {
   inStock:true, featured:false, trackInventory:true, lowStockAlert:"", customizations:[],
   paymentType:"both",       // "paystack_only" | "cod_allowed" | "both"
   deliveryMethod:"self",    // "self" | "beme" | "both"
+  progressTemplate:"standard", // "standard" | "pickup" | "custom"
+  progressStages:[],            // custom stage names (used when template === "custom")
 };
 
 function makeOptVal()   { return { id: crypto.randomUUID(), label: "", priceBump: "" }; }
@@ -459,6 +461,8 @@ export default function DashboardProductDetail() {
             status:p.status||"active",inStock:p.inStock!==false,featured:!!p.featured,
             paymentType:p.paymentType||"both",
             deliveryMethod:p.deliveryMethod||"self",
+            progressTemplate:p.progressTemplate||"standard",
+            progressStages:Array.isArray(p.progressStages)?p.progressStages:[],
           });
         }
       } catch(e) { console.error(e); }
@@ -547,6 +551,10 @@ export default function DashboardProductDetail() {
         featured:form.featured,
         paymentType:form.paymentType||"both",
         deliveryMethod:form.deliveryMethod||"self",
+        progressTemplate:form.progressTemplate||"standard",
+        progressStages:form.progressTemplate==="custom"
+          ? (form.progressStages||[]).filter(s=>s.trim())
+          : [],
       };
       const eff = { storeId:storeId||user.uid, shopName:shop?.shopName||"", plan:subscriptionPlan||"basic" };
       if (isNew) await addSellerProduct(user.uid, eff.storeId, eff.shopName, eff.plan, payload);
@@ -866,6 +874,68 @@ export default function DashboardProductDetail() {
                 </div>
               </Field>
 
+            </Section>
+
+            {/* ── Order Progress ── */}
+            <Section title="Order Progress" subtitle="Choose how delivery progress is tracked for this product.">
+              <Field label="Progress Template">
+                <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom: form.progressTemplate==="custom"?14:0 }}>
+                  {[
+                    { v:"standard", label:"Standard Delivery",   sub:"Confirmed → Packed → Out for Delivery → Delivered", stages:["Order Confirmed","Packed","Out for Delivery","Delivered"] },
+                    { v:"pickup",   label:"Pickup / Collection",  sub:"Confirmed → Ready for Pickup → Collected",          stages:["Order Confirmed","Ready for Pickup","Collected"] },
+                    { v:"custom",   label:"Custom Stages",        sub:"Define your own delivery steps",                    stages:[] },
+                  ].map(o => (
+                    <label key={o.v} onClick={()=>setForm(f=>({...f,progressTemplate:o.v,progressStages:o.stages}))}
+                      className="dpd-status-radio"
+                      style={{ borderColor:form.progressTemplate===o.v?"var(--sd-accent)":"var(--sd-border)", background:form.progressTemplate===o.v?"var(--sd-accent-dim)":"transparent" }}>
+                      <div className="dpd-radio-dot" style={{ borderColor:form.progressTemplate===o.v?"var(--sd-accent)":"var(--sd-border)" }}>
+                        {form.progressTemplate===o.v&&<div style={{ width:8,height:8,borderRadius:"50%",background:"var(--sd-accent)" }}/>}
+                      </div>
+                      <div>
+                        <div style={{ fontSize:13,fontWeight:700,color:form.progressTemplate===o.v?"var(--sd-accent)":"var(--sd-text)" }}>{o.label}</div>
+                        <div style={{ fontSize:11,color:"var(--sd-muted)" }}>{o.sub}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                {form.progressTemplate==="custom" && (
+                  <div style={{ marginTop:4 }}>
+                    <div className="dpd-field-label" style={{ marginBottom:8 }}>Stage Names (in order)</div>
+                    {(form.progressStages.length===0?["","","",""]:form.progressStages).map((stage,i) => (
+                      <div key={i} style={{ display:"flex", gap:8, marginBottom:8, alignItems:"center" }}>
+                        <span style={{ fontSize:11,fontWeight:700,color:"var(--sd-muted)",width:20,flexShrink:0,textAlign:"right" }}>{i+1}.</span>
+                        <input
+                          value={stage}
+                          onChange={e=>{
+                            const next=[...(form.progressStages.length===0?["","","",""]:form.progressStages)];
+                            next[i]=e.target.value;
+                            setForm(f=>({...f,progressStages:next}));
+                          }}
+                          placeholder={`Step ${i+1} name e.g. Packed`}
+                          style={{ ...inp(), marginBottom:0, flex:1 }}
+                          onFocus={e=>e.target.style.borderColor="var(--sd-accent)"}
+                          onBlur={e=>e.target.style.borderColor="var(--sd-border)"}
+                        />
+                        {form.progressStages.length>3 && (
+                          <button type="button"
+                            onClick={()=>setForm(f=>({...f,progressStages:f.progressStages.filter((_,j)=>j!==i)}))}
+                            style={{ width:28,height:28,borderRadius:7,border:"1px solid var(--sd-border)",background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+                            <Ico d={IC.close} size={11} color="var(--sd-muted)"/>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {form.progressStages.length < 6 && (
+                      <button type="button"
+                        onClick={()=>setForm(f=>({...f,progressStages:[...(f.progressStages.length===0?["","","",""]:f.progressStages),""]}))}
+                        className="dpd-add-val-btn">
+                        <Ico d={IC.plus} size={12} color="var(--sd-accent)"/> Add step
+                      </button>
+                    )}
+                    <div className="dpd-hint">Sellers can advance these steps in the Orders dashboard. Customers see the progress on their order page.</div>
+                  </div>
+                )}
+              </Field>
             </Section>
 
             <Section title="Product Options" subtitle="Add size, color, storage, or any variant buyers can choose.">
