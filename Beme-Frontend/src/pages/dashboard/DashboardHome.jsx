@@ -101,7 +101,7 @@ export default function DashboardHome({ onNav }) {
       try {
         const snap = await getDocs(query(
           collection(db, "orders"),
-          where("sellerId", "==", sid || user.uid),
+          where("shopOwnerId", "==", sid || user.uid),
           where("createdAt", ">=", startOfLastMonth()),
           orderBy("createdAt", "desc"),
           limit(200)
