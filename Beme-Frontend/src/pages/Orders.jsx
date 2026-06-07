@@ -358,7 +358,7 @@ export default function Orders() {
           <div className="ord-list">
             {orders.map(order => {
               const rawStatus = normalizeStatus(order.status || "pending");
-              const hasSellerProgress = Array.isArray(order.progressStages) && order.progressStages.length > 0;
+              const hasSellerProgress = (Array.isArray(order.progressStages) && order.progressStages.length > 0) || (typeof order.progressStep === "number" && order.progressStep >= 0);
 
               const total    = order.pricing?.total    ?? order.amounts?.total    ?? 0;
               const subtotal = order.pricing?.subtotal ?? order.amounts?.subtotal ?? total;
