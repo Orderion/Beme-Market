@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useChat } from "../../hooks/useChat";
 import { useAuth } from "../../context/AuthContext";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
@@ -40,6 +41,7 @@ function EmptyConversations() {
 export default function DashboardChat() {
   const { user }     = useAuth();
   const { planLimits, shop } = useSellerAuth();
+  const location     = useLocation();
   const {
     conversations, activeChat, setActiveChat,
     messages, loading, sending, totalUnread,
@@ -62,6 +64,22 @@ export default function DashboardChat() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  /* ── Auto-open chat from ?customerId= param (e.g. from Orders page) ── */
+  useEffect(() => {
+    if (!conversations.length) return;
+    const params     = new URLSearchParams(location.search);
+    const customerId = params.get("customerId");
+    if (!customerId) return;
+    const match = conversations.find(c =>
+      c.customerId === customerId || c.userId === customerId
+    );
+    if (match && match.id !== activeChat) {
+      setActiveChat(match.id);
+      markRead(match.id);
+      setMobileView("chat");
+    }
+  }, [conversations, location.search]);
 
   const togglePauseAI = async () => {
     if (!activeChat) return;

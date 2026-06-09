@@ -1,5 +1,6 @@
 // src/pages/dashboard/DashboardOrders.jsx
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
@@ -69,7 +70,8 @@ const IC = {
   card:  "M1 4h22v16H1z|M1 10h22",
   check: "M20 6L9 17l-5-5",
   empty: "M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z|M3 6h18|M16 10a4 4 0 0 1-8 0",
-  image: "M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14l4-4 3 3 3-3 4 4z",
+  image:   "M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14l4-4 3 3 3-3 4 4z",
+  message: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
 };
 
 /* ── Product thumb ── */
@@ -115,6 +117,12 @@ function ProgressStepper({ order, onUpdate }) {
   const stages      = getStages(order);
   const currentStep = getCurrentStep(order);
   const [updating, setUpdating] = useState(false);
+  const navigate    = useNavigate();
+
+  const openChat = () => {
+    const customerId = order.userId || order.customer?.uid || "";
+    navigate(`/seller-dashboard?tab=chat&customerId=${customerId}`);
+  };
 
   const advance = async (stepIndex) => {
     if (updating) return;
@@ -153,9 +161,15 @@ function ProgressStepper({ order, onUpdate }) {
     <div>
       <div className="do-progress-head">
         <span className="do-section-label"><Ico d={IC.truck} size={12} /> Delivery Progress</span>
-        {currentStep >= 0 && (
-          <button className="do-reset-btn" onClick={reset} disabled={updating}>Reset</button>
-        )}
+        <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+          <button className="do-msg-btn" onClick={openChat} title="Message customer">
+            <Ico d={IC.message} size={12} color="var(--sd-accent)" sw={2} />
+            Message
+          </button>
+          {currentStep >= 0 && (
+            <button className="do-reset-btn" onClick={reset} disabled={updating}>Reset</button>
+          )}
+        </div>
       </div>
 
       <div className="do-steps">
@@ -526,6 +540,14 @@ export default function DashboardOrders() {
         }
         .do-reset-btn:hover:not(:disabled) { color: var(--sd-text); border-color: var(--sd-text); }
         .do-reset-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .do-msg-btn {
+          display: inline-flex; align-items: center; gap: 5px;
+          font-size: 11px; font-weight: 700; color: var(--sd-accent);
+          background: var(--sd-accent-dim); border: 1px solid rgba(124,58,237,0.2);
+          cursor: pointer; font-family: inherit; padding: 3px 10px;
+          border-radius: 6px; transition: all 0.12s; white-space: nowrap;
+        }
+        .do-msg-btn:hover { background: rgba(124,58,237,0.14); border-color: var(--sd-accent); }
 
         .do-steps { display: flex; flex-direction: column; }
         .do-step  { display: flex; align-items: flex-start; gap: 12px; }
