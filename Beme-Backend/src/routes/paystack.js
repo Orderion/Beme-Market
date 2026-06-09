@@ -724,7 +724,9 @@ router.post("/checkout/init", async (req, res) => {
         : subtotal;
 
     const deliveryFee = trustedDelivery.fee;
-    const total = safeSubtotal + deliveryFee;
+    const rawDiscount  = Math.min(Math.max(Number(pricing?.discount || 0), 0), safeSubtotal);
+    const discount     = Number.isFinite(rawDiscount) ? rawDiscount : 0;
+    const total        = Math.max(0, safeSubtotal + deliveryFee - discount);
 
     if (total <= 0) {
       return res.status(400).json({ error: "Invalid order total." });
@@ -806,9 +808,12 @@ router.post("/checkout/init", async (req, res) => {
     );
 
     const rawPricing = {
-      currency: "GHS",
-      subtotal: safeSubtotal,
+      currency:       "GHS",
+      subtotal:       safeSubtotal,
       deliveryFee,
+      discount,
+      discountCode:   discount > 0 ? (String(pricing?.discountCode   || "").trim().toUpperCase() || null) : null,
+      discountCodeId: discount > 0 ? (String(pricing?.discountCodeId || "").trim() || null) : null,
       total,
     };
 
