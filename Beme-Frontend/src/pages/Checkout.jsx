@@ -18,7 +18,7 @@ import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { startPaystackCheckout } from "../lib/checkout";
 import { createCodOrder } from "../services/api";
-import { validateDiscountCode } from "../services/marketingService";
+import { validateDiscountCode, incrementDiscountCodeUsage } from "../services/marketingService";
 import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import "./Checkout.css";
@@ -554,6 +554,7 @@ const buildOrderPayload = (paymentMethod) => {
     try {
       const result=await createCodOrder(buildOrderPayload("cod"));
       const orderId=result?.order?.id||result?.id||"";
+      if (discountApplied?.codeId) incrementDiscountCodeUsage(discountApplied.codeId).catch(()=>{});
       clearCart();
       navigate(`/order-success?status=success${orderId?`&orderId=${encodeURIComponent(orderId)}`:""}`,{replace:true});
     } catch(e) {
@@ -579,6 +580,7 @@ const buildOrderPayload = (paymentMethod) => {
       catch { setPaystackError("Authentication failed. Refresh and try again."); setLoading(false); setLoadingMode(""); return; }
     }
 
+    if (discountApplied?.codeId) incrementDiscountCodeUsage(discountApplied.codeId).catch(()=>{});
     try {
       await startPaystackCheckout({
         email:sanitizeText(form.email,160).toLowerCase(),
