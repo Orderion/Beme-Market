@@ -135,7 +135,21 @@ export default function SellerDashboard() {
 
   if (shopLoading) return <PageSpinner />;
 
-  const isDark   = theme === "dark";
+  // Dashboard has its OWN dark mode preference stored in localStorage
+  // This is independent of the site's global dark mode
+  const [dashDark, setDashDark] = useState(() => {
+    try { return localStorage.getItem("beme_dash_dark") === "true"; }
+    catch { return false; }
+  });
+  const isDark = dashDark;
+
+  const toggleDashTheme = () => {
+    setDashDark(d => {
+      const next = !d;
+      try { localStorage.setItem("beme_dash_dark", String(next)); } catch {}
+      return next;
+    });
+  };
   const shopName = shop?.shopName || profile?.shopName || "Your Store";
   const initial  = (shopName[0] || "S").toUpperCase();
 
