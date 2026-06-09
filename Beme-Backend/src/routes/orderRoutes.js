@@ -537,6 +537,21 @@ async function buildValidatedOrderItems(items) {
 }
 
 function sanitizePricing(pricing = {}, computedSubtotal = 0, computedDelivery = 0) {
+  const subtotal    = computedSubtotal;
+  const deliveryFee = computedDelivery;
+  const rawDiscount = Number(pricing.discount || 0);
+  const discount    = Number.isFinite(rawDiscount) ? Math.min(Math.max(rawDiscount, 0), subtotal) : 0;
+  const total       = Math.max(0, subtotal + deliveryFee - discount);
+  return {
+    currency:       sanitizeText(pricing.currency || "GHS", 10) || "GHS",
+    subtotal,
+    deliveryFee,
+    discount,
+    discountCode:   discount > 0 ? (String(pricing.discountCode   || "").trim().toUpperCase() || null) : null,
+    discountCodeId: discount > 0 ? (String(pricing.discountCodeId || "").trim() || null) : null,
+    total,
+  };
+}
   const subtotal = computedSubtotal;
   const deliveryFee = computedDelivery;
   const total = subtotal + deliveryFee;
