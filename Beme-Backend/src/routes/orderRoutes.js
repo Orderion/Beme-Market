@@ -552,17 +552,6 @@ function sanitizePricing(pricing = {}, computedSubtotal = 0, computedDelivery = 
     total,
   };
 }
-  const subtotal = computedSubtotal;
-  const deliveryFee = computedDelivery;
-  const total = subtotal + deliveryFee;
-
-  return {
-    currency: sanitizeText(pricing.currency || "GHS", 10) || "GHS",
-    subtotal,
-    deliveryFee,
-    total,
-  };
-}
 
 function sanitizeOrderForResponse(docSnap) {
   const data = docSnap.data() || {};
