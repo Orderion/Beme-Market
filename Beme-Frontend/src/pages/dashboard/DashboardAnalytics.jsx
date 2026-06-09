@@ -280,11 +280,30 @@ export default function DashboardAnalytics() {
       )}
 
       {/* ── Stat cards ── */}
+      {/* ── Revenue split banner ── */}
+      <div style={{ display:"flex", gap:10, padding:"12px 16px", background:"rgba(34,197,94,0.05)", borderRadius:12, border:"1px solid rgba(34,197,94,0.15)", marginBottom:14, flexWrap:"wrap", alignItems:"center" }}>
+        <div style={{ flex:1, minWidth:160 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:"#15803d", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:4 }}>Total Revenue (all-time)</div>
+          <div style={{ fontSize:22, fontWeight:900, color:"#15803d", letterSpacing:"-0.03em" }}>
+            {data.loading ? "—" : "GHS " + Number(data.totalRevenueAllTime||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
+          </div>
+        </div>
+        <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+          <div style={{ padding:"10px 16px", background:"rgba(255,255,255,0.7)", borderRadius:10, border:"1px solid rgba(34,197,94,0.15)" }}>
+            <div style={{ fontSize:10, fontWeight:700, color:"#15803d", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:3 }}>Paystack (online)</div>
+            <div style={{ fontSize:16, fontWeight:900, color:"#15803d" }}>{data.loading ? "—" : "GHS " + Number(data.paystackRevenue||0).toFixed(2)}</div>
+            <div style={{ fontSize:10, color:"#16a34a", marginTop:2 }}>Eligible for payout</div>
+          </div>
+          <div style={{ padding:"10px 16px", background:"rgba(255,255,255,0.7)", borderRadius:10, border:"1px solid rgba(34,197,94,0.15)" }}>
+            <div style={{ fontSize:10, fontWeight:700, color:"var(--sd-muted)", textTransform:"uppercase", letterSpacing:"0.06em", marginBottom:3 }}>Cash on Delivery</div>
+            <div style={{ fontSize:16, fontWeight:900, color:"var(--sd-text)" }}>{data.loading ? "—" : "GHS " + Number(data.codRevenue||0).toFixed(2)}</div>
+            <div style={{ fontSize:10, color:"var(--sd-muted)", marginTop:2 }}>Collected by you</div>
+          </div>
+        </div>
+      </div>
+
       <div className="an-stat-row">
-        <StatCard label={`Revenue (${period}d)`} icon={IC.revenue} color={C.blue}
-          loading={data.loading} trend={0} sub="vs prev period"
-          value={`GHS ${Number(data.totalRevenue||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`}/>
-        <StatCard label={`Orders (${period}d)`} icon={IC.orders} color={C.green}
+        <StatCard label={"Orders (" + period + "d)"} icon={IC.orders} color={C.green}
           loading={data.loading} trend={0} sub="completed"
           value={data.totalOrders || 0}/>
         <StatCard label="Visitors" icon={IC.visitors} color={C.purple}
@@ -292,8 +311,12 @@ export default function DashboardAnalytics() {
           value={data.totalVisitors || 0}/>
         <StatCard label="Conversion" icon={IC.conv} color={C.orange}
           loading={data.loading} sub="orders / visitors"
-          value={`${data.conversionRate || 0}%`}/>
+          value={(data.conversionRate || 0) + "%"}/>
+        <StatCard label="Avg Order" icon={IC.revenue} color={C.blue}
+          loading={data.loading} sub="average order value"
+          value={"GHS " + (data.avgOrderValue || "0.00")}/>
       </div>
+
 
       {/* ── Main chart + quick stats ── */}
       <div className="an-body-row">
@@ -380,7 +403,7 @@ export default function DashboardAnalytics() {
               Payout Forecast
             </div>
             <div style={{ fontSize:22, fontWeight:900, color:"#15803d", letterSpacing:"-0.03em" }}>
-              GHS {data.loading ? "—" : Number(data.forecastRevenue||0).toLocaleString(undefined,{minimumFractionDigits:2})}
+              {data.loading ? "—" : "GHS " + Number(data.availableBalance||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
             </div>
             <div style={{ fontSize:11, color:"#16a34a", marginTop:4, fontWeight:600 }}>Est. payout from paid orders</div>
           </Card>

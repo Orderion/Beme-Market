@@ -1,8 +1,9 @@
+// src/hooks/useAnalyticsData.js
 import { useState, useEffect, useMemo } from "react";
 import { db } from "../firebase";
 import {
   collection, query, where, getDocs, orderBy,
-  onSnapshot, doc, limit,
+  onSnapshot,
 } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { useSellerAuth } from "./useSellerAuth";
@@ -20,63 +21,65 @@ function dateRange(days) {
 function daysBetween(start, end) {
   const days = [];
   const cur  = new Date(start);
-  while (cur <= end) {
-    days.push(new Date(cur));
-    cur.setDate(cur.getDate() + 1);
-  }
+  while (cur <= end) { days.push(new Date(cur)); cur.setDate(cur.getDate() + 1); }
   return days;
 }
 
 export function useAnalyticsData(periodDays = 7) {
-  const { user }    = useAuth();
+  const { user }          = useAuth();
   const { storeId, shop } = useSellerAuth();
-  const sellerId    = user?.uid;
+  const sellerId          = user?.uid;
 
   const [orders,        setOrders]        = useState([]);
   const [dailyTracking, setDailyTracking] = useState([]);
   const [productViews,  setProductViews]  = useState({});
   const [liveVisitors,  setLiveVisitors]  = useState(0);
+  const [withdrawals,   setWithdrawals]   = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [error,         setError]         = useState(null);
 
-  /* ── Fetch orders for this seller ── */
+  /* ── Fetch ALL-TIME orders for this seller (not period-scoped) ── */
+  /* Revenue split needs full history, not just the selected period  */
   useEffect(() => {
     if (!sellerId) { setLoading(false); return; }
-    const { start } = dateRange(periodDays);
     setLoading(true);
     (async () => {
-    // Query by shopOwnerId (seller's Firebase auth uid stored on order)
-    const results = new Map();
+      const results = new Map();
+      const runQ = async (q) => {
+        try {
+          const snap = await getDocs(q);
+          snap.docs.forEach(d => {
+            if (!results.has(d.id)) results.set(d.id, { id: d.id, ...d.data() });
+          });
+        } catch (e) { console.warn("[useAnalyticsData] query failed:", e?.code); }
+      };
 
-    const runQ = async (q) => {
-      try {
-        const snap = await getDocs(q);
-        snap.docs.forEach(d => {
-          if (!results.has(d.id)) results.set(d.id, { id: d.id, ...d.data() });
-        });
-      } catch (e) {
-        console.warn("[useAnalyticsData] query failed:", e?.code);
+      await runQ(query(collection(db, "orders"), where("shopOwnerId", "==", sellerId)));
+      const shopId = shop?.id;
+      if (shopId && shopId !== sellerId) {
+        await runQ(query(collection(db, "orders"), where("shopOwnerId", "==", shopId)));
       }
-    };
 
-    await runQ(query(collection(db, "orders"), where("shopOwnerId", "==", sellerId)));
-
-    // Also try shop.id if different from uid
-    const shopId = shop?.id;
-    if (shopId && shopId !== sellerId) {
-      await runQ(query(collection(db, "orders"), where("shopOwnerId", "==", shopId)));
-    }
-
-    const all = Array.from(results.values());
-    setOrders(all.filter(o => {
-      const ts = o.createdAt?.toMillis?.() || (o.createdAt?.seconds || 0) * 1000 || 0;
-      return ts >= start.getTime();
-    }));
-    setLoading(false);
+      setOrders(Array.from(results.values()));
+      setLoading(false);
     })();
-  }, [sellerId, shop?.id, periodDays]);
+  }, [sellerId, shop?.id]);
 
-  /* ── Fetch daily tracking (visits, productViews) ── */
+  /* ── Real-time withdrawals for this seller ── */
+  useEffect(() => {
+    if (!sellerId) return;
+    const q = query(
+      collection(db, "withdrawalRequests"),
+      where("sellerId", "==", sellerId),
+      orderBy("createdAt", "desc")
+    );
+    const unsub = onSnapshot(q, snap => {
+      setWithdrawals(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, () => {});
+    return unsub;
+  }, [sellerId]);
+
+  /* ── Daily tracking (visits, productViews) ── */
   useEffect(() => {
     const sid = storeId || sellerId;
     if (!sid) return;
@@ -86,13 +89,9 @@ export function useAnalyticsData(periodDays = 7) {
     getDocs(
       query(collection(db, "sellerAnalytics", sid, "daily"), orderBy("date", "asc"))
     ).then(snap => {
-      const docs = snap.docs
-        .map(d => d.data())
-        .filter(d => d.date >= startKey);
-      setDailyTracking(docs);
+      setDailyTracking(snap.docs.map(d => d.data()).filter(d => d.date >= startKey));
     }).catch(() => {});
 
-    // Product views
     getDocs(
       query(collection(db, "productAnalytics"), where("shopId", "==", sid))
     ).then(snap => {
@@ -119,46 +118,67 @@ export function useAnalyticsData(periodDays = 7) {
     const { start, end } = dateRange(periodDays);
     const days           = daysBetween(start, end);
 
-    // Daily series
+    // ── Revenue split (ALL-TIME, not period-scoped) ──
+    let paystackRevenue = 0;
+    let codRevenue      = 0;
+    orders.forEach(o => {
+      const rev = Number(o.pricing?.total || 0);
+      if (o.paymentMethod === "paystack") paystackRevenue += rev;
+      else if (o.paymentMethod === "cod") codRevenue += rev;
+    });
+    const totalRevenueAllTime = paystackRevenue + codRevenue;
+
+    // ── Withdrawals summary ──
+    const pendingWithdrawalsTotal = withdrawals
+      .filter(w => w.status === "pending" || w.status === "processing" || w.status === "approved")
+      .reduce((s, w) => s + Number(w.amount || 0), 0);
+    const completedWithdrawalsTotal = withdrawals
+      .filter(w => w.status === "completed" || w.status === "paid")
+      .reduce((s, w) => s + Number(w.amount || 0), 0);
+
+    // Available balance = Paystack revenue minus pending + completed withdrawals
+    const availableBalance = Math.max(
+      0,
+      paystackRevenue - pendingWithdrawalsTotal - completedWithdrawalsTotal
+    );
+
+    // ── Period-scoped metrics for charts ──
     const seriesMap = {};
     days.forEach(d => {
       const key = d.toISOString().split("T")[0];
       seriesMap[key] = {
-        label:    `${d.getMonth() + 1}/${d.getDate()}`,
+        label: `${d.getMonth() + 1}/${d.getDate()}`,
         dayLabel: DAY_LABELS[d.getDay()],
-        date:     key,
-        revenue:  0,
-        orders:   0,
-        visitors: 0,
-        productViews: 0,
+        date: key, revenue: 0, orders: 0, visitors: 0, productViews: 0,
       };
     });
 
-    // Fill from tracking
     dailyTracking.forEach(d => {
       if (seriesMap[d.date]) {
-        seriesMap[d.date].visitors     = d.visits         || 0;
-        seriesMap[d.date].productViews = d.productViews   || 0;
+        seriesMap[d.date].visitors     = d.visits       || 0;
+        seriesMap[d.date].productViews = d.productViews || 0;
       }
     });
 
-    // Fill from orders
-    const customerSet = new Set();
-    const productMap  = {}; // productId → { name, revenue, orders, views }
-    let totalRevenue  = 0;
-    let totalOrders   = 0;
-    const customerSpend = {}; // userId → { name, total, count }
+    const customerSet   = new Set();
+    const productMap    = {};
+    let totalRevenue    = 0;
+    let totalOrders     = 0;
+    const customerSpend = {};
     const repeats       = new Set();
 
-    orders.forEach(o => {
+    // Period-scoped orders for charts/stats
+    const periodOrders = orders.filter(o => {
+      const ts = o.createdAt?.toMillis?.() || (o.createdAt?.seconds || 0) * 1000 || 0;
+      return ts >= start.getTime();
+    });
+
+    periodOrders.forEach(o => {
       const ts  = o.createdAt?.toMillis?.() || (o.createdAt?.seconds || 0) * 1000;
       const key = new Date(ts).toISOString().split("T")[0];
       const rev = Number(o.pricing?.total || 0);
 
-      if (seriesMap[key]) {
-        seriesMap[key].revenue += rev;
-        seriesMap[key].orders  += 1;
-      }
+      if (seriesMap[key]) { seriesMap[key].revenue += rev; seriesMap[key].orders += 1; }
 
       totalRevenue += rev;
       totalOrders  += 1;
@@ -166,21 +186,18 @@ export function useAnalyticsData(periodDays = 7) {
       if (customerSet.has(uid)) repeats.add(uid);
       customerSet.add(uid);
 
-      // Customer spend
       if (uid) {
         if (!customerSpend[uid]) {
           customerSpend[uid] = {
             name:  o.customer?.firstName ? `${o.customer.firstName} ${o.customer.lastName || ""}`.trim() : "Customer",
             email: o.customer?.email || "",
-            total: 0,
-            count: 0,
+            total: 0, count: 0,
           };
         }
         customerSpend[uid].total += rev;
         customerSpend[uid].count += 1;
       }
 
-      // Product breakdown
       const items = Array.isArray(o.items) ? o.items : [];
       items.forEach(item => {
         const pid  = item.productId || item.id || "unknown";
@@ -191,55 +208,42 @@ export function useAnalyticsData(periodDays = 7) {
       });
     });
 
-    // Merge product views
     Object.entries(productMap).forEach(([pid, p]) => {
-      p.views = productViews[pid]?.totalViews || 0;
+      p.views    = productViews[pid]?.totalViews || 0;
       p.convRate = p.views > 0 ? ((p.orders / p.views) * 100).toFixed(1) + "%" : "—";
     });
 
-    const series = Object.values(seriesMap);
+    const series          = Object.values(seriesMap);
     const totalVisitors   = series.reduce((s, d) => s + d.visitors, 0);
     const conversionRate  = totalVisitors > 0 ? ((totalOrders / totalVisitors) * 100).toFixed(1) : 0;
     const uniqueCustomers = customerSet.size;
     const repeatRate      = uniqueCustomers > 0 ? ((repeats.size / uniqueCustomers) * 100).toFixed(0) : 0;
     const avgOrderValue   = totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : "0.00";
 
-    // Day of week revenue
     const dowMap = { Sun:0, Mon:0, Tue:0, Wed:0, Thu:0, Fri:0, Sat:0 };
     series.forEach(d => { dowMap[d.dayLabel] = (dowMap[d.dayLabel] || 0) + d.revenue; });
     const byDayOfWeek = DAY_LABELS.map(d => ({ day: d, revenue: dowMap[d] || 0 }));
 
-    // Top products
     const topProducts = Object.values(productMap)
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 8);
-
-    // Top customers
+      .sort((a, b) => b.revenue - a.revenue).slice(0, 8);
     const topCustomers = Object.values(customerSpend)
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 5);
-
-    // Payout forecast (80% of pending revenue — rough estimate)
-    const pendingRevenue = orders
-      .filter(o => ["paid","approved"].includes(o.status))
-      .reduce((s, o) => s + Number(o.pricing?.total || 0), 0);
+      .sort((a, b) => b.total - a.total).slice(0, 5);
 
     return {
-      series,
-      totalRevenue,
-      totalOrders,
-      totalVisitors,
-      uniqueCustomers,
-      conversionRate,
-      repeatRate,
-      avgOrderValue,
-      byDayOfWeek,
-      topProducts,
-      topCustomers,
-      pendingRevenue,
-      forecastRevenue: (pendingRevenue * 0.8).toFixed(2),
+      series, totalRevenue, totalOrders, totalVisitors,
+      uniqueCustomers, conversionRate, repeatRate, avgOrderValue,
+      byDayOfWeek, topProducts, topCustomers,
+      // ── Revenue split ──
+      paystackRevenue,
+      codRevenue,
+      totalRevenueAllTime,
+      availableBalance,
+      pendingWithdrawalsTotal,
+      completedWithdrawalsTotal,
+      // Keep for backwards compat — now equals availableBalance
+      forecastRevenue: availableBalance.toFixed(2),
     };
-  }, [orders, dailyTracking, productViews, periodDays]);
+  }, [orders, dailyTracking, productViews, withdrawals, periodDays]);
 
   return {
     ...computed,
