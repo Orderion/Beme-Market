@@ -552,6 +552,17 @@ function sanitizePricing(pricing = {}, computedSubtotal = 0, computedDelivery = 
     total,
   };
 }
+
+function sanitizeOrderForResponse(docSnap) {
+  const data = docSnap.data() || {};
+
+  return {
+    id: docSnap.id,
+    userId: data.userId || "",
+    status: data.status || "pending",
+    paymentMethod: data.paymentMethod || "",
+    paymentStatus: data.paymentStatus || "",
+    paid: data.paid === true,
     emailSent: data.emailSent === true,
     reference: data.reference || "",
     source: data.source || "web",
