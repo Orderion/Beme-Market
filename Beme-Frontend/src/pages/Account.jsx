@@ -450,7 +450,6 @@ export default function Account() {
               {isAdminUser && (
                 <NavLink icon={ICONS.chart} label="Admin Panel" onClick={()=>setShowAdminGate(true)}/>
               )}
-            )}
           </div>
 
           {/* Settings */}
