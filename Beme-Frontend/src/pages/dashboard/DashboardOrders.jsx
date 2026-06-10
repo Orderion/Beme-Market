@@ -313,7 +313,12 @@ function OrderDetail({ order, onBack, onUpdate, isMobile }) {
           <div className="do-totals">
             <div className="do-total-row"><span>Subtotal</span><span>{fmtMoney(price.subtotal)}</span></div>
             <div className="do-total-row"><span>Delivery</span><span>{fmtMoney(price.deliveryFee)}</span></div>
-            {price.discount > 0 && <div className="do-total-row do-total-row--discount"><span>Discount</span><span>-{fmtMoney(price.discount)}</span></div>}
+            {price.discount > 0 && (
+              <div className="do-total-row do-total-row--discount">
+                <span>Discount{price.discountCode ? <span style={{marginLeft:5,fontSize:10,opacity:0.75,fontFamily:"monospace"}}>{price.discountCode}</span> : ""}</span>
+                <span>-{fmtMoney(price.discount)}</span>
+              </div>
+            )}
             <div className="do-total-row do-total-row--total"><span>Total</span><span>{fmtMoney(price.total)}</span></div>
           </div>
         </div>

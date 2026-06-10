@@ -362,7 +362,8 @@ export default function Orders() {
 
               const total    = order.pricing?.total    ?? order.amounts?.total    ?? 0;
               const subtotal = order.pricing?.subtotal ?? order.amounts?.subtotal ?? total;
-              const discount = order.pricing?.discount ?? order.amounts?.discount ?? 0;
+              const discount     = order.pricing?.discount ?? order.amounts?.discount ?? 0;
+              const discountCode = order.pricing?.discountCode ?? order.amounts?.discountCode ?? null;
               const shipping = order.pricing?.shipping ?? order.amounts?.shipping ?? order.delivery?.fee ?? order.delivery?.mallPickup?.fee ?? 0;
 
               const createdAt      = fmtDate(order.createdAt);
@@ -452,7 +453,12 @@ export default function Orders() {
                     </div>
                     <div className="ord-summary">
                       <div className="ord-summary-row"><span>Subtotal</span><span>{fmtMoney(subtotal)}</span></div>
-                      {discount > 0 && <div className="ord-summary-row ord-summary-row--discount"><span>Discount</span><span>-{fmtMoney(discount)}</span></div>}
+                      {discount > 0 && (
+                        <div className="ord-summary-row ord-summary-row--discount">
+                          <span>Discount{discountCode ? <small style={{marginLeft:5,opacity:0.75}}>{discountCode}</small> : ""}</span>
+                          <span>-{fmtMoney(discount)}</span>
+                        </div>
+                      )}
                       <div className="ord-summary-row"><span>Delivery</span><span>{fmtMoney(shipping)}</span></div>
                       {order.delivery?.breakdown && (
                         <>

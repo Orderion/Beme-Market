@@ -767,6 +767,16 @@ router.post("/", async (req, res) => {
     const orderRef = await adminDb.collection("orders").add(payload);
     const created = await orderRef.get();
 
+    // Increment discount code usedCount if a code was applied
+    if (pricing?.discountCodeId && pricing?.discount > 0) {
+      adminDb.collection("discountCodes").doc(String(pricing.discountCodeId))
+        .get().then(snap => {
+          if (snap.exists) {
+            snap.ref.update({ usedCount: (snap.data().usedCount || 0) + 1 });
+          }
+        }).catch(e => console.error("[discount increment]", e));
+    }
+
     return res.status(201).json({
       success: true,
       message: "Order created successfully.",
