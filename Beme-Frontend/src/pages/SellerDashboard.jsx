@@ -142,15 +142,16 @@ export default function SellerDashboard() {
     gift:         <DashboardGift />,
   };
 
-  if (shopLoading) return <PageSpinner />;
-
-  const isDark = theme === "dark";
   const [notifCount, setNotifCount] = useState(0);
   useEffect(() => {
     if (!user?.uid) return;
     const unsub = subscribeToSellerUnreadCount(user.uid, setNotifCount);
     return unsub;
   }, [user?.uid]);
+
+  if (shopLoading) return <PageSpinner />;
+
+  const isDark = theme === "dark";
   const shopName = shop?.shopName || profile?.shopName || "Your Store";
   const initial  = (shopName[0] || "S").toUpperCase();
 
