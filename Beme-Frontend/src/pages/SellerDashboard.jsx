@@ -14,6 +14,7 @@ const DashboardOrders       = lazy(() => import("./dashboard/DashboardOrders"));
 const DashboardCustomers    = lazy(() => import("./dashboard/DashboardCustomers"));
 const DashboardChat         = lazy(() => import("./dashboard/DashboardChat"));
 const DashboardMarketing    = lazy(() => import("./dashboard/DashboardMarketing"));
+const ReferralPanel         = lazy(() => import("./dashboard/marketing/ReferralPanel"));
 const DashboardAnalytics    = lazy(() => import("./dashboard/DashboardAnalytics"));
 const DashboardWithdrawals  = lazy(() => import("./dashboard/DashboardWithdrawals"));
 const DashboardAppearance   = lazy(() => import("./dashboard/DashboardAppearance"));
@@ -62,6 +63,7 @@ const NAV = [
   { id: "customers",    label: "Customers",     icon: D.customers    },
   { id: "chat",         label: "Messages",      icon: D.chat         },
   { id: "marketing",    label: "Marketing",     icon: D.marketing    },
+  { id: "referrals",    label: "Referrals",     icon: D.marketing    },
   { id: "analytics",    label: "Analytics Pro", icon: D.analytics    },
   { id: "withdrawals",  label: "Withdrawals",   icon: D.withdrawals  },
   { id: "appearance",   label: "Store Design",  icon: D.appearance   },
@@ -73,7 +75,7 @@ const NAV = [
 
 const TAB_TITLES = {
   home:"Home", products:"Products", orders:"Orders", customers:"Customers",
-  chat:"Messages", marketing:"Marketing", analytics:"Analytics Pro",
+  chat:"Messages", marketing:"Marketing", referrals:"Referrals", analytics:"Analytics Pro",
   withdrawals:"Withdrawals", appearance:"Store Design", delivery:"Delivery",
   ai:"Beme AI", subscription:"Subscription", settings:"Settings",
   help:"Get Help", learn:"Learn More", gift:"Gift Beme",
@@ -121,6 +123,7 @@ export default function SellerDashboard() {
     customers:    <DashboardCustomers />,
     chat:         <DashboardChat />,
     marketing:    <DashboardMarketing />,
+    referrals:    <ReferralPanel onBack={() => setTab("home")} />,
     analytics:    <DashboardAnalytics />,
     withdrawals:  <DashboardWithdrawals />,
     appearance:   <DashboardAppearance />,
