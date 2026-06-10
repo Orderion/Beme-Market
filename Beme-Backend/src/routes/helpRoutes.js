@@ -1,12 +1,23 @@
 // Beme-Backend/src/routes/helpRoutes.js
-// Claude AI proxy for seller help chat + ticket escalation
-
 import express from "express";
 import Anthropic from "@anthropic-ai/sdk";
 import { adminDb, firebaseAdmin } from "../firebaseAdmin.js";
-import { verifyToken } from "../middleware/auth.js";
 
 const router = express.Router();
+
+/* ── Inline auth (same pattern as orderRoutes.js) ── */
+async function verifyAuth(req) {
+  const auth  = req.headers.authorization || "";
+  const match = auth.match(/^Bearer (.+)$/);
+  if (!match?.[1]) {
+    const e = new Error("Missing authorization token."); e.statusCode = 401; throw e;
+  }
+  const decoded = await firebaseAdmin.auth().verifyIdToken(match[1]);
+  if (!decoded?.uid) {
+    const e = new Error("Invalid authorization token."); e.statusCode = 401; throw e;
+  }
+  return decoded;
+}
 
 const BEME_SYSTEM_PROMPT = `You are Beme Support, the official AI assistant for Beme Market — Ghana's leading multi-vendor marketplace platform. You help sellers resolve issues with their stores.
 
@@ -28,209 +39,148 @@ You have deep knowledge of:
 - Analytics: revenue split, Paystack vs COD earnings, available balance
 
 Communication style:
-- Be concise, friendly, and direct — sellers are busy
+- Be concise, friendly, and direct
 - Give step-by-step instructions when needed
-- Use the seller dashboard tab names exactly as they appear (e.g. "Go to Orders tab", "Check Withdrawals tab")
-- If you cannot fully resolve the issue, say so clearly and ask if they want to escalate to a human agent
-- Never make up information — if unsure, say so
+- Use dashboard tab names exactly as they appear
+- If you cannot fully resolve the issue, say so clearly
 
-When you cannot resolve an issue, end your message with exactly this phrase on a new line:
+When you cannot resolve an issue, end your message with exactly this on a new line:
 [ESCALATE_AVAILABLE]`;
 
-router.post("/chat", verifyToken, async (req, res) => {
-  const { message, history = [] } = req.body;
-  const uid   = req.user?.uid;
-  const email = req.user?.email || "";
-
-  if (!message?.trim()) {
-    return res.status(400).json({ error: "Message is required." });
-  }
-
+/* ── POST /api/help/chat ── */
+router.post("/chat", async (req, res) => {
   try {
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const user = await verifyAuth(req);
+    const { message, history = [] } = req.body;
+    if (!message?.trim()) return res.status(400).json({ error: "Message is required." });
 
-    // Build messages array from history
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const messages = [
-      ...history.slice(-10).map(h => ({
-        role:    h.role,
-        content: h.content,
-      })),
+      ...history.slice(-10).map(h => ({ role: h.role, content: h.content })),
       { role: "user", content: message.trim() },
     ];
 
     const response = await client.messages.create({
-      model:      "claude-sonnet-4-20250514",
-      max_tokens: 800,
-      system:     BEME_SYSTEM_PROMPT,
-      messages,
+      model: "claude-sonnet-4-20250514", max_tokens: 800,
+      system: BEME_SYSTEM_PROMPT, messages,
     });
 
-    const reply      = response.content[0]?.text || "Sorry, I couldn't generate a response.";
+    const reply       = response.content[0]?.text || "Sorry, I could not generate a response.";
     const canEscalate = reply.includes("[ESCALATE_AVAILABLE]");
     const cleanReply  = reply.replace("[ESCALATE_AVAILABLE]", "").trim();
 
-    // Save message pair to Firestore helpChats
-    const chatRef = adminDb.collection("helpChats").doc(uid);
-    const msgCol  = chatRef.collection("messages");
-
-    await msgCol.add({
-      role: "user", content: message.trim(),
-      createdAt: new Date(),
-    });
-    await msgCol.add({
-      role: "assistant", content: cleanReply,
-      canEscalate, createdAt: new Date(),
-    });
-
-    // Update chat session metadata
-    await chatRef.set({
-      uid, email,
+    // Save to Firestore
+    const msgCol = adminDb.collection("helpChats").doc(user.uid).collection("messages");
+    await msgCol.add({ role: "user",      content: message.trim(), createdAt: new Date() });
+    await msgCol.add({ role: "assistant", content: cleanReply, canEscalate, createdAt: new Date() });
+    await adminDb.collection("helpChats").doc(user.uid).set({
+      uid: user.uid, email: user.email || "",
       lastMessage: cleanReply.slice(0, 120),
-      updatedAt:   new Date(),
-      status:      "active",
+      updatedAt: new Date(), status: "active",
     }, { merge: true });
 
     return res.json({ reply: cleanReply, canEscalate });
-
   } catch (e) {
-    console.error("[helpRoutes] Claude error:", e.message);
-    return res.status(500).json({
-      error: "AI assistant is temporarily unavailable. Please try again.",
-    });
+    const code = e.statusCode || 500;
+    return res.status(code).json({ error: e.message || "AI assistant temporarily unavailable." });
   }
 });
 
-/* ── Escalate to human agent ── */
-router.post("/escalate", verifyToken, async (req, res) => {
-  const { summary, history = [] } = req.body;
-  const uid   = req.user?.uid;
-  const email = req.user?.email || "";
-
+/* ── POST /api/help/escalate ── */
+router.post("/escalate", async (req, res) => {
   try {
-    // Get seller shop info
+    const user = await verifyAuth(req);
+    const { summary, history = [] } = req.body;
+
     let shopName = "";
     try {
-      const appSnap = await adminDb.collection("storeApplications").doc(uid).get();
-      shopName = appSnap.data()?.shopName || appSnap.data()?.businessName || "";
+      const snap = await adminDb.collection("storeApplications").doc(user.uid).get();
+      shopName = snap.data()?.shopName || snap.data()?.businessName || "";
     } catch {}
 
-    // Create help ticket
     const ticketRef = await adminDb.collection("helpTickets").add({
-      sellerId:    uid,
-      sellerEmail: email,
-      shopName,
-      summary:     summary?.trim() || "Seller requested human support",
-      status:      "open",
-      priority:    "normal",
-      source:      "ai_escalation",
-      aiHistory:   history.slice(-8).map(h => ({
-        role: h.role, content: h.content?.slice(0, 500),
-      })),
-      createdAt:   new Date(),
-      updatedAt:   new Date(),
-      unreadByAdmin: true,
+      sellerId: user.uid, sellerEmail: user.email || "", shopName,
+      summary: summary?.trim() || "Seller requested human support",
+      status: "open", priority: "normal", source: "ai_escalation",
+      aiHistory: history.slice(-8).map(h => ({ role: h.role, content: h.content?.slice(0, 500) })),
+      createdAt: new Date(), updatedAt: new Date(), unreadByAdmin: true,
     });
 
-    // Notify admin (write to adminNotifications)
     await adminDb.collection("adminNotifications").add({
-      type:     "help_escalation",
-      title:    `Support request from ${shopName || email}`,
-      body:     summary?.trim() || "Seller needs human agent assistance",
-      ticketId: ticketRef.id,
-      sellerId: uid,
-      read:     false,
-      createdAt: new Date(),
+      type: "help_escalation",
+      title: `Support request from ${shopName || user.email}`,
+      body: summary?.trim() || "Seller needs human agent assistance",
+      ticketId: ticketRef.id, sellerId: user.uid,
+      read: false, createdAt: new Date(),
     });
 
     return res.json({ ticketId: ticketRef.id });
-
   } catch (e) {
-    console.error("[helpRoutes] escalate error:", e.message);
-    return res.status(500).json({ error: "Failed to create support ticket." });
+    const code = e.statusCode || 500;
+    return res.status(code).json({ error: e.message || "Failed to create support ticket." });
   }
 });
 
-/* ── Get chat history ── */
-router.get("/history", verifyToken, async (req, res) => {
-  const uid = req.user?.uid;
+/* ── GET /api/help/history ── */
+router.get("/history", async (req, res) => {
   try {
+    const user = await verifyAuth(req);
     const snap = await adminDb
-      .collection("helpChats").doc(uid)
+      .collection("helpChats").doc(user.uid)
       .collection("messages")
       .orderBy("createdAt", "asc")
       .limitToLast(30)
       .get();
-
-    const messages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    return res.json({ messages });
+    return res.json({ messages: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
   } catch (e) {
     return res.json({ messages: [] });
   }
 });
 
-/* ── Admin: get all open tickets ── */
-router.get("/tickets", verifyToken, async (req, res) => {
+/* ── GET /api/help/tickets ── */
+router.get("/tickets", async (req, res) => {
   try {
-    const snap = await adminDb
-      .collection("helpTickets")
-      .orderBy("createdAt", "desc")
-      .limit(100)
-      .get();
-    const tickets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    return res.json({ tickets });
+    await verifyAuth(req);
+    const snap = await adminDb.collection("helpTickets").orderBy("createdAt", "desc").limit(100).get();
+    return res.json({ tickets: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
   } catch (e) {
     return res.status(500).json({ error: "Failed to fetch tickets." });
   }
 });
 
-/* ── Admin: reply to ticket ── */
-router.post("/tickets/:ticketId/reply", verifyToken, async (req, res) => {
-  const { ticketId } = req.params;
-  const { message, resolve = false } = req.body;
-  const adminUid = req.user?.uid;
-
-  if (!message?.trim()) return res.status(400).json({ error: "Message required." });
-
+/* ── POST /api/help/tickets/:ticketId/reply ── */
+router.post("/tickets/:ticketId/reply", async (req, res) => {
   try {
+    const user = await verifyAuth(req);
+    const { ticketId } = req.params;
+    const { message, resolve = false } = req.body;
+    if (!message?.trim()) return res.status(400).json({ error: "Message required." });
+
     const ticketRef = adminDb.collection("helpTickets").doc(ticketId);
     const snap      = await ticketRef.get();
     if (!snap.exists) return res.status(404).json({ error: "Ticket not found." });
 
     const ticket = snap.data();
-
-    // Add reply message
-    await ticketRef.collection("replies").add({
-      adminUid, message: message.trim(),
-      createdAt: new Date(),
-    });
-
-    // Update ticket
+    await ticketRef.collection("replies").add({ adminUid: user.uid, message: message.trim(), createdAt: new Date() });
     await ticketRef.update({
-      status:        resolve ? "resolved" : "in_progress",
-      updatedAt:     new Date(),
-      unreadByAdmin: false,
-      lastReply:     message.trim().slice(0, 120),
+      status: resolve ? "resolved" : "in_progress",
+      updatedAt: new Date(), unreadByAdmin: false,
+      lastReply: message.trim().slice(0, 120),
     });
 
-    // Notify seller
     if (ticket.sellerId) {
-      await adminDb
-        .collection("sellerNotifications")
-        .doc(ticket.sellerId)
-        .collection("items")
-        .add({
-          type:    "system",
-          title:   resolve ? "Your support request was resolved" : "New reply from Beme Support",
-          body:    message.trim().slice(0, 200),
-          linkTab: "help",
-          read:    false,
-          createdAt: new Date(),
-        });
+      await adminDb.collection("sellerNotifications").doc(ticket.sellerId).collection("items").add({
+        type: "system",
+        title: resolve ? "Your support request was resolved" : "New reply from Beme Support",
+        body: message.trim().slice(0, 200),
+        linkTab: "help", read: false, createdAt: new Date(),
+      });
     }
 
     return res.json({ success: true });
   } catch (e) {
-    return res.status(500).json({ error: "Failed to send reply." });
+    const code = e.statusCode || 500;
+    return res.status(code).json({ error: e.message || "Failed to send reply." });
   }
 });
 
