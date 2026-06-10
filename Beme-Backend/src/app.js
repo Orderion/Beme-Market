@@ -14,6 +14,7 @@ import adminReviewRoutes  from "./routes/adminReview.js";
 import aiRoutes           from "./routes/aiRoutes.js";
 import chatRoutes         from "./routes/chatRoutes.js";
 import subscriptionRoutes from "./routes/subscriptionRoutes.js";
+import helpRoutes          from "./routes/helpRoutes.js";
 
 dotenv.config();
 
@@ -84,6 +85,7 @@ app.use("/api/orders",        orderRoutes);
 app.use("/api/paystack",      paystackRoutes);
 app.use("/api/admin",         adminReviewRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/api/help",          helpRoutes);
 
 /* ===============================
    404 HANDLER

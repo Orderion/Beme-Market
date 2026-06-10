@@ -6,6 +6,7 @@ import { useTheme }      from "../context/ThemeContext";
 import { useSellerAuth } from "../hooks/useSellerAuth";
 import TopbarDropdown    from "./dashboard/TopbarDropdown";
 import "../pages/SellerDashboard.css";
+import { subscribeToSellerUnreadCount } from "../services/sellerNotificationService";
 
 // ── Lazy-load all pages ──
 const DashboardHome         = lazy(() => import("./dashboard/DashboardHome"));
@@ -24,6 +25,7 @@ const AIAssistant           = lazy(() => import("./dashboard/AIAssistant"));
 const DashboardSettings     = lazy(() => import("./dashboard/DashboardSettings"));
 const LearnMore             = lazy(() => import("./dashboard/LearnMore"));
 const DashboardHelp         = lazy(() => import("./dashboard/DashboardHelp"));
+const DashboardNotifications = lazy(() => import("./dashboard/DashboardNotifications"));
 const DashboardGift         = lazy(() => import("./dashboard/DashboardGift"));
 
 function Ico({ d, size = 18, color = "currentColor", sw = 1.8 }) {
@@ -71,6 +73,7 @@ const NAV = [
   { id: "ai",           label: "Beme AI",       icon: D.ai           },
   { id: "subscription", label: "Subscription",  icon: D.subscription },
   { id: "settings",     label: "Settings",      icon: D.settings     },
+  { id: "notifications", label: "Notifications", icon: D.bell         },
 ];
 
 const TAB_TITLES = {
@@ -78,10 +81,11 @@ const TAB_TITLES = {
   chat:"Messages", marketing:"Marketing", referrals:"Referrals", analytics:"Analytics Pro",
   withdrawals:"Withdrawals", appearance:"Store Design", delivery:"Delivery",
   ai:"Beme AI", subscription:"Subscription", settings:"Settings",
-  help:"Get Help", learn:"Learn More", gift:"Gift Beme",
+  bell:         "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9|M13.73 21a2 2 0 0 1-3.46 0",
+  notifications:"Notifications", help:"Get Help", learn:"Learn More", gift:"Gift Beme",
 };
 
-const BADGE = { orders: 0, chat: 0 };
+// BADGE is now dynamic — see notifCount state above
 
 function PageSpinner() {
   return (
@@ -131,7 +135,9 @@ export default function SellerDashboard() {
     ai:           <AIAssistant />,
     subscription: <DashboardSubscription />,
     settings:     <DashboardSettings />,
-    help:         <DashboardHelp />,
+    notifications:<DashboardNotifications />,
+    bell:         "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9|M13.73 21a2 2 0 0 1-3.46 0",
+  help:         <DashboardHelp />,
     learn:        <LearnMore />,
     gift:         <DashboardGift />,
   };
@@ -139,6 +145,12 @@ export default function SellerDashboard() {
   if (shopLoading) return <PageSpinner />;
 
   const isDark = theme === "dark";
+  const [notifCount, setNotifCount] = useState(0);
+  useEffect(() => {
+    if (!user?.uid) return;
+    const unsub = subscribeToSellerUnreadCount(user.uid, setNotifCount);
+    return unsub;
+  }, [user?.uid]);
   const shopName = shop?.shopName || profile?.shopName || "Your Store";
   const initial  = (shopName[0] || "S").toUpperCase();
 
