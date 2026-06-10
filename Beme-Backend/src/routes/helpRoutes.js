@@ -3,7 +3,7 @@
 
 import express from "express";
 import Anthropic from "@anthropic-ai/sdk";
-import { adminDb } from "../config/firebase-admin.js";
+import { adminDb, firebaseAdmin } from "../firebaseAdmin.js";
 import { verifyToken } from "../middleware/auth.js";
 
 const router = express.Router();
