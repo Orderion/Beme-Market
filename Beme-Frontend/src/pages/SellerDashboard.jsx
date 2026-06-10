@@ -85,7 +85,7 @@ const TAB_TITLES = {
   notifications:"Notifications", help:"Get Help", learn:"Learn More", gift:"Gift Beme",
 };
 
-// BADGE is now dynamic — see notifCount state above
+const BADGE = { orders: 0, chat: 0 };
 
 function PageSpinner() {
   return (
