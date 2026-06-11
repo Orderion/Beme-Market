@@ -86,7 +86,7 @@ const TAB_TITLES = {
   notifications:"Notifications", help:"Get Help", learn:"Learn More", gift:"Gift Beme",
 };
 
-const BADGE = { orders: 0, chat: 0 };
+// BADGE is computed dynamically below after hooks
 
 function PageSpinner() {
   return (
@@ -153,6 +153,11 @@ export default function SellerDashboard() {
   if (shopLoading) return <PageSpinner />;
 
   const isDark = theme === "dark";
+  // Dynamic sidebar badges
+  const BADGE = {
+    chat:          totalUnread   || 0,
+    notifications: notifCount    || 0,
+  };
   const shopName = shop?.shopName || profile?.shopName || "Your Store";
   const initial  = (shopName[0] || "S").toUpperCase();
 
