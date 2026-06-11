@@ -155,7 +155,7 @@ export default function SellerDashboard() {
   const isDark = theme === "dark";
   // Dynamic sidebar badges
   const BADGE = {
-    chat:          totalUnread   || 0,
+    chat:          0,
     notifications: notifCount    || 0,
   };
   const shopName = shop?.shopName || profile?.shopName || "Your Store";
