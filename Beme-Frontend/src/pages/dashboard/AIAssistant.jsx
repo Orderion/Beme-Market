@@ -520,12 +520,14 @@ export default function AIAssistant() {
       {/* ══ SCROLL AREA ══ */}
       <div className="ai-scroll">
         {noAccess ? (
-          <div className="ai-empty" style={{ paddingTop:40 }}>
-            <div style={{ fontSize:48, marginBottom:16 }}>🔒</div>
-            <div className="ai-empty-greeting" style={{ fontSize:18 }}>Beme AI is not available on your plan</div>
-            <div className="ai-empty-hint">Upgrade to Starter, Growth, or Pro to access AI features including product descriptions, marketing copy, and store analytics.</div>
-            <button className="ai-example-card" style={{ marginTop:16, padding:"12px 24px", borderRadius:12, background:"var(--sd-accent)", color:"#fff", border:"none", fontWeight:800, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}
-              onClick={() => {}}>Upgrade Plan →</button>
+          <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:"40px 24px" }}>
+            <div style={{ fontSize:56, marginBottom:20 }}>🔒</div>
+            <div style={{ fontSize:20, fontWeight:900, color:"var(--sd-text)", marginBottom:10, letterSpacing:"-0.02em" }}>Beme AI is not available on your plan</div>
+            <div style={{ fontSize:14, color:"var(--sd-muted)", maxWidth:320, lineHeight:1.7, marginBottom:28 }}>Upgrade to Starter, Growth, or Pro to access AI features including product descriptions, marketing copy, and store analytics.</div>
+            <button style={{ padding:"12px 28px", borderRadius:12, background:"var(--sd-accent)", color:"#fff", border:"none", fontWeight:800, fontSize:14, cursor:"pointer", fontFamily:"inherit", letterSpacing:"-0.01em" }}
+              onClick={() => { window.dispatchEvent(new CustomEvent("beme:nav", { detail:"subscription" })); }}>
+              Upgrade Plan →
+            </button>
           </div>
         ) : isEmpty ? (
           /* ── Empty state ── */
@@ -578,7 +580,7 @@ export default function AIAssistant() {
       </div>
 
       {/* ══ PINNED INPUT ══ */}
-      <div className="ai-bottom">
+      {!noAccess && <div className="ai-bottom">
         {/* Thin usage bar */}
         <div className="ai-bar-row">
           <div style={{ flex:1,height:2,background:"var(--sd-border)",borderRadius:2,overflow:"hidden" }}>
@@ -598,6 +600,7 @@ export default function AIAssistant() {
           onRemoveAttach={removeAttachment} pageLabel={pageLabel}/>
       </div>
 
+      }
       {showTopup && <TopupModal onClose={() => setShowTopup(false)} plan={subscriptionPlan}/>}
 
       {/* ══ STYLES ══ */}
