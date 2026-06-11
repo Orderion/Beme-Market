@@ -63,6 +63,7 @@ export default function DashboardHelp() {
   const [escWait,      setEscWait]      = useState(false);
   const [escLoading,   setEscLoading]   = useState(false);
   const [agentActive,  setAgentActive]  = useState(false); // true once agent sends a message
+  const [chatResolved, setChatResolved] = useState(false); // true when ticket resolved
   const [hasSession,   setHasSession]   = useState(false);
   const [sessionCold,  setSessionCold]  = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
@@ -122,9 +123,13 @@ export default function DashboardHelp() {
       const hasAgent = msgs.some(m => m.source === "agent");
       if (hasAgent) {
         setAgentActive(true);
-        setEscWait(false); // agent connected — remove waiting banner
+        setEscWait(false);
         setCanEsc(false);
       }
+
+      // Check if chat was resolved
+      const isResolved = msgs.some(m => m.source === "resolved");
+      if (isResolved) setChatResolved(true);
 
       // Check last AI message for escalate flag
       const lastAI = [...msgs].reverse().find(m => m.role === "assistant" && m.source === "ai");
@@ -407,12 +412,19 @@ export default function DashboardHelp() {
       </div>
 
       {/* Input — blocked when agent is active (agent replies via admin panel) */}
-      {agentActive ? (
+      {agentActive && !chatResolved ? (
         <div className="dh-agent-input-notice">
           <Ico d={IC.agent} size={14} color="#046EF2" />
           Respond to the agent above — type your reply here
         </div>
       ) : null}
+      {chatResolved ? (
+        <div className="dh-resolved-bar">
+          <span style={{ fontSize:16 }}>✅</span>
+          Chat resolved — <button className="dh-cold-btn" style={{ marginLeft:6 }}
+            onClick={() => setView("entry")}>Start New Chat</button>
+        </div>
+      ) : (
       <div className="dh-input-row">
         <input
           className="dh-input"
@@ -431,6 +443,7 @@ export default function DashboardHelp() {
       </div>
 
       <style>{STYLES}</style>
+    )}
     </div>
   );
 
@@ -671,4 +684,11 @@ const STYLES = `
   }
   .dh-send-btn:disabled { opacity: 0.4; cursor: default; }
   .dh-send-btn:not(:disabled):hover { opacity: 0.85; }
+
+  .dh-resolved-bar {
+    display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+    border-top: 1px solid var(--sd-border); border-radius: 0 0 12px 12px;
+    background: rgba(21,128,61,0.06); border-color: rgba(21,128,61,0.15);
+    font-size: 13px; font-weight: 700; color: #15803d; flex-shrink: 0;
+  }
 `;

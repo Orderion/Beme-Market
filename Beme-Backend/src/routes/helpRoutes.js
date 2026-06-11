@@ -230,6 +230,18 @@ router.post("/tickets/:ticketId/reply", async (req, res) => {
         status:      resolve ? "resolved" : "active",
       }, { merge: true });
 
+      // If resolved, write a system closure message into seller's chat
+      if (resolve) {
+        await adminDb
+          .collection("helpChats").doc(ticket.sellerId)
+          .collection("messages").add({
+            role:    "assistant",
+            content: "This support conversation has been resolved by our team. If you have more questions, feel free to start a new chat.",
+            source:  "resolved",
+            createdAt: new Date(),
+          });
+      }
+
       // Notify seller
       await adminDb.collection("sellerNotifications").doc(ticket.sellerId).collection("items").add({
         type:    "system",
