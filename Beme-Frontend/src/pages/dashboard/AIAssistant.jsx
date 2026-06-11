@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth }         from "../../context/AuthContext";
 import { useSubscription } from "../../hooks/useSubscription";
+import { useSellerAuth } from "../../hooks/useSellerAuth";
 import { useAIUsage }      from "../../hooks/useAIUsage";
 import { useAIChat }       from "../../hooks/useAIChat";
 import { useAIContext }    from "../../hooks/useAIContext";
@@ -347,23 +348,43 @@ function InputBar({ input, setInput, onSend, isTyping, isAtLimit, onTopup, attac
 
 /* ─── Topup modal ─── */
 const PACKS = [
-  { id:"small",          msgs:"50 messages",     price:"$1", ghs:"GHS 15" },
-  { id:"medium",         msgs:"200 messages",    price:"$3", ghs:"GHS 45" },
-  { id:"unlimited_week", msgs:"7-day unlimited", price:"$5", ghs:"GHS 75" },
+  { id:"small",          msgs:"50 messages",     price:"GHS 15", desc:"One-time top up" },
+  { id:"medium",         msgs:"200 messages",    price:"GHS 45", desc:"Best value"      },
+  { id:"unlimited_week", msgs:"7-day unlimited", price:"GHS 75", desc:"Power user"      },
 ];
-function TopupModal({ onClose }) {
+
+function TopupModal({ onClose, plan }) {
   const { user }  = useAuth();
-  const [bought, setBought] = useState(null);
-  const [busy,   setBusy]   = useState(null);
+  const [busy,    setBusy]    = useState(null);
+  const [error,   setError]   = useState("");
+  const API = import.meta.env.VITE_BACKEND_URL || "https://beme-market-1.onrender.com";
+
+  const canTopup = plan && plan !== "basic" && plan !== "free";
+
   const buy = async (id) => {
-    setBusy(id);
+    if (!canTopup) return;
+    setBusy(id); setError("");
     try {
-      const { addExtraCredits } = await import("../../services/aiUsageService");
-      if (user?.uid) await addExtraCredits(user.uid, id);
-      setBought(id);
-      setTimeout(() => { onClose(); setBought(null); }, 1800);
-    } catch(e) { console.error(e); } finally { setBusy(null); }
+      const token = await (await import("firebase/auth")).getAuth().currentUser.getIdToken(true);
+      const res   = await fetch(`${API}/api/paystack/topup/init`, {
+        method: "POST",
+        headers: { "Content-Type":"application/json", Authorization:`Bearer ${token}` },
+        body:    JSON.stringify({ pack: id }),
+      });
+      const data = await res.json();
+      if (data.authorization_url) {
+        // Redirect to Paystack
+        window.location.href = data.authorization_url;
+      } else {
+        setError(data.error || "Failed to initialize payment.");
+      }
+    } catch (e) {
+      setError("Network error. Please try again.");
+    } finally {
+      setBusy(null);
+    }
   };
+
   return (
     <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center",padding:16,backdropFilter:"blur(6px)" }}>
@@ -372,20 +393,36 @@ function TopupModal({ onClose }) {
           <div style={{ fontSize:16,fontWeight:800,color:"var(--sd-text)" }}>Top up messages</div>
           <button onClick={onClose} style={{ background:"none",border:"none",fontSize:22,color:"var(--sd-muted)",cursor:"pointer",lineHeight:1,padding:0 }}>×</button>
         </div>
-        <div style={{ fontSize:12,color:"var(--sd-muted)",marginBottom:18 }}>Free messages reset at midnight.</div>
-        <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
-          {PACKS.map(p => (
-            <button key={p.id} onClick={() => buy(p.id)} disabled={!!busy||!!bought}
-              style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",background:bought===p.id?"rgba(21,128,61,.06)":"var(--sd-bg)",border:`1px solid ${bought===p.id?"rgba(21,128,61,.2)":"var(--sd-border)"}`,borderRadius:10,cursor:"pointer",textAlign:"left",fontFamily:"var(--sd-font)" }}>
-              <div>
-                <div style={{ fontSize:14,fontWeight:700,color:"var(--sd-text)",marginBottom:2 }}>{bought===p.id?"Credits added!":busy===p.id?"Processing…":p.msgs}</div>
-                <div style={{ fontSize:11,color:"var(--sd-muted)" }}>{p.ghs}</div>
-              </div>
-              <div style={{ fontSize:13,fontWeight:800,color:"var(--sd-accent)",background:"var(--sd-accent-dim)",padding:"4px 10px",borderRadius:7 }}>{p.price}</div>
+        <div style={{ fontSize:12,color:"var(--sd-muted)",marginBottom:18 }}>Free messages reset daily. Purchase extra credits below.</div>
+
+        {!canTopup ? (
+          <div style={{ padding:"16px",borderRadius:12,background:"var(--sd-accent-dim)",border:"1px solid rgba(124,58,237,0.2)",textAlign:"center" }}>
+            <div style={{ fontSize:14,fontWeight:700,color:"var(--sd-accent)",marginBottom:6 }}>Upgrade your plan</div>
+            <div style={{ fontSize:13,color:"var(--sd-muted)",marginBottom:12 }}>AI features are available on Starter, Growth, and Pro plans.</div>
+            <button onClick={onClose} style={{ padding:"8px 20px",borderRadius:9,background:"var(--sd-accent)",color:"#fff",border:"none",fontWeight:700,cursor:"pointer",fontFamily:"inherit" }}>
+              View Plans
             </button>
-          ))}
-        </div>
-        <div style={{ fontSize:11,color:"var(--sd-muted)",textAlign:"center",marginTop:14 }}>Secured by Paystack · Credits added instantly</div>
+          </div>
+        ) : (
+          <>
+            <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+              {PACKS.map(p => (
+                <button key={p.id} onClick={() => buy(p.id)} disabled={!!busy}
+                  style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",background:"var(--sd-bg,var(--sd-white))",border:"1px solid var(--sd-border)",borderRadius:10,cursor:"pointer",textAlign:"left",fontFamily:"var(--sd-font)",opacity:busy?0.6:1 }}>
+                  <div>
+                    <div style={{ fontSize:14,fontWeight:700,color:"var(--sd-text)",marginBottom:2 }}>
+                      {busy===p.id ? "Redirecting to payment…" : p.msgs}
+                    </div>
+                    <div style={{ fontSize:11,color:"var(--sd-muted)" }}>{p.desc}</div>
+                  </div>
+                  <div style={{ fontSize:13,fontWeight:800,color:"var(--sd-accent)",background:"var(--sd-accent-dim)",padding:"4px 10px",borderRadius:7,flexShrink:0 }}>{p.price}</div>
+                </button>
+              ))}
+            </div>
+            {error && <div style={{ marginTop:10,fontSize:12,color:"#ef4444",fontWeight:600 }}>{error}</div>}
+            <div style={{ fontSize:11,color:"var(--sd-muted)",textAlign:"center",marginTop:14 }}>Secured by Paystack · Credits added after payment</div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -398,10 +435,35 @@ export default function AIAssistant() {
   const [, setParams]     = useSearchParams();
   const { profile, user } = useAuth();
   const { plan }          = useSubscription();
+  const { subscriptionPlan, planLimits } = useSellerAuth();
   const { messagesUsed, dailyLimit, messagesRemaining, isAtLimit, isNearLimit, usagePercent } = useAIUsage();
   const { aiContext, suggestions, pageLabel } = useAIContext();
 
   const [showTopup,   setShowTopup]   = useState(false);
+  const [topupMsg,    setTopupMsg]    = useState("");
+
+  // Handle return from Paystack topup payment
+  useEffect(() => {
+    const params   = new URLSearchParams(window.location.search);
+    const topupRef = params.get("topup_ref");
+    if (!topupRef || !topupRef.startsWith("topup_")) return;
+
+    const API = import.meta.env.VITE_BACKEND_URL || "https://beme-market-1.onrender.com";
+    // Remove param from URL without reload
+    const newUrl = window.location.pathname + "?tab=ai";
+    window.history.replaceState({}, "", newUrl);
+
+    (async () => {
+      try {
+        const res  = await fetch(`${API}/api/paystack/topup/verify?reference=${encodeURIComponent(topupRef)}`);
+        const data = await res.json();
+        if (data.success) {
+          setTopupMsg(`✅ ${data.credits} messages added to your account!`);
+          setTimeout(() => setTopupMsg(""), 5000);
+        }
+      } catch {}
+    })();
+  }, []);
   const [attachments, setAttachments] = useState([]);
   const [chatKey,     setChatKey]     = useState(0);
 
@@ -411,6 +473,7 @@ export default function AIAssistant() {
   const shopName  = profile?.shopName || profile?.storeName || "Your Store";
   const firstName = shopName.split(" ")[0];
   const isEmpty   = !histLoading && messages.length === 0;
+  const noAccess  = !planLimits?.hasAI && subscriptionPlan;
   const barColor  = usagePercent >= 100 ? "#ef4444" : usagePercent >= 80 ? "#f59e0b" : "var(--sd-accent)";
 
   const addAttachment    = (f) => setAttachments(a => [...a, f]);
@@ -436,6 +499,7 @@ export default function AIAssistant() {
           <span className="ai-pro-badge">PRO</span>
         </div>
         <div className="ai-hdr-right">
+          {topupMsg && <div style={{ fontSize:11,color:"#16a34a",fontWeight:700,padding:"3px 10px",background:"rgba(21,128,61,0.08)",borderRadius:100,border:"1px solid rgba(21,128,61,0.2)" }}>{topupMsg}</div>}
           {/* Usage pill — hidden on mobile */}
           <div className="ai-usage-pill">
             <div style={{ width:6,height:6,borderRadius:"50%",background:barColor,flexShrink:0 }}/>
@@ -455,7 +519,15 @@ export default function AIAssistant() {
 
       {/* ══ SCROLL AREA ══ */}
       <div className="ai-scroll">
-        {isEmpty ? (
+        {noAccess ? (
+          <div className="ai-empty" style={{ paddingTop:40 }}>
+            <div style={{ fontSize:48, marginBottom:16 }}>🔒</div>
+            <div className="ai-empty-greeting" style={{ fontSize:18 }}>Beme AI is not available on your plan</div>
+            <div className="ai-empty-hint">Upgrade to Starter, Growth, or Pro to access AI features including product descriptions, marketing copy, and store analytics.</div>
+            <button className="ai-example-card" style={{ marginTop:16, padding:"12px 24px", borderRadius:12, background:"var(--sd-accent)", color:"#fff", border:"none", fontWeight:800, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}
+              onClick={() => {}}>Upgrade Plan →</button>
+          </div>
+        ) : isEmpty ? (
           /* ── Empty state ── */
           <div className="ai-empty">
             <AnimatedOrb size={72}/>
@@ -526,7 +598,7 @@ export default function AIAssistant() {
           onRemoveAttach={removeAttachment} pageLabel={pageLabel}/>
       </div>
 
-      {showTopup && <TopupModal onClose={() => setShowTopup(false)}/>}
+      {showTopup && <TopupModal onClose={() => setShowTopup(false)} plan={subscriptionPlan}/>}
 
       {/* ══ STYLES ══ */}
       <style>{`

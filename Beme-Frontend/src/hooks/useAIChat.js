@@ -2,11 +2,13 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, limit } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
+import { useSellerAuth } from "./useSellerAuth";
 import { sendAIMessage } from "../services/aiService";
 import { incrementUsage } from "../services/aiUsageService";
 
 export function useAIChat({ aiContext={}, onLimitReached }={}) {
   const { user } = useAuth();
+  const { subscriptionPlan } = useSellerAuth();
   const [messages,    setMessages]    = useState([]);
   const [input,       setInput]       = useState("");
   const [isTyping,    setIsTyping]    = useState(false);
@@ -33,7 +35,7 @@ export function useAIChat({ aiContext={}, onLimitReached }={}) {
     const trimmed=(text||input).trim();
     if (!trimmed||isTyping||!user?.uid) return;
     setError(null);
-    const result = await incrementUsage(user.uid);
+    const result = await incrementUsage(user.uid, subscriptionPlan || "basic");
     if (!result.success) { if (result.reason==="limit_reached"&&onLimitReached) onLimitReached(); return; }
     setInput("");
     setMessages(prev=>[...prev,{ role:"user",content:trimmed,createdAt:new Date(),id:`tmp_${Date.now()}` }]);
