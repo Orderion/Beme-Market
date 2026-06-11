@@ -50,8 +50,19 @@ When you cannot resolve an issue, end your message with exactly this on a new li
 router.post("/chat", async (req, res) => {
   try {
     const user = await verifyAuth(req);
-    const { message, history = [] } = req.body;
+    const { message, history = [], agentMode = false } = req.body;
     if (!message?.trim()) return res.status(400).json({ error: "Message is required." });
+
+    const now2 = new Date();
+    // If agent is active, just log seller message without calling Claude
+    if (agentMode) {
+      const msgCol2 = adminDb.collection("helpChats").doc(user.uid).collection("messages");
+      await msgCol2.add({ role: "user", content: message.trim(), source: "seller", createdAt: now2 });
+      await adminDb.collection("helpChats").doc(user.uid).set({
+        lastMessage: message.trim().slice(0, 120), updatedAt: now2,
+      }, { merge: true });
+      return res.json({ reply: null, agentMode: true });
+    }
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const messages = [
