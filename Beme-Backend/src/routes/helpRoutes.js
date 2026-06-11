@@ -5,7 +5,6 @@ import { adminDb, firebaseAdmin } from "../firebaseAdmin.js";
 
 const router = express.Router();
 
-/* ── Inline auth (same pattern as orderRoutes.js) ── */
 async function verifyAuth(req) {
   const auth  = req.headers.authorization || "";
   const match = auth.match(/^Bearer (.+)$/);
@@ -69,20 +68,20 @@ router.post("/chat", async (req, res) => {
     const canEscalate = reply.includes("[ESCALATE_AVAILABLE]");
     const cleanReply  = reply.replace("[ESCALATE_AVAILABLE]", "").trim();
 
-    // Save to Firestore
+    const now    = new Date();
     const msgCol = adminDb.collection("helpChats").doc(user.uid).collection("messages");
-    await msgCol.add({ role: "user",      content: message.trim(), createdAt: new Date() });
-    await msgCol.add({ role: "assistant", content: cleanReply, canEscalate, createdAt: new Date() });
+    await msgCol.add({ role: "user",      content: message.trim(), source: "seller", createdAt: now });
+    await msgCol.add({ role: "assistant", content: cleanReply, source: "ai", canEscalate, createdAt: now });
     await adminDb.collection("helpChats").doc(user.uid).set({
       uid: user.uid, email: user.email || "",
       lastMessage: cleanReply.slice(0, 120),
-      updatedAt: new Date(), status: "active",
+      updatedAt: now, status: "active",
     }, { merge: true });
 
     return res.json({ reply: cleanReply, canEscalate });
   } catch (e) {
-    const code = e.statusCode || 500;
-    return res.status(code).json({ error: e.message || "AI assistant temporarily unavailable." });
+    console.error("[help/chat]", e.message);
+    return res.status(e.statusCode || 500).json({ error: e.message || "AI assistant temporarily unavailable." });
   }
 });
 
@@ -106,6 +105,15 @@ router.post("/escalate", async (req, res) => {
       createdAt: new Date(), updatedAt: new Date(), unreadByAdmin: true,
     });
 
+    // Add "waiting for agent" message to seller's chat
+    await adminDb.collection("helpChats").doc(user.uid).collection("messages").add({
+      role: "assistant",
+      content: "Your request has been forwarded to a human agent. Please wait — an agent will connect with you shortly.",
+      source: "system",
+      ticketId: ticketRef.id,
+      createdAt: new Date(),
+    });
+
     await adminDb.collection("adminNotifications").add({
       type: "help_escalation",
       title: `Support request from ${shopName || user.email}`,
@@ -116,8 +124,8 @@ router.post("/escalate", async (req, res) => {
 
     return res.json({ ticketId: ticketRef.id });
   } catch (e) {
-    const code = e.statusCode || 500;
-    return res.status(code).json({ error: e.message || "Failed to create support ticket." });
+    console.error("[help/escalate]", e.message);
+    return res.status(e.statusCode || 500).json({ error: e.message || "Failed to create support ticket." });
   }
 });
 
@@ -129,11 +137,29 @@ router.get("/history", async (req, res) => {
       .collection("helpChats").doc(user.uid)
       .collection("messages")
       .orderBy("createdAt", "asc")
-      .limitToLast(30)
+      .limitToLast(50)
       .get();
     return res.json({ messages: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
   } catch (e) {
     return res.json({ messages: [] });
+  }
+});
+
+/* ── GET /api/help/session ── */
+// Returns whether seller has an existing chat session
+router.get("/session", async (req, res) => {
+  try {
+    const user = await verifyAuth(req);
+    const doc  = await adminDb.collection("helpChats").doc(user.uid).get();
+    if (!doc.exists) return res.json({ hasSession: false });
+    const data = doc.data();
+    return res.json({
+      hasSession:  true,
+      lastUpdated: data.updatedAt?.toDate?.() || null,
+      status:      data.status || "active",
+    });
+  } catch (e) {
+    return res.json({ hasSession: false });
   }
 });
 
@@ -159,28 +185,55 @@ router.post("/tickets/:ticketId/reply", async (req, res) => {
     const ticketRef = adminDb.collection("helpTickets").doc(ticketId);
     const snap      = await ticketRef.get();
     if (!snap.exists) return res.status(404).json({ error: "Ticket not found." });
-
     const ticket = snap.data();
-    await ticketRef.collection("replies").add({ adminUid: user.uid, message: message.trim(), createdAt: new Date() });
-    await ticketRef.update({
-      status: resolve ? "resolved" : "in_progress",
-      updatedAt: new Date(), unreadByAdmin: false,
-      lastReply: message.trim().slice(0, 120),
+
+    // Save reply to ticket
+    await ticketRef.collection("replies").add({
+      adminUid: user.uid, message: message.trim(), createdAt: new Date(),
     });
 
+    await ticketRef.update({
+      status:        resolve ? "resolved" : "in_progress",
+      updatedAt:     new Date(),
+      unreadByAdmin: false,
+      lastReply:     message.trim().slice(0, 120),
+    });
+
+    // ── KEY FIX: mirror reply into seller's helpChats so they see it in real time ──
     if (ticket.sellerId) {
+      await adminDb
+        .collection("helpChats").doc(ticket.sellerId)
+        .collection("messages").add({
+          role:    "assistant",
+          content: message.trim(),
+          source:  "agent",
+          adminUid: user.uid,
+          ticketId,
+          createdAt: new Date(),
+        });
+
+      // Update session metadata
+      await adminDb.collection("helpChats").doc(ticket.sellerId).set({
+        lastMessage: message.trim().slice(0, 120),
+        updatedAt:   new Date(),
+        status:      resolve ? "resolved" : "active",
+      }, { merge: true });
+
+      // Notify seller
       await adminDb.collection("sellerNotifications").doc(ticket.sellerId).collection("items").add({
-        type: "system",
-        title: resolve ? "Your support request was resolved" : "New reply from Beme Support",
-        body: message.trim().slice(0, 200),
-        linkTab: "help", read: false, createdAt: new Date(),
+        type:    "system",
+        title:   resolve ? "Your support request was resolved" : "New reply from Beme Support",
+        body:    message.trim().slice(0, 200),
+        linkTab: "help",
+        read:    false,
+        createdAt: new Date(),
       });
     }
 
     return res.json({ success: true });
   } catch (e) {
-    const code = e.statusCode || 500;
-    return res.status(code).json({ error: e.message || "Failed to send reply." });
+    console.error("[help/reply]", e.message);
+    return res.status(e.statusCode || 500).json({ error: e.message || "Failed to send reply." });
   }
 });
 
