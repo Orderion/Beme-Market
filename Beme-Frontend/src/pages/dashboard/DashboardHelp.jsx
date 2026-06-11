@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { getAuth } from "firebase/auth";
-import { collection, onSnapshot, orderBy, query, where, Timestamp } from "firebase/firestore";
+import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "../../firebase";
 
 const API = import.meta.env.VITE_BACKEND_URL || "https://beme-market-1.onrender.com";
@@ -16,6 +16,7 @@ function Ico({ d, size = 16, color = "currentColor", sw = 1.8 }) {
     </svg>
   );
 }
+
 const IC = {
   send:    "M22 2L11 13|M22 2L15 22l-4-9-9-4 20-7z",
   bot:     "M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z|M6 14a6 6 0 0 1 12 0v2H6v-2z|M12 22v-6",
@@ -29,7 +30,7 @@ const IC = {
 const FAQ = [
   { q: "How do I add a new product?", a: "Go to Products in your sidebar → click Add Product. Fill in name, price, description, category, upload images, set stock, and save." },
   { q: "How do I withdraw my earnings?", a: "Go to Withdrawals tab. Minimum GHS 50 for order earnings, GHS 100 for referral earnings. Processing takes 1–3 business days." },
-  { q: "What are the subscription plans?", a: "Basic (free · 5 products), Starter (GHS 59/mo), Growth (GHS 129/mo · Beme Delivery), Pro (GHS 399/mo · all features)." },
+  { q: "What are the subscription plans?", a: "Basic (free · 10 products), Starter (GHS 59/mo · 50 products), Growth (GHS 129/mo · 150 products + Beme Delivery), Pro (GHS 399/mo · 500 products + all features)." },
   { q: "How does Beme Delivery work?", a: "Available on Growth and Pro plans. Beme coordinates a courier for pickup and delivery. Configure in Settings → Delivery." },
   { q: "Why is my store inactive?", a: "Check Settings → Subscription and Settings → Verification. If the issue persists, use the chat below." },
   { q: "How do referrals work?", a: "Share your link from Marketing → Referrals. Earn GHS 1/3/7 when referred sellers subscribe to Starter/Growth/Pro." },
@@ -44,33 +45,33 @@ async function getToken() {
 function formatMsg(text) {
   if (!text) return "";
   return text
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-    .replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>")
-    .replace(/\*(.*?)\*/g,"<em>$1</em>")
-    .replace(/^(\d+\.\s)/gm,"<br/>$1")
-    .replace(/^[-•]\s/gm,"<br/>• ")
-    .replace(/\n/g,"<br/>");
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "<em>$1</em>")
+    .replace(/^(\d+\.\s)/gm, "<br/>$1")
+    .replace(/^[-•]\s/gm, "<br/>• ")
+    .replace(/\n/g, "<br/>");
 }
 
 export default function DashboardHelp() {
-  const { user }       = useAuth();
-  const [view,         setView]         = useState("entry");
-  const [messages,     setMessages]     = useState([]);
-  const [input,        setInput]        = useState("");
-  const [sending,      setSending]      = useState(false);
-  const [canEsc,       setCanEsc]       = useState(false);
-  const [escDone,      setEscDone]      = useState(false);
-  const [escWait,      setEscWait]      = useState(false);
-  const [escLoading,   setEscLoading]   = useState(false);
-  const [agentActive,  setAgentActive]  = useState(false); // true once agent sends a message
-  const [chatResolved, setChatResolved] = useState(false); // true when ticket resolved
-  const [hasSession,   setHasSession]   = useState(false);
-  const [sessionCold,  setSessionCold]  = useState(false);
+  const { user }          = useAuth();
+  const [view,            setView]            = useState("entry");
+  const [messages,        setMessages]        = useState([]);
+  const [input,           setInput]           = useState("");
+  const [sending,         setSending]         = useState(false);
+  const [canEsc,          setCanEsc]          = useState(false);
+  const [escDone,         setEscDone]         = useState(false);
+  const [escWait,         setEscWait]         = useState(false);
+  const [escLoading,      setEscLoading]      = useState(false);
+  const [agentActive,     setAgentActive]     = useState(false);
+  const [chatResolved,    setChatResolved]    = useState(false);
+  const [hasSession,      setHasSession]      = useState(false);
+  const [sessionCold,     setSessionCold]     = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [activeQ,      setActiveQ]      = useState(null);
-  const [refreshing,   setRefreshing]   = useState(false);
-  // sessionStart: only show messages AFTER this timestamp for the current session
-  const [sessionStart, setSessionStart] = useState(null);
+  const [activeQ,         setActiveQ]         = useState(null);
+  const [refreshing,      setRefreshing]      = useState(false);
+  const [sessionStart,    setSessionStart]    = useState(null);
+
   const bottomRef       = useRef(null);
   const lastActivityRef = useRef(Date.now());
   const coldTimerRef    = useRef(null);
@@ -95,31 +96,32 @@ export default function DashboardHelp() {
     })();
   }, [user?.uid]);
 
-  // Real-time Firestore listener — filtered by sessionStart for new chats
+  // Real-time Firestore listener
   useEffect(() => {
     if (view !== "chat" || !user?.uid) return;
-
-    let q;
-    if (sessionStart) {
-      // New chat: only show messages from this session onward
-      q = query(
-        collection(db, "helpChats", user.uid, "messages"),
-        orderBy("createdAt", "asc"),
-        where("createdAt", ">=", Timestamp.fromDate(sessionStart))
-      );
-    } else {
-      // Continue: show all messages
-      q = query(
-        collection(db, "helpChats", user.uid, "messages"),
-        orderBy("createdAt", "asc")
-      );
-    }
-
+    const q = query(
+      collection(db, "helpChats", user.uid, "messages"),
+      orderBy("createdAt", "asc")
+    );
     const unsub = onSnapshot(q, snap => {
-      const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      let msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Client-side filter for new chat sessions
+      if (sessionStart) {
+        const startMs = sessionStart.getTime();
+        msgs = msgs.filter(m => {
+          if (!m.createdAt) return false;
+          let ms;
+          if (typeof m.createdAt?.toMillis === "function") ms = m.createdAt.toMillis();
+          else if (m.createdAt?.seconds) ms = m.createdAt.seconds * 1000;
+          else if (m.createdAt instanceof Date) ms = m.createdAt.getTime();
+          else ms = 0;
+          return ms >= startMs;
+        });
+      }
+
       setMessages(msgs);
 
-      // Check if any agent message exists → agent is active
       const hasAgent = msgs.some(m => m.source === "agent");
       if (hasAgent) {
         setAgentActive(true);
@@ -127,16 +129,13 @@ export default function DashboardHelp() {
         setCanEsc(false);
       }
 
-      // Check if chat was resolved
       const isResolved = msgs.some(m => m.source === "resolved");
       if (isResolved) setChatResolved(true);
 
-      // Check last AI message for escalate flag
       const lastAI = [...msgs].reverse().find(m => m.role === "assistant" && m.source === "ai");
       if (lastAI?.canEscalate && !hasAgent) setCanEsc(true);
 
     }, () => {});
-
     return unsub;
   }, [view, user?.uid, sessionStart]);
 
@@ -161,15 +160,15 @@ export default function DashboardHelp() {
 
   const openChat = (isNew = false) => {
     if (isNew) {
-      // Set session start to now — listener will filter to only new messages
       setSessionStart(new Date());
       setMessages([]);
       setAgentActive(false);
+      setChatResolved(false);
       setEscDone(false);
       setEscWait(false);
       setCanEsc(false);
     } else {
-      setSessionStart(null); // show all history
+      setSessionStart(null);
     }
     setView("chat");
     setSessionCold(false);
@@ -213,6 +212,33 @@ export default function DashboardHelp() {
     }
   };
 
+  const sendAgentReply = async () => {
+    const text = input.trim();
+    if (!text || sending) return;
+    resetActivity();
+    setInput("");
+    setSending(true);
+    try {
+      const token = await getToken();
+      await fetch(`${API}/api/help/chat`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({
+          message:   text,
+          history:   messages.slice(-8).map(m => ({ role: m.role, content: m.content })),
+          agentMode: true,
+        }),
+      });
+    } catch {
+      setMessages(prev => [...prev, {
+        id: Date.now(), role: "assistant", source: "ai",
+        content: "Network error. Please try again.",
+      }]);
+    } finally {
+      setSending(false);
+    }
+  };
+
   const escalate = async () => {
     setEscLoading(true);
     try {
@@ -243,6 +269,7 @@ export default function DashboardHelp() {
   if (view === "entry") {
     return (
       <div className="dh-root">
+        <style>{STYLES}</style>
         <div className="dh-hero">
           <div className="dh-hero-icon"><Ico d={IC.bot} size={22} color="var(--sd-accent)" /></div>
           <div>
@@ -252,12 +279,12 @@ export default function DashboardHelp() {
         </div>
 
         {checkingSession ? (
-          <div className="dh-chat-cta" style={{ opacity:0.5, cursor:"default", marginBottom:22 }}>
+          <div className="dh-chat-cta" style={{ opacity: 0.5, cursor: "default", marginBottom: 22 }}>
             <div className="dh-cta-icon"><Ico d={IC.bot} size={20} color="var(--sd-accent)" /></div>
             <div className="dh-cta-body"><div className="dh-cta-title">Checking session…</div></div>
           </div>
         ) : !hasSession ? (
-          <button className="dh-chat-cta" onClick={() => openChat(true)}>
+          <button className="dh-chat-cta" onClick={() => openChat(true)} style={{ marginBottom: 22 }}>
             <div className="dh-cta-icon"><Ico d={IC.bot} size={20} color="var(--sd-accent)" /></div>
             <div className="dh-cta-body">
               <div className="dh-cta-title">Start a Chat with Beme AI Support</div>
@@ -266,10 +293,10 @@ export default function DashboardHelp() {
             <div className="dh-cta-arrow">→</div>
           </button>
         ) : (
-          <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:22 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22 }}>
             {sessionCold && (
-              <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:12,
-                color:"var(--sd-muted)", padding:"6px 0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12,
+                color: "var(--sd-muted)", padding: "6px 0" }}>
                 <Ico d={IC.clock} size={12} color="var(--sd-muted)" />
                 Previous chat session has expired
               </div>
@@ -308,32 +335,33 @@ export default function DashboardHelp() {
             </div>
           ))}
         </div>
-        <style>{STYLES}</style>
       </div>
     );
   }
 
   /* ── CHAT VIEW ── */
-  const inputBlocked = agentActive === false && false; // AI always on until agent connects
-  const showAgentBar = agentActive; // agent has sent at least one message
-
   return (
     <div className="dh-root dh-root--chat">
+      <style>{STYLES}</style>
+
+      {/* Header */}
       <div className="dh-chat-header">
         <button className="dh-back" onClick={() => setView("entry")}>← Back</button>
         <div className="dh-chat-title">
-          <div className="dh-bot-avatar" style={{ background: showAgentBar ? "#046EF2" : "var(--sd-accent)" }}>
-            <Ico d={showAgentBar ? IC.agent : IC.bot} size={14} color="#fff" />
+          <div className="dh-bot-avatar"
+            style={{ background: agentActive ? "#046EF2" : "var(--sd-accent)" }}>
+            <Ico d={agentActive ? IC.agent : IC.bot} size={14} color="#fff" />
           </div>
-          {showAgentBar ? "Beme Support Agent" : "Beme AI Support"}
+          {agentActive ? "Beme Support Agent" : "Beme AI Support"}
           <span className="dh-online-dot" />
         </div>
-        <button className="dh-refresh-btn" onClick={refresh} disabled={refreshing} title="Refresh messages">
+        <button className="dh-refresh-btn" onClick={refresh} disabled={refreshing} title="Refresh">
           <Ico d={IC.refresh} size={14}
             color={refreshing ? "var(--sd-muted)" : "var(--sd-text)"} />
         </button>
       </div>
 
+      {/* Cold banner */}
       {sessionCold && !agentActive && (
         <div className="dh-cold-banner">
           <Ico d={IC.clock} size={13} color="#F59E0B" />
@@ -342,6 +370,7 @@ export default function DashboardHelp() {
         </div>
       )}
 
+      {/* Messages */}
       <div className="dh-messages">
         {messages.length === 0 && !sending && (
           <div className="dh-msg dh-msg--assistant">
@@ -375,11 +404,12 @@ export default function DashboardHelp() {
         {sending && (
           <div className="dh-msg dh-msg--assistant">
             <div className="dh-msg-avatar"><Ico d={IC.bot} size={12} color="#fff" /></div>
-            <div className="dh-msg-bubble dh-msg-bubble--typing"><span /><span /><span /></div>
+            <div className="dh-msg-bubble dh-msg-bubble--typing">
+              <span /><span /><span />
+            </div>
           </div>
         )}
 
-        {/* Escalate button — only before agent connects */}
         {canEsc && !escDone && !agentActive && (
           <div className="dh-escalate-banner">
             <Ico d={IC.agent} size={16} color="var(--sd-accent)" />
@@ -392,7 +422,6 @@ export default function DashboardHelp() {
           </div>
         )}
 
-        {/* Waiting banner — shown after escalation, removed once agent sends a message */}
         {escWait && !agentActive && (
           <div className="dh-wait-banner">
             <div className="dh-wait-dot" />
@@ -400,8 +429,7 @@ export default function DashboardHelp() {
           </div>
         )}
 
-        {/* Agent active banner */}
-        {agentActive && (
+        {agentActive && !chatResolved && (
           <div className="dh-agent-active-banner">
             <Ico d={IC.agent} size={14} color="#046EF2" />
             A Beme support agent is now handling your chat
@@ -411,72 +439,50 @@ export default function DashboardHelp() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input — blocked when agent is active (agent replies via admin panel) */}
-      {agentActive && !chatResolved ? (
-        <div className="dh-agent-input-notice">
-          <Ico d={IC.agent} size={14} color="#046EF2" />
-          Respond to the agent above — type your reply here
-        </div>
-      ) : null}
+      {/* Bottom area */}
       {chatResolved ? (
         <div className="dh-resolved-bar">
-          <span style={{ fontSize:16 }}>✅</span>
-          Chat resolved — <button className="dh-cold-btn" style={{ marginLeft:6 }}
-            onClick={() => setView("entry")}>Start New Chat</button>
+          <span style={{ fontSize: 16 }}>✅</span>
+          Chat resolved —
+          <button className="dh-cold-btn" style={{ marginLeft: 6 }}
+            onClick={() => { setChatResolved(false); setAgentActive(false); setView("entry"); }}>
+            Start New Chat
+          </button>
         </div>
       ) : (
-      <div className="dh-input-row">
-        <input
-          className="dh-input"
-          placeholder={agentActive ? "Reply to the agent…" : "Ask anything about your store…"}
-          value={input}
-          onChange={e => { setInput(e.target.value); resetActivity(); }}
-          onKeyDown={e => e.key === "Enter" && !e.shiftKey && (agentActive ? sendAgentReply() : sendMessage())}
-          disabled={sending}
-          maxLength={500}
-        />
-        <button className="dh-send-btn"
-          onClick={agentActive ? sendAgentReply : sendMessage}
-          disabled={sending || !input.trim()}>
-          <Ico d={IC.send} size={16} color="#fff" />
-        </button>
-      </div>
-
-      <style>{STYLES}</style>
-    )}
+        <>
+          {agentActive && (
+            <div className="dh-agent-input-notice">
+              <Ico d={IC.agent} size={14} color="#046EF2" />
+              Respond to the agent above — type your reply here
+            </div>
+          )}
+          <div className="dh-input-row">
+            <input
+              className="dh-input"
+              placeholder={agentActive ? "Reply to the agent…" : "Ask anything about your store…"}
+              value={input}
+              onChange={e => { setInput(e.target.value); resetActivity(); }}
+              onKeyDown={e => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  agentActive ? sendAgentReply() : sendMessage();
+                }
+              }}
+              disabled={sending}
+              maxLength={500}
+            />
+            <button
+              className="dh-send-btn"
+              onClick={agentActive ? sendAgentReply : sendMessage}
+              disabled={sending || !input.trim()}>
+              <Ico d={IC.send} size={16} color="#fff" />
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
-
-  // When agent is active, seller messages still go through AI chat endpoint
-  // (they appear in helpChats and admin can see them)
-  async function sendAgentReply() {
-    const text = input.trim();
-    if (!text || sending) return;
-    resetActivity();
-    setInput("");
-    setSending(true);
-    try {
-      const token = await getToken();
-      // Write seller message directly to helpChats via chat endpoint
-      // but skip AI response generation — just log the message
-      await fetch(`${API}/api/help/chat`, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body:    JSON.stringify({
-          message: text,
-          history: messages.slice(-8).map(m => ({ role: m.role, content: m.content })),
-          agentMode: true, // signal to backend: don't call Claude
-        }),
-      });
-    } catch {
-      setMessages(prev => [...prev, {
-        id: Date.now(), role: "assistant", source: "ai",
-        content: "Network error. Please try again.",
-      }]);
-    } finally {
-      setSending(false);
-    }
-  }
 }
 
 const STYLES = `
@@ -488,9 +494,7 @@ const STYLES = `
     display: flex; flex-direction: column;
     height: calc(100vh - 160px); min-height: 500px;
   }
-  .dh-hero {
-    display: flex; align-items: center; gap: 12px; margin-bottom: 18px;
-  }
+  .dh-hero { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
   .dh-hero-icon {
     width: 44px; height: 44px; border-radius: 12px;
     background: var(--sd-accent-dim); display: flex; align-items: center;
@@ -506,9 +510,7 @@ const STYLES = `
     width: 100%; font-family: inherit; transition: all 0.15s;
   }
   .dh-chat-cta:hover { background: rgba(124,58,237,0.1); }
-  .dh-chat-cta--secondary {
-    border-color: var(--sd-border); background: var(--sd-white);
-  }
+  .dh-chat-cta--secondary { border-color: var(--sd-border); background: var(--sd-white); }
   .dh-chat-cta--secondary:hover { background: var(--sd-border-light); }
   .dh-cta-icon {
     width: 44px; height: 44px; border-radius: 12px; background: #fff;
@@ -528,15 +530,11 @@ const STYLES = `
     margin-bottom: 10px; margin-top: 8px;
   }
   .dh-faq { display: flex; flex-direction: column; gap: 6px; }
-  .dh-faq-item {
-    border: 1px solid var(--sd-border); border-radius: 12px;
-    overflow: hidden; background: var(--sd-white);
-  }
+  .dh-faq-item { border: 1px solid var(--sd-border); border-radius: 12px; overflow: hidden; background: var(--sd-white); }
   .dh-faq-q {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
     width: 100%; padding: 13px 16px; background: none; border: none; cursor: pointer;
-    font-family: var(--sd-font); font-size: 13px; font-weight: 700;
-    color: var(--sd-text); text-align: left;
+    font-family: var(--sd-font); font-size: 13px; font-weight: 700; color: var(--sd-text); text-align: left;
   }
   .dh-faq-chevron { flex-shrink: 0; color: var(--sd-muted); display: flex; transition: transform 0.2s; }
   .dh-faq-chevron--open { transform: rotate(180deg); }
@@ -686,9 +684,9 @@ const STYLES = `
   .dh-send-btn:not(:disabled):hover { opacity: 0.85; }
 
   .dh-resolved-bar {
-    display: flex; align-items: center; gap: 8px; padding: 12px 16px;
-    border-top: 1px solid var(--sd-border); border-radius: 0 0 12px 12px;
-    background: rgba(21,128,61,0.06); border-color: rgba(21,128,61,0.15);
-    font-size: 13px; font-weight: 700; color: #15803d; flex-shrink: 0;
+    display: flex; align-items: center; gap: 8px; padding: 12px 16px; flex-shrink: 0;
+    border-top: 1px solid rgba(21,128,61,0.2);
+    background: rgba(21,128,61,0.06);
+    font-size: 13px; font-weight: 700; color: #15803d;
   }
 `;
