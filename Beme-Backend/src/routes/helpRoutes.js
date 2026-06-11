@@ -61,7 +61,7 @@ router.post("/chat", async (req, res) => {
     ];
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514", max_tokens: 800,
+      model: "claude-sonnet-4-5", max_tokens: 800,
       system: BEME_SYSTEM_PROMPT, messages,
     });
 
