@@ -15,7 +15,9 @@ export async function requireAuth(req, res, next) {
       return res.status(401).json({ error: "Missing Firebase ID token." });
     }
 
-    const decoded = await firebaseAdmin.auth().verifyIdToken(token);
+    // MODIFIED: checkRevoked=true so suspended/deleted accounts are blocked immediately
+    // Firebase caches revocation status for ~5 min, so overhead is minimal
+    const decoded = await firebaseAdmin.auth().verifyIdToken(token, true);
 
     req.user = {
       uid: decoded.uid,
@@ -28,7 +30,11 @@ export async function requireAuth(req, res, next) {
 
     next();
   } catch (error) {
+    // ADDED: distinguish revoked tokens from other auth errors
+    if (error.code === "auth/id-token-revoked") {
+      return res.status(401).json({ error: "Session revoked. Please sign in again." });
+    }
     console.error("Auth middleware error:", error);
     return res.status(401).json({ error: "Unauthorized. Invalid or expired token." });
   }
-}
+}s

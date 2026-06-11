@@ -121,7 +121,8 @@ async function requireAuthUser(req) {
     throw error;
   }
 
-  const decoded = await firebaseAdmin.auth().verifyIdToken(match[1]);
+  // MODIFIED: checkRevoked=true — consistent with authMiddleware.js
+  const decoded = await firebaseAdmin.auth().verifyIdToken(match[1], true);
 
   if (!decoded?.uid) {
     const error = new Error("Invalid authorization token.");
@@ -629,6 +630,14 @@ router.post("/", async (req, res) => {
   try {
     const authUser = await requireAuthUser(req);
 
+    // ADDED: enforce email verification server-side — COD orders require verified email
+    if (!authUser.email_verified) {
+      return res.status(403).json({
+        success: false,
+        error: "Email verification required before placing an order.",
+      });
+    }
+
     const paymentMethod = sanitizeText(req.body?.paymentMethod, 30).toLowerCase();
     const paymentStatus = sanitizeText(
       req.body?.paymentStatus,
@@ -768,13 +777,13 @@ router.post("/", async (req, res) => {
     const created = await orderRef.get();
 
     // Increment discount code usedCount if a code was applied
+    // FIXED: use FieldValue.increment(1) — atomic, prevents race condition
     if (pricing?.discountCodeId && pricing?.discount > 0) {
-      adminDb.collection("discountCodes").doc(String(pricing.discountCodeId))
-        .get().then(snap => {
-          if (snap.exists) {
-            snap.ref.update({ usedCount: (snap.data().usedCount || 0) + 1 });
-          }
-        }).catch(e => console.error("[discount increment]", e));
+      adminDb
+        .collection("discountCodes")
+        .doc(String(pricing.discountCodeId))
+        .update({ usedCount: firebaseAdmin.firestore.FieldValue.increment(1) })
+        .catch((e) => console.error("[discount increment]", e));
     }
 
     return res.status(201).json({

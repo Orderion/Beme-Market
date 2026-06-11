@@ -43,13 +43,12 @@ const MAX_CART_ITEMS = 100;
 
 /* Delivery system — seller-controlled */
 const DELIVERY_METHODS = {
-  HOME_DELIVERY:  "home_delivery",   // courier (Cheetah, Glovo, KwikDelivery, DHL)
-  SELF_DELIVERY:  "self_delivery",   // seller arranges own delivery
-  SELLER_DIRECT:  "seller_direct",   // buyer arranges with seller (legacy alias)
+  HOME_DELIVERY:  "home_delivery",
+  SELF_DELIVERY:  "self_delivery",
+  SELLER_DIRECT:  "seller_direct",
 };
 
 /* Regional base delivery fees — courier only */
-/* Seller self-delivery fee is sent from frontend and passed through */
 const COURIER_FEES = {
   "Greater Accra": 25,
   "Ashanti":       35,
@@ -108,13 +107,12 @@ function normalizeSupplierType(value) {
 
 function isAllowedShop(value) {
   const k = normalizeShopKey(value);
-  // Allow any non-empty shop key — seller shops use their storeId
   return k.length > 0;
 }
 
 function computeRegionalBaseDeliveryFee(region) {
   const clean = sanitizeText(region, 80);
-  return COURIER_FEES[clean] ?? 40; // default GHS 40
+  return COURIER_FEES[clean] ?? 40;
 }
 
 function getNumericStock(item) {
@@ -272,7 +270,6 @@ function computeTrustedDelivery({ delivery, customerRegion, lineItems }) {
   let label = "";
 
   if (cleanDelivery.method === DELIVERY_METHODS.HOME_DELIVERY) {
-    // Courier delivery — use regional fee or frontend-provided fee (whichever is higher, for safety)
     const regionalFee = computeRegionalBaseDeliveryFee(region);
     methodFee = cleanDelivery.fee > 0 ? cleanDelivery.fee : regionalFee;
     label = cleanDelivery.provider
@@ -284,7 +281,6 @@ function computeTrustedDelivery({ delivery, customerRegion, lineItems }) {
     cleanDelivery.method === DELIVERY_METHODS.SELF_DELIVERY ||
     cleanDelivery.method === DELIVERY_METHODS.SELLER_DIRECT
   ) {
-    // Seller arranges delivery — use fee set by seller (can be 0 for free)
     methodFee = cleanDelivery.fee > 0 ? cleanDelivery.fee : 0;
     label = "Seller Delivery";
   }
@@ -323,7 +319,8 @@ async function requireAuthUser(req) {
     throw error;
   }
 
-  const decoded = await firebaseAdmin.auth().verifyIdToken(match[1]);
+  // MODIFIED: checkRevoked=true — consistent with authMiddleware.js
+  const decoded = await firebaseAdmin.auth().verifyIdToken(match[1], true);
   if (!decoded?.uid) {
     const error = new Error("Invalid authorization token.");
     error.statusCode = 401;
@@ -685,6 +682,13 @@ router.post("/checkout/init", async (req, res) => {
   try {
     const authUser = await requireAuthUser(req);
 
+    // ADDED: enforce email verification — unverified users cannot initiate payment
+    if (!authUser.email_verified) {
+      return res.status(403).json({
+        error: "Email verification required before checkout.",
+      });
+    }
+
     const email = normalizeEmail(req.body?.email);
     const items = req.body?.items || [];
     const customer = req.body?.customer || {};
@@ -799,7 +803,6 @@ router.post("/checkout/init", async (req, res) => {
     const orderRef = adminDb.collection("orders").doc();
     const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
 
-    // Collect storeIds from items (seller's shop doc ID)
     const storeIds = Array.from(
       new Set(lineItems.map((item) => (item.storeId || item.shopId || "").trim()).filter(Boolean))
     );
@@ -1266,7 +1269,7 @@ router.post("/topup/init", async (req, res) => {
     const auth  = req.headers.authorization || "";
     const match = auth.match(/^Bearer (.+)$/);
     if (!match?.[1]) return res.status(401).json({ error: "Unauthorized" });
-    decoded = await firebaseAdmin.auth().verifyIdToken(match[1]);
+    decoded = await firebaseAdmin.auth().verifyIdToken(match[1], true);
   } catch { return res.status(401).json({ error: "Invalid token" }); }
 
   const { pack } = req.body;
@@ -1312,12 +1315,45 @@ router.post("/topup/init", async (req, res) => {
 });
 
 router.get("/topup/verify", async (req, res) => {
+  // ADDED: require authentication — only the purchasing seller should verify their topup
+  let decoded;
+  try {
+    const auth  = req.headers.authorization || "";
+    const match = auth.match(/^Bearer (.+)$/);
+    if (!match?.[1]) return res.status(401).json({ error: "Unauthorized" });
+    decoded = await firebaseAdmin.auth().verifyIdToken(match[1], true);
+  } catch {
+    return res.status(401).json({ error: "Invalid token" });
+  }
+
   const { reference } = req.query;
   if (!reference) return res.status(400).json({ error: "Missing reference" });
 
   // Only process topup references
   if (!reference.startsWith("topup_")) {
     return res.status(400).json({ error: "Invalid topup reference" });
+  }
+
+  // ADDED: idempotency check — prevent double-crediting the same reference
+  try {
+    const existingTopup = await adminDb
+      .collection("aiTopups")
+      .where("reference", "==", reference)
+      .limit(1)
+      .get();
+
+    if (!existingTopup.empty) {
+      const existing = existingTopup.docs[0].data();
+      return res.json({
+        success: true,
+        alreadyProcessed: true,
+        credits: existing.credits || 0,
+        pack: existing.pack || "",
+      });
+    }
+  } catch (e) {
+    console.error("[topup/verify] idempotency check failed:", e.message);
+    // Don't block — fall through to Paystack verify
   }
 
   try {
@@ -1335,6 +1371,11 @@ router.get("/topup/verify", async (req, res) => {
       return res.status(400).json({ error: "Invalid metadata" });
     }
 
+    // ADDED: ensure the authenticated user matches the UID in the topup metadata
+    if (decoded.uid !== uid) {
+      return res.status(403).json({ error: "This topup does not belong to your account." });
+    }
+
     // Add credits to seller's aiUsage
     const { FieldValue } = await import("firebase-admin/firestore");
     const usageRef = adminDb.collection("aiUsage").doc(uid);
@@ -1350,7 +1391,7 @@ router.get("/topup/verify", async (req, res) => {
       });
     }
 
-    // Log the topup
+    // Log the topup — this also serves as the idempotency record for future calls
     await adminDb.collection("aiTopups").doc(`${uid}_${Date.now()}`).set({
       uid, pack, credits: Number(credits),
       reference, amount: verifyData.data.amount / 100,

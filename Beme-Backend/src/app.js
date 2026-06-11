@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
+import helmet from "helmet";                         // ADDED
+import rateLimit from "express-rate-limit";          // ADDED
 import dotenv from "dotenv";
 
 import { errorHandler } from "./middlewares/errorMiddleware.js";
@@ -14,7 +16,7 @@ import adminReviewRoutes  from "./routes/adminReview.js";
 import aiRoutes           from "./routes/aiRoutes.js";
 import chatRoutes         from "./routes/chatRoutes.js";
 import subscriptionRoutes from "./routes/subscriptionRoutes.js";
-import helpRoutes          from "./routes/helpRoutes.js";
+import helpRoutes         from "./routes/helpRoutes.js";
 
 dotenv.config();
 
@@ -31,11 +33,66 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 /* ===============================
+   RATE LIMITERS                   // ADDED
+================================ */
+
+// General API limiter — 120 requests per minute per IP
+const generalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many requests. Please slow down." },
+});
+
+// Checkout limiter — 10 requests per minute per IP
+const checkoutLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many checkout attempts. Please wait a moment." },
+});
+
+// Order creation limiter — 15 requests per minute per IP
+const orderLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many order requests. Please wait a moment." },
+});
+
+// Auth limiter — 20 requests per minute per IP
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many auth requests. Please try again shortly." },
+});
+
+// AI limiter — 30 requests per minute per IP
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many AI requests. Please wait a moment." },
+});
+
+/* ===============================
    MIDDLEWARES
 ================================ */
 
 // Webhook needs raw body — must be registered BEFORE express.json()
 app.use("/api/subscriptions/webhook", express.raw({ type: "application/json" }));
+
+// Security headers                                  // ADDED
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // allow Cloudinary images
+  contentSecurityPolicy: false,                          // frontend handles its own CSP
+}));
 
 app.use(
   cors({
@@ -52,8 +109,11 @@ app.use(
 
 app.use(express.json({ limit: "1mb" }));
 
+// Request logging — dev: coloured, prod: combined (persistent)  // MODIFIED
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
+} else {
+  app.use(morgan("combined"));
 }
 
 /* ===============================
@@ -76,16 +136,16 @@ app.get("/health", (_req, res) => {
    API ROUTES
 ================================ */
 
-app.use("/api/auth",          authRoutes);
-app.use("/api/ai",            aiRoutes);
-app.use("/api/chat",          chatRoutes);
-app.use("/api/products",      productRoutes);
-app.use("/api/cart",          cartRoutes);
-app.use("/api/orders",        orderRoutes);
-app.use("/api/paystack",      paystackRoutes);
-app.use("/api/admin",         adminReviewRoutes);
-app.use("/api/subscriptions", subscriptionRoutes);
-app.use("/api/help",          helpRoutes);
+app.use("/api/auth",          authLimiter,    authRoutes);        // ADDED limiter
+app.use("/api/ai",            aiLimiter,      aiRoutes);          // ADDED limiter
+app.use("/api/chat",          generalLimiter, chatRoutes);        // ADDED limiter
+app.use("/api/products",      generalLimiter, productRoutes);     // ADDED limiter
+app.use("/api/cart",          generalLimiter, cartRoutes);        // ADDED limiter
+app.use("/api/orders",        orderLimiter,   orderRoutes);       // ADDED limiter
+app.use("/api/paystack",      checkoutLimiter, paystackRoutes);   // ADDED limiter
+app.use("/api/admin",         generalLimiter, adminReviewRoutes); // ADDED limiter
+app.use("/api/subscriptions", generalLimiter, subscriptionRoutes); // ADDED limiter
+app.use("/api/help",          generalLimiter, helpRoutes);        // ADDED limiter
 
 /* ===============================
    404 HANDLER
