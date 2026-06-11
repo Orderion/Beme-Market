@@ -26,9 +26,26 @@ const PLAN_LIMITS = {
   pro:     { maxProducts: 500, hasChat: true,  hasDelivery: true,  hasAnalytics: true  },
 };
 
+/* ── Simple auth helper ── */
+async function requireAuthUser(req) {
+  const authHeader = String(req.headers.authorization || "");
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (!match) {
+    const error = new Error("Missing authorization token.");
+    error.statusCode = 401;
+    throw error;
+  }
+  const decoded = await firebaseAdmin.auth().verifyIdToken(match[1], true);
+  if (!decoded?.uid) {
+    const error = new Error("Invalid authorization token.");
+    error.statusCode = 401;
+    throw error;
+  }
+  return decoded;
+}
+
 /* ─────────────────────────────────────────────────
    POST /api/subscriptions/initialize
-   Body: { planId, uid, email, shopId, billing, amount }
 ───────────────────────────────────────────────── */
 router.post("/initialize", async (req, res) => {
   try {
@@ -40,17 +57,14 @@ router.post("/initialize", async (req, res) => {
 
     const plan = planId.toLowerCase();
 
-    // Basic is free — no payment needed
     if (plan === "basic") {
       return res.json({ isFree: true });
     }
 
-    // Calculate amount in kobo
-    const period    = billing === "yearly" ? "yearly" : "monthly";
-    const kobo      = PLAN_AMOUNTS[plan]?.[period];
+    const period = billing === "yearly" ? "yearly" : "monthly";
+    const kobo   = PLAN_AMOUNTS[plan]?.[period];
     if (!kobo) return res.status(400).json({ error: `Invalid plan: ${plan}` });
 
-    // Paystack initialize
     const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
       method:  "POST",
       headers: {
@@ -64,10 +78,10 @@ router.post("/initialize", async (req, res) => {
         callback_url: `${BASE_URL}/subscription/callback`,
         metadata: {
           custom_fields: [
-            { display_name: "Plan",     variable_name: "planId",  value: plan    },
-            { display_name: "Billing",  variable_name: "billing", value: period  },
-            { display_name: "User ID",  variable_name: "uid",     value: uid     },
-            { display_name: "Shop ID",  variable_name: "shopId",  value: shopId  },
+            { display_name: "Plan",    variable_name: "planId",  value: plan   },
+            { display_name: "Billing", variable_name: "billing", value: period },
+            { display_name: "User ID", variable_name: "uid",     value: uid    },
+            { display_name: "Shop ID", variable_name: "shopId",  value: shopId },
           ],
           planId, billing: period, uid, shopId,
         },
@@ -78,7 +92,6 @@ router.post("/initialize", async (req, res) => {
     const psData = await paystackRes.json();
     if (!psData.status) throw new Error(psData.message || "Paystack error");
 
-    // Store pending reference in Firestore
     await adminDb.collection("subscriptionAttempts").doc(psData.data.reference).set({
       reference:   psData.data.reference,
       planId:      plan,
@@ -105,14 +118,12 @@ router.post("/initialize", async (req, res) => {
 
 /* ─────────────────────────────────────────────────
    GET /api/subscriptions/verify?reference=xxx
-   Called by callback page after Paystack redirect
 ───────────────────────────────────────────────── */
 router.get("/verify", async (req, res) => {
   try {
     const { reference } = req.query;
     if (!reference) return res.status(400).json({ error: "Reference required." });
 
-    // Verify with Paystack
     const psRes  = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
       headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` },
     });
@@ -137,27 +148,22 @@ router.get("/verify", async (req, res) => {
     const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.basic;
     const now    = FieldValue.serverTimestamp();
 
-    // Calculate expiry
     const expiryDate = new Date();
     if (billing === "yearly") expiryDate.setFullYear(expiryDate.getFullYear() + 1);
     else                      expiryDate.setMonth(expiryDate.getMonth() + 1);
 
     const batch = adminDb.batch();
 
-    // 1. Update shops/{shopId}
     if (shopId) {
       batch.set(adminDb.collection("shops").doc(shopId), {
-        planId, billing, updatedAt: now,
-        ...limits,
+        planId, billing, updatedAt: now, ...limits,
       }, { merge: true });
     }
 
-    // 2. Update storeApplications/{uid}
     batch.set(adminDb.collection("storeApplications").doc(uid), {
       planId, billing, updatedAt: now,
     }, { merge: true });
 
-    // 3. Write subscription record
     batch.set(adminDb.collection("subscriptions").doc(uid), {
       uid, shopId, planId, billing,
       status:          "active",
@@ -173,14 +179,20 @@ router.get("/verify", async (req, res) => {
       ...limits,
     }, { merge: true });
 
-    // 4. Mark attempt as verified
     batch.set(adminDb.collection("subscriptionAttempts").doc(reference), {
       status: "verified", verifiedAt: now,
     }, { merge: true });
 
+    // FIXED: also update users/{uid} so AuthContext reads the correct plan
+    // without this, AuthContext.subscriptionPlan stays "basic" until next login
+    batch.set(adminDb.collection("users").doc(uid), {
+      subscriptionPlan:   plan,
+      subscriptionStatus: "active",
+      updatedAt:          now,
+    }, { merge: true });
+
     await batch.commit();
 
-    // Send branded confirmation email (non-blocking)
     try {
       const sellerSnap = await adminDb.collection("storeApplications").doc(uid).get();
       const sellerData = sellerSnap.exists ? sellerSnap.data() : {};
@@ -216,11 +228,13 @@ router.get("/verify", async (req, res) => {
 
 /* ─────────────────────────────────────────────────
    POST /api/subscriptions/webhook
-   Paystack sends events here
+   FIXED: removed duplicate express.raw() middleware.
+   app.js already registers express.raw for this path —
+   having two raw body parsers caused req.body to be
+   undefined or corrupt on the second pass.
 ───────────────────────────────────────────────── */
-router.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+router.post("/webhook", async (req, res) => {
   try {
-    // Validate Paystack signature
     const hash = crypto
       .createHmac("sha512", PAYSTACK_SECRET)
       .update(req.body)
@@ -247,7 +261,6 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
         return res.sendStatus(200);
       }
 
-      // Check not already processed
       const attemptRef  = adminDb.collection("subscriptionAttempts").doc(reference);
       const attemptSnap = await attemptRef.get();
       if (attemptSnap.exists && attemptSnap.data().status === "verified") {
@@ -276,8 +289,15 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
         ...limits, updatedAt: now,
       }, { merge: true });
       batch.set(attemptRef, { status: "verified", verifiedAt: now }, { merge: true });
-      await batch.commit();
 
+      // FIXED: sync to users/{uid} — same as /verify route
+      batch.set(adminDb.collection("users").doc(uid), {
+        subscriptionPlan:   plan,
+        subscriptionStatus: "active",
+        updatedAt:          now,
+      }, { merge: true });
+
+      await batch.commit();
       console.log(`[webhook] subscription updated: uid=${uid} plan=${plan}`);
     }
 
@@ -290,17 +310,27 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
 
 /* ─────────────────────────────────────────────────
    GET /api/subscriptions/status?uid=xxx
-   Check current subscription status
+   FIXED: added authentication — was previously open to anyone
 ───────────────────────────────────────────────── */
 router.get("/status", async (req, res) => {
   try {
-    const { uid } = req.query;
+    const authUser = await requireAuthUser(req);
+    const { uid }  = req.query;
+
     if (!uid) return res.status(400).json({ error: "uid required" });
+
+    // Users can only query their own subscription.
+    // Admins (super_admin role) are handled by the Admin SDK bypassing rules —
+    // for the HTTP endpoint we restrict to own uid only.
+    if (authUser.uid !== uid) {
+      return res.status(403).json({ error: "Not authorised to view this subscription." });
+    }
+
     const snap = await adminDb.collection("subscriptions").doc(uid).get();
     if (!snap.exists) return res.json({ planId: "basic", status: "none" });
     res.json(snap.data());
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err?.statusCode || 500).json({ error: err.message });
   }
 });
 

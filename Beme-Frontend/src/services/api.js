@@ -5,7 +5,10 @@ const BASE = String(import.meta.env.VITE_BACKEND_URL || "")
   .trim()
   .replace(/\/+$/, "");
 
-console.log("API BASE URL:", BASE);
+// FIXED: only log backend URL in development — avoids leaking infrastructure details
+if (import.meta.env.DEV) {
+  console.log("API BASE URL:", BASE);
+}
 
 if (!BASE) {
   console.warn("⚠️ Missing VITE_BACKEND_URL. Set it in Vercel.");
@@ -64,12 +67,6 @@ function waitForAuthReady(timeoutMs = 12000) {
   });
 }
 
-// ✅ FIX: Retry logic now always runs regardless of whether forceRefresh
-//   was true on the first attempt. Previously the retry block was wrapped in
-//   `if (!forceRefresh)` which meant paystackInit (which always passes
-//   forceRefresh=true) would NEVER retry — any token failure threw immediately.
-//   Now: attempt 1 → getIdToken(forceRefresh), attempt 2 → getIdToken(true),
-//   attempt 3 → currentUser.reload() then getIdToken(true).
 async function getAuthHeaders(required = false, forceRefresh = false) {
   let currentUser = auth.currentUser;
 
@@ -84,31 +81,27 @@ async function getAuthHeaders(required = false, forceRefresh = false) {
     return {};
   }
 
-  // Attempt 1 — use cached token or force-refresh as requested
   try {
     const token = await currentUser.getIdToken(forceRefresh);
     return { Authorization: `Bearer ${token}` };
   } catch (err) {
-    console.error("❌ Token error (attempt 1):", err);
+    if (import.meta.env.DEV) console.error("❌ Token error (attempt 1):", err);
   }
 
-  // Attempt 2 — always force-refresh, even if attempt 1 already tried it
   try {
     const freshToken = await currentUser.getIdToken(true);
     return { Authorization: `Bearer ${freshToken}` };
   } catch (err) {
-    console.error("❌ Token error (attempt 2 – force refresh):", err);
+    if (import.meta.env.DEV) console.error("❌ Token error (attempt 2 – force refresh):", err);
   }
 
-  // Attempt 3 — reload the Firebase user object then try once more
   try {
     await currentUser.reload();
-    // After reload, auth.currentUser may be a new reference
-    const reloadedUser = auth.currentUser || currentUser;
+    const reloadedUser  = auth.currentUser || currentUser;
     const reloadedToken = await reloadedUser.getIdToken(true);
     return { Authorization: `Bearer ${reloadedToken}` };
   } catch (err) {
-    console.error("❌ Token error (attempt 3 – after reload):", err);
+    if (import.meta.env.DEV) console.error("❌ Token error (attempt 3 – after reload):", err);
   }
 
   throw new Error("Failed to get auth token. Please log in again.");
@@ -121,15 +114,13 @@ async function toJson(res) {
   try {
     data = JSON.parse(text);
   } catch {
-    // Response wasn't JSON (e.g. an HTML error page).
+    // Response wasn't JSON
   }
 
   if (!res.ok) {
-    console.error("❌ BACKEND ERROR:", {
-      status: res.status,
-      data,
-      raw: text,
-    });
+    if (import.meta.env.DEV) {
+      console.error("❌ BACKEND ERROR:", { status: res.status, data, raw: text });
+    }
 
     const message =
       data?.error ||
@@ -151,7 +142,10 @@ async function request(path, options = {}, authRequired = false, forceRefresh = 
   try {
     const authHeaders = await getAuthHeaders(authRequired, forceRefresh);
 
-    console.log("➡️ API Request:", `${BASE}${path}`);
+    // FIXED: only log request URLs in development — avoids leaking endpoint structure
+    if (import.meta.env.DEV) {
+      console.log("➡️ API Request:", `${BASE}${path}`);
+    }
 
     const res = await fetch(`${BASE}${path}`, {
       method: "GET",
@@ -166,7 +160,7 @@ async function request(path, options = {}, authRequired = false, forceRefresh = 
 
     return await toJson(res);
   } catch (err) {
-    console.error("❌ REQUEST FAILED:", err);
+    if (import.meta.env.DEV) console.error("❌ REQUEST FAILED:", err);
     throw err;
   } finally {
     clearTimeout(timeout);
@@ -176,26 +170,25 @@ async function request(path, options = {}, authRequired = false, forceRefresh = 
 function sanitizeDelivery(payload) {
   return {
     method: String(payload?.method || "").trim().toLowerCase(),
-    label: String(payload?.label || "").trim(),
-    fee: Number(payload?.fee || 0) || 0,
+    label:  String(payload?.label  || "").trim(),
+    fee:    Number(payload?.fee    || 0) || 0,
     breakdown: {
-      regionalBaseFee:
-        Number(payload?.breakdown?.regionalBaseFee || 0) || 0,
-      methodFee: Number(payload?.breakdown?.methodFee || 0) || 0,
-      abroadFee: Number(payload?.breakdown?.abroadFee || 0) || 0,
+      regionalBaseFee: Number(payload?.breakdown?.regionalBaseFee || 0) || 0,
+      methodFee:       Number(payload?.breakdown?.methodFee       || 0) || 0,
+      abroadFee:       Number(payload?.breakdown?.abroadFee       || 0) || 0,
     },
     mallPickup: payload?.mallPickup
       ? {
-          id: String(payload.mallPickup.id || "").trim(),
+          id:    String(payload.mallPickup.id    || "").trim(),
           label: String(payload.mallPickup.label || "").trim(),
-          area: String(payload.mallPickup.area || "").trim(),
-          fee: Number(payload.mallPickup.fee || 0) || 0,
+          area:  String(payload.mallPickup.area  || "").trim(),
+          fee:   Number(payload.mallPickup.fee   || 0) || 0,
         }
       : null,
     homeDelivery: payload?.homeDelivery
       ? {
           label: String(payload.homeDelivery.label || "").trim(),
-          fee: Number(payload.homeDelivery.fee || 0) || 0,
+          fee:   Number(payload.homeDelivery.fee   || 0) || 0,
         }
       : null,
   };
@@ -214,9 +207,7 @@ export async function createCodOrder(payload) {
     "/api/orders",
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     },
     true
@@ -228,25 +219,27 @@ export async function createCodOrder(payload) {
 // =========================
 
 export async function paystackInit(payload) {
-  console.log("💳 Paystack Init Payload:", payload);
+  // FIXED: removed console.log of full payload — it contained customer PII
+  // (email, phone, address) visible to anyone with browser dev tools open
+  if (import.meta.env.DEV) {
+    console.log("💳 Paystack Init — email:", payload?.email, "items:", payload?.cartItems?.length);
+  }
 
   return request(
     "/api/paystack/checkout/init",
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email: String(payload?.email || "").trim().toLowerCase(),
-        items: payload?.cartItems || [],
+        email:    String(payload?.email || "").trim().toLowerCase(),
+        items:    payload?.cartItems || [],
         delivery: sanitizeDelivery(payload?.delivery),
-        pricing: payload?.pricing || {},
+        pricing:  payload?.pricing  || {},
         customer: payload?.customer || {},
       }),
     },
     true,
-    true // forceRefresh — always send a fresh token for payment requests
+    true
   );
 }
 
@@ -256,12 +249,10 @@ export async function paystackVerify(reference) {
   }
 
   return request(
-    `/api/paystack/checkout/verify?reference=${encodeURIComponent(
-      reference
-    )}`,
+    `/api/paystack/checkout/verify?reference=${encodeURIComponent(reference)}`,
     {},
     true,
-    true // forceRefresh — verify also needs a guaranteed-fresh token
+    true
   );
 }
 
@@ -282,11 +273,9 @@ export async function updateAdminOrderStatus(orderId, payload) {
     `/api/admin/orders/${encodeURIComponent(orderId)}/status`,
     {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        status: String(payload?.status || "").toLowerCase(),
+        status:      String(payload?.status      || "").toLowerCase(),
         reviewNotes: String(payload?.reviewNotes || ""),
       }),
     },

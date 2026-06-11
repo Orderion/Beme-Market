@@ -4,39 +4,119 @@
       "collectionGroup": "product_requests",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
+        { "fieldPath": "userId",    "order": "ASCENDING"  },
+        { "fieldPath": "createdAt", "order": "DESCENDING" },
+        { "fieldPath": "__name__",  "order": "DESCENDING" }
+      ]
     },
     {
       "collectionGroup": "user_notifications",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ],
-      "density": "SPARSE_ALL"
+        { "fieldPath": "userId",    "order": "ASCENDING"  },
+        { "fieldPath": "createdAt", "order": "DESCENDING" },
+        { "fieldPath": "__name__",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId",    "order": "ASCENDING"  },
+        { "fieldPath": "createdAt", "order": "DESCENDING" },
+        { "fieldPath": "__name__",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "shopOwnerId", "order": "ASCENDING"  },
+        { "fieldPath": "createdAt",   "order": "DESCENDING" },
+        { "fieldPath": "__name__",    "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId",          "order": "ASCENDING" },
+        { "fieldPath": "orderFingerprint","order": "ASCENDING" },
+        { "fieldPath": "paymentMethod",   "order": "ASCENDING" },
+        { "fieldPath": "paymentStatus",   "order": "ASCENDING" },
+        { "fieldPath": "__name__",        "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "storeId",   "order": "ASCENDING"  },
+        { "fieldPath": "createdAt", "order": "DESCENDING" },
+        { "fieldPath": "__name__",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "Products",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sellerId",  "order": "ASCENDING"  },
+        { "fieldPath": "createdAt", "order": "DESCENDING" },
+        { "fieldPath": "__name__",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "discountCodes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "storeId",   "order": "ASCENDING" },
+        { "fieldPath": "code",      "order": "ASCENDING" },
+        { "fieldPath": "__name__",  "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "withdrawalRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sellerId",  "order": "ASCENDING"  },
+        { "fieldPath": "createdAt", "order": "DESCENDING" },
+        { "fieldPath": "__name__",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "aiTopups",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "reference", "order": "ASCENDING" },
+        { "fieldPath": "__name__",  "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "flashSales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sellerId",  "order": "ASCENDING"  },
+        { "fieldPath": "createdAt", "order": "DESCENDING" },
+        { "fieldPath": "__name__",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "sellerChats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sellerId",       "order": "ASCENDING"  },
+        { "fieldPath": "lastMessageAt",  "order": "DESCENDING" },
+        { "fieldPath": "__name__",       "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "sellerChats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "customerId",     "order": "ASCENDING"  },
+        { "fieldPath": "lastMessageAt",  "order": "DESCENDING" },
+        { "fieldPath": "__name__",       "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

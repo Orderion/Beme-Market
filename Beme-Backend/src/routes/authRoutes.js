@@ -17,8 +17,15 @@ function withTimeout(p,ms,label="Op") {
 
 router.get("/", (_req, res) => res.json({ message: "Auth route working" }));
 
-/* ── Test reset email ── */
+// ── Test routes — development only ──────────────────────────────────────────
+// FIXED: these were previously unauthenticated and available in production,
+// allowing anyone to send Beme-branded emails to arbitrary addresses.
+// Now disabled outside of development environment.
+
 router.get("/test-email", async (req, res) => {
+  if (process.env.NODE_ENV !== "development") {
+    return res.status(404).json({ error: "Not found" });
+  }
   const to = req.query.to || process.env.ADMIN_EMAIL;
   if (!to) return res.status(400).json({ error: "Pass ?to=youremail@gmail.com" });
   try {
@@ -32,8 +39,10 @@ router.get("/test-email", async (req, res) => {
   }
 });
 
-/* ── Test verification email ── */
 router.get("/test-verify", async (req, res) => {
+  if (process.env.NODE_ENV !== "development") {
+    return res.status(404).json({ error: "Not found" });
+  }
   const to = req.query.to;
   if (!to) return res.status(400).json({ error: "Pass ?to=youremail@gmail.com" });
   try {
@@ -48,7 +57,7 @@ router.get("/test-verify", async (req, res) => {
   }
 });
 
-/* ── Forgot password ── */
+// ── Forgot password ──────────────────────────────────────────────────────────
 router.post("/forgot-password", async (req, res) => {
   try {
     const email = normalizeEmail(req.body?.email);
@@ -83,7 +92,7 @@ router.post("/forgot-password", async (req, res) => {
   }
 });
 
-/* ── Send verification email after signup ── */
+// ── Send verification email after signup ────────────────────────────────────
 router.post("/send-verification", async (req, res) => {
   try {
     const { email, name } = req.body;
