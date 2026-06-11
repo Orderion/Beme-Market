@@ -39,6 +39,19 @@ async function getToken() {
   return user.getIdToken(true);
 }
 
+
+/* ── Simple markdown formatter ── */
+function formatMsg(text) {
+  if (!text) return "";
+  return text
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g,"<em>$1</em>")
+    .replace(/^(\d+\.\s)/gm,"<br/>$1")
+    .replace(/^[-•]\s/gm,"<br/>• ")
+    .replace(/\n/g,"<br/>");
+}
+
 export default function DashboardHelp() {
   const { user }   = useAuth();
   const [view,     setView]     = useState("main"); // main | chat | escalated
@@ -216,11 +229,9 @@ export default function DashboardHelp() {
                 <Ico d={IC.bot} size={12} color="#fff" />
               </div>
             )}
-            <div className="dh-msg-bubble">
-              {m.content.split("\n").map((line, j) => (
-                <span key={j}>{line}{j < m.content.split("\n").length - 1 && <br />}</span>
-              ))}
-            </div>
+            <div className="dh-msg-bubble"
+              dangerouslySetInnerHTML={{ __html: formatMsg(m.content) }}
+            />
           </div>
         ))}
 
