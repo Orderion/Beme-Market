@@ -9,7 +9,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useAnalyticsData } from "../../hooks/useAnalyticsData";
 import { incrementUsage } from "../../services/aiUsageService";
 
-const API_URL = String(import.meta.env.VITE_BACKEND_URL || "").trim().replace(/\/+$/, "") || "https://beme-market-1.onrender.com";
+const API_URL = import.meta.env.VITE_API_URL || "https://beme-market-1.onrender.com";
 
 /* ── Brand colours ── */
 const C = {

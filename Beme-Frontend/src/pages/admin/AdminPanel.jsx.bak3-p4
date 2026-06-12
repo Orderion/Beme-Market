@@ -98,23 +98,9 @@ function OverviewSection({ metrics, dailySeries, recentOrders, loading, onRefres
     setAiInput(""); setAiMessages(prev=>[...prev,{role:"user",text}]); setAiLoading(true);
     const ctx = `You are the admin AI assistant for Beme Market. Current metrics: orders=${metrics.totalOrders}, revenue=GHS ${metrics.totalRevenue.toFixed(2)}, products=${metrics.totalProducts}, users=${metrics.totalUsers}, sellers=${metrics.totalSellers}, pending payouts=${metrics.pendingPayouts}, open tickets=${metrics.openTickets}. Be concise.`;
     try {
-      const _apiBase = String(import.meta.env.VITE_BACKEND_URL || "").trim().replace(/\/+$/, "");
-      const res = await fetch(`${_apiBase}/api/ai/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [
-            ...aiMessages.filter((_,i) => i > 0).map(m => ({
-              role: m.role === "ai" ? "assistant" : "user",
-              content: m.text,
-            })),
-            { role: "user", content: text },
-          ],
-          context: { currentPage: "admin", systemOverride: ctx },
-        }),
-      });
+      const res = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:ctx,messages:[...aiMessages.filter((_,i)=>i>0).map(m=>({role:m.role==="ai"?"assistant":"user",content:m.text})),{role:"user",content:text}]})});
       const data = await res.json();
-      setAiMessages(prev => [...prev, { role:"ai", text: data.content || data.reply || "Sorry, try again." }]);
+      setAiMessages(prev=>[...prev,{role:"ai",text:data.content?.[0]?.text||"Sorry, try again."}]);
     } catch { setAiMessages(prev=>[...prev,{role:"ai",text:"Connection error."}]); }
     finally { setAiLoading(false); }
   };

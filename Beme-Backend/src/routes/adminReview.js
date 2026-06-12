@@ -64,7 +64,6 @@ function normalizeShop(value) {
 
 function getSortableTime(value) {
   if (!value) return 0;
-
   try {
     if (typeof value?.toMillis === "function") return value.toMillis();
     if (typeof value?._seconds === "number") return value._seconds * 1000;
@@ -75,6 +74,9 @@ function getSortableTime(value) {
   }
 }
 
+// FIXED: added checkRevoked=true — Batch A fixed authMiddleware.js, paystack.js, and
+// orderRoutes.js but this file has its own copy of requireAuthUser that was missed.
+// Revoked admin accounts could still access the admin API for up to 1 hour.
 async function requireAuthUser(req) {
   const authHeader = String(req.headers.authorization || "");
   const match = authHeader.match(/^Bearer\s+(.+)$/i);
@@ -85,7 +87,7 @@ async function requireAuthUser(req) {
     throw error;
   }
 
-  const decoded = await firebaseAdmin.auth().verifyIdToken(match[1]);
+  const decoded = await firebaseAdmin.auth().verifyIdToken(match[1], true);
 
   if (!decoded?.uid) {
     const error = new Error("Invalid authorization token.");
@@ -147,10 +149,7 @@ function mapSupplierFieldsFromItems(items = []) {
   );
 
   if (!firstMapped) {
-    return {
-      supplierId: "",
-      supplierApiType: "",
-    };
+    return { supplierId: "", supplierApiType: "" };
   }
 
   return {
@@ -179,7 +178,6 @@ function sanitizeOrderForResponse(record) {
     items: Array.isArray(data.items) ? data.items : [],
     createdAt: data.createdAt || null,
     updatedAt: data.updatedAt || null,
-
     fulfillmentStatus: data.fulfillmentStatus || "",
     supplierPushStatus: data.supplierPushStatus || "",
     adminReviewed: data.adminReviewed === true,
@@ -211,32 +209,20 @@ function ensureShopAdminCanAccessOrder(profile, order) {
     error.statusCode = 403;
     throw error;
   }
-
   if (!orderMatchesShop(order, profile.shop)) {
     const error = new Error("You can only access orders belonging to your shop.");
     error.statusCode = 403;
     throw error;
   }
-
   return true;
 }
 
 function buildBaseReviewPatch(order, reviewNotes) {
   const pricing = buildReviewPricing(order?.pricing || {}, order?.items || []);
-  const reviewFlags = summarizeReviewFlags({
-    ...order,
-    pricing,
-  });
+  const reviewFlags = summarizeReviewFlags({ ...order, pricing });
   const stockCheckSummary = summarizeStockState(order?.items || []);
   const supplierFields = mapSupplierFieldsFromItems(order?.items || []);
-
-  return {
-    pricing,
-    reviewFlags,
-    stockCheckSummary,
-    reviewNotes,
-    ...supplierFields,
-  };
+  return { pricing, reviewFlags, stockCheckSummary, reviewNotes, ...supplierFields };
 }
 
 router.get("/orders", async (req, res) => {
@@ -245,10 +231,7 @@ router.get("/orders", async (req, res) => {
     const profile = await getUserRoleProfile(authUser.uid);
 
     if (!profile?.isAdmin) {
-      return res.status(403).json({
-        success: false,
-        error: "Admin access required.",
-      });
+      return res.status(403).json({ success: false, error: "Admin access required." });
     }
 
     const rows = await getAllOrders();
@@ -261,10 +244,7 @@ router.get("/orders", async (req, res) => {
       orders = orders.filter((order) => orderMatchesShop(order, profile.shop));
     }
 
-    return res.json({
-      success: true,
-      orders,
-    });
+    return res.json({ success: true, orders });
   } catch (error) {
     console.error("Admin review GET orders error:", error);
     return res.status(error?.statusCode || 500).json({
@@ -280,10 +260,7 @@ router.patch("/orders/:orderId/status", async (req, res) => {
     const profile = await getUserRoleProfile(authUser.uid);
 
     if (!profile?.isAdmin) {
-      return res.status(403).json({
-        success: false,
-        error: "Admin access required.",
-      });
+      return res.status(403).json({ success: false, error: "Admin access required." });
     }
 
     const orderId = sanitizeText(req.params?.orderId, 200);
@@ -292,10 +269,7 @@ router.patch("/orders/:orderId/status", async (req, res) => {
 
     const record = await getOrderById(orderId);
     if (!record) {
-      return res.status(404).json({
-        success: false,
-        error: "Order not found.",
-      });
+      return res.status(404).json({ success: false, error: "Order not found." });
     }
 
     const order = record.data || {};
@@ -317,94 +291,38 @@ router.patch("/orders/:orderId/status", async (req, res) => {
     let action = "";
 
     if (nextStatus === "held") {
-      if (
-        !canTransitionFulfillment(
-          order?.fulfillmentStatus || "awaiting_admin_review",
-          "held"
-        )
-      ) {
-        return res.status(409).json({
-          success: false,
-          error: "Order cannot be moved to held from its current state.",
-        });
+      if (!canTransitionFulfillment(order?.fulfillmentStatus || "awaiting_admin_review", "held")) {
+        return res.status(409).json({ success: false, error: "Order cannot be moved to held from its current state." });
       }
-
-      patch = {
-        ...basePatch,
-        status: "held",
-        ...createHeldState({
-          heldBy: authUser.uid,
-          heldAt: now,
-          reviewNotes,
-        }),
-      };
+      patch = { ...basePatch, status: "held", ...createHeldState({ heldBy: authUser.uid, heldAt: now, reviewNotes }) };
       action = "review_held";
-    } else if (nextStatus === "rejected") {
-      if (
-        !canTransitionFulfillment(
-          order?.fulfillmentStatus || "awaiting_admin_review",
-          "rejected"
-        )
-      ) {
-        return res.status(409).json({
-          success: false,
-          error: "Order cannot be rejected from its current state.",
-        });
-      }
 
-      patch = {
-        ...basePatch,
-        status: "rejected",
-        ...createRejectedState({
-          rejectedBy: authUser.uid,
-          rejectedAt: now,
-          reviewNotes,
-        }),
-      };
+    } else if (nextStatus === "rejected") {
+      if (!canTransitionFulfillment(order?.fulfillmentStatus || "awaiting_admin_review", "rejected")) {
+        return res.status(409).json({ success: false, error: "Order cannot be rejected from its current state." });
+      }
+      patch = { ...basePatch, status: "rejected", ...createRejectedState({ rejectedBy: authUser.uid, rejectedAt: now, reviewNotes }) };
       action = "review_rejected";
-    } else if (
-      nextStatus === "approved" ||
-      nextStatus === "approved_for_supplier"
-    ) {
+
+    } else if (nextStatus === "approved" || nextStatus === "approved_for_supplier") {
       validateApproveAndSendEligibility(order);
       assertSupplierPushNotDuplicated(order);
 
-      if (
-        !canTransitionFulfillment(
-          order?.fulfillmentStatus || "awaiting_admin_review",
-          "approved_for_supplier"
-        )
-      ) {
-        return res.status(409).json({
-          success: false,
-          error: "Order cannot be approved from its current state.",
-        });
+      if (!canTransitionFulfillment(order?.fulfillmentStatus || "awaiting_admin_review", "approved_for_supplier")) {
+        return res.status(409).json({ success: false, error: "Order cannot be approved from its current state." });
       }
 
-      const supplierPushKey = createSupplierPushKey({
-        id: record.id,
-        ...order,
-      });
-
+      const supplierPushKey = createSupplierPushKey({ id: record.id, ...order });
       patch = {
-        ...basePatch,
-        status: "approved",
-        supplierPushKey,
-        ...createApprovedForSupplierState({
-          approvedBy: authUser.uid,
-          approvedAt: now,
-          reviewNotes,
-        }),
+        ...basePatch, status: "approved", supplierPushKey,
+        ...createApprovedForSupplierState({ approvedBy: authUser.uid, approvedAt: now, reviewNotes }),
       };
       action = "review_approved";
+
     } else {
       patch = {
-        ...basePatch,
-        status: "awaiting_admin_review",
-        fulfillmentStatus: "awaiting_admin_review",
-        supplierPushStatus: "not_sent",
-        adminReviewed: true,
-        adminApproved: false,
+        ...basePatch, status: "awaiting_admin_review", fulfillmentStatus: "awaiting_admin_review",
+        supplierPushStatus: "not_sent", adminReviewed: true, adminApproved: false,
       };
       action = "review_reset";
     }
@@ -420,51 +338,23 @@ router.patch("/orders/:orderId/status", async (req, res) => {
       adminApproved: updatedOrder?.adminApproved === true,
     };
 
-    await logAdminReviewAction({
-      orderId,
-      adminUid: authUser.uid,
-      action,
-      notes: reviewNotes,
-      before,
-      after,
-    });
+    await logAdminReviewAction({ orderId, adminUid: authUser.uid, action, notes: reviewNotes, before, after });
 
-    if (
-      nextStatus === "approved" ||
-      nextStatus === "approved_for_supplier"
-    ) {
-      await logSupplierPushQueued({
-        orderId,
-        actorId: authUser.uid,
-        supplier: updatedOrder?.supplierApiType || "cj",
-        reviewNotes,
-      });
+    if (nextStatus === "approved" || nextStatus === "approved_for_supplier") {
+      await logSupplierPushQueued({ orderId, actorId: authUser.uid, supplier: updatedOrder?.supplierApiType || "cj", reviewNotes });
 
-      const adapter = getSupplierAdapterForOrder({
-        id: updatedRecord.id,
-        ...updatedOrder,
-      });
+      const adapter = getSupplierAdapterForOrder({ id: updatedRecord.id, ...updatedOrder });
 
       await logSupplierPushAttempt({
-        orderId,
-        actorId: authUser.uid,
+        orderId, actorId: authUser.uid,
         supplier: adapter?.key || updatedOrder?.supplierApiType || "cj",
-        payloadSummary:
-          typeof adapter?.summarizePayload === "function"
-            ? adapter.summarizePayload(
-                adapter.buildOrderPayload({
-                  id: updatedRecord.id,
-                  ...updatedOrder,
-                })
-              )
-            : null,
+        payloadSummary: typeof adapter?.summarizePayload === "function"
+          ? adapter.summarizePayload(adapter.buildOrderPayload({ id: updatedRecord.id, ...updatedOrder }))
+          : null,
       });
 
       try {
-        const supplierResult = await adapter.createSupplierOrder({
-          id: updatedRecord.id,
-          ...updatedOrder,
-        });
+        const supplierResult = await adapter.createSupplierOrder({ id: updatedRecord.id, ...updatedOrder });
 
         const sentPatch = {
           status: "approved",
@@ -479,21 +369,9 @@ router.patch("/orders/:orderId/status", async (req, res) => {
         };
 
         const sentRecord = await updateOrder(orderId, sentPatch);
+        await logSupplierPushSuccess({ orderId, actorId: authUser.uid, supplier: adapter?.key || "cj", supplierOrderId: supplierResult?.supplierOrderId || "", supplierStatus: supplierResult?.supplierStatus || "", responseSummary: supplierResult?.raw || null });
+        return res.json({ success: true, message: "Order approved and sent to supplier successfully.", order: sanitizeOrderForResponse(sentRecord) });
 
-        await logSupplierPushSuccess({
-          orderId,
-          actorId: authUser.uid,
-          supplier: adapter?.key || "cj",
-          supplierOrderId: supplierResult?.supplierOrderId || "",
-          supplierStatus: supplierResult?.supplierStatus || "",
-          responseSummary: supplierResult?.raw || null,
-        });
-
-        return res.json({
-          success: true,
-          message: "Order approved and sent to supplier successfully.",
-          order: sanitizeOrderForResponse(sentRecord),
-        });
       } catch (supplierError) {
         const failedPatch = {
           status: "approved",
@@ -505,39 +383,17 @@ router.patch("/orders/:orderId/status", async (req, res) => {
             lastSupplierSyncAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
           }),
         };
-
         const failedRecord = await updateOrder(orderId, failedPatch);
-
-        await logSupplierPushFailure({
-          orderId,
-          actorId: authUser.uid,
-          supplier:
-            updatedOrder?.supplierApiType ||
-            adapter?.key ||
-            "cj",
-          errorMessage: supplierError?.message || "Supplier push failed.",
-          responseSummary: supplierError?.meta || null,
-        });
-
-        return res.status(supplierError?.statusCode || 502).json({
-          success: false,
-          error: supplierError?.message || "Supplier push failed.",
-          order: sanitizeOrderForResponse(failedRecord),
-        });
+        await logSupplierPushFailure({ orderId, actorId: authUser.uid, supplier: updatedOrder?.supplierApiType || adapter?.key || "cj", errorMessage: supplierError?.message || "Supplier push failed.", responseSummary: supplierError?.meta || null });
+        return res.status(supplierError?.statusCode || 502).json({ success: false, error: supplierError?.message || "Supplier push failed.", order: sanitizeOrderForResponse(failedRecord) });
       }
     }
 
-    return res.json({
-      success: true,
-      message: "Order review status updated successfully.",
-      order: sanitizeOrderForResponse(updatedRecord),
-    });
+    return res.json({ success: true, message: "Order review status updated successfully.", order: sanitizeOrderForResponse(updatedRecord) });
+
   } catch (error) {
     console.error("Admin review PATCH order status error:", error);
-    return res.status(error?.statusCode || 500).json({
-      success: false,
-      error: error?.message || "Failed to update order status.",
-    });
+    return res.status(error?.statusCode || 500).json({ success: false, error: error?.message || "Failed to update order status." });
   }
 });
 
@@ -547,51 +403,32 @@ router.post("/orders/:orderId/retry-push", async (req, res) => {
     const profile = await getUserRoleProfile(authUser.uid);
 
     if (!profile?.isAdmin) {
-      return res.status(403).json({
-        success: false,
-        error: "Admin access required.",
-      });
+      return res.status(403).json({ success: false, error: "Admin access required." });
     }
 
     const orderId = sanitizeText(req.params?.orderId, 200);
     const record = await getOrderById(orderId);
 
     if (!record) {
-      return res.status(404).json({
-        success: false,
-        error: "Order not found.",
-      });
+      return res.status(404).json({ success: false, error: "Order not found." });
     }
 
     ensureShopAdminCanAccessOrder(profile, record.data || {});
     validateApproveAndSendEligibility(record.data || {});
     assertSupplierPushNotDuplicated(record.data || {});
 
-    const adapter = getSupplierAdapterForOrder({
-      id: record.id,
-      ...record.data,
-    });
+    const adapter = getSupplierAdapterForOrder({ id: record.id, ...record.data });
 
     await logSupplierPushAttempt({
-      orderId,
-      actorId: authUser.uid,
+      orderId, actorId: authUser.uid,
       supplier: adapter?.key || record?.data?.supplierApiType || "cj",
-      payloadSummary:
-        typeof adapter?.summarizePayload === "function"
-          ? adapter.summarizePayload(
-              adapter.buildOrderPayload({
-                id: record.id,
-                ...record.data,
-              })
-            )
-          : null,
+      payloadSummary: typeof adapter?.summarizePayload === "function"
+        ? adapter.summarizePayload(adapter.buildOrderPayload({ id: record.id, ...record.data }))
+        : null,
     });
 
     try {
-      const supplierResult = await adapter.createSupplierOrder({
-        id: record.id,
-        ...record.data,
-      });
+      const supplierResult = await adapter.createSupplierOrder({ id: record.id, ...record.data });
 
       const sentRecord = await updateOrder(orderId, {
         status: "approved",
@@ -605,20 +442,9 @@ router.post("/orders/:orderId/retry-push", async (req, res) => {
         }),
       });
 
-      await logSupplierPushSuccess({
-        orderId,
-        actorId: authUser.uid,
-        supplier: adapter?.key || "cj",
-        supplierOrderId: supplierResult?.supplierOrderId || "",
-        supplierStatus: supplierResult?.supplierStatus || "",
-        responseSummary: supplierResult?.raw || null,
-      });
+      await logSupplierPushSuccess({ orderId, actorId: authUser.uid, supplier: adapter?.key || "cj", supplierOrderId: supplierResult?.supplierOrderId || "", supplierStatus: supplierResult?.supplierStatus || "", responseSummary: supplierResult?.raw || null });
+      return res.json({ success: true, message: "Supplier push retried successfully.", order: sanitizeOrderForResponse(sentRecord) });
 
-      return res.json({
-        success: true,
-        message: "Supplier push retried successfully.",
-        order: sanitizeOrderForResponse(sentRecord),
-      });
     } catch (supplierError) {
       const failedRecord = await updateOrder(orderId, {
         syncAttempts: Number(record?.data?.syncAttempts || 0) + 1,
@@ -629,27 +455,13 @@ router.post("/orders/:orderId/retry-push", async (req, res) => {
           lastSupplierSyncAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
         }),
       });
-
-      await logSupplierPushFailure({
-        orderId,
-        actorId: authUser.uid,
-        supplier: adapter?.key || record?.data?.supplierApiType || "cj",
-        errorMessage: supplierError?.message || "Supplier push retry failed.",
-        responseSummary: supplierError?.meta || null,
-      });
-
-      return res.status(supplierError?.statusCode || 502).json({
-        success: false,
-        error: supplierError?.message || "Supplier push retry failed.",
-        order: sanitizeOrderForResponse(failedRecord),
-      });
+      await logSupplierPushFailure({ orderId, actorId: authUser.uid, supplier: adapter?.key || record?.data?.supplierApiType || "cj", errorMessage: supplierError?.message || "Supplier push retry failed.", responseSummary: supplierError?.meta || null });
+      return res.status(supplierError?.statusCode || 502).json({ success: false, error: supplierError?.message || "Supplier push retry failed.", order: sanitizeOrderForResponse(failedRecord) });
     }
+
   } catch (error) {
     console.error("Admin review retry push error:", error);
-    return res.status(error?.statusCode || 500).json({
-      success: false,
-      error: error?.message || "Failed to retry supplier push.",
-    });
+    return res.status(error?.statusCode || 500).json({ success: false, error: error?.message || "Failed to retry supplier push." });
   }
 });
 

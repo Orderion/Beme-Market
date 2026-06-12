@@ -1,5 +1,5 @@
 // src/pages/SellerDashboard.jsx
-import { useState, useCallback, useEffect, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, lazy, Suspense, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth }       from "../context/AuthContext";
 import { useTheme }      from "../context/ThemeContext";
@@ -57,6 +57,9 @@ const D = {
   chevronLeft:  "M15 18l-6-6 6-6",
   chevronRight: "M9 18l6-6-6-6",
   bell:         "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9|M13.73 21a2 2 0 0 1-3.46 0",
+  help:         "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3|M12 17h.01",
+  learn:        "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+  gift:         "M20 12v10H4V12|M2 7h20v5H2z|M12 22V7|M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z|M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z",
 };
 
 const NAV = [
@@ -74,19 +77,20 @@ const NAV = [
   { id: "ai",           label: "Beme AI",       icon: D.ai           },
   { id: "subscription", label: "Subscription",  icon: D.subscription },
   { id: "settings",     label: "Settings",      icon: D.settings     },
-  { id: "notifications", label: "Notifications", icon: D.bell         },
+  { id: "notifications",label: "Notifications", icon: D.bell         },
 ];
 
+// FIXED: added "help", "learn", "gift", "notifications" — all tabs that exist in PAGE_MAP
 const TAB_TITLES = {
   home:"Home", products:"Products", orders:"Orders", customers:"Customers",
   chat:"Messages", marketing:"Marketing", referrals:"Referrals", analytics:"Analytics Pro",
   withdrawals:"Withdrawals", appearance:"Store Design", delivery:"Delivery",
   ai:"Beme AI", subscription:"Subscription", settings:"Settings",
-  bell:         "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9|M13.73 21a2 2 0 0 1-3.46 0",
-  notifications:"Notifications", help:"Get Help", learn:"Learn More", gift:"Gift Beme",
+  notifications:"Notifications",
+  help:"Get Help",       // ADDED — was missing, caused topbar to show "Dashboard"
+  learn:"Learn More",    // ADDED
+  gift:"Gift Beme",      // ADDED
 };
-
-// BADGE is computed dynamically below after hooks
 
 function PageSpinner() {
   return (
@@ -120,15 +124,17 @@ export default function SellerDashboard() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [setSearchParams]);
 
-  // PAGE_MAP lives inside the component so goTab is in scope
-  const PAGE_MAP = {
+  // FIXED: wrapped in useMemo so PAGE_MAP is not rebuilt on every render.
+  // FIXED: setTab → setActiveTab (was crashing ReferralPanel's onBack).
+  // FIXED: removed `bell` key that contained an SVG path string instead of a component.
+  const PAGE_MAP = useMemo(() => ({
     home:         <DashboardHome onNav={goTab} />,
     products:     <DashboardProducts />,
     orders:       <DashboardOrders />,
     customers:    <DashboardCustomers />,
     chat:         <DashboardChat />,
     marketing:    <DashboardMarketing />,
-    referrals:    <ReferralPanel onBack={() => setTab("home")} />,
+    referrals:    <ReferralPanel onBack={() => goTab("home")} />,
     analytics:    <DashboardAnalytics />,
     withdrawals:  <DashboardWithdrawals />,
     appearance:   <DashboardAppearance />,
@@ -137,11 +143,10 @@ export default function SellerDashboard() {
     subscription: <DashboardSubscription />,
     settings:     <DashboardSettings />,
     notifications:<DashboardNotifications />,
-    bell:         "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9|M13.73 21a2 2 0 0 1-3.46 0",
-  help:         <DashboardHelp />,
+    help:         <DashboardHelp />,
     learn:        <LearnMore />,
     gift:         <DashboardGift />,
-  };
+  }), [goTab]);
 
   const [notifCount, setNotifCount] = useState(0);
   useEffect(() => {
@@ -153,10 +158,9 @@ export default function SellerDashboard() {
   if (shopLoading) return <PageSpinner />;
 
   const isDark = theme === "dark";
-  // Dynamic sidebar badges
   const BADGE = {
     chat:          0,
-    notifications: notifCount    || 0,
+    notifications: notifCount || 0,
   };
   const shopName = shop?.shopName || profile?.shopName || "Your Store";
   const initial  = (shopName[0] || "S").toUpperCase();
