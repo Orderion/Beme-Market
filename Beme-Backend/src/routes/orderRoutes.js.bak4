@@ -588,10 +588,7 @@ router.post("/", async (req, res) => {
       primaryShop: storeIds[0] || shopSlugs[0] || "main",
       storeId:     storeIds[0] || null,
       sellerId:    storeIds[0] || null,
-      // FIXED: resolve shopOwnerId from the product storeId server-side.
-      // Never trust shopOwnerId from the client — a bad actor could set it
-      // to another seller's UID and make their order appear in that seller's dashboard.
-      shopOwnerId: storeIds[0] || null,
+      shopOwnerId: req.body?.shopOwnerId || null,
       progressStep: -1, progressStages: [],
       pricing,
       paymentMethod: "cod",

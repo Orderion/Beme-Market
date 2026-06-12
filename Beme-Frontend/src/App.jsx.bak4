@@ -34,9 +34,17 @@ import ResetPassword from "./pages/ResetPassword";
 
 /* ── ADMIN ── */
 import AdminPanel            from "./pages/admin/AdminPanel";
-// Legacy admin pages removed — all redirected to AdminPanel via /admin/* routes.
-// ShopOwnerApply kept for SuperAdminOnly route.
-import ShopOwnerApply from "./pages/ShopOwnerApply";
+import Admin                 from "./pages/Admin";
+import AdminOrders           from "./pages/AdminOrders";
+import AdminReviewQueue      from "./pages/AdminReviewQueue";
+import Analytics             from "./pages/Analytics";
+import PayoutRequests        from "./pages/PayoutRequests";
+import ShopApplications      from "./pages/ShopApplications";
+import ShopOwnerApply        from "./pages/ShopOwnerApply";
+import HomepageAdmin         from "./pages/admin/HomepageAdmin";
+import MediaManager          from "./pages/admin/MediaManager";
+import AdminSupportDashboard from "./pages/admin/AdminSupportDashboard";
+import AdminNotifications    from "./pages/admin/AdminNotifications";
 
 /* ── LEGAL / INFO ── */
 import About           from "./pages/About";
