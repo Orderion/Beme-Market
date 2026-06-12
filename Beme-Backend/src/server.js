@@ -1,3 +1,11 @@
+// Beme-Backend/src/server.js
+import * as Sentry from "@sentry/node";
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.NODE_ENV || "production",
+  tracesSampleRate: 0.1,
+});
+
 import "dotenv/config";
 import app from "./app.js";
 
@@ -7,7 +15,7 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
-// ADDED: graceful shutdown so Render can drain in-flight requests
+// Graceful shutdown so Render can drain in-flight requests
 // before killing the process during deploys or restarts
 process.on("SIGTERM", () => {
   console.log("SIGTERM received — shutting down gracefully");
