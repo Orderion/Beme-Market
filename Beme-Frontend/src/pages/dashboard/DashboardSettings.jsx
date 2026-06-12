@@ -1,3 +1,4 @@
+// Beme-Frontend/src/pages/dashboard/DashboardSettings.jsx
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -167,10 +168,10 @@ function PaymentPreferencesTab() {
   const { storeId, shop } = useSellerAuth();
   const shopDocId = storeId || user?.uid;
   const [paymentTypes, setPaymentTypes] = useState(["paystack", "cod"]);
-  const [loading, setLoading]   = useState(true);
-  const [saving,  setSaving]    = useState(false);
-  const [saved,   setSaved]     = useState(false);
-  const [error,   setError]     = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving,  setSaving]  = useState(false);
+  const [saved,   setSaved]   = useState(false);
+  const [error,   setError]   = useState("");
 
   useEffect(() => {
     if (!shopDocId) { setLoading(false); return; }
@@ -186,31 +187,12 @@ function PaymentPreferencesTab() {
   }, [shopDocId]);
 
   const OPTIONS = [
-    {
-      id: "both",
-      label: "Both — Paystack & Pay on Delivery",
-      desc: "Buyers choose their preferred payment method at checkout.",
-      icon: IC.verify,
-      color: "#22C55E",
-    },
-    {
-      id: "paystack",
-      label: "Paystack Only",
-      desc: "Card, bank transfer, and mobile money via Paystack. No cash on delivery.",
-      icon: IC.lock,
-      color: "#046EF2",
-    },
-    {
-      id: "cod",
-      label: "Pay on Delivery Only",
-      desc: "Buyers pay cash or MoMo when the order arrives. No online payment.",
-      icon: IC.truck,
-      color: "#F59E0B",
-    },
+    { id:"both",     label:"Both — Paystack & Pay on Delivery", desc:"Buyers choose their preferred payment method at checkout.", icon:IC.verify, color:"#22C55E" },
+    { id:"paystack", label:"Paystack Only",                     desc:"Card, bank transfer, and mobile money via Paystack. No cash on delivery.", icon:IC.lock, color:"#046EF2" },
+    { id:"cod",      label:"Pay on Delivery Only",              desc:"Buyers pay cash or MoMo when the order arrives. No online payment.", icon:IC.truck, color:"#F59E0B" },
   ];
 
-  const selected = paymentTypes.includes("paystack") && paymentTypes.includes("cod")
-    ? "both"
+  const selected = paymentTypes.includes("paystack") && paymentTypes.includes("cod") ? "both"
     : paymentTypes.includes("paystack") ? "paystack"
     : paymentTypes.includes("cod") ? "cod"
     : "both";
@@ -224,111 +206,50 @@ function PaymentPreferencesTab() {
     setSaving(true); setError(""); setSaved(false);
     try {
       const { updateDoc } = await import("firebase/firestore");
-      await updateDoc(doc(db, "shops", shopDocId), {
-        paymentTypes,
-        updatedAt: serverTimestamp(),
-      });
+      await updateDoc(doc(db, "shops", shopDocId), { paymentTypes, updatedAt: serverTimestamp() });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch (e) {
-      setError("Failed to save. Please try again.");
-    } finally {
-      setSaving(false);
-    }
+    } catch { setError("Failed to save. Please try again."); }
+    finally { setSaving(false); }
   };
 
-  if (loading) return <div style={{ padding:"40px 0", color:"var(--sd-muted)", fontSize:14 }}>Loading…</div>;
+  if (loading) return <div style={{ padding:"40px 0",color:"var(--sd-muted)",fontSize:14 }}>Loading…</div>;
 
   return (
-    <div style={{ maxWidth: 560 }}>
+    <div style={{ maxWidth:560 }}>
       <h2 className="ds-content-title">Payment Preferences</h2>
-      <p className="ds-content-sub">
-        Choose which payment methods buyers can use at checkout for your products.
-      </p>
-
-      <div className="sd-panel" style={{ marginBottom: 16 }}>
-        <div style={{ fontSize:12, fontWeight:700, color:"var(--sd-muted)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:14 }}>
-          Accepted Payment Methods
-        </div>
-
-        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+      <p className="ds-content-sub">Choose which payment methods buyers can use at checkout for your products.</p>
+      <div className="sd-panel" style={{ marginBottom:16 }}>
+        <div style={{ fontSize:12,fontWeight:700,color:"var(--sd-muted)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:14 }}>Accepted Payment Methods</div>
+        <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
           {OPTIONS.map(opt => (
-            <label key={opt.id}
-              onClick={() => handleSelect(opt.id)}
-              style={{
-                display:"flex", alignItems:"center", gap:14, padding:"14px 16px",
-                borderRadius:12, border:`1.5px solid ${selected===opt.id?"var(--sd-accent)":"var(--sd-border)"}`,
-                background:selected===opt.id?"var(--sd-accent-dim)":"var(--sd-bg)",
-                cursor:"pointer", transition:"all 0.12s",
-                boxShadow:selected===opt.id?"0 0 0 3px rgba(124,58,237,0.08)":"none",
-              }}>
-              {/* Icon */}
-              <div style={{
-                width:42, height:42, borderRadius:11,
-                background:selected===opt.id?`${opt.color}18`:"var(--sd-white)",
-                border:`1px solid ${selected===opt.id?opt.color:"var(--sd-border)"}`,
-                display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0,
-                transition:"all 0.12s",
-              }}>
+            <label key={opt.id} onClick={() => handleSelect(opt.id)}
+              style={{ display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderRadius:12,border:`1.5px solid ${selected===opt.id?"var(--sd-accent)":"var(--sd-border)"}`,background:selected===opt.id?"var(--sd-accent-dim)":"var(--sd-bg)",cursor:"pointer",transition:"all 0.12s",boxShadow:selected===opt.id?"0 0 0 3px rgba(124,58,237,0.08)":"none" }}>
+              <div style={{ width:42,height:42,borderRadius:11,background:selected===opt.id?`${opt.color}18`:"var(--sd-white)",border:`1px solid ${selected===opt.id?opt.color:"var(--sd-border)"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.12s" }}>
                 <Ico d={opt.icon} size={18} color={selected===opt.id?opt.color:"var(--sd-muted)"}/>
               </div>
-              {/* Text */}
               <div style={{ flex:1 }}>
-                <div style={{ fontSize:14, fontWeight:800, color:"var(--sd-text)", marginBottom:3 }}>
-                  {opt.label}
-                </div>
-                <div style={{ fontSize:12, color:"var(--sd-muted)", lineHeight:1.5 }}>
-                  {opt.desc}
-                </div>
+                <div style={{ fontSize:14,fontWeight:800,color:"var(--sd-text)",marginBottom:3 }}>{opt.label}</div>
+                <div style={{ fontSize:12,color:"var(--sd-muted)",lineHeight:1.5 }}>{opt.desc}</div>
               </div>
-              {/* Radio dot */}
-              <div style={{
-                width:20, height:20, borderRadius:"50%", flexShrink:0,
-                border:`2px solid ${selected===opt.id?"var(--sd-accent)":"var(--sd-border)"}`,
-                display:"flex", alignItems:"center", justifyContent:"center",
-                background:selected===opt.id?"var(--sd-accent-dim)":"transparent",
-                transition:"all 0.12s",
-              }}>
-                {selected===opt.id && (
-                  <div style={{ width:8, height:8, borderRadius:"50%", background:"var(--sd-accent)" }}/>
-                )}
+              <div style={{ width:20,height:20,borderRadius:"50%",flexShrink:0,border:`2px solid ${selected===opt.id?"var(--sd-accent)":"var(--sd-border)"}`,display:"flex",alignItems:"center",justifyContent:"center",background:selected===opt.id?"var(--sd-accent-dim)":"transparent",transition:"all 0.12s" }}>
+                {selected===opt.id && <div style={{ width:8,height:8,borderRadius:"50%",background:"var(--sd-accent)" }}/>}
               </div>
             </label>
           ))}
         </div>
       </div>
-
-      {/* Info box */}
-      <div style={{
-        padding:"14px 16px", borderRadius:12,
-        background:"rgba(4,110,242,0.05)", border:"1px solid rgba(4,110,242,0.15)",
-        display:"flex", alignItems:"flex-start", gap:10, marginBottom:20,
-      }}>
+      <div style={{ padding:"14px 16px",borderRadius:12,background:"rgba(4,110,242,0.05)",border:"1px solid rgba(4,110,242,0.15)",display:"flex",alignItems:"flex-start",gap:10,marginBottom:20 }}>
         <Ico d={IC.info} size={16} color="#046EF2"/>
-        <div style={{ fontSize:12, color:"var(--sd-text)", lineHeight:1.65 }}>
-          {selected === "both"
-            ? "Buyers will see both Paystack and Pay on Delivery at checkout and can choose freely."
-            : selected === "paystack"
-              ? "Only Paystack will appear at checkout. Pay on Delivery will be hidden for your products."
-              : "Only Pay on Delivery will appear. Paystack will be hidden for your products."}
+        <div style={{ fontSize:12,color:"var(--sd-text)",lineHeight:1.65 }}>
+          {selected==="both"?"Buyers will see both Paystack and Pay on Delivery at checkout and can choose freely."
+            :selected==="paystack"?"Only Paystack will appear at checkout. Pay on Delivery will be hidden for your products."
+            :"Only Pay on Delivery will appear. Paystack will be hidden for your products."}
         </div>
       </div>
-
-      {error && (
-        <div style={{ padding:"10px 14px", borderRadius:8, background:"var(--sd-danger-bg)", color:"var(--sd-danger)", fontSize:13, fontWeight:600, marginBottom:14 }}>
-          {error}
-        </div>
-      )}
-      {saved && (
-        <div style={{ padding:"10px 14px", borderRadius:8, background:"rgba(21,128,61,0.08)", border:"1px solid rgba(21,128,61,0.2)", color:"#15803d", fontSize:13, fontWeight:600, marginBottom:14, display:"flex", alignItems:"center", gap:8 }}>
-          <Ico d={IC.check} size={15} color="#15803d" sw={2.5}/>
-          Payment preferences saved.
-        </div>
-      )}
-
-      <button className="sd-btn sd-btn-primary" onClick={handleSave} disabled={saving}>
-        {saving ? "Saving…" : "Save Payment Preferences"}
-      </button>
+      {error&&<div style={{ padding:"10px 14px",borderRadius:8,background:"var(--sd-danger-bg)",color:"var(--sd-danger)",fontSize:13,fontWeight:600,marginBottom:14 }}>{error}</div>}
+      {saved&&<div style={{ padding:"10px 14px",borderRadius:8,background:"rgba(21,128,61,0.08)",border:"1px solid rgba(21,128,61,0.2)",color:"#15803d",fontSize:13,fontWeight:600,marginBottom:14,display:"flex",alignItems:"center",gap:8 }}><Ico d={IC.check} size={15} color="#15803d" sw={2.5}/>Payment preferences saved.</div>}
+      <button className="sd-btn sd-btn-primary" onClick={handleSave} disabled={saving}>{saving?"Saving…":"Save Payment Preferences"}</button>
     </div>
   );
 }
@@ -342,8 +263,27 @@ function PreferencesTab(){const{theme,toggleTheme}=useTheme();const[selected,set
   return(<div style={{ maxWidth:520 }}><h2 className="ds-content-title">Preferences</h2><p className="ds-content-sub">Customise how the dashboard looks and feels.</p><div className="sd-panel"><div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12 }}><div><div style={{ fontSize:14,fontWeight:700,color:"var(--sd-text)",marginBottom:3 }}>Appearance</div><div style={{ fontSize:12,color:"var(--sd-muted)" }}>Choose how the dashboard looks to you.</div></div><div style={{ display:"flex",background:"var(--sd-bg)",borderRadius:12,padding:4,gap:2,border:"1px solid var(--sd-border)" }}>{THEMES.map(t=>(<button key={t.id} onClick={()=>applyTheme(t.id)} style={{ display:"flex",flexDirection:"column",alignItems:"center",gap:4,padding:"8px 12px",borderRadius:9,border:"none",background:selected===t.id?"var(--sd-white)":"transparent",cursor:"pointer",fontFamily:"var(--sd-font)",fontSize:11,fontWeight:600,color:selected===t.id?"var(--sd-text)":"var(--sd-muted)",boxShadow:selected===t.id?"0 1px 4px rgba(0,0,0,0.10)":"none",transition:"all 0.15s" }}><Ico d={t.icon} size={16} color={selected===t.id?"var(--sd-accent)":"var(--sd-muted)"}/>{t.label}</button>))}</div></div></div><div style={{ marginTop:16,padding:"14px 16px",borderRadius:12,background:"var(--sd-bg)",border:"1px solid var(--sd-border-light)",fontSize:12,color:"var(--sd-muted)",lineHeight:1.6 }}>System mode automatically switches between light and dark based on your device settings.</div></div>);}
 
 // ── DELETE ACCOUNT TAB ──
-const _apiBase = String(import.meta.env.VITE_BACKEND_URL || "").trim().replace(/\/+$/, "");
-await fetch(`${_apiBase}/api/sellers/delete-account`,
+function DeleteAccountTab(){
+  const{user,logout}=useAuth();
+  const navigate=useNavigate();
+  const[confirm,setConfirm]=useState("");
+  const[loading,setLoading]=useState(false);
+  const[phase,setPhase]=useState("idle");
+  const[err,setErr]=useState("");
+  const handleDelete=async()=>{
+    if(confirm!=="DELETE"){setErr("Please type DELETE exactly to confirm.");return;}
+    setLoading(true);setErr("");
+    try{
+      if(user?.uid){
+        const _apiBase=String(import.meta.env.VITE_BACKEND_URL||"").trim().replace(/\/+$/,"");
+        await fetch(`${_apiBase}/api/sellers/delete-account`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({uid:user.uid})}).catch(()=>{});
+        await deleteDoc(doc(db,"users",user.uid)).catch(()=>{});
+      }
+      await logout().catch(()=>{});
+      setPhase("done");
+      setTimeout(()=>navigate("/"),2500);
+    }catch(e){setErr(e.message||"Failed to delete account. Please contact support.");setLoading(false);}
+  };
   if(phase==="done")return(<div style={{ display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center",padding:"60px 24px" }}><div style={{ fontSize:18,fontWeight:800,color:"var(--sd-text)",marginBottom:8 }}>Account Deleted</div><p style={{ fontSize:14,color:"var(--sd-muted)" }}>We're sorry to see you go. Redirecting you to the homepage…</p></div>);
   return(<div style={{ maxWidth:520 }}><h2 style={{ fontSize:20,fontWeight:800,color:"var(--sd-danger)",marginBottom:4,letterSpacing:"-0.02em" }}>Delete Account</h2><p className="ds-content-sub">Permanently remove your seller account and all associated data.</p><div style={{ padding:20,borderRadius:14,background:"var(--sd-danger-bg)",border:"1px solid rgba(185,28,28,0.2)",marginBottom:20 }}><div style={{ display:"flex",alignItems:"flex-start",gap:12,marginBottom:14 }}><Ico d={IC.alert} size={20} color="var(--sd-danger)"/><div style={{ fontSize:14,fontWeight:700,color:"var(--sd-danger)" }}>This action is permanent and cannot be undone.</div></div><ul style={{ margin:"0 0 0 20px",padding:0,fontSize:13,color:"var(--sd-danger)",lineHeight:1.8 }}><li>All your products will be removed</li><li>Your store page will go offline immediately</li><li>Pending withdrawals will be cancelled</li><li>All order history will be deleted</li><li>Your Beme account will be permanently closed</li></ul></div>{phase==="idle"&&(<><div style={{ padding:"14px 16px",borderRadius:12,background:"var(--sd-bg)",border:"1px solid var(--sd-border)",marginBottom:20,fontSize:13,color:"var(--sd-muted)",lineHeight:1.6 }}>If you have outstanding orders or pending withdrawals, please resolve them before deleting your account. Contact support if you need help.</div><button onClick={()=>setPhase("confirm")} style={{ padding:"11px 22px",borderRadius:10,border:"1.5px solid var(--sd-danger)",background:"transparent",color:"var(--sd-danger)",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"var(--sd-font)" }}>I understand, proceed to delete</button></>)}{phase==="confirm"&&(<div className="sd-panel"><div style={{ fontSize:14,fontWeight:700,color:"var(--sd-text)",marginBottom:4 }}>Final confirmation</div><p style={{ fontSize:13,color:"var(--sd-muted)",marginBottom:16 }}>Type <strong style={{ color:"var(--sd-danger)" }}>DELETE</strong> in the box below to permanently delete your account.</p><div className="sd-form-group"><input className="sd-input" placeholder="Type DELETE to confirm" value={confirm} onChange={e=>setConfirm(e.target.value)} style={{ borderColor:confirm==="DELETE"?"var(--sd-danger)":undefined }}/></div>{err&&<div style={{ padding:"10px 14px",borderRadius:8,background:"var(--sd-danger-bg)",color:"var(--sd-danger)",fontSize:13,fontWeight:600,marginBottom:14 }}>{err}</div>}<div style={{ display:"flex",gap:10 }}><button onClick={()=>{setPhase("idle");setConfirm("");setErr("");}} style={{ flex:1,padding:"12px",borderRadius:10,border:"1px solid var(--sd-border)",background:"transparent",color:"var(--sd-text)",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"var(--sd-font)" }}>Cancel</button><button onClick={handleDelete} disabled={loading||confirm!=="DELETE"} style={{ flex:1,padding:"12px",borderRadius:10,border:"none",background:confirm==="DELETE"?"var(--sd-danger)":"var(--sd-border)",color:confirm==="DELETE"?"#fff":"var(--sd-muted)",fontSize:13,fontWeight:700,cursor:confirm==="DELETE"?"pointer":"not-allowed",fontFamily:"var(--sd-font)" }}>{loading?"Deleting…":"Delete My Account"}</button></div></div>)}</div>);
 }
@@ -353,18 +293,18 @@ await fetch(`${_apiBase}/api/sellers/delete-account`,
 // ════════════════════════════════════════
 const SECTIONS = [
   { group:"Account", items:[
-    { id:"security",     label:"Security",          icon:IC.shield  },
-    { id:"verification", label:"Verification",      icon:IC.verify  },
+    { id:"security",     label:"Security",            icon:IC.shield  },
+    { id:"verification", label:"Verification",        icon:IC.verify  },
   ]},
   { group:"Store", items:[
-    { id:"payment",      label:"Payment Preferences", icon:IC.lock  },
-    { id:"ai",           label:"AI Capabilities",   icon:IC.sparkle },
+    { id:"payment",      label:"Payment Preferences", icon:IC.lock    },
+    { id:"ai",           label:"AI Capabilities",     icon:IC.sparkle },
   ]},
   { group:"Preferences", items:[
-    { id:"preferences",  label:"Appearance",        icon:IC.sun     },
+    { id:"preferences",  label:"Appearance",          icon:IC.sun     },
   ]},
   { group:"Danger Zone", items:[
-    { id:"delete",       label:"Delete Account",    icon:IC.trash, danger:true },
+    { id:"delete",       label:"Delete Account",      icon:IC.trash, danger:true },
   ]},
 ];
 
@@ -381,23 +321,15 @@ const TAB_CONTENT = {
 //   MAIN
 // ════════════════════════════════════════
 export default function DashboardSettings() {
-  const [activeTab,   setActiveTab]   = useState("security");
-  // mobile: "list" = show nav, "detail" = show content
-  const [mobileView, setMobileView]   = useState("list");
+  const [activeTab,  setActiveTab]  = useState("security");
+  const [mobileView, setMobileView] = useState("list");
 
-  const allItems  = SECTIONS.flatMap(s => s.items);
+  const allItems   = SECTIONS.flatMap(s => s.items);
   const activeItem = allItems.find(i => i.id === activeTab);
 
-  const handleNavClick = (id) => {
-    setActiveTab(id);
-    setMobileView("detail");   // slide to content on mobile
-  };
+  const handleNavClick = (id) => { setActiveTab(id); setMobileView("detail"); };
+  const handleBack     = ()   => { setMobileView("list"); };
 
-  const handleBack = () => {
-    setMobileView("list");     // slide back to nav on mobile
-  };
-
-  /* ── Sidebar nav (shared between desktop and mobile) ── */
   const NavList = (
     <div className="ds-nav">
       <div className="ds-nav-title">Settings</div>
@@ -406,16 +338,11 @@ export default function DashboardSettings() {
           <div className="ds-nav-group-label">{sec.group}</div>
           {sec.items.map(item => (
             <button key={item.id}
-              className={`ds-nav-btn${activeTab === item.id ? " ds-nav-btn--active" : ""}${item.danger ? " ds-nav-btn--danger" : ""}`}
+              className={`ds-nav-btn${activeTab===item.id?" ds-nav-btn--active":""}${item.danger?" ds-nav-btn--danger":""}`}
               onClick={() => handleNavClick(item.id)}>
               <Ico d={item.icon} size={15}
-                color={
-                  activeTab === item.id
-                    ? item.danger ? "var(--sd-danger)" : "var(--sd-accent)"
-                    : item.danger ? "var(--sd-danger)" : "var(--sd-muted)"
-                }/>
+                color={activeTab===item.id?(item.danger?"var(--sd-danger)":"var(--sd-accent)"):(item.danger?"var(--sd-danger)":"var(--sd-muted)")}/>
               <span className="ds-nav-btn-label">{item.label}</span>
-              {/* chevron on mobile only */}
               <Ico d={IC.chevR} size={14} color="var(--sd-muted)" className="ds-nav-chevron"/>
             </button>
           ))}
@@ -426,183 +353,60 @@ export default function DashboardSettings() {
 
   return (
     <div className="ds-root">
-
-      {/* ══ MOBILE: nav panel ══ */}
-      <div className={`ds-mobile-nav${mobileView === "list" ? " ds-mobile-nav--visible" : ""}`}>
-        {NavList}
-      </div>
-
-      {/* ══ MOBILE: detail panel ══ */}
-      <div className={`ds-mobile-detail${mobileView === "detail" ? " ds-mobile-detail--visible" : ""}`}>
-        {/* back header */}
+      <div className={`ds-mobile-nav${mobileView==="list"?" ds-mobile-nav--visible":""}`}>{NavList}</div>
+      <div className={`ds-mobile-detail${mobileView==="detail"?" ds-mobile-detail--visible":""}`}>
         <div className="ds-mobile-detail-header">
-          <button onClick={handleBack} className="ds-back-btn">
-            <Ico d={IC.chevL} size={18} color="var(--sd-text)"/>
-          </button>
-          <span className="ds-mobile-detail-title">
-            {activeItem?.label || "Settings"}
-          </span>
+          <button onClick={handleBack} className="ds-back-btn"><Ico d={IC.chevL} size={18} color="var(--sd-text)"/></button>
+          <span className="ds-mobile-detail-title">{activeItem?.label||"Settings"}</span>
         </div>
-        <div className="ds-mobile-detail-body">
-          {TAB_CONTENT[activeTab]}
-        </div>
+        <div className="ds-mobile-detail-body">{TAB_CONTENT[activeTab]}</div>
       </div>
-
-      {/* ══ DESKTOP: sidebar + content ══ */}
       <div className="ds-desktop">
-        <aside className="ds-desktop-aside">
-          {NavList}
-        </aside>
-        <main className="ds-desktop-main">
-          {TAB_CONTENT[activeTab]}
-        </main>
+        <aside className="ds-desktop-aside">{NavList}</aside>
+        <main className="ds-desktop-main">{TAB_CONTENT[activeTab]}</main>
       </div>
-
       <style>{`
-        /* ── Root ── */
-        .ds-root {
-          font-family: var(--sd-font,'DM Sans',system-ui,sans-serif);
-          color: var(--sd-text);
-          background: var(--sd-white);
-          min-height: calc(100vh - 120px);
-          position: relative;
+        .ds-root{font-family:var(--sd-font,'DM Sans',system-ui,sans-serif);color:var(--sd-text);background:var(--sd-white);min-height:calc(100vh - 120px);position:relative;}
+        .ds-nav{padding-bottom:24px;}
+        .ds-nav-title{font-size:22px;font-weight:800;color:var(--sd-text);letter-spacing:-0.03em;margin-bottom:20px;}
+        .ds-nav-group{margin-bottom:20px;}
+        .ds-nav-group-label{font-size:10px;font-weight:700;color:var(--sd-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;padding-left:4px;}
+        .ds-nav-btn{display:flex;align-items:center;gap:9px;width:100%;padding:10px 12px;border-radius:9px;border:none;background:transparent;cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:500;color:var(--sd-text2);text-align:left;transition:background 0.12s;margin-bottom:2px;}
+        .ds-nav-btn:hover:not(.ds-nav-btn--active){background:var(--sd-border-light);}
+        .ds-nav-btn--active{background:var(--sd-accent-dim);color:var(--sd-accent);font-weight:700;}
+        .ds-nav-btn--danger{color:var(--sd-danger)!important;}
+        .ds-nav-btn--danger.ds-nav-btn--active{background:rgba(185,28,28,0.08);}
+        .ds-nav-btn-label{flex:1;}
+        .ds-nav-chevron{display:none;}
+        .ds-content-title{font-size:20px;font-weight:800;color:var(--sd-text);margin-bottom:4px;letter-spacing:-0.02em;}
+        .ds-content-sub{font-size:13px;color:var(--sd-muted);margin-bottom:24px;}
+        .ds-desktop{display:none;}
+        .ds-mobile-nav{display:block;}
+        .ds-mobile-detail{display:none;}
+        @media(min-width:769px){
+          .ds-desktop{display:flex;gap:0;min-height:calc(100vh - 120px);}
+          .ds-mobile-nav{display:none!important;}
+          .ds-mobile-detail{display:none!important;}
+          .ds-desktop-aside{width:220px;flex-shrink:0;padding-right:24px;border-right:1px solid var(--sd-border-light);}
+          .ds-desktop-main{flex:1;padding-left:32px;padding-bottom:60px;min-width:0;}
+          .ds-nav-chevron{display:none!important;}
         }
-
-        /* ── Nav shared styles ── */
-        .ds-nav { padding-bottom: 24px; }
-        .ds-nav-title {
-          font-size: 22px; font-weight: 800; color: var(--sd-text);
-          letter-spacing: -0.03em; margin-bottom: 20px;
-        }
-        .ds-nav-group { margin-bottom: 20px; }
-        .ds-nav-group-label {
-          font-size: 10px; font-weight: 700; color: var(--sd-muted);
-          text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;
-          padding-left: 4px;
-        }
-        .ds-nav-btn {
-          display: flex; align-items: center; gap: 9px;
-          width: 100%; padding: 10px 12px; border-radius: 9px;
-          border: none; background: transparent; cursor: pointer;
-          font-family: inherit; font-size: 13.5px; font-weight: 500;
-          color: var(--sd-text2); text-align: left;
-          transition: background 0.12s; margin-bottom: 2px;
-        }
-        .ds-nav-btn:hover:not(.ds-nav-btn--active) { background: var(--sd-border-light); }
-        .ds-nav-btn--active {
-          background: var(--sd-accent-dim);
-          color: var(--sd-accent);
-          font-weight: 700;
-        }
-        .ds-nav-btn--danger { color: var(--sd-danger) !important; }
-        .ds-nav-btn--danger.ds-nav-btn--active { background: rgba(185,28,28,0.08); }
-        .ds-nav-btn-label { flex: 1; }
-
-        /* Chevron: only show on mobile */
-        .ds-nav-chevron { display: none; }
-
-        /* Shared content typography */
-        .ds-content-title {
-          font-size: 20px; font-weight: 800; color: var(--sd-text);
-          margin-bottom: 4px; letter-spacing: -0.02em;
-        }
-        .ds-content-sub {
-          font-size: 13px; color: var(--sd-muted); margin-bottom: 24px;
-        }
-
-        /* ═══════════════════════════════════
-           DESKTOP  ≥ 769px
-           Side-by-side layout, mobile panels hidden
-        ═══════════════════════════════════ */
-        .ds-desktop       { display: none; }
-        .ds-mobile-nav    { display: block; }
-        .ds-mobile-detail { display: none; }
-
-        @media (min-width: 769px) {
-          .ds-desktop { display: flex; gap: 0; min-height: calc(100vh - 120px); }
-          .ds-mobile-nav    { display: none !important; }
-          .ds-mobile-detail { display: none !important; }
-
-          .ds-desktop-aside {
-            width: 220px; flex-shrink: 0;
-            padding-right: 24px;
-            border-right: 1px solid var(--sd-border-light);
-          }
-          .ds-desktop-main {
-            flex: 1; padding-left: 32px; padding-bottom: 60px; min-width: 0;
-          }
-          /* Hide chevron on desktop */
-          .ds-nav-chevron { display: none !important; }
-        }
-
-        /* ═══════════════════════════════════
-           MOBILE  < 769px
-           Slide: list → detail
-        ═══════════════════════════════════ */
-        @media (max-width: 768px) {
-          /* Nav panel */
-          .ds-mobile-nav {
-            position: absolute; inset: 0;
-            background: var(--sd-white);
-            overflow-y: auto;
-            z-index: 1;
-            transform: translateX(-100%);
-            transition: transform 0.26s cubic-bezier(0.4,0,0.2,1);
-            padding: 0;
-          }
-          .ds-mobile-nav--visible { transform: translateX(0); }
-
-          /* Bigger touch targets + chevron on mobile */
-          .ds-nav-btn { padding: 13px 14px; font-size: 14px; border-radius: 12px; }
-          .ds-nav-chevron { display: flex !important; margin-left: auto; flex-shrink: 0; }
-          .ds-nav-group-label { padding-left: 14px; }
-          .ds-nav-title { padding: 0 14px; font-size: 24px; }
-          .ds-nav { padding: 8px 0 32px; }
-
-          /* Detail panel */
-          .ds-mobile-detail {
-            position: absolute; inset: 0;
-            background: var(--sd-white);
-            overflow-y: auto;
-            z-index: 2;
-            transform: translateX(100%);
-            transition: transform 0.26s cubic-bezier(0.4,0,0.2,1);
-            display: flex; flex-direction: column;
-          }
-          .ds-mobile-detail--visible { transform: translateX(0); }
-
-          /* Back bar */
-          .ds-mobile-detail-header {
-            display: flex; align-items: center; gap: 10px;
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--sd-border-light);
-            flex-shrink: 0;
-            background: var(--sd-white);
-            position: sticky; top: 0; z-index: 10;
-          }
-          .ds-back-btn {
-            width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
-            border: 1px solid var(--sd-border); background: var(--sd-white);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: background 0.12s;
-          }
-          .ds-back-btn:hover { background: var(--sd-border-light); }
-          .ds-mobile-detail-title {
-            font-size: 16px; font-weight: 800; color: var(--sd-text);
-            letter-spacing: -0.02em;
-          }
-
-          /* Content body */
-          .ds-mobile-detail-body {
-            flex: 1; padding: 20px 16px 60px; overflow-y: auto;
-          }
-
-          /* Root must be relative + has a height for absolute children */
-          .ds-root {
-            position: relative;
-            overflow: hidden;
-            min-height: calc(100vh - var(--sd-topbar-h, 56px) - 48px);
-          }
+        @media(max-width:768px){
+          .ds-mobile-nav{position:absolute;inset:0;background:var(--sd-white);overflow-y:auto;z-index:1;transform:translateX(-100%);transition:transform 0.26s cubic-bezier(0.4,0,0.2,1);padding:0;}
+          .ds-mobile-nav--visible{transform:translateX(0);}
+          .ds-nav-btn{padding:13px 14px;font-size:14px;border-radius:12px;}
+          .ds-nav-chevron{display:flex!important;margin-left:auto;flex-shrink:0;}
+          .ds-nav-group-label{padding-left:14px;}
+          .ds-nav-title{padding:0 14px;font-size:24px;}
+          .ds-nav{padding:8px 0 32px;}
+          .ds-mobile-detail{position:absolute;inset:0;background:var(--sd-white);overflow-y:auto;z-index:2;transform:translateX(100%);transition:transform 0.26s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;}
+          .ds-mobile-detail--visible{transform:translateX(0);}
+          .ds-mobile-detail-header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--sd-border-light);flex-shrink:0;background:var(--sd-white);position:sticky;top:0;z-index:10;}
+          .ds-back-btn{width:34px;height:34px;border-radius:9px;flex-shrink:0;border:1px solid var(--sd-border);background:var(--sd-white);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 0.12s;}
+          .ds-back-btn:hover{background:var(--sd-border-light);}
+          .ds-mobile-detail-title{font-size:16px;font-weight:800;color:var(--sd-text);letter-spacing:-0.02em;}
+          .ds-mobile-detail-body{flex:1;padding:20px 16px 60px;overflow-y:auto;}
+          .ds-root{position:relative;overflow:hidden;min-height:calc(100vh - var(--sd-topbar-h,56px) - 48px);}
         }
       `}</style>
     </div>
