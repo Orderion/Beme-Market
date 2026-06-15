@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
-
+a
 /**
  * useSellerAuth — Spark plan safe.
  * Cloud Functions never run on free plan so:
