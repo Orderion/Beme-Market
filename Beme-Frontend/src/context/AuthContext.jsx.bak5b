@@ -22,22 +22,8 @@ function normalizeCapabilities(raw) {
   return [];
 }
 
-// Retry helper: if the Firestore read fails (brief outage during login),
-// wait 1s and try once more before falling back to the customer default.
-async function getDocWithRetry(ref, retries = 1, delayMs = 1000) {
-  try {
-    return await getDoc(ref);
-  } catch (err) {
-    if (retries > 0) {
-      await new Promise((r) => setTimeout(r, delayMs));
-      return getDocWithRetry(ref, retries - 1, delayMs);
-    }
-    throw err;
-  }
-}
-
 async function resolveProfile(uid) {
-  const snap = await getDocWithRetry(doc(db, "users", uid));
+  const snap = await getDoc(doc(db, "users", uid));
   if (!snap.exists()) {
     return {
       role: "customer", capabilities: [],

@@ -485,30 +485,11 @@ function sanitizeOrderForResponse(docSnap) {
 router.get("/", async (req, res) => {
   try {
     const authUser = await requireAuthUser(req);
-    // Pagination: ?limit= (default 50, capped 100) and ?offset= for paging.
-    // Sorted in-memory by createdAt desc so no composite Firestore index is needed.
-    const pageLimit = Math.min(100, Math.max(1, parseInt(req.query && req.query.limit, 10) || 50));
-    const offset    = Math.max(0, parseInt(req.query && req.query.offset, 10) || 0);
-
     const snap = await adminDb.collection("orders").where("userId", "==", authUser.uid).get();
-
-    const allOrders = snap.docs
+    const orders = snap.docs
       .map(sanitizeOrderForResponse)
       .sort((a, b) => getSortableTime(b.createdAt) - getSortableTime(a.createdAt));
-
-    const total   = allOrders.length;
-    const orders  = allOrders.slice(offset, offset + pageLimit);
-    const hasMore = offset + pageLimit < total;
-
-    return res.json({
-      success: true,
-      orders,
-      total,
-      limit: pageLimit,
-      offset,
-      hasMore,
-      nextOffset: hasMore ? offset + pageLimit : null,
-    });
+    return res.json({ success: true, orders });
   } catch (error) {
     console.error("Orders GET error:", error);
     return res.status(error?.statusCode || 500).json({ success: false, error: error?.message || "Failed to load orders." });
