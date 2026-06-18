@@ -11,13 +11,9 @@ import { useAuth } from "../../context/AuthContext";
 import { useSellerAuth } from "../../hooks/useSellerAuth";
 import { useTheme } from "../../context/ThemeContext";
 
-let setupTOTP   = async () => ({ otpauth: "", secret: "" });
-let enableTOTP  = async () => {};
-let disableTOTP = async () => {};
-let useAISettings = () => ({ settings: {}, loading: false, saving: false, updateSetting: () => {} });
+import { setupTOTP, enableTOTP, disableTOTP } from "../../services/twoFactorService";
+import { useAISettings } from "../../hooks/useAISettings";
 
-try { const m = await import("../../services/twoFactorService"); setupTOTP = m.setupTOTP; enableTOTP = m.enableTOTP; disableTOTP = m.disableTOTP; } catch {}
-try { const m = await import("../../hooks/useAISettings"); useAISettings = m.useAISettings; } catch {}
 
 function Ico({ d, size = 18, color = "currentColor", sw = 1.8, fill = "none" }) {
   return (
