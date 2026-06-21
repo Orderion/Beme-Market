@@ -17,16 +17,6 @@ const COURIER_OPTIONS = [
   { id: "dhl",           label: "DHL eCommerce" },
 ];
 
-// Maps the customer's checkout-time provider display name (delivery.provider,
-// e.g. "DHL eCommerce") back to a COURIER_OPTIONS id ("dhl"), so the dispatch
-// modal can default to what the customer actually picked.
-function customerChosenCourierId(delivery) {
-  const providerName = String(delivery?.provider || delivery?.label || "").toLowerCase();
-  if (!providerName) return "";
-  const match = COURIER_OPTIONS.find(c => providerName.includes(c.id) || providerName.includes(c.label.toLowerCase()));
-  return match?.id || "";
-}
-
 const ZONE_OPTIONS = [
   { id: "within_accra",      label: "Within Accra" },
   { id: "accra_to_kumasi",   label: "Accra → Kumasi" },
@@ -126,7 +116,7 @@ function PaymentTimingBadge({ delivery }) {
 
 /* ── Dispatch modal — book a courier ── */
 function DispatchModal({ order, onClose, onSuccess }) {
-  const [courierProvider, setCourierProvider] = useState(() => customerChosenCourierId(order?.delivery));
+  const [courierProvider, setCourierProvider] = useState("");
   const [zone, setZone]                       = useState("");
   const [trackingNumber, setTrackingNumber]   = useState("");
   const [estimatedPickup, setEstimatedPickup] = useState("");
@@ -161,11 +151,6 @@ function DispatchModal({ order, onClose, onSuccess }) {
       <div style={{ background: "var(--ap-card2)", border: "1px solid var(--ap-border)", borderRadius: 14, padding: 24, width: "100%", maxWidth: 420, fontFamily: "var(--ap-font)" }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: "var(--ap-text)", marginBottom: 4 }}>Dispatch Courier</div>
         <div style={{ fontSize: 12, color: "var(--ap-muted)", marginBottom: 18 }}>Order #{String(order.id).slice(0, 8).toUpperCase()}</div>
-        {(order?.delivery?.provider || order?.delivery?.label) && (
-          <div style={{ fontSize: 12, color: "var(--ap-text2)", marginBottom: 14, padding: "8px 12px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid var(--ap-border)" }}>
-            Customer selected: <strong>{order.delivery.provider || order.delivery.label}</strong> at checkout — pre-filled below, override if needed.
-          </div>
-        )}
 
         <div style={{ marginBottom: 12 }}>
           <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--ap-muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Courier Provider</label>
@@ -295,12 +280,8 @@ function OrderRow({ order, onAction, busy }) {
       </div>
 
       <div style={{ flex: "0 0 140px" }}>
-        <div style={{ fontSize: 11, color: "var(--ap-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
-          {del.courierProvider ? "Courier" : "Customer Selected"}
-        </div>
-        <div style={{ fontSize: 13, color: del.courierProvider ? "var(--ap-text)" : "var(--ap-muted)" }}>
-          {del.courierProvider || del.provider || del.label || "—"}
-        </div>
+        <div style={{ fontSize: 11, color: "var(--ap-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Courier</div>
+        <div style={{ fontSize: 13, color: "var(--ap-text)" }}>{del.courierProvider || "—"}</div>
         {del.trackingNumber && <div style={{ fontSize: 11, color: "var(--ap-muted)", fontFamily: "monospace" }}>{del.trackingNumber}</div>}
       </div>
 
