@@ -833,9 +833,9 @@ export default function DashboardProductDetail() {
               <Field label="Accepted Payment Methods">
                 <div className="dpd-2col" style={{ marginBottom:0 }}>
                   {[
-                    { v:"both",          label:"Paystack + Pay at Door",    sub:"Buyers choose at checkout" },
+                    { v:"both",          label:"Paystack + Pay on Delivery", sub:"Buyers choose at checkout" },
                     { v:"paystack_only", label:"Paystack Only",              sub:"Card, bank, MoMo via Paystack" },
-                    { v:"cod_allowed",   label:"Pay at Door Only",           sub:"Paystack payment when courier arrives" },
+                    { v:"cod_allowed",   label:"Pay on Delivery Only",       sub:"Cash or MoMo on arrival" },
                   ].map(o => (
                     <label key={o.v} onClick={()=>setForm(f=>({...f,paymentType:o.v}))}
                       className="dpd-status-radio"
@@ -856,7 +856,7 @@ export default function DashboardProductDetail() {
                 <div className="dpd-2col" style={{ marginBottom:0 }}>
                   {[
                     { v:"self", label:"Self Delivery",     sub:"You arrange and ship it" },
-                    { v:"beme", label:"Beme Delivery",      sub:"Courier partners · Pay at Door available (Growth+ plan)" },
+                    { v:"beme", label:"Beme Delivery",      sub:"Courier partners (Growth+ plan)" },
                     { v:"both", label:"Both Options",       sub:"Buyer chooses at checkout" },
                   ].map(o => (
                     <label key={o.v} onClick={()=>setForm(f=>({...f,deliveryMethod:o.v}))}
