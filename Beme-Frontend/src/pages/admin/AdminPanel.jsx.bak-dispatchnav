@@ -10,7 +10,6 @@ import AnalyticsSection    from "./sections/Analytics";
 import UsersSection        from "./sections/Users";
 import StoresSection       from "./sections/Stores";
 import OrdersSection       from "./sections/Orders";
-import DispatchSection     from "./sections/Dispatch";
 import ProductsSection     from "./sections/Products";
 import PayoutsSection      from "./sections/Payouts";
 import SupportSection      from "./sections/Support";
@@ -36,7 +35,6 @@ const I = {
   users:     "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 | M9 7a4 4 0 1 0 8 0 4 4 0 0 0-8 0",
   stores:    "M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z | M3 9l2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9",
   orders:    "M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z | M3 6h18 | M16 10a4 4 0 0 1-8 0",
-  dispatch:  "M1 3h15v13H1z | M16 8h4l3 3v5h-7V8z | M5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z | M18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
   products:  "M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z | M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16",
   payouts:   "M12 2v20 | M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6",
   support:   "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
@@ -62,7 +60,6 @@ const NAV = [
   { key:"users",      label:"Users",         path:"/admin/users",         icon:I.users     },
   { key:"stores",     label:"Stores",        path:"/admin/stores",        icon:I.stores    },
   { key:"orders",     label:"Orders",        path:"/admin/orders",        icon:I.orders    },
-  { key:"dispatch",   label:"Dispatch",      path:"/admin/dispatch",      icon:I.dispatch  },
   { key:"products",   label:"Products",      path:"/admin/products",      icon:I.products  },
   { key:"payouts",    label:"Payouts",       path:"/admin/payouts",       icon:I.payouts   },
   { key:"support",    label:"Support",       path:"/admin/support",       icon:I.support   },
@@ -304,7 +301,6 @@ export default function AdminPanel() {
       case "users":      return <UsersSection/>;
       case "stores":     return <StoresSection/>;
       case "orders":     return <OrdersSection/>;
-      case "dispatch":   return <DispatchSection/>;
       case "products":   return <ProductsSection/>;
       case "payouts":    return <PayoutsSection/>;
       case "support":    return <SupportSection/>;
