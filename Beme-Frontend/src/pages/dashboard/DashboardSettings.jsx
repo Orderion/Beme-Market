@@ -255,11 +255,11 @@ function PaymentPreferencesTab() {
 // ready:true  → feature exists today and reads this flag.
 // ready:false → background automation not yet built; shown as "Coming soon" (disabled).
 const AUTOS = [
-  { key:"aiProductDescriptions", ready:true,  label:"Product Descriptions",  desc:"Lets Beme AI generate product copy from a short prompt on the product page." },
-  { key:"aiSeoOptimization",     ready:true,  label:"SEO Optimization",      desc:"Allows AI to suggest improved, search-friendly product titles." },
-  { key:"aiMarketingAssistant",  ready:true,  label:"Marketing Assistant",   desc:"Generates Instagram, TikTok and WhatsApp captions for your products." },
-  { key:"aiAnalyticsExplainer",  ready:true,  label:"Analytics Explainer",   desc:"Explains your store metrics in plain English when you ask in Beme AI." },
-  { key:"aiSalesSuggestions",    ready:true,  label:"Sales Suggestions",     desc:"Surfaces AI tips to help lift your conversion rate." },
+  { key:"aiProductDescriptions", ready:false,  label:"Product Descriptions",  desc:"Lets Beme AI generate product copy from a short prompt on the product page." },
+  { key:"aiSeoOptimization",     ready:false,  label:"SEO Optimization",      desc:"Allows AI to suggest improved, search-friendly product titles." },
+  { key:"aiMarketingAssistant",  ready:false,  label:"Marketing Assistant",   desc:"Generates Instagram, TikTok and WhatsApp captions for your products." },
+  { key:"aiAnalyticsExplainer",  ready:false,  label:"Analytics Explainer",   desc:"Explains your store metrics in plain English when you ask in Beme AI." },
+  { key:"aiSalesSuggestions",    ready:false,  label:"Sales Suggestions",     desc:"Surfaces AI tips to help lift your conversion rate." },
   { key:"aiCustomerReplies",     ready:false, label:"Customer Auto-Replies", desc:"Automatically answers common buyer questions in your inbox." },
   { key:"aiFollowUpSuggestions", ready:false, label:"Follow-Up Suggestions", desc:"Re-engages past buyers with AI-written follow-up prompts." },
   { key:"aiStoreHealthAnalysis", ready:false, label:"Store Health Analysis", desc:"Sends a weekly AI diagnosis of your store performance." },
