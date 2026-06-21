@@ -313,11 +313,6 @@ function OrderDetail({ order, onBack, onUpdate, isMobile }) {
         <span className={BADGE_CLASS[order.status] || "do-badge do-badge--gray"}>
           {(order.status || "").replace(/_/g, " ")}
         </span>
-        {order.customerConfirmed === true && (
-          <span className="do-badge do-badge--green" title={`Confirmed by customer`} style={{ marginLeft:6 }}>
-            Customer confirmed
-          </span>
-        )}
       </div>
 
       <div className="do-detail-body">

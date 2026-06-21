@@ -312,17 +312,6 @@ function sanitizeDelivery(delivery = {}, customer = {}, abroadDeliveryFeeTotal =
     fee: methodFee + abroadFee,
     provider: provider || "",
     breakdown: { methodFee, abroadFee },
-    // Beme Delivery: COD orders created by this route are always
-    // self-delivery — Pay at Door (the only safe way to pair Beme
-    // courier with non-checkout-time payment) requires its own
-    // creation path in paystack.js. Tagging this explicitly false
-    // (rather than leaving it undefined) keeps admin's dispatch
-    // queue query — where("delivery.isBemeDelivery","==",true) —
-    // clean and keeps order.delivery.isBemeDelivery always defined
-    // for any UI that reads it.
-    isBemeDelivery: false,
-    status: null,
-    paymentTiming: null,
   };
 }
 
@@ -664,70 +653,6 @@ router.post("/", async (req, res) => {
   } catch (error) {
     console.error("Orders POST error:", error);
     return res.status(error?.statusCode || 500).json({ success: false, error: error?.message || "Failed to create order." });
-  }
-});
-
-/* ══════════════════════════════════════
-   BEME DELIVERY — CUSTOMER CONFIRMS RECEIVED
-   Applies to ANY order type (Beme courier, self-delivery,
-   seller-arranged) — not just Beme-courier orders. This is a
-   separate signal from delivery.status: the customer vouching
-   they got the order is stronger than the silent 48h auto-confirm
-   window, so confirming immediately unlocks payout rather than
-   waiting on the timer. The 48h window still exists as a fallback
-   for customers who never tap the button.
-══════════════════════════════════════ */
-router.post("/:orderId/confirm-received", async (req, res) => {
-  try {
-    const authUser = await requireAuthUser(req);
-    const orderId = sanitizeText(req.params?.orderId, 200);
-    if (!orderId) return res.status(400).json({ success: false, error: "Missing orderId." });
-
-    const orderRef = adminDb.collection("orders").doc(orderId);
-    const orderSnap = await orderRef.get();
-    if (!orderSnap.exists) return res.status(404).json({ success: false, error: "Order not found." });
-
-    const order = orderSnap.data() || {};
-
-    if (order.userId !== authUser.uid) {
-      return res.status(403).json({ success: false, error: "This order does not belong to your account." });
-    }
-    if (order.customerConfirmed === true) {
-      return res.status(400).json({ success: false, error: "You have already confirmed this order." });
-    }
-
-    // Only allow confirming orders that have actually been fulfilled —
-    // covers both the Beme-courier path (delivery.status === "delivered")
-    // and self/seller-arranged orders (no delivery.status field at all,
-    // so we fall back to the order own paid/processing/shipped/delivered
-    // status, matching how Orders.jsx already classifies these).
-    const deliveryStatus = order?.delivery?.status || null;
-    const orderStatus = String(order.status || "").toLowerCase();
-    const fulfilledStatuses = ["delivered", "shipped", "processing", "paid"];
-    const isFulfillable = deliveryStatus === "delivered" || (!deliveryStatus && fulfilledStatuses.includes(orderStatus));
-
-    if (!isFulfillable) {
-      return res.status(400).json({ success: false, error: "This order has not been marked as delivered yet." });
-    }
-
-    const now = firebaseAdmin.firestore.FieldValue.serverTimestamp();
-    const updatePayload = {
-      customerConfirmed: true,
-      customerConfirmedAt: now,
-      updatedAt: now,
-    };
-    // Immediately unlock payout — customer confirmation is a stronger
-    // signal than the passive 48h auto-confirm window expiring.
-    if (order?.delivery && typeof order.delivery === "object") {
-      updatePayload["delivery.payoutLocked"] = false;
-    }
-
-    await orderRef.update(updatePayload);
-
-    return res.json({ success: true, message: "Thanks — order marked as received. Seller payout unlocked." });
-  } catch (error) {
-    console.error("[orderRoutes] confirm-received error:", error);
-    return res.status(error?.statusCode || 500).json({ success: false, error: error?.message || "Failed to confirm receipt." });
   }
 });
 

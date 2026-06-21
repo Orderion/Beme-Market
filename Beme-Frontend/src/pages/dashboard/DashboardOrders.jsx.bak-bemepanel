@@ -110,78 +110,6 @@ function EmptyDetail() {
   );
 }
 
-/* ══════════════════════════════════════
-   BEME DELIVERY — seller-facing read-only panel.
-   Shown when order.delivery.isBemeDelivery === true.
-   Sellers cannot change any of this — only admin moves
-   delivery.status forward (see deliveryRoutes.js). This
-   exists purely so the seller knows what's happening with
-   a Beme-courier order: courier status, tracking, payment
-   timing, and whether their payout is currently locked.
-══════════════════════════════════════ */
-const BEME_STATUS_LABELS = {
-  pending_dispatch: "Awaiting courier assignment",
-  dispatched:        "Courier assigned — pickup scheduled",
-  picked_up:         "Picked up — on the way to customer",
-  in_transit:        "In transit to customer",
-  delivered:         "Delivered",
-  failed:            "Delivery failed",
-};
-const BEME_STATUS_COLOR = {
-  pending_dispatch: "var(--sd-muted)",
-  dispatched:        "#1d4ed8",
-  picked_up:         "var(--sd-accent)",
-  in_transit:        "var(--sd-accent)",
-  delivered:         "#15803d",
-  failed:            "#b91c1c",
-};
-function BemeDeliveryPanel({ delivery }) {
-  const status = delivery?.status || "pending_dispatch";
-  const color  = BEME_STATUS_COLOR[status] || "var(--sd-muted)";
-  const isPayAtDoor = delivery?.paymentTiming === "pay_at_door";
-
-  return (
-    <div style={{ marginBottom:16, padding:"14px 16px", borderRadius:12, background:"var(--sd-accent-dim)", border:"1px solid var(--sd-accent-border)" }}>
-      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10, flexWrap:"wrap" }}>
-        <span style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"3px 10px", borderRadius:100, fontSize:11, fontWeight:700, background:"var(--sd-white)", color, border:`1px solid ${color}` }}>
-          <span style={{ width:6, height:6, borderRadius:"50%", background:color, flexShrink:0 }} />
-          {BEME_STATUS_LABELS[status] || status}
-        </span>
-        <span style={{ fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:6, color:"var(--sd-muted)", background:"var(--sd-white)", border:"1px solid var(--sd-border)" }}>
-          {isPayAtDoor ? "Pay at Door" : "Prepaid by customer"}
-        </span>
-        {delivery?.payoutLocked && (
-          <span style={{ fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:6, color:"#b45309", background:"rgba(245,158,11,0.1)", border:"1px solid rgba(245,158,11,0.3)" }}>
-            Payout locked
-          </span>
-        )}
-      </div>
-
-      {isPayAtDoor && (
-        <div style={{ fontSize:12, color:"var(--sd-muted)", marginBottom: delivery?.courierProvider ? 10 : 0, lineHeight:1.5 }}>
-          {delivery?.payAtDoorStatus === "paid"
-            ? "Customer has completed payment at the door."
-            : delivery?.payAtDoorStatus === "failed"
-              ? "Customer's payment failed at the door — admin will reschedule."
-              : "Customer will pay via Paystack when the courier arrives."}
-        </div>
-      )}
-
-      {delivery?.courierProvider && (
-        <div className="do-info-grid">
-          <div className="do-info-field"><span className="do-info-label">Courier</span><span className="do-info-value">{delivery.courierProvider}</span></div>
-          {delivery?.trackingNumber && <div className="do-info-field"><span className="do-info-label">Tracking #</span><span className="do-info-value" style={{ fontFamily:"monospace" }}>{delivery.trackingNumber}</span></div>}
-          {delivery?.estimatedPickup && <div className="do-info-field"><span className="do-info-label">Est. Pickup</span><span className="do-info-value">{delivery.estimatedPickup}</span></div>}
-        </div>
-      )}
-
-      {status === "failed" && delivery?.failReason && (
-        <div style={{ fontSize:12, color:"#b91c1c", marginTop:10 }}>Reason: {delivery.failReason}</div>
-      )}
-    </div>
-  );
-}
-
 /* ══════════════════════════
    PROGRESS STEPPER
 ══════════════════════════ */
@@ -313,11 +241,6 @@ function OrderDetail({ order, onBack, onUpdate, isMobile }) {
         <span className={BADGE_CLASS[order.status] || "do-badge do-badge--gray"}>
           {(order.status || "").replace(/_/g, " ")}
         </span>
-        {order.customerConfirmed === true && (
-          <span className="do-badge do-badge--green" title={`Confirmed by customer`} style={{ marginLeft:6 }}>
-            Customer confirmed
-          </span>
-        )}
       </div>
 
       <div className="do-detail-body">
@@ -372,7 +295,6 @@ function OrderDetail({ order, onBack, onUpdate, isMobile }) {
           <div className="do-section-label" style={{ marginBottom: 12 }}>
             <Ico d={IC.truck} size={12} /> Delivery
           </div>
-          {del?.isBemeDelivery && <BemeDeliveryPanel delivery={del} />}
           <div className="do-info-grid">
             <div className="do-info-field"><span className="do-info-label">Method</span><span className="do-info-value">{del.label || del.method || "—"}</span></div>
             <div className="do-info-field"><span className="do-info-label">Fee</span><span className="do-info-value">{fmtMoney(del.fee)}</span></div>

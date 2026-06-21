@@ -17,6 +17,22 @@ const DEFAULT_STEP_LABELS = {
   delivered:       "Delivered",
 };
 
+/* ── BEME DELIVERY: Beme-courier status labels (distinct from the
+   default order-status track above — these describe delivery.status,
+   a separate state machine that only exists on Beme-courier orders) ── */
+const BEME_DELIVERY_STAGES = ["pending_dispatch", "dispatched", "picked_up", "in_transit", "delivered"];
+const BEME_STAGE_LABELS = {
+  pending_dispatch: "Order Confirmed",
+  dispatched:        "Courier Assigned",
+  picked_up:         "Picked Up",
+  in_transit:        "On the Way",
+  delivered:         "Delivered",
+};
+// Pay Now is only valid once the courier has picked up / is en route —
+// never before, never after delivered. Matches the backend gate exactly
+// (paystack.js PAY_AT_DOOR_ELIGIBLE_STATUSES).
+const PAY_AT_DOOR_ELIGIBLE_STATUSES = ["picked_up", "in_transit"];
+
 /* ── Helpers ── */
 function normalizeStatus(value) {
   return String(value || "pending").trim().toLowerCase();
@@ -134,14 +150,46 @@ async function getAuthHeaders() {
   return { Authorization:`Bearer ${token}`, Accept:"application/json" };
 }
 
-async function fetchOwnOrders() {
+function getApiBase() {
   const apiBase = String(import.meta.env.VITE_BACKEND_URL || "").trim().replace(/\/+$/, "");
   if (!apiBase) throw new Error("Missing backend URL. Set VITE_BACKEND_URL.");
+  return apiBase;
+}
+
+async function fetchOwnOrders() {
+  const apiBase = getApiBase();
   const headers = await getAuthHeaders();
   const res = await fetch(`${apiBase}/api/orders`, { method:"GET", headers });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || data?.message || "Failed to load orders.");
   return Array.isArray(data?.orders) ? data.orders : [];
+}
+
+/* ── BEME DELIVERY: confirm receipt — works for any order type ── */
+async function confirmOrderReceived(orderId) {
+  const apiBase = getApiBase();
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${apiBase}/api/orders/${encodeURIComponent(orderId)}/confirm-received`, {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data?.success) throw new Error(data?.error || "Failed to confirm receipt.");
+  return data;
+}
+
+/* ── BEME DELIVERY: Pay at Door — init payment when courier has arrived ── */
+async function initPayAtDoor(orderId) {
+  const apiBase = getApiBase();
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${apiBase}/api/paystack/pay-at-door/init`, {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({ orderId }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data?.authorization_url) throw new Error(data?.error || "Failed to start payment.");
+  return data;
 }
 
 /* ── Skeleton ── */
@@ -251,6 +299,103 @@ function DefaultStepper({ order }) {
 }
 
 /* ══════════════════════════════════════════════
+   BEME DELIVERY TRACKER
+   Shown only when order.delivery?.isBemeDelivery === true.
+   Tracks delivery.status (a separate state machine from the
+   order's own status/progressStages above) and surfaces the
+   Pay Now button at exactly the right moment for pay_at_door
+   orders. This component owns its own Pay Now loading/error
+   state, separate from the page-level confirm-received state.
+══════════════════════════════════════════════ */
+function BemeDeliveryTracker({ order, onPayNow, payingNow, payNowError }) {
+  const delivery = order.delivery || {};
+  const status = delivery.status || "pending_dispatch";
+  const stepIndex = Math.max(0, BEME_DELIVERY_STAGES.indexOf(status));
+  const isPayAtDoor = delivery.paymentTiming === "pay_at_door";
+  const payAtDoorStatus = delivery.payAtDoorStatus;
+
+  const showPayNow = isPayAtDoor
+    && payAtDoorStatus === "awaiting_payment"
+    && PAY_AT_DOOR_ELIGIBLE_STATUSES.includes(status);
+
+  const payAtDoorPaid = isPayAtDoor && payAtDoorStatus === "paid";
+  const payAtDoorFailed = isPayAtDoor && payAtDoorStatus === "failed";
+
+  return (
+    <div className="ord-section">
+      <div className="ord-section-head">
+        <span className="ord-section-title">Courier Delivery</span>
+        {isPayAtDoor && (
+          <span className={`ord-pad-badge${payAtDoorPaid ? " ord-pad-badge--paid" : payAtDoorFailed ? " ord-pad-badge--failed" : ""}`}>
+            {payAtDoorPaid ? "Payment confirmed" : payAtDoorFailed ? "Payment failed" : "Pay at Door"}
+          </span>
+        )}
+      </div>
+
+      <div className="ord-beme-track">
+        {BEME_DELIVERY_STAGES.map((stage, i) => {
+          const done = i <= stepIndex && status !== "failed";
+          const isFailed = status === "failed";
+          return (
+            <div key={stage} className="ord-dt-step">
+              <div className="ord-dt-node">
+                {i > 0 && <div className={`ord-dt-line ord-dt-line--left${done ? " ord-dt-line--filled" : ""}`} />}
+                <div className={`ord-dt-dot${done ? " ord-dt-dot--done" : i === stepIndex + 1 && !isFailed ? " ord-dt-dot--active" : " ord-dt-dot--future"}`}>
+                  {done && (
+                    <svg width="8" height="8" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </div>
+                {i < BEME_DELIVERY_STAGES.length - 1 && <div className={`ord-dt-line ord-dt-line--right${done ? " ord-dt-line--filled" : ""}`} />}
+              </div>
+              <span className={`ord-dt-label${!done ? " ord-dt-label--faint" : ""}`}>{BEME_STAGE_LABELS[stage]}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {status === "failed" && (
+        <div className="ord-beme-failed-note">
+          Delivery attempt unsuccessful{delivery.failReason ? ` — ${delivery.failReason}` : ""}. Our team will be in touch to reschedule.
+        </div>
+      )}
+
+      {delivery.courierProvider && status !== "failed" && (
+        <div className="ord-beme-meta">
+          <span>Courier: <strong>{delivery.courierProvider}</strong></span>
+          {delivery.trackingNumber && <span>Tracking: <strong>{delivery.trackingNumber}</strong></span>}
+        </div>
+      )}
+
+      {isPayAtDoor && !showPayNow && !payAtDoorPaid && status !== "delivered" && status !== "failed" && (
+        <div className="ord-pad-note">
+          You'll pay when the courier arrives with your order — no need to do anything yet.
+        </div>
+      )}
+
+      {showPayNow && (
+        <div className="ord-paynow-block">
+          <p className="ord-paynow-text">Your courier has arrived. Complete payment to receive your order.</p>
+          <button type="button" className="ord-paynow-btn" onClick={() => onPayNow(order.id)} disabled={payingNow === order.id}>
+            {payingNow === order.id ? "Redirecting…" : `Pay Now — ${fmtMoney(order?.pricing?.total)}`}
+          </button>
+          {payNowError && <div className="ord-paynow-error">{payNowError}</div>}
+        </div>
+      )}
+
+      {payAtDoorFailed && (
+        <div className="ord-paynow-block">
+          <p className="ord-paynow-text ord-paynow-text--warn">
+            Your last payment attempt didn't go through. Our team will reschedule the courier — you'll see a Pay Now button again when they arrive.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
    MAIN COMPONENT
 ══════════════════════════════════════════════ */
 export default function Orders() {
@@ -258,6 +403,13 @@ export default function Orders() {
   const [orders,        setOrders]        = useState([]);
   const [pageError,     setPageError]     = useState("");
   const [loadingOrders, setLoadingOrders] = useState(true);
+
+  // BEME DELIVERY: per-action state, keyed by orderId so multiple
+  // cards can be in-flight independently without fighting each other.
+  const [confirmingId,  setConfirmingId]  = useState(null);
+  const [confirmError,  setConfirmError]  = useState({});
+  const [payingNowId,   setPayingNowId]   = useState(null);
+  const [payNowErrors,  setPayNowErrors]  = useState({});
 
   useEffect(() => {
     let cancelled = false;
@@ -280,6 +432,32 @@ export default function Orders() {
   }, [user, loading]);
 
   const hasOrders = useMemo(() => orders.length > 0, [orders]);
+
+  /* ── BEME DELIVERY: handlers ── */
+  const handleConfirmReceived = async (orderId) => {
+    setConfirmingId(orderId);
+    setConfirmError(prev => ({ ...prev, [orderId]: "" }));
+    try {
+      await confirmOrderReceived(orderId);
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, customerConfirmed: true } : o));
+    } catch (e) {
+      setConfirmError(prev => ({ ...prev, [orderId]: e?.message || "Failed to confirm receipt." }));
+    } finally {
+      setConfirmingId(null);
+    }
+  };
+
+  const handlePayNow = async (orderId) => {
+    setPayingNowId(orderId);
+    setPayNowErrors(prev => ({ ...prev, [orderId]: "" }));
+    try {
+      const result = await initPayAtDoor(orderId);
+      window.location.href = result.authorization_url;
+    } catch (e) {
+      setPayNowErrors(prev => ({ ...prev, [orderId]: e?.message || "Failed to start payment." }));
+      setPayingNowId(null);
+    }
+  };
 
   if (loading || loadingOrders) {
     return (
@@ -359,6 +537,7 @@ export default function Orders() {
             {orders.map(order => {
               const rawStatus = normalizeStatus(order.status || "pending");
               const hasSellerProgress = (Array.isArray(order.progressStages) && order.progressStages.length > 0) || (typeof order.progressStep === "number" && order.progressStep >= 0);
+              const isBemeDelivery = order.delivery?.isBemeDelivery === true;
 
               const total    = order.pricing?.total    ?? order.amounts?.total    ?? 0;
               const subtotal = order.pricing?.subtotal ?? order.amounts?.subtotal ?? total;
@@ -376,6 +555,14 @@ export default function Orders() {
               const badgeClass = ["paid","processing","shipped","delivered"].includes(rawStatus) ? "ord-badge--green"
                 : ["payment_failed","failed"].includes(rawStatus) ? "ord-badge--red"
                 : "ord-badge--gray";
+
+              // BEME DELIVERY: confirm-received eligibility — mirrors the
+              // backend's isFulfillable check (orderRoutes.js), works for
+              // any order type, not just Beme courier.
+              const deliveryStatus = order.delivery?.status || null;
+              const fulfillableOrderStatuses = ["delivered","shipped","processing","paid"];
+              const isFulfillable = deliveryStatus === "delivered" || (!deliveryStatus && fulfillableOrderStatuses.includes(rawStatus));
+              const showConfirmButton = isFulfillable && !order.customerConfirmed;
 
               return (
                 <article className="ord-card" key={order.id}>
@@ -398,7 +585,17 @@ export default function Orders() {
                     <span className={`ord-badge ${badgeClass}`}>{titleize(rawStatus)}</span>
                   </div>
 
-                  {/* ── Progress tracker ── */}
+                  {/* ── BEME DELIVERY: courier tracker, shown only for Beme-courier orders ── */}
+                  {isBemeDelivery && (
+                    <BemeDeliveryTracker
+                      order={order}
+                      onPayNow={handlePayNow}
+                      payingNow={payingNowId}
+                      payNowError={payNowErrors[order.id]}
+                    />
+                  )}
+
+                  {/* ── Progress tracker (existing order-status track, unchanged) ── */}
                   <div className="ord-section">
                     <div className="ord-section-head">
                       <span className="ord-section-title">
@@ -513,6 +710,25 @@ export default function Orders() {
                       )}
                     </div>
                   </div>
+
+                  {/* ── BEME DELIVERY: Confirm Received — works for ANY order type ── */}
+                  {showConfirmButton && (
+                    <div className="ord-section ord-confirm-section">
+                      <p className="ord-confirm-text">Have you received this order?</p>
+                      <button type="button" className="ord-confirm-btn" onClick={() => handleConfirmReceived(order.id)} disabled={confirmingId === order.id}>
+                        {confirmingId === order.id ? "Confirming…" : "Confirm Received"}
+                      </button>
+                      {confirmError[order.id] && <div className="ord-confirm-error">{confirmError[order.id]}</div>}
+                    </div>
+                  )}
+                  {order.customerConfirmed === true && (
+                    <div className="ord-section ord-confirm-section ord-confirm-section--done">
+                      <span className="ord-confirm-done-badge">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        You confirmed receiving this order
+                      </span>
+                    </div>
+                  )}
 
                   {/* ── Footer ── */}
                   <div className="ord-card-footer">

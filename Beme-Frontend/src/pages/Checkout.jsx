@@ -9,6 +9,23 @@
  * 4. Added discount code input with Firestore validation
  * 5. Increased AbortController timeout to 55s to handle Render cold-starts
  * 6. Delivery section now respects seller's configured method (self/beme/both)
+ *
+ * BEME DELIVERY BUILD — CHANGES:
+ * 7. "Pay on Delivery" relabeled to "Pay at Door" — cash COD is removed entirely.
+ *    Pay at Door is a Paystack payment, just collected when the courier arrives
+ *    instead of at checkout. It is only available when Beme courier delivery
+ *    is selected — self/seller-arranged delivery never shows this option, since
+ *    the whole safety model depends on Beme controlling the payment moment.
+ * 8. Self-delivery-only sellers (and Basic/Starter plan sellers, who are
+ *    already locked out of Beme courier in DashboardDelivery.jsx) now only
+ *    offer Paystack at checkout for their orders — there is no cash fallback.
+ * 9. New always-show info panel explains the Pay at Door flow the moment it's
+ *    selected, and tells the customer explicitly that they'll complete payment
+ *    from their Orders page when the courier arrives.
+ * 10. Pay at Door order creation now calls the new backend endpoint
+ *     POST /api/paystack/pay-at-door/create (creates an unpaid order) instead
+ *     of the old cash-COD route. Paystack-at-checkout flow (payWithPaystack)
+ *     is unchanged.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -17,7 +34,6 @@ import LoaderOverlay from "../components/LoaderOverlay.jsx";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { startPaystackCheckout } from "../lib/checkout";
-import { createCodOrder } from "../services/api";
 import { validateDiscountCode, incrementDiscountCodeUsage } from "../services/marketingService";
 import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
@@ -143,6 +159,7 @@ function ShieldIcon({size=13}) { return <svg viewBox="0 0 24 24" width={size} he
 function ChevronLeftIcon() { return <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>; }
 function AlertIcon() { return <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="17" r="1" fill="currentColor" stroke="none"/></svg>; }
 function TagIcon() { return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>; }
+function ClockIcon() { return <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>; }
 
 function CourierBadge({id}) {
   const map={cheetah:{label:"CHX",bg:"#111",fg:"#fff"},glovo:{label:"GVO",bg:"#00A082",fg:"#fff"},kwikdelivery:{label:"KWK",bg:"#046EF2",fg:"#fff"},dhl:{label:"DHL",bg:"#FFCC00",fg:"#D40511"}};
@@ -283,8 +300,6 @@ export default function Checkout() {
     return () => { window.removeEventListener("pageshow",restore); window.removeEventListener("focus",restore); document.removeEventListener("visibilitychange",handleVis); };
   }, []);
 
-  // Order history check removed — COD available to all buyers
-
   /* ── Load seller delivery settings ── */
   useEffect(() => {
     const safeItems = buildSafeCartItems(cartItems);
@@ -343,11 +358,25 @@ export default function Checkout() {
   /* Courier locked if seller doesn't support it */
   const courierLocked = !sellerAllowsCourier;
 
+  /* Is the customer's currently SELECTED delivery method Beme courier?
+     (A real courier id from DELIVERY_PROVIDERS — not seller_direct.) */
+  const isCourierDeliverySelected = useMemo(
+    () => DELIVERY_PROVIDERS.some(p => p.id === delivery.method),
+    [delivery.method]
+  );
+
+  /* ── BEME DELIVERY: Pay at Door eligibility ──
+     Pay at Door (the relabeled former "Pay on Delivery") only makes sense
+     when Beme courier is the selected delivery method — the entire safety
+     model depends on Beme controlling the payment moment. Self/seller-direct
+     delivery never offers it; those orders are Paystack-at-checkout only. */
   const codDisabledReason = useMemo(() => {
-    if (hasUnavailable)        return "Pay on Delivery unavailable — cart contains unavailable items.";
-    if (hasAbroadItem)         return "Pay on Delivery unavailable — cart contains shipped from abroad items.";
+    if (hasUnavailable)              return "Pay at Door unavailable — cart contains unavailable items.";
+    if (hasAbroadItem)               return "Pay at Door unavailable — cart contains items shipped from abroad.";
+    if (delivery.method && !isCourierDeliverySelected)
+      return "Pay at Door is only available with Beme courier delivery. Select a courier option above, or pay with Paystack.";
     return "";
-  }, [hasUnavailable, hasAbroadItem]);
+  }, [hasUnavailable, hasAbroadItem, delivery.method, isCourierDeliverySelected]);
 
   const isCODBlocked   = !!codDisabledReason;
 
@@ -368,7 +397,7 @@ export default function Checkout() {
     ? sellerPaymentTypes.includes("paystack")
       ? "This seller only accepts Paystack payments (card, bank transfer)."
       : sellerPaymentTypes.includes("cod")
-        ? "This seller only accepts Pay on Delivery."
+        ? "This seller only accepts Pay at Door."
         : ""
     : "";
   const inputsDisabled = loading;
@@ -510,7 +539,7 @@ export default function Checkout() {
     };
   };
 
-const buildOrderPayload = (paymentMethod) => {
+  const buildOrderPayload = (paymentMethod) => {
     const shopOwnerId = cartItems.find(i => i.sellerId)?.sellerId || null;
     const items = safeCartItems.map(item=>({
       id:item.id||"",productId:item.productId||item.id||"",name:item.name||"",
@@ -547,18 +576,48 @@ const buildOrderPayload = (paymentMethod) => {
     };
   };
 
-  const placeCOD = async () => {
-    if(loading||isCODBlocked||hasUnavailable)return;
-    const err=validateRequired(); if(err)return;
+  /* ── BEME DELIVERY: Pay at Door order creation ──
+     Replaces the old cash-COD route. Calls the new backend endpoint that
+     creates an unpaid order — no Paystack popup at checkout time. The
+     customer will see a "Pay Now" button on their Orders page once the
+     courier has picked up the package. */
+  const placePayAtDoor = async () => {
+    if (loading || isCODBlocked || hasUnavailable) return;
+    const err = validateRequired(); if (err) return;
     setLoadingMode("cod"); setLoading(true);
     try {
-      const result=await createCodOrder(buildOrderPayload("cod"));
-      const orderId=result?.order?.id||result?.id||"";
+      const authToken = await user.getIdToken(true).catch(() => user.getIdToken(false));
+      const apiBase = String(import.meta.env.VITE_BACKEND_URL || "").trim().replace(/\/+$/, "");
+      const payload = buildOrderPayload("pay_at_door");
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 55000); // Render cold-start tolerance
+
+      const res = await fetch(`${apiBase}/api/paystack/pay-at-door/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          email: payload.customer.email,
+          items: payload.items,
+          customer: payload.customer,
+          delivery: { method: payload.delivery.method, provider: payload.delivery.provider, fee: payload.delivery.fee },
+          pricing: payload.pricing,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !result?.success) {
+        throw new Error(result?.error || "Failed to place order.");
+      }
+
+      const orderId = result?.orderId || "";
       if (discountApplied?.codeId) incrementDiscountCodeUsage(discountApplied.codeId).catch(()=>{});
       clearCart();
-      navigate(`/order-success?status=success${orderId?`&orderId=${encodeURIComponent(orderId)}`:""}`,{replace:true});
-    } catch(e) {
-      alert(e?.message?`Failed to place order: ${e.message}`:"Failed to place order. Try again.");
+      navigate(`/order-success?status=success&payAtDoor=1${orderId?`&orderId=${encodeURIComponent(orderId)}`:""}`,{replace:true});
+    } catch (e) {
+      alert(e?.message ? `Failed to place order: ${e.message}` : "Failed to place order. Try again.");
       setLoading(false); setLoadingMode("");
     }
   };
@@ -604,7 +663,7 @@ const buildOrderPayload = (paymentMethod) => {
 
   const handleCheckout = () => {
     if(method==="paystack") payWithPaystack();
-    else if(method==="cod") placeCOD();
+    else if(method==="cod") placePayAtDoor();
   };
 
   const handleMethodChange = (e) => {
@@ -619,7 +678,7 @@ const buildOrderPayload = (paymentMethod) => {
 
   const payBtnLabel =
     method==="paystack"?"Pay with Paystack":
-    method==="cod"?"Place Order — Pay on Delivery":"";
+    method==="cod"?"Place Order — Pay at Door":"";
 
   const isCheckoutDisabled = inputsDisabled||!!errors.cart||!user||authLoading||hasUnavailable||(method==="cod"&&isCODBlocked);
 
@@ -860,15 +919,15 @@ const buildOrderPayload = (paymentMethod) => {
                     <div className="co-pay-bullet"/>
                   </label>
 
-                  {/* Pay on Delivery */}
+                  {/* Pay at Door — only valid with Beme courier delivery */}
                   <label className={`co-pay-card co-pay-card--cod${method==="cod"?" co-pay-card--active":""}${isCODBlocked?" co-pay-card--blocked":""}`}>
                     <input type="radio" name="payMethod" value="cod" checked={method==="cod"} onChange={handleMethodChange} disabled={inputsDisabled||isCODBlocked||sellerBlocksCOD} className="co-pay-radio"/>
-                    <div className="co-pay-icon-wrap"><TruckIcon/></div>
+                    <div className="co-pay-icon-wrap"><ClockIcon/></div>
                     <div className="co-pay-info">
-                      <span className="co-pay-name">Pay on Delivery{isCODBlocked?" (Unavailable)":""}</span>
+                      <span className="co-pay-name">Pay at Door{isCODBlocked?" (Unavailable)":""}</span>
                       {isCODBlocked
                         ?<span className="co-pay-desc co-pay-desc--warn">Not available for your order</span>
-                        :<span className="co-pay-desc">Pay when your order arrives</span>}
+                        :<span className="co-pay-desc">Pay via Paystack when the courier arrives</span>}
                     </div>
                     <div className="co-pay-bullet"/>
                   </label>
@@ -883,10 +942,28 @@ const buildOrderPayload = (paymentMethod) => {
 
                 <SafetyBanner/>
 
+                {/* BEME DELIVERY: blocked-reason panel (unchanged condition/logic) */}
                 {(showCODInfo||(method==="cod"&&isCODBlocked))&&(
                   <div className="co-info-panel">
                     <div className="co-info-panel__icon"><InfoIcon/></div>
-                    <div><strong>Pay on Delivery notice</strong><p>{codDisabledReason}</p></div>
+                    <div><strong>Pay at Door notice</strong><p>{codDisabledReason}</p></div>
+                  </div>
+                )}
+
+                {/* BEME DELIVERY: new always-show explainer panel — shown whenever
+                    Pay at Door is selected and available (never just when blocked). */}
+                {method==="cod" && !isCODBlocked && (
+                  <div className="co-info-panel co-info-panel--paydoor">
+                    <div className="co-info-panel__icon"><ClockIcon/></div>
+                    <div>
+                      <strong>How Pay at Door works</strong>
+                      <p>
+                        You won't pay anything right now. When the courier arrives with your order,
+                        open your <strong>Orders</strong> page on Beme and tap <strong>Pay Now</strong> to
+                        complete payment through Paystack — have your card or mobile money ready. The
+                        courier hands over your order once payment is confirmed in the app.
+                      </p>
+                    </div>
                   </div>
                 )}
 

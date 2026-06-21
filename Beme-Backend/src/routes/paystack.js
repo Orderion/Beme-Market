@@ -40,6 +40,28 @@ const COURIER_FEES = {
   "Bono East": 50, "North East": 55, "Savannah": 55, "Western North": 50,
 };
 
+/* ══════════════════════════════════════
+   BEME DELIVERY — Pay at Door constants
+   See deliveryRoutes.js for the matching
+   admin-side dispatch state machine.
+══════════════════════════════════════ */
+const DELIVERY_STATUS = {
+  PENDING_DISPATCH: "pending_dispatch",
+  DISPATCHED:       "dispatched",
+  PICKED_UP:        "picked_up",
+  IN_TRANSIT:       "in_transit",
+  DELIVERED:        "delivered",
+  FAILED:           "failed",
+};
+const PAY_AT_DOOR_STATUS = {
+  AWAITING_PAYMENT: "awaiting_payment",
+  PAID:             "paid",
+  FAILED:           "failed",
+};
+// Pay-at-Door's "Pay Now" button is only valid once the courier has
+// actually picked up / is en route — never before, never after delivered.
+const PAY_AT_DOOR_ELIGIBLE_STATUSES = [DELIVERY_STATUS.PICKED_UP, DELIVERY_STATUS.IN_TRANSIT];
+
 async function safeFetch(...args) {
   if (typeof fetch !== "undefined") return fetch(...args);
   const mod = await import("node-fetch");
@@ -223,6 +245,34 @@ function computeTrustedDelivery({ delivery, customerRegion, lineItems }) {
     provider: cleanDelivery.provider || "", region,
     homeDelivery:   cleanDelivery.method === DELIVERY_METHODS.HOME_DELIVERY  ? { label, fee: methodFee } : null,
     sellerDelivery: cleanDelivery.method !== DELIVERY_METHODS.HOME_DELIVERY  ? { label, fee: methodFee } : null,
+  };
+}
+
+/**
+ * Builds the trusted delivery sub-object for a Beme-courier order,
+ * tagging it with isBemeDelivery/status/paymentTiming so the admin
+ * dispatch queue (deliveryRoutes.js) and the customer/seller UI can
+ * read it consistently. Only used for the two Beme-courier payment
+ * combinations (Paystack-at-checkout-with-courier and Pay-at-Door) —
+ * self/seller-direct delivery never sets isBemeDelivery.
+ */
+function computeTrustedBemeDelivery({ delivery, customerRegion, lineItems, paymentTiming }) {
+  const base = computeTrustedDelivery({ delivery, customerRegion, lineItems });
+  const isBeme = base.method === DELIVERY_METHODS.HOME_DELIVERY;
+
+  return {
+    ...base,
+    isBemeDelivery: isBeme,
+    status: isBeme ? DELIVERY_STATUS.PENDING_DISPATCH : null,
+    paymentTiming: isBeme ? paymentTiming : null,
+    payAtDoorStatus: isBeme && paymentTiming === "pay_at_door" ? PAY_AT_DOOR_STATUS.AWAITING_PAYMENT : null,
+    payAtDoorReference: null,
+    courierProvider: null, trackingNumber: null, estimatedPickup: null, zone: null,
+    courierCost: null, margin: null,
+    dispatchedAt: null, dispatchedBy: null, pickedUpAt: null,
+    deliveredAt: null, deliveredBy: null, confirmBy: null,
+    failedAt: null, failReason: null, payoutLocked: isBeme,
+    notes: "",
   };
 }
 
@@ -424,6 +474,12 @@ async function finalizeFailedOrder(orderRef, existing, status = "failed", extra 
 
 /* ══════════════════════════════════════
    CHECKOUT INIT
+   (Paystack-at-checkout — used for both
+   self-delivery and Beme-courier-prepaid
+   orders. Unchanged from before this build
+   except delivery now flows through
+   computeTrustedBemeDelivery so courier
+   orders get tagged isBemeDelivery/status.)
 ══════════════════════════════════════ */
 router.post("/checkout/init", async (req, res) => {
   try {
@@ -453,8 +509,12 @@ router.post("/checkout/init", async (req, res) => {
     const { subtotal, lineItems } = await buildCheckoutFromItems(items);
     if (!lineItems.length) return res.status(400).json({ error: "Cart items invalid" });
 
-    const trustedDelivery = computeTrustedDelivery({ delivery, customerRegion: region, lineItems });
-    const deliveryFee     = trustedDelivery.fee;
+    // Paid-at-checkout Beme-courier orders are "prepaid" timing — the fee is
+    // already in Beme's balance before the courier is ever paid.
+    const trustedDelivery = computeTrustedBemeDelivery({
+      delivery, customerRegion: region, lineItems, paymentTiming: "prepaid",
+    });
+    const deliveryFee = trustedDelivery.fee;
 
     const requestedSubtotal = toNumber(pricing?.subtotal, subtotal);
     const safeSubtotal = Math.abs(requestedSubtotal - subtotal) < 0.01 ? requestedSubtotal : subtotal;
@@ -786,11 +846,389 @@ router.get("/checkout/verify", async (req, res) => {
   }
 });
 
+/* ════════════════════════════════════════════════════════════
+   BEME DELIVERY — PAY AT DOOR
+   ════════════════════════════════════════════════════════════
+   Three pieces:
+   1. POST /pay-at-door/create  — customer selects "Pay at Door"
+      at checkout. Creates an UNPAID order (no Paystack call yet).
+   2. POST /pay-at-door/init    — customer taps "Pay Now" on their
+      Orders page once the courier has arrived. Initializes a real
+      Paystack transaction scoped to that existing order's total.
+   3. verifyPayAtDoorAndUpdate  — mirrors verifyOrderAndUpdate above.
+      Server-side Paystack verify is REQUIRED before payAtDoorStatus
+      or paymentStatus ever flips to paid. A client "success" callback
+      alone is never trusted — same integrity rule as the rest of
+      this file.
+   ════════════════════════════════════════════════════════════ */
+
+/* ── 1. CREATE (unpaid order, at checkout) ── */
+router.post("/pay-at-door/create", async (req, res) => {
+  try {
+    const authUser = await requireAuthUser(req);
+
+    if (!authUser.email_verified) {
+      return res.status(403).json({ error: "Email verification required before checkout." });
+    }
+
+    const email    = normalizeEmail(req.body?.email);
+    const items    = req.body?.items || [];
+    const customer = req.body?.customer || {};
+    const delivery = req.body?.delivery || {};
+    const pricing  = req.body?.pricing  || {};
+    const userId   = authUser.uid;
+
+    assertCheckoutCustomer(customer, email);
+
+    if (authUser.email && normalizeEmail(authUser.email) !== email) {
+      return res.status(403).json({ error: "Authenticated email does not match checkout email." });
+    }
+    if (!Array.isArray(items) || !items.length) {
+      return res.status(400).json({ error: "Cart is empty" });
+    }
+
+    const region = sanitizeText(customer.region, 80);
+    const { subtotal, lineItems } = await buildCheckoutFromItems(items);
+    if (!lineItems.length) return res.status(400).json({ error: "Cart items invalid" });
+
+    const trustedDelivery = computeTrustedBemeDelivery({
+      delivery, customerRegion: region, lineItems, paymentTiming: "pay_at_door",
+    });
+
+    // Pay at Door only makes sense paired with Beme courier — the entire
+    // safety model depends on Beme controlling the payment moment.
+    if (!trustedDelivery.isBemeDelivery) {
+      return res.status(400).json({ error: "Pay at Door is only available with Beme courier delivery." });
+    }
+
+    const deliveryFee = trustedDelivery.fee;
+    const requestedSubtotal = toNumber(pricing?.subtotal, subtotal);
+    const safeSubtotal = Math.abs(requestedSubtotal - subtotal) < 0.01 ? requestedSubtotal : subtotal;
+
+    const incomingCode   = safeTrim(pricing?.discountCode   || "").toUpperCase() || null;
+    const incomingCodeId = safeTrim(pricing?.discountCodeId || "") || null;
+    const primaryStoreId = Array.from(
+      new Set(lineItems.map((item) => (item.storeId || item.shopId || "").trim()).filter(Boolean))
+    )[0] || null;
+
+    let validatedDiscount = 0;
+    let validatedCode     = null;
+    let validatedCodeId   = null;
+
+    if (incomingCode && incomingCodeId) {
+      try {
+        const result = await validateDiscountCode({
+          code: incomingCode, codeId: incomingCodeId, storeId: primaryStoreId, subtotal: safeSubtotal,
+        });
+        validatedDiscount = result.discount;
+        validatedCode     = result.discountCode;
+        validatedCodeId   = result.discountCodeId;
+      } catch (discountError) {
+        return res.status(400).json({ error: discountError.message });
+      }
+    }
+
+    const total = Math.max(0, safeSubtotal + deliveryFee - validatedDiscount);
+    if (total <= 0) return res.status(400).json({ error: "Invalid order total." });
+
+    const fingerprint = buildOrderFingerprint({ email, customer, items, userId, delivery: trustedDelivery });
+
+    const orderRef = adminDb.collection("orders").doc();
+    const now       = firebaseAdmin.firestore.FieldValue.serverTimestamp();
+
+    const storeIds = Array.from(new Set(lineItems.map((item) => (item.storeId || item.shopId || "").trim()).filter(Boolean)));
+    const shops    = Array.from(new Set([...storeIds, ...lineItems.map((item) => normalizeShopKey(item.shop)).filter(Boolean)]));
+
+    const rawPricing = {
+      currency: "GHS",
+      subtotal: safeSubtotal,
+      deliveryFee,
+      discount:       validatedDiscount,
+      discountCode:   validatedDiscount > 0 ? validatedCode   : null,
+      discountCodeId: validatedDiscount > 0 ? validatedCodeId : null,
+      total,
+    };
+    const enrichedPricing = buildReviewPricing(rawPricing, lineItems);
+
+    // Pay-at-Door orders start in the same "awaiting payment" shape as a
+    // pending Paystack order — paid never becomes true until the door payment
+    // is verified, which can be days after the order is created.
+    const initialState = createInitialPaystackPendingState();
+    const reviewFlags   = summarizeReviewFlags({
+      items: lineItems, pricing: enrichedPricing,
+      customer: {
+        email,
+        firstName: sanitizeText(customer.firstName, 80),
+        lastName:  sanitizeText(customer.lastName, 80),
+        phone:     normalizePhone(customer.phone),
+        network:   sanitizeOptionalText(customer.network, 40),
+        country:   "Ghana",
+        address:   sanitizeText(customer.address, 300),
+        region,
+        city:      sanitizeText(customer.city, 80),
+        area:      sanitizeOptionalText(customer.area, 120),
+        notes:     sanitizeOptionalText(customer.notes, 500),
+      },
+    });
+    const stockCheckSummary = summarizeStockState(lineItems);
+    const firstSupplierMappedItem = lineItems.find(
+      (item) => item.supplierApiType || item.supplierId || item.supplierProductId || item.supplierSku || item.supplierVariantId
+    );
+
+    await orderRef.set({
+      // No "reference" yet — that's only created when /pay-at-door/init runs,
+      // at the moment the customer actually taps Pay Now at the door.
+      status: "pending", paymentMethod: "pay_at_door", paymentStatus: "pending",
+      paid: false, emailSent: false, reference: "", source: ORDER_SOURCE,
+      userId, orderFingerprint: fingerprint, verifyLock: false,
+      pricing: enrichedPricing, delivery: trustedDelivery,
+      customer: {
+        email,
+        firstName: sanitizeText(customer.firstName, 80),
+        lastName:  sanitizeText(customer.lastName, 80),
+        phone:     normalizePhone(customer.phone),
+        network:   sanitizeOptionalText(customer.network, 40),
+        country:   "Ghana",
+        address:   sanitizeText(customer.address, 300),
+        region,
+        city:  sanitizeText(customer.city, 80),
+        area:  sanitizeOptionalText(customer.area, 120),
+        notes: sanitizeOptionalText(customer.notes, 500),
+      },
+      items: lineItems, shops,
+      primaryShop: storeIds[0] || shops[0] || "main",
+      storeId:  storeIds[0] || null,
+      sellerId: storeIds[0] || null,
+      shopOwnerId: storeIds[0] || null,
+      progressStep: -1, progressStages: [],
+      fulfillmentStatus:  initialState.fulfillmentStatus,
+      supplierPushStatus: initialState.supplierPushStatus,
+      adminReviewed:  initialState.adminReviewed,
+      adminApproved:  initialState.adminApproved,
+      approvedBy: "", approvedAt: null, rejectedBy: "", rejectedAt: null,
+      heldBy: "", heldAt: null, reviewNotes: "",
+      supplierId:    firstSupplierMappedItem?.supplierId    || "",
+      supplierApiType: firstSupplierMappedItem?.supplierApiType || "",
+      supplierOrderId: "", supplierStatus: "", syncAttempts: 0, lastSyncError: "",
+      supplierTrackingNumber: "", supplierTrackingUrl: "", supplierPushKey: "",
+      supplierPushResponseSummary: null,
+      reviewFlags, stockCheckSummary,
+      createdAt: now, updatedAt: now,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Order created. Payment will be collected when the courier arrives.",
+      orderId: orderRef.id,
+    });
+  } catch (err) {
+    console.error("Pay-at-Door create error:", err);
+    return res.status(err?.statusCode || 500).json({ error: err?.message || "Failed to create order." });
+  }
+});
+
+/* ── 2. INIT (customer taps "Pay Now" at the door) ── */
+router.post("/pay-at-door/init", async (req, res) => {
+  try {
+    const authUser = await requireAuthUser(req);
+    const orderId  = sanitizeText(req.body?.orderId, 200);
+    if (!orderId) return res.status(400).json({ error: "Missing orderId." });
+
+    const orderRef = adminDb.collection("orders").doc(orderId);
+    const orderSnap = await orderRef.get();
+    if (!orderSnap.exists) return res.status(404).json({ error: "Order not found." });
+
+    const order = orderSnap.data() || {};
+
+    if (order.userId !== authUser.uid) {
+      return res.status(403).json({ error: "This order does not belong to your account." });
+    }
+    if (order?.delivery?.paymentTiming !== "pay_at_door") {
+      return res.status(400).json({ error: "This order is not a Pay-at-Door order." });
+    }
+    if (order?.delivery?.payAtDoorStatus === PAY_AT_DOOR_STATUS.PAID) {
+      return res.status(400).json({ error: "This order has already been paid." });
+    }
+    // Gate exactly per spec: Pay Now is only valid once the courier has
+    // actually picked up the package or is en route — never earlier.
+    if (!PAY_AT_DOOR_ELIGIBLE_STATUSES.includes(order?.delivery?.status)) {
+      return res.status(400).json({
+        error: "Payment is not available yet — please wait until the courier has picked up your order.",
+      });
+    }
+
+    const total = toNumber(order?.pricing?.total, 0);
+    if (total <= 0) return res.status(400).json({ error: "Invalid order total." });
+
+    const amountPesewas = Math.round(total * 100);
+    const reference = `PAD_${orderId}_${Date.now()}`;
+    const email = order?.customer?.email || authUser.email || `${authUser.uid}@bememarket.store`;
+
+    const initRes = await safeFetch("https://api.paystack.co/transaction/initialize", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email, amount: amountPesewas, currency: "GHS", reference,
+        callback_url: `${FRONTEND_URL}/orders?pad_ref=${reference}`,
+        metadata: { type: "pay_at_door", orderId, userId: authUser.uid, total },
+      }),
+    });
+    const initData = await initRes.json().catch(() => ({}));
+
+    if (!initRes.ok || !initData?.status || !initData?.data?.authorization_url) {
+      return res.status(400).json({ error: initData?.message || "Paystack init failed." });
+    }
+
+    await orderRef.update({
+      "delivery.payAtDoorReference": reference,
+      updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return res.json({ authorization_url: initData.data.authorization_url, reference, orderId });
+  } catch (err) {
+    console.error("Pay-at-Door init error:", err);
+    return res.status(err?.statusCode || 500).json({ error: err?.message || "Server error" });
+  }
+});
+
+/* ── 3. VERIFY (shared by polling route + webhook) ──
+   Mirrors verifyOrderAndUpdate's integrity model exactly:
+   server-side Paystack verify is mandatory, amount/order/user are
+   cross-checked, and a mismatch fails closed (payAtDoorStatus → failed)
+   rather than ever assuming success. */
+async function verifyPayAtDoorAndUpdate(reference) {
+  const q = await adminDb.collection("orders").where("delivery.payAtDoorReference", "==", reference).limit(1).get();
+  if (q.empty) return { status: "not_found", orderId: null, userId: null };
+
+  const orderDoc = q.docs[0];
+  const orderRef  = orderDoc.ref;
+  const existing  = orderDoc.data() || {};
+
+  if (existing?.delivery?.payAtDoorStatus === PAY_AT_DOOR_STATUS.PAID) {
+    return { status: "success", orderId: orderDoc.id, userId: existing?.userId || null };
+  }
+  if (existing?.verifyLock === true) {
+    return {
+      status: existing?.delivery?.payAtDoorStatus === PAY_AT_DOOR_STATUS.PAID ? "success" : "pending",
+      orderId: orderDoc.id, userId: existing?.userId || null,
+    };
+  }
+
+  await orderRef.update({ verifyLock: true, updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp() });
+
+  try {
+    const data          = await verifyPaystackReference(reference);
+    const status        = safeTrim(data?.status).toLowerCase();
+    const amountPesewas = Number(data?.amount || 0);
+    const paidAt        = data?.paid_at || null;
+    const metadata       = data?.metadata || {};
+
+    const expectedTotal = Math.round(toNumber(existing?.pricing?.total, 0) * 100);
+    if (expectedTotal <= 0) throw new Error("Stored order total is invalid.");
+
+    if (metadata?.userId && metadata.userId !== existing?.userId) {
+      await orderRef.update({
+        "delivery.payAtDoorStatus": PAY_AT_DOOR_STATUS.FAILED,
+        verifyLock: false,
+        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+      });
+      return { status: "user_mismatch", orderId: orderDoc.id, userId: existing?.userId || null };
+    }
+
+    if (amountPesewas !== expectedTotal) {
+      await orderRef.update({
+        "delivery.payAtDoorStatus": PAY_AT_DOOR_STATUS.FAILED,
+        verifyLock: false,
+        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+      });
+      return { status: "amount_mismatch", orderId: orderDoc.id, userId: existing?.userId || null };
+    }
+
+    if (metadata?.type && metadata.type !== "pay_at_door") {
+      await orderRef.update({
+        "delivery.payAtDoorStatus": PAY_AT_DOOR_STATUS.FAILED,
+        verifyLock: false,
+        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+      });
+      return { status: "invalid_metadata_type", orderId: orderDoc.id, userId: existing?.userId || null };
+    }
+
+    if (status === "success") {
+      // IMPORTANT: only payAtDoorStatus/paymentStatus flip here. delivery.status
+      // is intentionally untouched — releasing the package and marking
+      // "delivered" remains an explicit admin action via deliveryRoutes.js,
+      // per the safety rule that only admin changes delivery.status.
+      await orderRef.update({
+        paid: true, paymentStatus: "paid", status: "paid",
+        "delivery.payAtDoorStatus": PAY_AT_DOOR_STATUS.PAID,
+        verifyLock: false,
+        updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+        paystack: { ...(existing?.paystack || {}), verified: true, status, amountPesewas, paidAt, payAtDoor: true },
+      });
+
+      const refreshed = (await orderRef.get()).data() || existing;
+
+      if (!refreshed?.emailSent) {
+        try {
+          await sendOrderPaidEmails({
+            orderId: orderDoc.id, reference,
+            customer: refreshed?.customer,
+            amounts:  refreshed?.pricing || refreshed?.amounts,
+          });
+          await orderRef.update({ emailSent: true, updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp() });
+        } catch (e) {
+          await orderRef.update({ emailSent: false, emailError: String(e?.message || e), updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp() });
+        }
+      }
+
+      return { status: "success", orderId: orderDoc.id, userId: refreshed?.userId || existing?.userId || null };
+    }
+
+    // Any non-success Paystack status (failed, abandoned, reversed, etc) —
+    // mark payAtDoorStatus failed so admin's reschedule-payment endpoint can
+    // reset it. delivery.status remains whatever it was (picked_up/in_transit)
+    // — this is explicitly NOT a delivery failure.
+    await orderRef.update({
+      "delivery.payAtDoorStatus": PAY_AT_DOOR_STATUS.FAILED,
+      verifyLock: false,
+      updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+      paystack: { ...(existing?.paystack || {}), verified: true, status: status || "failed", amountPesewas, paidAt },
+    });
+    return { status: status || "failed", orderId: orderDoc.id, userId: existing?.userId || null };
+
+  } catch (error) {
+    await orderRef.update({
+      verifyLock: false,
+      updatedAt: firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+      paystack: { ...(existing?.paystack || {}), verifyError: String(error?.message || error) },
+    });
+    throw error;
+  }
+}
+
+/* ── Frontend polling after the Paystack redirect ── */
+router.get("/pay-at-door/verify", async (req, res) => {
+  try {
+    const authUser  = await requireAuthUser(req);
+    const reference = safeTrim(req.query?.reference);
+    if (!reference) return res.status(400).json({ error: "Missing reference" });
+
+    const out = await verifyPayAtDoorAndUpdate(reference);
+    if (!out?.orderId) return res.status(404).json({ error: "Order not found" });
+    if (out?.userId && out.userId !== authUser.uid) return res.status(403).json({ error: "You are not allowed to verify this order." });
+
+    return res.json({ ok: true, status: out.status, reference, orderId: out.orderId });
+  } catch (err) {
+    console.error("Pay-at-Door verify error:", err);
+    return res.status(err?.statusCode || 500).json({ error: err?.message || "Server error" });
+  }
+});
+
 /* ══════════════════════════════════════
    BATCH C: PAYSTACK WEBHOOK
    Primary payment confirmation — fires server-to-server, no browser required.
    HMAC-SHA512 signature validated before processing.
-   Handles charge.success for orders and ai_topup types.
+   Handles charge.success for orders, ai_topup, and pay_at_door types.
 ══════════════════════════════════════ */
 router.post("/webhook", async (req, res) => {
   // Raw body is set by app.js: app.use("/api/paystack/webhook", express.raw(...))
@@ -835,12 +1273,21 @@ router.post("/webhook", async (req, res) => {
     const metadataType = data?.metadata?.type;
 
     if (metadataType === "order" || reference.startsWith("BM_")) {
-      // Standard order payment
+      // Standard order payment (checkout-time Paystack, self or Beme-courier prepaid)
       try {
         const out = await verifyOrderAndUpdate(reference);
         console.log(`[webhook] Order ${reference} → ${out.status}`);
       } catch (err) {
         console.error(`[webhook] Order verify failed for ${reference}:`, err.message);
+      }
+
+    } else if (metadataType === "pay_at_door" || reference.startsWith("PAD_")) {
+      // Pay-at-Door payment, collected the moment the courier arrives
+      try {
+        const out = await verifyPayAtDoorAndUpdate(reference);
+        console.log(`[webhook] Pay-at-Door ${reference} → ${out.status}`);
+      } catch (err) {
+        console.error(`[webhook] Pay-at-Door verify failed for ${reference}:`, err.message);
       }
 
     } else if (metadataType === "ai_topup" || reference.startsWith("topup_")) {
