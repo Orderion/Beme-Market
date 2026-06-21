@@ -135,7 +135,6 @@ const FULL_SCREEN_ROUTES = new Set([
   "/admin/users",
   "/admin/stores",
   "/admin/orders",
-  "/admin/dispatch",
   "/admin/products",
   "/admin/payouts",
   "/admin/support",
@@ -336,7 +335,6 @@ function AppShell() {
             <Route path="/admin/users"         element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
             <Route path="/admin/stores"        element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
             <Route path="/admin/orders"        element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
-            <Route path="/admin/dispatch"      element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
             <Route path="/admin/products"      element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
             <Route path="/admin/payouts"       element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
             <Route path="/admin/support"       element={<AdminRoute><RequireAdmin><AdminPanel /></RequireAdmin></AdminRoute>} />
