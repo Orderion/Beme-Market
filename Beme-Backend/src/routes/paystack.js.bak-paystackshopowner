@@ -936,13 +936,8 @@ router.post("/pay-at-door/create", async (req, res) => {
     const orderRef = adminDb.collection("orders").doc();
     const now       = firebaseAdmin.firestore.FieldValue.serverTimestamp();
 
-    // BUGFIX: widened to also check item.shop — some products only carry
-    // the seller id there, not in storeId/shopId. This is the fallback;
-    // req.body.shopOwnerId (sent by Checkout.jsx, same pattern as the
-    // working checkout/init route) is preferred below when present.
-    const storeIds = Array.from(new Set(lineItems.map((item) => (item.storeId || item.shopId || item.shop || "").trim()).filter(Boolean)));
+    const storeIds = Array.from(new Set(lineItems.map((item) => (item.storeId || item.shopId || "").trim()).filter(Boolean)));
     const shops    = Array.from(new Set([...storeIds, ...lineItems.map((item) => normalizeShopKey(item.shop)).filter(Boolean)]));
-    const resolvedShopOwnerId = sanitizeText(req.body?.shopOwnerId, 200) || storeIds[0] || null;
 
     const rawPricing = {
       currency: "GHS",
@@ -1003,8 +998,8 @@ router.post("/pay-at-door/create", async (req, res) => {
       items: lineItems, shops,
       primaryShop: storeIds[0] || shops[0] || "main",
       storeId:  storeIds[0] || null,
-      sellerId: resolvedShopOwnerId,
-      shopOwnerId: resolvedShopOwnerId,
+      sellerId: storeIds[0] || null,
+      shopOwnerId: storeIds[0] || null,
       progressStep: -1, progressStages: [],
       fulfillmentStatus:  initialState.fulfillmentStatus,
       supplierPushStatus: initialState.supplierPushStatus,

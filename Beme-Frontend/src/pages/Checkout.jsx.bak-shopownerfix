@@ -602,10 +602,6 @@ export default function Checkout() {
           customer: payload.customer,
           delivery: { method: payload.delivery.method, provider: payload.delivery.provider, fee: payload.delivery.fee },
           pricing: payload.pricing,
-          // BUGFIX: this was missing — without it the backend had no way
-          // to know which seller this order belongs to, so it never showed
-          // up on the seller's dashboard (shopOwnerId stayed null).
-          shopOwnerId: payload.shopOwnerId,
         }),
         signal: controller.signal,
       });
