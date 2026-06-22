@@ -1,3 +1,19 @@
+// src/components/ChatModal.jsx
+//
+// REDESIGN — Beme UI fix:
+// 1. All hardcoded colors (#fff, #111, #046EF2, #9ca3af, etc.) replaced
+//    with theme variables (var(--card), var(--text), var(--grtheme),
+//    var(--muted), var(--soft)) so this respects light/dark mode like
+//    the rest of the app — it previously always rendered white/black
+//    regardless of theme.
+// 2. Desktop (>768px): right-side slide-in panel — kept, but cleaned up
+//    spacing and made width responsive with max-width instead of a
+//    fixed min().
+// 3. Mobile (<=768px): now a BOTTOM SHEET that slides up from the
+//    bottom, rounded top corners only, ~85vh max height — instead of
+//    a right-side panel competing for space on a small screen. This
+//    matches the bottom-sheet pattern (e.g. Wish's login sheet) rather
+//    than a desktop-style side panel squeezed onto mobile.
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
@@ -11,10 +27,23 @@ function fmtTime(ts) {
   return d.toLocaleTimeString("en-GH", { hour: "2-digit", minute: "2-digit" });
 }
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth <= 768 : false
+  );
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return isMobile;
+}
+
 const CHIPS = ["Is this available?", "How long is delivery?", "What sizes do you have?", "Can I get a discount?"];
 
 export default function ChatModal({ shop, product, onClose }) {
   const navigate    = useNavigate();
+  const isMobile    = useIsMobile();
   const [user,      setUser]     = useState(null);
   const [chatId,    setChatId]   = useState(null);
   const [messages,  setMessages] = useState([]);
@@ -96,46 +125,67 @@ export default function ChatModal({ shop, product, onClose }) {
     finally { setSending(false); setTimeout(() => inputRef.current?.focus(), 50); }
   };
 
+  // ── Panel positioning — the only structural difference between
+  //    desktop and mobile. Everything else (header, messages, input)
+  //    is shared markup. ──
+  const panelStyle = isMobile
+    ? {
+        position: "fixed", left: 0, right: 0, bottom: 0,
+        width: "100%", maxHeight: "85vh",
+        background: "var(--card)",
+        borderRadius: "20px 20px 0 0",
+        boxShadow: "0 -8px 40px rgba(0,0,0,0.18)",
+        border: "1px solid var(--pd-border, rgba(17,17,17,0.1))",
+        borderBottom: "none",
+        zIndex: 9990,
+        display: "flex", flexDirection: "column",
+        animation: "cm-slide-up 0.28s cubic-bezier(0.22,1,0.36,1)",
+        fontFamily: "var(--font-main,'Nunito',sans-serif)",
+        overflow: "hidden",
+      }
+    : {
+        position: "fixed", top: 0, right: 0, bottom: 0,
+        width: "100%", maxWidth: 400,
+        background: "var(--card)",
+        borderRadius: "16px 0 0 16px",
+        boxShadow: "-8px 0 40px rgba(0,0,0,0.13)",
+        border: "1px solid var(--pd-border, rgba(17,17,17,0.1))",
+        borderRight: "none",
+        zIndex: 9990,
+        display: "flex", flexDirection: "column",
+        animation: "cm-slide-in 0.28s cubic-bezier(0.22,1,0.36,1)",
+        fontFamily: "var(--font-main,'Nunito',sans-serif)",
+        overflow: "hidden",
+      };
+
   return (
     <>
       {/* Dim backdrop */}
       <div onClick={onClose} style={{
         position: "fixed", inset: 0,
-        background: "rgba(0,0,0,0.12)",
+        background: "rgba(0,0,0,0.32)",
         zIndex: 9980,
         animation: "cm-fade 0.2s ease",
       }} />
 
-      {/* Panel — exactly like AI Copilot: slides from right, fixed width */}
-      <div style={{
-        position:       "fixed",
-        top:            0,
-        right:          0,
-        bottom:         0,
-        width:          "min(400px, 100vw)",
-        background:     "#fff",
-        borderRadius:   "16px 0 0 16px",
-        boxShadow:      "-8px 0 40px rgba(0,0,0,0.13)",
-        border:         "1px solid #e5e7eb",
-        borderRight:    "none",
-        zIndex:         9990,
-        display:        "flex",
-        flexDirection:  "column",
-        animation:      "cm-slide 0.28s cubic-bezier(0.22,1,0.36,1)",
-        fontFamily:     "var(--font-main,'Nunito',sans-serif)",
-        overflow:       "hidden",
-      }}>
+      <div style={panelStyle}>
 
-        {/* ── Header (matches AI Copilot header exactly) ── */}
+        {/* Mobile drag handle */}
+        {isMobile && (
+          <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 2px", flexShrink: 0 }}>
+            <div style={{ width: 36, height: 4, borderRadius: 100, background: "var(--soft)" }} />
+          </div>
+        )}
+
+        {/* ── Header ── */}
         <div style={{
-          padding: "12px 16px", borderBottom: "1px solid #f5f5f5",
+          padding: "12px 16px", borderBottom: "1px solid var(--pd-border-light, rgba(17,17,17,0.07))",
           display: "flex", alignItems: "center", gap: 10, flexShrink: 0,
         }}>
-          {/* Store avatar */}
           <div style={{
             width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
             overflow: "hidden",
-            background: shop?.logoUrl ? "transparent" : "linear-gradient(135deg,#046EF2,#0a4fa3)",
+            background: shop?.logoUrl ? "transparent" : "linear-gradient(135deg, var(--grtheme), color-mix(in srgb, var(--grtheme) 70%, black))",
             display: "flex", alignItems: "center", justifyContent: "center",
             color: "#fff", fontSize: 14, fontWeight: 800,
           }}>
@@ -145,74 +195,68 @@ export default function ChatModal({ shop, product, onClose }) {
             }
           </div>
 
-          {/* Title */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {shopName}
             </div>
-            <div style={{ fontSize: 11, color: "#9ca3af", fontWeight: 600 }}>
+            <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600 }}>
               {product ? `Asking about: ${product.name}` : "Online · AI replies instantly"}
             </div>
           </div>
 
-          {/* Close */}
           <button onClick={onClose} style={{
             background: "none", border: "none", fontSize: 20,
-            color: "#9ca3af", cursor: "pointer", padding: "0 4px", lineHeight: 1,
+            color: "var(--muted)", cursor: "pointer", padding: "0 4px", lineHeight: 1,
           }}>×</button>
         </div>
 
-        {/* ── Messages area — flex:1 + minHeight:0 is the key ── */}
+        {/* ── Messages area ── */}
         <div style={{
           flex: 1, minHeight: 0, overflowY: "auto",
           padding: "14px 16px",
           display: "flex", flexDirection: "column", gap: 6,
-          background: "#fff",
+          background: "var(--card)",
         }}>
           {!user ? (
-            /* Not signed in */
             <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100%", textAlign:"center", padding: 24 }}>
               <div style={{ fontSize: 36, marginBottom: 12 }}>💬</div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: "#111", marginBottom: 8 }}>Sign in to chat</div>
-              <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 20, lineHeight: 1.6 }}>Create a free account to message sellers directly.</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", marginBottom: 8 }}>Sign in to chat</div>
+              <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 20, lineHeight: 1.6 }}>Create a free account to message sellers directly.</div>
               <button onClick={() => { onClose(); navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`); }}
-                style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#046EF2", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "var(--grtheme)", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
                 Sign in / Sign up
               </button>
             </div>
           ) : loading ? (
-            /* Loading */
             <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100%" }}>
-              <div style={{ width:24, height:24, border:"2.5px solid #e5e7eb", borderTopColor:"#046EF2", borderRadius:"50%", animation:"cm-spin 0.8s linear infinite" }} />
+              <div style={{ width:24, height:24, border:"2.5px solid var(--soft)", borderTopColor:"var(--grtheme)", borderRadius:"50%", animation:"cm-spin 0.8s linear infinite" }} />
             </div>
           ) : (
             <>
-              {/* Empty state with chips */}
               {messages.length === 0 && (
                 <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", flex:1, textAlign:"center", padding:"24px 0" }}>
                   <div style={{ width:52, height:52, borderRadius:"50%", marginBottom:12, overflow:"hidden",
-                    background: shop?.logoUrl ? "transparent" : "linear-gradient(135deg,#046EF2,#0a4fa3)",
+                    background: shop?.logoUrl ? "transparent" : "linear-gradient(135deg, var(--grtheme), color-mix(in srgb, var(--grtheme) 70%, black))",
                     display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:20, fontWeight:800 }}>
                     {shop?.logoUrl ? <img src={shop.logoUrl} alt={shopName} style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : initials}
                   </div>
-                  <div style={{ fontSize:14, fontWeight:700, color:"#111", marginBottom:4 }}>Chat with {shopName}</div>
-                  <div style={{ fontSize:12, color:"#9ca3af", marginBottom:18, lineHeight:1.6 }}>Ask about products, delivery, or anything else.</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:"var(--text)", marginBottom:4 }}>Chat with {shopName}</div>
+                  <div style={{ fontSize:12, color:"var(--muted)", marginBottom:18, lineHeight:1.6 }}>Ask about products, delivery, or anything else.</div>
                   <div style={{ display:"flex", flexWrap:"wrap", gap:8, justifyContent:"center" }}>
                     {CHIPS.map(chip => (
                       <button key={chip} onClick={() => handleSend(chip)} style={{
-                        padding:"6px 13px", borderRadius:20, border:"1.5px solid #e5e7eb",
-                        background:"#f8f9fb", color:"#374151", fontSize:12, fontWeight:600,
+                        padding:"6px 13px", borderRadius:20, border:"1.5px solid var(--pd-border-light, rgba(17,17,17,0.07))",
+                        background:"var(--soft)", color:"var(--text)", fontSize:12, fontWeight:600,
                         cursor:"pointer", fontFamily:"inherit", transition:"all 0.12s",
                       }}
-                        onMouseEnter={e => { e.currentTarget.style.background="#eff6ff"; e.currentTarget.style.borderColor="#bfdbfe"; e.currentTarget.style.color="#046EF2"; }}
-                        onMouseLeave={e => { e.currentTarget.style.background="#f8f9fb"; e.currentTarget.style.borderColor="#e5e7eb"; e.currentTarget.style.color="#374151"; }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor="var(--grtheme)"; e.currentTarget.style.color="var(--grtheme)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor="var(--pd-border-light, rgba(17,17,17,0.07))"; e.currentTarget.style.color="var(--text)"; }}
                       >{chip}</button>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Messages */}
               {messages.map(m => {
                 const isMe = m.senderId === user?.uid;
                 return (
@@ -220,14 +264,14 @@ export default function ChatModal({ shop, product, onClose }) {
                     <div style={{
                       maxWidth: "78%", padding: "9px 13px",
                       borderRadius: isMe ? "14px 14px 3px 14px" : "14px 14px 14px 3px",
-                      background: isMe ? "#111" : "#f4f4f4",
-                      color: isMe ? "#fff" : "#111",
+                      background: isMe ? "var(--text)" : "var(--soft)",
+                      color: isMe ? "var(--bg)" : "var(--text)",
                       fontSize: 13, fontWeight: 500, lineHeight: 1.55,
                     }}>
                       {m.text}
                       {m.isAiReply && <span style={{ fontSize:9, opacity:0.6, marginLeft:6 }}>✨ AI</span>}
                     </div>
-                    <div style={{ fontSize:10, color:"#c0c0c0", marginTop:3, paddingLeft: isMe?0:4, paddingRight: isMe?4:0 }}>
+                    <div style={{ fontSize:10, color:"var(--muted)", marginTop:3, paddingLeft: isMe?0:4, paddingRight: isMe?4:0 }}>
                       {fmtTime(m.createdAt)}
                     </div>
                   </div>
@@ -238,12 +282,12 @@ export default function ChatModal({ shop, product, onClose }) {
           )}
         </div>
 
-        {/* ── Input row — flexShrink:0 keeps it pinned at bottom ── */}
+        {/* ── Input row ── */}
         {user && !loading && (
           <div style={{
             padding: "10px 14px 14px",
-            borderTop: "1px solid #f5f5f5",
-            flexShrink: 0, background: "#fff",
+            borderTop: "1px solid var(--pd-border-light, rgba(17,17,17,0.07))",
+            flexShrink: 0, background: "var(--card)",
           }}>
             <div style={{ display:"flex", alignItems:"flex-end", gap:8 }}>
               <textarea
@@ -255,20 +299,20 @@ export default function ChatModal({ shop, product, onClose }) {
                 rows={1}
                 disabled={sending}
                 style={{
-                  flex:1, background:"#f8f9fb", border:"1px solid #e5e7eb",
-                  borderRadius:10, color:"#111", fontSize:13, fontWeight:600,
+                  flex:1, background:"var(--soft)", border:"1px solid var(--pd-border-light, rgba(17,17,17,0.07))",
+                  borderRadius:10, color:"var(--text)", fontSize:13, fontWeight:600,
                   padding:"10px 12px", resize:"none", outline:"none",
                   lineHeight:1.5, maxHeight:100, overflowY:"auto",
-                  fontFamily:"Nunito,sans-serif", transition:"border-color 0.15s,box-shadow 0.15s",
+                  fontFamily:"inherit", transition:"border-color 0.15s,box-shadow 0.15s",
                 }}
-                onFocus={e => { e.target.style.borderColor="#046EF2"; e.target.style.boxShadow="0 0 0 3px rgba(4,110,242,0.10)"; }}
-                onBlur={e  => { e.target.style.borderColor="#e5e7eb"; e.target.style.boxShadow="none"; }}
+                onFocus={e => { e.target.style.borderColor="var(--grtheme)"; e.target.style.boxShadow="0 0 0 3px var(--pd-blue-bg, rgba(4,110,242,0.10))"; }}
+                onBlur={e  => { e.target.style.borderColor="var(--pd-border-light, rgba(17,17,17,0.07))"; e.target.style.boxShadow="none"; }}
               />
               <button onClick={() => handleSend()} disabled={!input.trim() || sending}
                 style={{
                   width:38, height:38, borderRadius:10, border:"none", flexShrink:0,
-                  background: input.trim() && !sending ? "#046EF2" : "#f0f0f0",
-                  color: input.trim() && !sending ? "#fff" : "#9ca3af",
+                  background: input.trim() && !sending ? "var(--grtheme)" : "var(--soft)",
+                  color: input.trim() && !sending ? "#fff" : "var(--muted)",
                   display:"flex", alignItems:"center", justifyContent:"center",
                   cursor: input.trim() && !sending ? "pointer" : "not-allowed",
                   transition:"all 0.15s",
@@ -279,7 +323,7 @@ export default function ChatModal({ shop, product, onClose }) {
                 }
               </button>
             </div>
-            <div style={{ fontSize:10, color:"#d1d5db", textAlign:"center", marginTop:6, fontWeight:600 }}>
+            <div style={{ fontSize:10, color:"var(--muted)", textAlign:"center", marginTop:6, fontWeight:600 }}>
               Enter to send · Shift+Enter for new line
             </div>
           </div>
@@ -287,9 +331,10 @@ export default function ChatModal({ shop, product, onClose }) {
       </div>
 
       <style>{`
-        @keyframes cm-fade  { from { opacity:0 }              to { opacity:1 } }
-        @keyframes cm-slide { from { transform:translateX(100%) } to { transform:translateX(0) } }
-        @keyframes cm-spin  { to   { transform:rotate(360deg) } }
+        @keyframes cm-fade      { from { opacity:0 }                  to { opacity:1 } }
+        @keyframes cm-slide-in  { from { transform:translateX(100%) } to { transform:translateX(0) } }
+        @keyframes cm-slide-up  { from { transform:translateY(100%) } to { transform:translateY(0) } }
+        @keyframes cm-spin      { to   { transform:rotate(360deg) } }
       `}</style>
     </>
   );
