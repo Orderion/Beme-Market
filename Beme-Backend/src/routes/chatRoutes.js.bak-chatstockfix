@@ -127,14 +127,8 @@ router.post("/auto-reply", async (req, res) => {
       history.push({ role: "user", content: message });
     }
 
-    // B — Smart context: fetch product details if productName provided.
-    // hasProductContext is true ONLY when a real Firestore document was
-    // resolved — this lets the system prompt below distinguish "I know
-    // the real stock status" from "I am guessing", instead of always
-    // defaulting to a reassuring "yes it is available" answer.
+    // B — Smart context: fetch product details if productName provided
     let productContext = "";
-    let hasProductContext = false;
-    let productInStock = null;
     if (productName) {
       try {
         const pSnap = await db.collection("Products")
@@ -144,15 +138,12 @@ router.post("/auto-reply", async (req, res) => {
           .get();
         if (!pSnap.empty) {
           const p = pSnap.docs[0].data();
-          productInStock = p.inStock !== false;
-          const stockNote = p.stock !== undefined && p.stock !== null ? ` (${p.stock} units left)` : "";
-          productContext = `\n\nProduct the customer is asking about:\n- Name: ${p.name || productName}\n- Price: GHS ${p.price || "?"}\n- Description: ${(p.description || "").slice(0, 200)}\n- In Stock: ${productInStock ? "Yes" + stockNote : "No, currently out of stock"}`;
-          hasProductContext = true;
+          productContext = `\n\nProduct the customer is asking about:\n- Name: ${p.name || productName}\n- Price: GHS ${p.price || "?"}\n- Description: ${(p.description || "").slice(0, 200)}\n- In Stock: ${p.inStock !== false ? "Yes" : "No"}`;
         } else {
-          productContext = `\n\nCustomer is asking about: ${productName}. No exact product record was found, so do not state availability or stock as fact.`;
+          productContext = `\n\nCustomer is asking about: ${productName}`;
         }
       } catch {
-        productContext = `\n\nCustomer is asking about: ${productName}. Product lookup failed, so do not state availability or stock as fact.`;
+        productContext = `\n\nCustomer is asking about: ${productName}`;
       }
     }
 
@@ -167,10 +158,7 @@ Guidelines:
 - Use GHS for prices when mentioning money
 - If you don't know something specific, say the seller will get back to them shortly
 - For delivery questions: default answer is 1-3 days in Ghana
-- For availability/stock questions: answer truthfully based on the "In Stock" line in the product context above
-  - If it says "In Stock: Yes" — confirm availability and invite them to order
-  - If it says "In Stock: No" — say it is currently out of stock, do NOT claim it is available, and suggest they check back or ask about similar items
-  - If no product context is given at all — say you do not have exact stock details for that item right now and the seller will confirm shortly
+- For availability questions: say "Yes, it's available! You can order it directly from our store."
 - Never make up specific prices or stock numbers you don't know
 - End with a helpful call to action when appropriate
 ${productContext}
