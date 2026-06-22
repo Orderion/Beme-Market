@@ -1,20 +1,24 @@
 // src/components/ChatModal.jsx
 //
-// REDESIGN — Beme UI fix:
-// 1. All hardcoded colors (#fff, #111, #046EF2, #9ca3af, etc.) replaced
-//    with theme variables (var(--card), var(--text), var(--grtheme),
-//    var(--muted), var(--soft)) so this respects light/dark mode like
-//    the rest of the app — it previously always rendered white/black
-//    regardless of theme.
-// 2. Desktop (>768px): right-side slide-in panel — kept, but cleaned up
-//    spacing and made width responsive with max-width instead of a
-//    fixed min().
-// 3. Mobile (<=768px): now a BOTTOM SHEET that slides up from the
-//    bottom, rounded top corners only, ~85vh max height — instead of
-//    a right-side panel competing for space on a small screen. This
-//    matches the bottom-sheet pattern (e.g. Wish's login sheet) rather
-//    than a desktop-style side panel squeezed onto mobile.
+// FIX (this revision):
+// 1. Now renders via createPortal(..., document.body) — this is the real
+//    fix for "position: fixed isn't behaving like fixed" and "the dimmed
+//    backdrop doesn't cover the full screen". Both of those symptoms point
+//    to an ANCESTOR element somewhere in the component tree having a CSS
+//    transform/filter/will-change property, which makes that ancestor the
+//    containing block for fixed-position descendants instead of the
+//    viewport. Rendering straight to document.body via a portal sidesteps
+//    that entirely, regardless of where <ChatModal> is mounted.
+// 2. Desktop panel is now a centered box at ~80vh height (not edge-to-edge
+//    top:0/bottom:0) — you can see clear space above and below it, like a
+//    standard modal, instead of it filling the whole viewport height.
+// 3. Rounded corners on all four sides now (previously only the left side
+//    was rounded, since it assumed it always touched the right edge).
+//
+// Everything else (theme vars, mobile bottom sheet, chat logic) is
+// unchanged from the previous revision.
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { getAuth } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { getOrCreateChat, sendMessage, subscribeToMessages, markChatRead } from "../services/chatService";
@@ -125,9 +129,9 @@ export default function ChatModal({ shop, product, onClose }) {
     finally { setSending(false); setTimeout(() => inputRef.current?.focus(), 50); }
   };
 
-  // ── Panel positioning — the only structural difference between
-  //    desktop and mobile. Everything else (header, messages, input)
-  //    is shared markup. ──
+  // ── Panel positioning ──
+  // Desktop: centered box, ~80vh tall, rounded on all four corners.
+  // Mobile:  bottom sheet, rounded top corners only.
   const panelStyle = isMobile
     ? {
         position: "fixed", left: 0, right: 0, bottom: 0,
@@ -144,25 +148,27 @@ export default function ChatModal({ shop, product, onClose }) {
         overflow: "hidden",
       }
     : {
-        position: "fixed", top: 0, right: 0, bottom: 0,
-        width: "100%", maxWidth: 400,
+        position: "fixed", top: "50%", right: 24,
+        transform: "translateY(-50%)",
+        width: "min(400px, calc(100vw - 48px))",
+        height: "80vh", maxHeight: 720,
         background: "var(--card)",
-        borderRadius: "16px 0 0 16px",
-        boxShadow: "-8px 0 40px rgba(0,0,0,0.13)",
+        borderRadius: 18,
+        boxShadow: "0 16px 60px rgba(0,0,0,0.22)",
         border: "1px solid var(--pd-border, rgba(17,17,17,0.1))",
-        borderRight: "none",
         zIndex: 9990,
         display: "flex", flexDirection: "column",
-        animation: "cm-slide-in 0.28s cubic-bezier(0.22,1,0.36,1)",
+        animation: "cm-pop-in 0.22s cubic-bezier(0.22,1,0.36,1)",
         fontFamily: "var(--font-main,'Nunito',sans-serif)",
         overflow: "hidden",
       };
 
-  return (
+  const modalContent = (
     <>
-      {/* Dim backdrop */}
+      {/* Dim backdrop — fixed + inset:0, rendered via portal so no ancestor
+          transform/filter can ever shrink or reposition it */}
       <div onClick={onClose} style={{
-        position: "fixed", inset: 0,
+        position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
         background: "rgba(0,0,0,0.32)",
         zIndex: 9980,
         animation: "cm-fade 0.2s ease",
@@ -332,10 +338,16 @@ export default function ChatModal({ shop, product, onClose }) {
 
       <style>{`
         @keyframes cm-fade      { from { opacity:0 }                  to { opacity:1 } }
-        @keyframes cm-slide-in  { from { transform:translateX(100%) } to { transform:translateX(0) } }
         @keyframes cm-slide-up  { from { transform:translateY(100%) } to { transform:translateY(0) } }
+        @keyframes cm-pop-in    { from { opacity:0; transform:translateY(-50%) scale(0.96) } to { opacity:1; transform:translateY(-50%) scale(1) } }
         @keyframes cm-spin      { to   { transform:rotate(360deg) } }
       `}</style>
     </>
   );
+
+  // Render to document.body via portal — guarantees this is never nested
+  // inside an ancestor with transform/filter/will-change, which is the
+  // classic cause of position:fixed silently behaving like position:absolute
+  // relative to that ancestor instead of the viewport.
+  return createPortal(modalContent, document.body);
 }
