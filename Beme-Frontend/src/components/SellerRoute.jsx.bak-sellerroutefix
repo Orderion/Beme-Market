@@ -14,24 +14,16 @@
 //
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useSellerAuth } from "../hooks/useSellerAuth";
 
 // Key used by SubscriptionSuccess to signal onboarding completion
 export const SELLER_APPLIED_KEY = "beme_seller_applied";
 
 export default function SellerRoute({ children, requireOnly }) {
   const { user, role, loading } = useAuth();
-  // ONBOARDING FIX: only needed for the seller-only mode below, but
-  // calling it unconditionally keeps hook order stable across renders.
-  const { shop, hasShop, isSeller: hasSellerFlag, loading: sellerAuthLoading } = useSellerAuth();
   const location = useLocation();
 
-  // Wait for auth to resolve. For seller-only mode we also wait on
-  // useSellerAuth()'s own loading — otherwise a legitimate seller could
-  // be redirected away during the brief window before shop/hasShop data
-  // has actually loaded from Firestore.
-  const stillLoading = loading || (requireOnly !== "auth" && sellerAuthLoading);
-  if (stillLoading) {
+  // Wait for auth to resolve
+  if (loading) {
     return (
       <div style={{
         minHeight: "100vh",
@@ -61,21 +53,20 @@ export default function SellerRoute({ children, requireOnly }) {
   }
 
   // ── Mode 2: seller-only ───────────────────────────────────────────────────
-  // ONBOARDING FIX: gate on whether the account GENUINELY has a store
-  // (a real shop document, or role already flipped to "seller"), instead
-  // of trusting localStorage[SELLER_APPLIED_KEY] — that flag is set
-  // client-side with no server validation, and was letting accounts with
-  // only a stuck/incomplete application (no real store) reach the
-  // dashboard by typing the URL directly. Accounts without a genuine
-  // store now always fall back to /get-a-store, which itself correctly
-  // shows either the create-a-store page or the "application incomplete"
-  // message, depending on whether they have a stuck attempt.
-  const genuinelyHasStore = role === "seller" || hasSellerFlag || hasShop || !!shop?.id;
-  if (genuinelyHasStore) {
+  // Check 1: Firestore role is "seller" (set by Cloud Function after payment)
+  if (role === "seller") {
     return children;
   }
 
-  // No real store — fall back to Get a Store (handles both "never
-  // started" and "stuck/incomplete application" states correctly).
+  // Check 2: User just completed onboarding on this device.
+  // SubscriptionSuccess sets localStorage[SELLER_APPLIED_KEY] = uid.
+  // This allows dashboard access until Cloud Functions are deployed and
+  // Firestore role is updated to "seller".
+  const appliedUid = localStorage.getItem(SELLER_APPLIED_KEY);
+  if (appliedUid && appliedUid === user.uid) {
+    return children;
+  }
+
+  // Not a seller and hasn't completed onboarding → back to Get a Store
   return <Navigate to="/get-a-store" replace />;
 }
