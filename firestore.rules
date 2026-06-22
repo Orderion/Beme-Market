@@ -240,7 +240,9 @@ service cloud.firestore {
       // ONBOARDING FIX: saveApplicationStep() writes a field named
       // "step1"/"step2"/"step3"/"step4" (the step NUMBER is part of the
       // key), not a field literally named "step" — that mismatch caused
-      // every onboarding step save to be rejected by these rules.
+      // every onboarding step save to be rejected by these rules, which
+      // is why sellers got stuck on "Failed to save" and never progressed
+      // past step 1 of the "Get a Store" flow.
       return request.resource.data.keys().hasOnly([
         "storeName","storeSlug","storeDescription","storeCategory",
         "storeLocation","storePhone","storeEmail","storeLogo","storeBanner",

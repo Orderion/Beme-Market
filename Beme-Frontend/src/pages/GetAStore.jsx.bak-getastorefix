@@ -674,63 +674,15 @@ function SellerGuide() {
 export default function GetAStore() {
   const navigate = useNavigate();
   const { user, isSellerActive } = useAuth();
-  const { shop, isSeller, hasApplication, hasShop, onboardingComplete } = useSellerAuth();
+  const { shop, isSeller } = useSellerAuth();
   const [billing, setBilling] = useState("monthly");
   const prices = billing === "yearly" ? YEARLY : MONTHLY;
 
-  // ONBOARDING FIX: split into two distinct states instead of one
-  // conflated "hasStore" check. A genuinely completed store (real
-  // shop doc, or role already flipped to seller) is different from
-  // a stuck/incomplete application — the latter should let the user
-  // continue setup, not be told they already have a store.
+  // One store per account — block access if user already has one
   const appliedUid = typeof window !== "undefined" ? localStorage.getItem("beme_seller_applied") : null;
-  const genuinelyHasStore = !!(shop?.id || hasShop || isSeller);
-  const hasStuckApplication = !genuinelyHasStore && !!(hasApplication || (appliedUid && user && appliedUid === user?.uid));
-  const hasStore = genuinelyHasStore || hasStuckApplication;
+  const hasStore = !!(shop?.id || isSeller || isSellerActive || (appliedUid && user && appliedUid === user?.uid));
 
-  if (user && hasStuckApplication) {
-    return (
-      <div style={{ minHeight: "70vh", display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center", padding: 32,
-        fontFamily: "var(--font-main,'Nunito',sans-serif)", textAlign: "center" }}>
-        <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(245,158,11,0.1)",
-          display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="17" r="1" fill="#F59E0B" stroke="none"/>
-          </svg>
-        </div>
-        <h2 style={{ fontSize: 22, fontWeight: 900, color: "var(--text,#111)", marginBottom: 10, letterSpacing: "-0.02em" }}>
-          Your store application is incomplete
-        </h2>
-        <p style={{ fontSize: 15, color: "var(--muted,#6B7280)", maxWidth: 340, lineHeight: 1.6, marginBottom: 8 }}>
-          You started setting up a store but didn't finish. You don't have an active store yet —
-          let's pick up where you left off.
-        </p>
-        <p style={{ fontSize: 13, color: "var(--muted,#9CA3AF)", maxWidth: 320, lineHeight: 1.5, marginBottom: 28 }}>
-          If this keeps happening, contact support and we'll sort it out.
-        </p>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-          <button type="button" onClick={() => navigate("/store-onboarding")}
-            style={{ padding: "12px 28px", borderRadius: 12, border: "none",
-              background: "#F59E0B", color: "#fff", fontSize: 15, fontWeight: 800,
-              cursor: "pointer", fontFamily: "inherit",
-              boxShadow: "0 4px 14px rgba(245,158,11,0.3)" }}>
-            Continue Setup
-          </button>
-          <button type="button" onClick={() => navigate("/support")}
-            style={{ padding: "12px 28px", borderRadius: 12,
-              border: "1.5px solid rgba(0,0,0,0.1)", background: "transparent",
-              color: "var(--text,#333)", fontSize: 15, fontWeight: 700,
-              cursor: "pointer", fontFamily: "inherit" }}>
-            Contact Support
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (user && genuinelyHasStore) {
+  if (user && hasStore) {
     return (
       <div style={{ minHeight: "70vh", display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center", padding: 32,

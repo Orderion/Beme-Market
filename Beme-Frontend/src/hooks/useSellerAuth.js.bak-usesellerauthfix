@@ -116,12 +116,5 @@ export function useSellerAuth() {
     sellerData,
     appData,
     loading,
-    // ONBOARDING FIX: exposed so callers (e.g. GetAStore.jsx) can tell
-    // "genuinely has a real shop" apart from "only has an incomplete
-    // storeApplications doc" — isSellerActive alone conflates both,
-    // since it's isSeller || hasApplication || hasShop.
-    hasApplication,
-    hasShop,
-    onboardingComplete: appData?.onboardingComplete === true,
   };
 }
