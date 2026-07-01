@@ -1,9 +1,12 @@
 /* ============================================================
    FILE: src/components/LoaderOverlay.css
-   - Dot orbits in a perfect circle using linear timing (no stop/go)
-   - Color transitions at 0.3s to keep up with 0.5s cycle
-   - Blob morphs shape continuously
+   BEME wordmark — wavy blue water fill animation
+
+   NOTE: Add Big Shoulders Display to your index.html <link>:
+   https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@900&display=swap
 ============================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@900&display=swap");
 
 /* ── Overlay ── */
 .ldr-overlay {
@@ -49,104 +52,69 @@ body.dark .ldr-backdrop {
 }
 
 /* ════════════════════════════════════════
-   STAGE
+   WORDMARK SVG
 ════════════════════════════════════════ */
-.ldr-stage {
-  position: relative;
-  width: 220px;
-  height: 220px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.ldr-wordmark {
+  width: 80%;
+  max-width: 300px;
+  height: auto;
+  display: block;
+}
+
+/* Outline strokes: solid black in light, solid white in dark — no greys */
+.ldr-beme-outline {
+  stroke: #111111;
+}
+body.dark .ldr-beme-outline {
+  stroke: #ffffff;
 }
 
 /* ════════════════════════════════════════
-   BLOB
+   WATER RISE
+   Linear easing on the climb = steady, gradual fill
+   8s total: ~5s rise → ~1s hold → ~2s drain
 ════════════════════════════════════════ */
-.ldr-blob {
-  width: 86px;
-  height: 86px;
-  border-radius: 50%;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* fast color swap to keep up with 500ms cycle */
-  transition: background 0.28s ease;
-  will-change: border-radius;
-  animation: ldr-blob-morph 3.4s ease-in-out infinite;
+.ldr-rise {
+  animation: ldr-rise 8s infinite;
 }
-
-@keyframes ldr-blob-morph {
-  0%,  100% { border-radius: 50%; }
-  20%        { border-radius: 64% 36% 56% 44% / 44% 56% 46% 54%; }
-  40%        { border-radius: 50%; }
-  60%        { border-radius: 44% 56% 44% 56% / 60% 40% 56% 44%; }
-  80%        { border-radius: 50%; }
+@keyframes ldr-rise {
+  0%   { transform: translateY(165px); animation-timing-function: linear;       }
+  62%  { transform: translateY(-35px); animation-timing-function: ease-in-out;  }
+  75%  { transform: translateY(-35px); animation-timing-function: ease-in;      }
+  100% { transform: translateY(165px);                                           }
 }
-
-/* ── Icon inside blob ── */
-.ldr-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 1;
-  /* fast icon crossfade */
-  transition: opacity 0.12s ease;
-  pointer-events: none;
-  flex-shrink: 0;
-}
-.ldr-icon--out { opacity: 0; }
-.ldr-icon svg  { width: 100%; height: 100%; display: block; }
 
 /* ════════════════════════════════════════
-   ORBITING DOT
-   
-   Uses LINEAR timing so it moves at a
-   perfectly constant speed — no stop/go.
-   
-   Keyframes are 8 evenly-spaced points on a
-   circle of radius 62px, spaced 45° apart:
-     angle 0°   → ( 62,   0)
-     angle 45°  → ( 44,  44)   62 × cos/sin 45° ≈ 43.8
-     angle 90°  → (  0,  62)
-     angle 135° → (-44,  44)
-     angle 180° → (-62,   0)
-     angle 225° → (-44, -44)
-     angle 270° → (  0, -62)
-     angle 315° → ( 44, -44)
-     angle 360° → ( 62,   0)  ← same as 0°, seamless loop
+   WAVE RIPPLE
+   Scrolls one full wave period (160px) on a 2.2s loop.
+   Runs independently of the rise so the surface
+   is always moving even as it climbs.
 ════════════════════════════════════════ */
-.ldr-dot {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  margin: -12px 0 0 -12px;
-  /* fast color swap, matches blob */
-  transition: background 0.28s ease;
-  will-change: transform;
-  /* LINEAR = constant angular velocity = smooth circle */
-  animation: ldr-dot-orbit 1.8s linear infinite;
+.ldr-ripple {
+  animation: ldr-ripple 2.2s linear infinite;
+}
+@keyframes ldr-ripple {
+  from { transform: translateX(0);      }
+  to   { transform: translateX(-160px); }
 }
 
-@keyframes ldr-dot-orbit {
-  0%      { transform: translate( 62px,   0px); }
-  12.5%   { transform: translate( 44px,  44px); }
-  25%     { transform: translate(  0px,  62px); }
-  37.5%   { transform: translate(-44px,  44px); }
-  50%     { transform: translate(-62px,   0px); }
-  62.5%   { transform: translate(-44px, -44px); }
-  75%     { transform: translate(  0px, -62px); }
-  87.5%   { transform: translate( 44px, -44px); }
-  100%    { transform: translate( 62px,   0px); }
+/* ════════════════════════════════════════
+   BUBBLES
+════════════════════════════════════════ */
+.ldr-bub {
+  animation: ldr-bub 5.5s ease-in infinite;
+  opacity: 0;
+}
+.ldr-bub--1 { animation-delay: 0.3s; }
+.ldr-bub--2 { animation-delay: 2.1s; }
+.ldr-bub--3 { animation-delay: 1.1s; }
+.ldr-bub--4 { animation-delay: 3.4s; }
+
+@keyframes ldr-bub {
+  0%   { transform: translateY(145px); opacity: 0;    }
+  10%  {                               opacity: 0.75; }
+  85%  {                               opacity: 0.2;  }
+  100% { transform: translateY(-20px); opacity: 0;    }
 }
 
 /* ════════════════════════════════════════
@@ -159,36 +127,30 @@ body.dark .ldr-backdrop {
   gap: 6px;
 }
 
-.ldr-brand {
-  font-family: var(--font-main, "Nunito", system-ui, sans-serif);
-  font-size: 16px;
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  color: var(--text, #111111);
-  transition: color 0.4s ease;
-  user-select: none;
-}
-body.dark .ldr-brand { color: var(--text, #f0f0f0); }
-
 .ldr-phrase {
-  font-family: var(--font-main, "Nunito", system-ui, sans-serif);
+  font-family: var(--font-main, "Big Shoulders Display", system-ui, sans-serif);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 800;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--muted, #aaaaaa);
+  color: #111111;
   text-align: center;
   max-width: 260px;
   min-height: 16px;
   opacity: 1;
   transform: translateY(0);
-  transition: opacity 0.3s ease, transform 0.3s ease, color 0.4s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
   user-select: none;
 }
-body.dark .ldr-phrase { color: var(--muted, #555555); }
-.ldr-phrase--out { opacity: 0; transform: translateY(5px); }
+body.dark .ldr-phrase {
+  color: #ffffff;
+}
+.ldr-phrase--out {
+  opacity: 0;
+  transform: translateY(5px);
+}
 
-/* Tick dots */
+/* ── Tick dots ── */
 .ldr-tick-dots {
   display: flex;
   gap: 5px;
@@ -199,12 +161,12 @@ body.dark .ldr-phrase { color: var(--muted, #555555); }
   width: 3.5px;
   height: 3.5px;
   border-radius: 50%;
-  background: var(--text, #111111);
-  opacity: 0.14;
-  transition: background 0.4s ease;
+  background: #111111;
   animation: ldr-td-pulse 1.5s ease-in-out infinite;
 }
-body.dark .ldr-td { background: var(--text, #f0f0f0); }
+body.dark .ldr-td {
+  background: #ffffff;
+}
 .ldr-td--1 { animation-delay:   0ms; }
 .ldr-td--2 { animation-delay: 200ms; }
 .ldr-td--3 { animation-delay: 400ms; }
@@ -216,7 +178,10 @@ body.dark .ldr-td { background: var(--text, #f0f0f0); }
 
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
-  .ldr-blob, .ldr-dot, .ldr-td, .ldr-center { animation: none !important; }
-  .ldr-dot    { transform: translate(55px, -20px); }
-  .ldr-icon, .ldr-phrase { transition: none !important; }
+  .ldr-rise,
+  .ldr-ripple,
+  .ldr-bub,
+  .ldr-td,
+  .ldr-center { animation: none !important; }
+  .ldr-phrase { transition: none !important; }
 }
