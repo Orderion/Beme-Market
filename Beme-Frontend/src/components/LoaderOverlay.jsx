@@ -1,26 +1,12 @@
 /* ============================================================
    FILE: src/components/LoaderOverlay.jsx
-   Blob loader — colored morphing blob + smooth orbiting dot
-   - Color + icon cycles every 0.5s, starting from blue
-   - Dot orbits in a perfect smooth circle (no stop/go)
-   - Dark/light mode via CSS vars
+   BEME wordmark — blue wavy water fills letters from the bottom
+   - Wave ripples horizontally while rising (two independent anims)
+   - Outline: solid black (light) / solid white (dark)
+   - Phrase carousel + tick dots — logic unchanged
 ============================================================ */
 import { useEffect, useState } from "react";
 import "./LoaderOverlay.css";
-
-/* ── Cycles: start from blue, change every 500ms ── */
-const CYCLES = [
-  { color: "#2BBFD9", icon: "phone"      }, // blue   ← start
-  { color: "#F5C400", icon: "shirt"      }, // yellow
-  { color: "#8BC400", icon: "headphones" }, // lime
-  { color: "#E84040", icon: "sneaker"    }, // red
-  { color: "#FF8C00", icon: "shirt"      }, // orange
-  { color: "#E8408C", icon: "sneaker"    }, // pink
-  { color: "#046EF2", icon: "phone"      }, // deep blue
-  { color: "#8BC400", icon: "headphones" }, // lime
-  { color: "#F5C400", icon: "shirt"      }, // yellow
-  { color: "#E84040", icon: "sneaker"    }, // coral
-];
 
 const PHRASES = [
   "Preparing your marketplace...",
@@ -33,51 +19,6 @@ const PHRASES = [
   "Securing your experience...",
 ];
 
-/* ── Icons ── */
-function ShirtIcon() {
-  return (
-    <svg viewBox="0 0 32 28" fill="none" stroke="white" strokeWidth="1.9"
-      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 2C13 4.5 14.5 5.5 16 5.5C17.5 5.5 19 4.5 20 2L30 8.5L26 13.5V26H6V13.5L2 8.5Z"/>
-    </svg>
-  );
-}
-function HeadphonesIcon() {
-  return (
-    <svg viewBox="0 0 28 24" fill="none" stroke="white" strokeWidth="1.9"
-      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 13a11 11 0 0 1 22 0"/>
-      <rect x="1.5" y="12" width="5" height="9" rx="2.5"/>
-      <rect x="21.5" y="12" width="5" height="9" rx="2.5"/>
-    </svg>
-  );
-}
-function SneakerIcon() {
-  return (
-    <svg viewBox="0 0 36 22" fill="none" stroke="white" strokeWidth="1.9"
-      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M2 15.5C2 15.5 4 7.5 10.5 6H19L26 3C31 1.5 34.5 4.5 34.5 9.5L34.5 14C28 19 18 19.5 10 19.5H5.5C3.5 19.5 2 17.5 2 15.5Z"/>
-      <path d="M13 6L16 11.5M19 6L19 11.5" strokeWidth="1.5"/>
-    </svg>
-  );
-}
-function PhoneIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.9"
-      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="5" y="2" width="14" height="20" rx="3"/>
-      <circle cx="12" cy="18.5" r="1.1" fill="white" stroke="none"/>
-    </svg>
-  );
-}
-
-const ICON_MAP = {
-  shirt:      <ShirtIcon/>,
-  headphones: <HeadphonesIcon/>,
-  sneaker:    <SneakerIcon/>,
-  phone:      <PhoneIcon/>,
-};
-
 /* ════════════════════════════════════════
    MAIN COMPONENT
 ════════════════════════════════════════ */
@@ -89,11 +30,9 @@ export default function LoaderOverlay({
 }) {
   const visible = typeof isVisible !== "undefined" ? isVisible : show;
 
-  const [render,      setRender]      = useState(false);
-  const [cycleIdx,    setCycleIdx]    = useState(0);
-  const [phraseIdx,   setPhraseIdx]   = useState(0);
-  const [iconVisible, setIconVisible] = useState(true);
-  const [phraseIn,    setPhraseIn]    = useState(true);
+  const [render,    setRender]    = useState(false);
+  const [phraseIdx, setPhraseIdx] = useState(0);
+  const [phraseIn,  setPhraseIn]  = useState(true);
 
   /* Mount / unmount with exit-animation delay */
   useEffect(() => {
@@ -101,19 +40,6 @@ export default function LoaderOverlay({
     if (visible) { setRender(true); }
     else         { t = setTimeout(() => setRender(false), 400); }
     return () => clearTimeout(t);
-  }, [visible]);
-
-  /* Color + icon — every 500ms */
-  useEffect(() => {
-    if (!visible) return;
-    const id = setInterval(() => {
-      setIconVisible(false);
-      setTimeout(() => {
-        setCycleIdx(i => (i + 1) % CYCLES.length);
-        setIconVisible(true);
-      }, 120); // fast crossfade
-    }, 500);
-    return () => clearInterval(id);
   }, [visible]);
 
   /* Phrase — every 2.8s */
@@ -131,8 +57,6 @@ export default function LoaderOverlay({
 
   if (!render) return null;
 
-  const { color, icon } = CYCLES[cycleIdx];
-
   return (
     <div
       className={`ldr-overlay${visible ? " ldr-overlay--show" : ""}`}
@@ -141,30 +65,88 @@ export default function LoaderOverlay({
       aria-busy={visible}
       aria-label={`${subtext} loading`}
     >
-      <div className="ldr-backdrop"/>
+      <div className="ldr-backdrop" />
 
       <div className="ldr-center">
 
-        {/* Stage */}
-        <div className="ldr-stage" aria-hidden="true">
-          <div className="ldr-blob" style={{ background: color }}>
-            <span className={`ldr-icon${iconVisible ? "" : " ldr-icon--out"}`}>
-              {ICON_MAP[icon]}
-            </span>
-          </div>
-          <div className="ldr-dot" style={{ background: color }}/>
-        </div>
+        {/* ── BEME wordmark with wavy water fill ── */}
+        <svg
+          className="ldr-wordmark"
+          viewBox="0 0 400 130"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient id="ldr-blue-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stopColor="#8FE3FF" />
+              <stop offset="48%"  stopColor="#2BBFD9" />
+              <stop offset="100%" stopColor="#0B57D6" />
+            </linearGradient>
 
-        {/* Caption */}
+            {/* Clip to the exact letter shapes */}
+            <clipPath id="ldr-beme-clip">
+              <text
+                x="200" y="108"
+                textAnchor="middle"
+                fontFamily="'Big Shoulders Display', system-ui, sans-serif"
+                fontWeight="900"
+                fontSize="105"
+              >BEME</text>
+            </clipPath>
+          </defs>
+
+          {/* Letter outlines — black in light, white in dark */}
+          <text
+            x="200" y="108"
+            textAnchor="middle"
+            fontFamily="'Big Shoulders Display', system-ui, sans-serif"
+            fontWeight="900"
+            fontSize="105"
+            fill="none"
+            className="ldr-beme-outline"
+            strokeWidth="2.5"
+            strokeLinejoin="miter"
+            strokeMiterlimit="10"
+          >BEME</text>
+
+          {/* Water fill — clipped to letter shapes */}
+          <g clipPath="url(#ldr-beme-clip)">
+            <g className="ldr-rise">
+
+              {/* Wave path scrolls horizontally while parent rises */}
+              <g className="ldr-ripple">
+                <path
+                  d="M -320,0
+                     C -267,-15 -213,15 -160,0
+                     C -107,-15  -53,15    0,0
+                     C   53,-15  107,15  160,0
+                     C  213,-15  267,15  320,0
+                     C  373,-15  427,15  480,0
+                     C  533,-15  587,15  640,0
+                     C  693,-15  747,15  800,0
+                     L 800,220 L -320,220 Z"
+                  fill="url(#ldr-blue-grad)"
+                />
+              </g>
+
+              {/* Rising bubbles inside letters */}
+              <circle className="ldr-bub ldr-bub--1" cx="72"  r="3.5" fill="rgba(255,255,255,.6)" />
+              <circle className="ldr-bub ldr-bub--2" cx="158" r="2.5" fill="rgba(255,255,255,.5)" />
+              <circle className="ldr-bub ldr-bub--3" cx="262" r="3"   fill="rgba(255,255,255,.55)" />
+              <circle className="ldr-bub ldr-bub--4" cx="338" r="2.8" fill="rgba(255,255,255,.5)" />
+            </g>
+          </g>
+        </svg>
+
+        {/* ── Caption ── */}
         <div className="ldr-caption">
-          <span className="ldr-brand">{subtext}</span>
           <span className={`ldr-phrase${phraseIn ? "" : " ldr-phrase--out"}`}>
             {label || PHRASES[phraseIdx]}
           </span>
           <span className="ldr-tick-dots" aria-hidden="true">
-            <span className="ldr-td ldr-td--1"/>
-            <span className="ldr-td ldr-td--2"/>
-            <span className="ldr-td ldr-td--3"/>
+            <span className="ldr-td ldr-td--1" />
+            <span className="ldr-td ldr-td--2" />
+            <span className="ldr-td ldr-td--3" />
           </span>
         </div>
 
